@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAotCompatible>true</IsAotCompatible>
+    <AssemblyName>flexrender-cli</AssemblyName>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>flexrender</ToolCommandName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\FlexRender.Yaml\FlexRender.Yaml.csproj" />
+    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode\FlexRender.QrCode.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode\FlexRender.Barcode.csproj" />
+    <ProjectReference Include="..\FlexRender.DependencyInjection\FlexRender.DependencyInjection.csproj" />
+  </ItemGroup>
+
+</Project>

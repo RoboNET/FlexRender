@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FlexRender.Core/FlexRender.Core.csproj" />
+    <Project Path="src/FlexRender.Yaml/FlexRender.Yaml.csproj" />
+    <Project Path="src/FlexRender.Skia/FlexRender.Skia.csproj" />
+    <Project Path="src/FlexRender.QrCode/FlexRender.QrCode.csproj" />
+    <Project Path="src/FlexRender.Barcode/FlexRender.Barcode.csproj" />
+    <Project Path="src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj" />
+    <Project Path="src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj" />
+    <Project Path="src/FlexRender.Cli/FlexRender.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FlexRender.Tests/FlexRender.Tests.csproj" />
+    <Project Path="tests/FlexRender.Cli.Tests/FlexRender.Cli.Tests.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/YamlRenderExample/YamlRenderExample.csproj" />
+    <Project Path="examples/AstRenderExample/AstRenderExample.csproj" />
+  </Folder>
+</Solution>

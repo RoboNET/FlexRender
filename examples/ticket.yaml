@@ -1,0 +1,179 @@
+# Event Ticket Template
+# Demonstrates: padding, background sections, flex align center,
+#   separators, gap, QR code with label
+
+template:
+  name: "event-ticket"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+  semibold: "assets/fonts/Inter-SemiBold.ttf"
+
+canvas:
+  fixed: width
+  width: 360
+  background: "#f0f0f5"
+
+layout:
+  # Event header section with dark background
+  - type: flex
+    background: "#1a1a2e"
+    padding: "24 28 20 28"
+    gap: 6
+    children:
+      - type: text
+        content: "{{eventName}}"
+        font: bold
+        size: 1.5em
+        align: center
+        color: "#ffffff"
+        maxLines: 2
+        wrap: true
+
+      - type: text
+        content: "{{venue}}"
+        size: 0.95em
+        align: center
+        color: "#8888aa"
+
+  # Date, time, and seat info
+  - type: flex
+    padding: "16 28"
+    gap: 12
+    background: "#ffffff"
+    children:
+      # Date and Time in a row
+      - type: flex
+        direction: row
+        gap: 12
+        children:
+          - type: flex
+            width: 144
+            background: "#f5f5fa"
+            padding: "10 14"
+            gap: 2
+            children:
+              - type: text
+                content: "DATE"
+                size: 0.7em
+                color: "#888888"
+              - type: text
+                content: "{{date}}"
+                font: semibold
+                size: 1.05em
+                color: "#1a1a2e"
+
+          - type: flex
+            width: 144
+            background: "#f5f5fa"
+            padding: "10 14"
+            gap: 2
+            children:
+              - type: text
+                content: "TIME"
+                size: 0.7em
+                color: "#888888"
+              - type: text
+                content: "{{time}}"
+                font: semibold
+                size: 1.05em
+                color: "#1a1a2e"
+
+      # Seat info in a row
+      - type: flex
+        direction: row
+        gap: 8
+        children:
+          - type: flex
+            width: 94
+            background: "#f5f5fa"
+            padding: "10 14"
+            gap: 2
+            align: center
+            children:
+              - type: text
+                content: "SECTION"
+                size: 0.7em
+                color: "#888888"
+                align: center
+              - type: text
+                content: "{{section}}"
+                font: bold
+                size: 1.3em
+                color: "#1a1a2e"
+                align: center
+
+          - type: flex
+            width: 94
+            background: "#f5f5fa"
+            padding: "10 14"
+            gap: 2
+            align: center
+            children:
+              - type: text
+                content: "ROW"
+                size: 0.7em
+                color: "#888888"
+                align: center
+              - type: text
+                content: "{{row}}"
+                font: bold
+                size: 1.3em
+                color: "#1a1a2e"
+                align: center
+
+          - type: flex
+            width: 94
+            background: "#f5f5fa"
+            padding: "10 14"
+            gap: 2
+            align: center
+            children:
+              - type: text
+                content: "SEAT"
+                size: 0.7em
+                color: "#888888"
+                align: center
+              - type: text
+                content: "{{seatNumber}}"
+                font: bold
+                size: 1.3em
+                color: "#1a1a2e"
+                align: center
+
+  # Tear line separator
+  - type: separator
+    style: dashed
+    color: "#cccccc"
+    thickness: 1
+
+  # QR Code section
+  - type: flex
+    padding: "16 28 20 28"
+    gap: 8
+    align: center
+    background: "#ffffff"
+    children:
+      - type: qr
+        data: "{{ticketId}}"
+        size: 140
+        errorCorrection: H
+
+      - type: text
+        content: "{{ticketId}}"
+        size: 0.7em
+        color: "#aaaaaa"
+        align: center
+
+      - type: separator
+        style: dotted
+        color: "#dddddd"
+        thickness: 1
+
+      - type: text
+        content: "Present this ticket at the entrance"
+        size: 0.75em
+        align: center
+        color: "#888888"

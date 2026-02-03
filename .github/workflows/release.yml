@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_NOLOGO: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore FlexRender.slnx
+
+      - name: Build
+        run: dotnet build FlexRender.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test FlexRender.slnx --no-build --configuration Release
+
+      - name: Pack NuGet packages
+        run: |
+          for project in \
+            src/FlexRender.Core/FlexRender.Core.csproj \
+            src/FlexRender.Yaml/FlexRender.Yaml.csproj \
+            src/FlexRender.Skia/FlexRender.Skia.csproj \
+            src/FlexRender.QrCode/FlexRender.QrCode.csproj \
+            src/FlexRender.Barcode/FlexRender.Barcode.csproj \
+            src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj \
+            src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj \
+            src/FlexRender.Cli/FlexRender.Cli.csproj; do
+            dotnet pack "$project" \
+              --no-build --configuration Release \
+              -p:Version=${{ steps.version.outputs.VERSION }} \
+              --output ./artifacts
+          done
+
+      - name: Publish to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+          dotnet nuget push ./artifacts/*.snupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: ./artifacts/*.nupkg
