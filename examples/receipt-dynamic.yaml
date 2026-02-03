@@ -1,0 +1,207 @@
+# Dynamic Receipt Template
+# Demonstrates: type: each for dynamic item lists, type: if for conditional rendering
+# This template is caching-friendly - parse once, render with different data
+
+template:
+  name: "receipt-dynamic"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 320
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "24 20"
+    gap: 12
+
+    children:
+      # Header
+      - type: flex
+        gap: 4
+        align: center
+        children:
+          - type: text
+            content: "{{shopName}}"
+            font: bold
+            size: 1.5em
+            align: center
+            color: "#1a1a1a"
+
+          - type: text
+            content: "{{address}}"
+            size: 0.85em
+            align: center
+            color: "#888888"
+
+      - type: separator
+        style: dashed
+        color: "#cccccc"
+        thickness: 1
+
+      # Dynamic items list using type: each
+      - type: flex
+        gap: 6
+        children:
+          - type: each
+            array: items
+            as: item
+            children:
+              - type: flex
+                direction: row
+                justify: space-between
+                children:
+                  - type: flex
+                    direction: column
+                    gap: 2
+                    shrink: 1
+                    children:
+                      - type: text
+                        content: "{{item.name}}"
+                        size: 1em
+                        color: "#333333"
+                      # Show quantity only if > 1
+                      - type: if
+                        condition: item.quantity
+                        then:
+                          - type: text
+                            content: "x{{item.quantity}}"
+                            size: 0.8em
+                            color: "#888888"
+                  - type: text
+                    content: "{{item.price}} $"
+                    size: 1em
+                    color: "#333333"
+                    align: right
+
+      - type: separator
+        style: solid
+        color: "#1a1a1a"
+        thickness: 1
+
+      # Discount section (conditional)
+      - type: if
+        condition: discount
+        then:
+          - type: flex
+            gap: 6
+            children:
+              - type: flex
+                direction: row
+                justify: space-between
+                children:
+                  - type: text
+                    content: "Subtotal"
+                    size: 0.9em
+                    color: "#666666"
+                  - type: text
+                    content: "{{subtotal}} $"
+                    size: 0.9em
+                    color: "#666666"
+                    wrap: false
+                    overflow: visible
+
+              - type: flex
+                direction: row
+                justify: space-between
+                children:
+                  - type: text
+                    content: "Discount"
+                    size: 0.9em
+                    color: "#22c55e"
+                  - type: text
+                    content: "-{{discount}} $"
+                    size: 0.9em
+                    color: "#22c55e"
+                    wrap: false
+                    overflow: visible
+
+              - type: separator
+                style: dashed
+                color: "#cccccc"
+                thickness: 1
+
+      # Total
+      - type: flex
+        direction: row
+        justify: space-between
+        align: center
+        children:
+          - type: text
+            content: "TOTAL"
+            font: bold
+            size: 1.2em
+            color: "#1a1a1a"
+          - type: text
+            content: "{{total}} $"
+            font: bold
+            size: 1.2em
+            color: "#1a1a1a"
+            align: right
+
+      - type: separator
+        style: dotted
+        color: "#cccccc"
+        thickness: 1
+
+      # Payment status with else-if chain
+      - type: if
+        condition: paymentStatus
+        equals: "paid"
+        then:
+          - type: flex
+            align: center
+            gap: 4
+            children:
+              - type: text
+                content: "PAID"
+                font: bold
+                size: 1.1em
+                color: "#22c55e"
+                align: center
+              - type: text
+                content: "Thank you!"
+                size: 0.85em
+                color: "#666666"
+                align: center
+        elseIf:
+          condition: paymentStatus
+          equals: "pending"
+          then:
+            - type: flex
+              align: center
+              gap: 6
+              children:
+                - type: qr
+                  data: "{{paymentUrl}}"
+                  size: 120
+                  errorCorrection: M
+
+                - type: text
+                  content: "Scan to pay"
+                  size: 0.75em
+                  color: "#999999"
+                  align: center
+        else:
+          - type: text
+            content: "Payment required at counter"
+            size: 0.9em
+            color: "#ef4444"
+            align: center
+
+      # Footer
+      - type: separator
+        style: dotted
+        color: "#cccccc"
+        thickness: 1
+
+      - type: text
+        content: "{{date}}"
+        size: 0.75em
+        align: center
+        color: "#999999"

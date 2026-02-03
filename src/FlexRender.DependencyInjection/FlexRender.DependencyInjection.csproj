@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.DependencyInjection</PackageId>
+    <Description>DI integration for FlexRender.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\FlexRender.Yaml\FlexRender.Yaml.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode\FlexRender.QrCode.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode\FlexRender.Barcode.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+</Project>

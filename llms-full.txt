@@ -1,0 +1,726 @@
+# FlexRender -- Full Reference
+
+> A modular .NET library for rendering images from YAML templates with flexbox layout. Render-backend agnostic with SkiaSharp as the default backend. Fully AOT-compatible with no reflection.
+
+## Project Structure
+
+```
+src/FlexRender.Core/            # Core library (0 external dependencies)
+  Abstractions/                 # ILayoutRenderer<T>, ITemplateParser, IResourceLoader
+  Configuration/                # ResourceLimits, FlexRenderOptions
+  Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
+    Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
+    FlexEnums.cs                # FlexDirection, FlexWrap, JustifyContent, AlignItems, AlignContent, AlignSelf
+    FlexContainerProperties.cs  # Flex container property model
+    FlexItemProperties.cs       # Flex item property model
+    FontSizeResolver.cs         # Resolve fontSize string to pixels
+    LayoutEngine.cs             # Main layout calculator
+    LayoutNode.cs               # Computed layout tree node
+    LayoutContext.cs            # Layout computation context
+    LayoutSize.cs               # Width/Height measurement result
+    IntrinsicSize.cs            # Min/Max width/height measurements
+    LineHeightResolver.cs       # Resolve lineHeight string to pixels
+  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader, HttpResourceLoader
+  Parsing/
+    Ast/                        # AST models: Template, CanvasSettings, TemplateElement, TextElement, FlexElement, QrElement, BarcodeElement, ImageElement, SeparatorElement
+  TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator, TemplateContext
+  Values/                       # TemplateValue (abstract), StringValue, NumberValue, BoolValue, NullValue, ArrayValue, ObjectValue
+
+src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
+  Parsing/
+    TemplateParser.cs           # YAML to AST parser (includes EachElement, IfElement)
+
+src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
+  Abstractions/                 # IFlexRenderer, IFontLoader, IImageLoader, IFontManager
+  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
+  Loaders/                      # FontLoader, ImageLoader
+  Providers/                    # IContentProvider<T,O>, ImageProvider
+
+src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
+  Providers/                    # QrProvider (implements IContentProvider<QrElement, SKBitmap>)
+
+src/FlexRender.Barcode/         # Barcode provider (-> Skia)
+  Providers/                    # BarcodeProvider (implements IContentProvider<BarcodeElement, SKBitmap>)
+
+src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
+  ServiceCollectionExtensions.cs     # AddFlexRender() extension method
+  FlexRenderBuilder.cs               # Fluent builder for configuration
+
+src/FlexRender.MetaPackage/     # Meta-package (references all sub-packages)
+
+src/FlexRender.Cli/             # CLI tool (System.CommandLine)
+  Commands/                     # render, validate, info, watch, debug-layout
+
+tests/FlexRender.Tests/         # Unit + snapshot tests
+tests/FlexRender.Cli.Tests/     # CLI integration tests
+examples/                       # Example YAML templates with data and output
+```
+
+## NuGet Package Structure
+
+```
+FlexRender.Core          (0 external deps)
+  ^          ^
+  |          |
+FlexRender.Yaml    FlexRender.Skia       (YamlDotNet)  (SkiaSharp)
+                     ^        ^
+                     |        |
+            FlexRender.QrCode  FlexRender.Barcode   (QRCoder)
+                     |        |
+FlexRender.DependencyInjection  (Microsoft.Extensions.DI)
+                     |
+            FlexRender.MetaPackage  (references all)
+```
+
+| Package | Depends On | External Deps |
+|---------|-----------|---------------|
+| FlexRender.Core | -- | (none) |
+| FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
+| FlexRender.Skia | Core | SkiaSharp 3.119.1 |
+| FlexRender.QrCode | Skia | QRCoder 1.7.0 |
+| FlexRender.Barcode | Skia | (none) |
+| FlexRender.DependencyInjection | Core, Yaml, Skia | Microsoft.Extensions.DI |
+| FlexRender.MetaPackage | All | -- |
+| FlexRender.Cli | All | System.CommandLine |
+
+## Rendering Pipeline
+
+```
+YAML Template
+  -> TemplateParser           (YAML -> AST: Template with CanvasSettings + TemplateElement tree, including EachElement/IfElement)
+  -> TemplateExpander         (expand EachElement/IfElement to concrete elements based on data -- enables template caching)
+  -> TemplateProcessor        (resolve {{variable}} expressions in element properties -- inline substitution)
+  -> LayoutEngine             (two-pass: MeasureAllIntrinsics -> ComputeLayout -> LayoutNode tree)
+  -> SkiaRenderer             (traverse LayoutNode tree -> draw to SKBitmap via SkiaSharp)
+```
+
+### Template Caching
+
+Templates can be parsed once and cached, then expanded with different data at render time:
+
+```csharp
+// Parse once (at startup)
+var parser = new TemplateParser();
+var template = parser.Parse(yaml);
+templateCache["receipt"] = template;
+
+// Render many times (per request)
+var template = templateCache["receipt"];
+var bytes = renderer.RenderToPng(template, data);  // Expander called internally
+```
+
+### Two-Pass Layout Engine
+
+1. **Pass 1 -- Intrinsic Measurement** (`MeasureAllIntrinsics`): Bottom-up traversal computes `IntrinsicSize` (MinWidth, MaxWidth, MinHeight, MaxHeight) for every element. Uses `TextMeasurer` delegate for content-based text sizing.
+2. **Pass 2 -- Layout** (`ComputeLayout`): Top-down traversal assigns positions and sizes, producing a `LayoutNode` tree with (X, Y, Width, Height).
+
+`IntrinsicSize` is a `readonly record struct` with `WithPadding(float)`, `WithPadding(PaddingValues)`, and `WithMargin(float)` helper methods.
+
+## Template YAML Structure
+
+```yaml
+template:                     # Required: template metadata
+  name: "my-template"         # Template name (string)
+  version: 1                  # Template version (int)
+
+fonts:                                        # Optional: font definitions (key = reference name, value = path)
+  default: "assets/fonts/Inter-Regular.ttf"   # File path, base64, embedded://, or http://
+  bold: "assets/fonts/Inter-Bold.ttf"
+
+canvas:                       # Required: canvas configuration
+  fixed: width                # Which dimension is fixed (width|height|both|none)
+  width: 300                  # Canvas width in pixels (default: 300)
+  height: 0                   # Canvas height in pixels (0 = auto when not fixed)
+  background: "#ffffff"       # Background color (default: "#ffffff")
+  rotate: "none"              # Canvas rotation (see below)
+
+layout:                       # Required: array of elements
+  - type: text                # Element type
+    # ... element properties
+```
+
+## Canvas Settings
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fixed | FixedDimension | width | Which dimension is fixed: `width`, `height`, `both`, `none` |
+| width | int | 300 | Canvas width in pixels |
+| height | int | 0 | Canvas height in pixels (0 = auto when unfixed) |
+| background | string | "#ffffff" | Background color in hex format |
+| rotate | string | "none" | Post-render rotation |
+
+### Canvas Rotation Values
+
+| Value | Effect |
+|-------|--------|
+| `"none"` | No rotation |
+| `"left"` | 270 degrees (90 CCW) -- swaps width/height |
+| `"right"` | 90 degrees CW -- swaps width/height |
+| `"flip"` | 180 degrees |
+| `"<number>"` | Arbitrary degrees (e.g., `"45"`) |
+
+Rotation is applied AFTER rendering. For thermal printers: use `"right"` to rotate a wide receipt into a tall image. All element sizes are specified for the PRE-rotation layout.
+
+## Common Element Properties
+
+All elements inherit from `TemplateElement`:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| padding | string | "0" | Inner spacing (px, %, em). Supports non-uniform CSS shorthand |
+| margin | string | "0" | Outer spacing (px, %, em). Supports non-uniform CSS shorthand |
+| background | string? | null | Background color in hex (null = transparent) |
+| rotate | string | "none" | Element rotation (none/left/right/flip/degrees) |
+
+## Non-Uniform Padding and Margin
+
+Both `padding` and `margin` accept CSS-like shorthand with 1 to 4 space-separated values:
+
+| Format | Meaning |
+|--------|---------|
+| `"20"` | All sides = 20 |
+| `"20 40"` | Top/Bottom = 20, Left/Right = 40 |
+| `"20 40 30"` | Top = 20, Left/Right = 40, Bottom = 30 |
+| `"20 40 30 10"` | Top = 20, Right = 40, Bottom = 30, Left = 10 |
+
+Each value can include a unit suffix: `"10px 5% 2em 20"`. Parsed by `PaddingParser` into `PaddingValues` (a `readonly record struct` with Top, Right, Bottom, Left, Horizontal, Vertical).
+
+During intrinsic measurement (Pass 1), percentage values resolve against 0 and em values against 16px default. During layout (Pass 2), percentage resolves against parent size and em against element font size.
+
+## Flex-Item Properties
+
+All leaf elements (text, image, qr, barcode, separator) and flex containers (when nested) have these flex-item properties:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| grow | float | 0 | Flex grow factor |
+| shrink | float | 1 | Flex shrink factor |
+| basis | string | "auto" | Flex basis (px, %, em, auto) |
+| order | int | 0 | Display order for sorting |
+| alignSelf | AlignSelf | Auto | Individual alignment override |
+| width | string? | null | Explicit width (px, %, em, auto) |
+| height | string? | null | Explicit height (px, %, em, auto) |
+
+## Element Type: text (TextElement)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| content | string | "" | Text content, may contain `{{variable}}` expressions |
+| font | string | "main" | Font reference name from `fonts` section |
+| size | string | "1em" | Font size (px, em, %) |
+| color | string | "#000000" | Text color in hex format |
+| align | TextAlign | Left | Text alignment: `left`, `center`, `right` |
+| wrap | bool | true | Whether text wraps to multiple lines |
+| overflow | TextOverflow | Ellipsis | Overflow handling: `ellipsis`, `clip`, `visible` |
+| maxLines | int? | null | Maximum number of lines (null = unlimited) |
+| lineHeight | string | "" | Line height for multi-line text (see below) |
+
+### lineHeight Values
+
+| Format | Example | Behavior |
+|--------|---------|----------|
+| Empty string | `""` | Use font-defined default spacing |
+| Plain number | `"1.8"` | Multiplier of fontSize |
+| Pixel units | `"24px"` | Absolute pixel value |
+| Em units | `"2em"` | Relative to element's fontSize |
+
+Resolved by `LineHeightResolver.Resolve(lineHeight, fontSize, defaultLineHeight)`. Values are clamped to >= 0.
+
+## Element Type: flex (FlexElement)
+
+### Container Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| direction | FlexDirection | Column | Main axis direction: `row`, `column` |
+| wrap | FlexWrap | NoWrap | Wrapping behavior: `nowrap`, `wrap`, `wrap-reverse` |
+| gap | string | "0" | Gap between items (px, %, em) |
+| justify | JustifyContent | Start | Main axis alignment: `start`, `center`, `end`, `space-between`, `space-around`, `space-evenly` |
+| align | AlignItems | Stretch | Cross axis alignment: `start`, `center`, `end`, `stretch`, `baseline` |
+| alignContent | AlignContent | Stretch | Wrapped lines alignment: `start`, `center`, `end`, `stretch`, `space-between`, `space-around` |
+| children | TemplateElement[] | [] | Child elements |
+
+## Element Type: image (ImageElement)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| src | string | "" | Image source: file path, base64 data URL, embedded://, http:// |
+| width | int? | null | Image container width in pixels (null = natural width) |
+| height | int? | null | Image container height in pixels (null = natural height) |
+| fit | ImageFit | Contain | How the image fits within bounds |
+
+### Image Fit Modes
+
+| Mode | Description |
+|------|-------------|
+| `fill` | Stretch to fill bounds (may distort aspect ratio) |
+| `contain` | Scale to fit within bounds preserving ratio (may have empty space) |
+| `cover` | Scale to cover bounds preserving ratio (may be cropped) |
+| `none` | Use image's natural size without scaling |
+
+## Element Type: qr (QrElement)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| data | string | "" | Data to encode in the QR code |
+| size | int | 100 | QR code size in pixels (width = height) |
+| errorCorrection | ErrorCorrectionLevel | M | Error correction level |
+| foreground | string | "#000000" | Foreground (module) color in hex |
+
+### QR Error Correction Levels
+
+| Level | Recovery Capacity |
+|-------|------------------|
+| `L` | ~7% recovery |
+| `M` | ~15% recovery (default) |
+| `Q` | ~25% recovery |
+| `H` | ~30% recovery |
+
+## Element Type: barcode (BarcodeElement)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| data | string | "" | Data to encode |
+| format | BarcodeFormat | Code128 | Barcode format |
+| width | int | 200 | Barcode width in pixels |
+| height | int | 80 | Barcode height in pixels |
+| showText | bool | true | Show encoded text below barcode |
+| foreground | string | "#000000" | Bar color in hex |
+
+### Barcode Formats
+
+| Format | Description |
+|--------|-------------|
+| `code128` | Alphanumeric, high density |
+| `code39` | Alphanumeric, widely supported |
+| `ean13` | 13 digits, retail |
+| `ean8` | 8 digits, compact retail |
+| `upc` | 12 digits, North American retail (UPC-A) |
+
+## Element Type: separator (SeparatorElement)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| orientation | SeparatorOrientation | Horizontal | Direction: `horizontal`, `vertical` |
+| style | SeparatorStyle | Dotted | Line style: `dotted`, `dashed`, `solid` |
+| thickness | float | 1 | Line thickness in pixels |
+| color | string | "#000000" | Line color in hex |
+| width | string? | null | Explicit width override |
+| height | string? | null | Explicit height override |
+
+Horizontal separators stretch to full width and use thickness as height. Vertical separators stretch to full height and use thickness as width. The default style is `dotted`, chosen for the primary receipt printing use case.
+
+## Color Format
+
+Colors are specified in hex format:
+
+- `#rrggbb` -- 6-digit hex (e.g., `"#ff0000"` for red)
+- `#rgb` -- 3-digit hex shorthand (e.g., `"#f00"` for red)
+
+Parsed by `ColorParser` in the Rendering namespace.
+
+## Supported Units
+
+| Unit | Syntax | Resolution |
+|------|--------|------------|
+| Pixels | `"100"`, `"100px"` | Absolute pixel value (default) |
+| Percentage | `"50%"` | Percentage of parent container size |
+| Em | `"1.5em"` | Relative to font size |
+| Auto | `"auto"` | Automatic sizing by layout engine |
+
+Parsed by `UnitParser.Parse(string?)` which returns a `Unit` value. Plain numbers without suffix are treated as pixels.
+
+## Expression Syntax
+
+### Variable Substitution
+
+- `{{variable}}` -- simple variable lookup
+- `{{user.name}}` -- dot notation path traversal
+- `{{items[0]}}` -- array index access
+- `{{items[0].name}}` -- combined path and index
+
+## Control Flow Elements (AST-Level)
+
+Control flow is handled at AST level via dedicated element types (`EachElement`, `IfElement`), enabling template caching.
+
+### Element Type: each (EachElement)
+
+Iterates over an array in the data, creating child elements for each item.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| array | string | Yes | Path to array in data (e.g., "items", "order.lines") |
+| as | string | No | Variable name for each item (e.g., "item" to use {{item.name}}) |
+| children | TemplateElement[] | Yes | Template elements to render per item |
+
+```yaml
+- type: each
+  array: items
+  as: item
+  children:
+    - type: text
+      content: "{{item.name}}: {{item.price}}"
+```
+
+### Loop Variables
+
+Available inside `each` children:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `{{@index}}` | int | Zero-based index of current item |
+| `{{@first}}` | bool | True for the first item |
+| `{{@last}}` | bool | True for the last item |
+
+### Element Type: if (IfElement)
+
+Conditional rendering based on data values.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| condition | string | Yes | Path to value for condition check |
+| equals | string | No | Compare condition path value equals this string |
+| notEquals | string | No | Compare condition path value does not equal this string |
+| then | TemplateElement[] | Yes | Elements to render when condition is true |
+| elseIf | IfElement | No | Nested else-if condition |
+| else | TemplateElement[] | No | Elements to render when all conditions are false |
+
+```yaml
+# Truthy check (non-empty, non-zero, non-false)
+- type: if
+  condition: isPremium
+  then:
+    - type: text
+      content: "Premium member"
+  else:
+    - type: text
+      content: "Regular member"
+
+# Equality comparison
+- type: if
+  condition: status
+  equals: "paid"
+  then:
+    - type: text
+      content: "Paid"
+
+# Else-if chain
+- type: if
+  condition: status
+  equals: "paid"
+  then:
+    - type: text
+      content: "Paid"
+  elseIf:
+    condition: status
+    equals: "pending"
+    then:
+      - type: text
+        content: "Pending"
+  else:
+    - type: text
+      content: "Unknown"
+```
+
+### Processing Layers
+
+1. **AST-Level** (`TemplateExpander`): Expands `type: each` and `type: if` elements into concrete elements based on data. Enables template caching — parse once, expand many times with different data.
+2. **Inline** (`TemplateProcessor`): Resolves `{{variable}}` expressions in element property values after expansion.
+
+## Resource Loading Chain
+
+Resources (images, fonts) are loaded through `IResourceLoader` implementations using Chain of Responsibility pattern. Loaders are tried in priority order (lower = higher priority).
+
+| Loader | Priority Range | Handles | URI Scheme |
+|--------|---------------|---------|------------|
+| Base64ResourceLoader | 0-99 (High) | Base64-encoded data | `data:` |
+| EmbeddedResourceLoader | 0-99 (High) | Assembly embedded resources | `embedded://` |
+| FileResourceLoader | 100-199 (Normal) | Local file system | File paths |
+| HttpResourceLoader | 200+ (Low) | Remote HTTP/HTTPS resources | `http://`, `https://` |
+
+Custom loaders can be registered: `builder.AddResourceLoader<CustomLoader>()`. Implement `IResourceLoader` with `CanHandle()`, `Load()`, and `Priority`.
+
+## DI / Builder API
+
+### Registration
+
+```csharp
+services.AddFlexRender();                          // Default configuration
+services.AddFlexRender(builder => { ... });        // With configuration
+```
+
+### FlexRenderBuilder Methods
+
+| Method | Description |
+|--------|-------------|
+| `WithBasePath(string)` | Base path for resolving relative file paths |
+| `WithDefaultFont(string)` | Default font family (default: "Arial") |
+| `WithHttpTimeout(TimeSpan)` | HTTP request timeout (default: 30s) |
+| `WithMaxImageSize(int)` | Max image size in bytes (default: 10 MB) |
+| `WithLimits(Action<ResourceLimits>)` | Configure all resource limits |
+| `EnableCaching(bool)` | Enable/disable resource caching (default: true) |
+| `AddResourceLoader<T>()` | Register custom IResourceLoader |
+| `AddEmbeddedResources(Assembly)` | Add assembly for embedded resource search |
+| `AddEmbeddedResources<T>()` | Add assembly containing type T |
+
+### Full Example
+
+```csharp
+services.AddFlexRender(builder => builder
+    .WithBasePath("/app/templates")
+    .WithDefaultFont("Roboto")
+    .WithHttpTimeout(TimeSpan.FromSeconds(60))
+    .WithMaxImageSize(20 * 1024 * 1024)
+    .WithLimits(limits =>
+    {
+        limits.MaxTemplateFileSize = 2 * 1024 * 1024;
+        limits.MaxRenderDepth = 200;
+        limits.MaxPreprocessorNestingDepth = 100;
+    })
+    .EnableCaching()
+    .AddEmbeddedResources<MyApp>()
+    .AddResourceLoader<CustomLoader>());
+```
+
+### Registered Services
+
+`AddFlexRender()` registers:
+- Default resource loaders: `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader`
+- Image and font loaders: `ImageLoader`, `FontLoader`
+- Core services: `IFontManager` (FontManager), `IFlexRenderer` (SkiaRenderer)
+- Configuration: `FlexRenderOptions` (singleton)
+
+## Configurable Resource Limits
+
+The `ResourceLimits` class centralizes all security limits. All properties validate positive values and throw `ArgumentOutOfRangeException` on invalid input.
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| MaxTemplateFileSize | long | 1,048,576 (1 MB) | Maximum YAML template file size in bytes |
+| MaxDataFileSize | long | 10,485,760 (10 MB) | Maximum JSON data file size in bytes |
+| MaxPreprocessorNestingDepth | int | 50 | Maximum nesting depth for {{#each}}/{{#if}} blocks |
+| MaxPreprocessorInputSize | int | 1,048,576 (1 MB) | Maximum preprocessor input size in bytes |
+| MaxTemplateNestingDepth | int | 100 | Maximum nesting depth for template engine control flow |
+| MaxRenderDepth | int | 100 | Maximum recursion depth when rendering layout tree |
+| MaxImageSize | int | 10,485,760 (10 MB) | Maximum allowed image size in bytes |
+| HttpTimeout | TimeSpan | 30 seconds | Timeout for HTTP requests loading remote resources |
+
+### Direct Usage
+
+```csharp
+var limits = new ResourceLimits
+{
+    MaxRenderDepth = 200,
+    MaxTemplateFileSize = 2 * 1024 * 1024
+};
+using var renderer = new SkiaRenderer(limits);
+```
+
+### Via Builder
+
+```csharp
+builder.WithLimits(limits =>
+{
+    limits.MaxRenderDepth = 200;
+    limits.MaxTemplateFileSize = 2 * 1024 * 1024;
+});
+```
+
+These limits exist to prevent abuse and resource exhaustion. Never remove or weaken them without explicit justification.
+
+## FlexRenderOptions
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| Limits | ResourceLimits | new() | Resource limits configuration (read-only, configure via WithLimits) |
+| BasePath | string? | null | Base path for resolving relative file paths |
+| DefaultFontFamily | string | "Arial" | Default font family |
+| BaseFontSize | float | 12 | Base font size in points |
+| HttpTimeout | TimeSpan | 30s | Delegates to Limits.HttpTimeout |
+| MaxImageSize | int | 10 MB | Delegates to Limits.MaxImageSize |
+| EnableCaching | bool | true | Resource caching toggle |
+| EmbeddedResourceAssemblies | List\<Assembly\> | [] | Assemblies for embedded resource search |
+
+## Data Types (TemplateValue)
+
+AOT-compatible, no reflection. All are sealed classes with implicit conversions.
+
+| Type | C# Class | Description |
+|------|----------|-------------|
+| String | StringValue | String value, implicit from `string` |
+| Number | NumberValue | Numeric value, implicit from `int` |
+| Boolean | BoolValue | Boolean value, implicit from `bool` |
+| Null | NullValue | Null sentinel |
+| Array | ArrayValue | Implements `IReadOnlyList<TemplateValue>` |
+| Object | ObjectValue | Dictionary-like with indexer, `StringComparer.OrdinalIgnoreCase` |
+
+### Creating Data
+
+```csharp
+var data = new ObjectValue
+{
+    ["title"] = "My Title",           // StringValue (implicit)
+    ["count"] = 42,                   // NumberValue (implicit)
+    ["active"] = true,                // BoolValue (implicit)
+    ["items"] = new ArrayValue(new TemplateValue[]
+    {
+        new ObjectValue { ["name"] = "Item 1" },
+        new ObjectValue { ["name"] = "Item 2" }
+    })
+};
+```
+
+## Code Examples
+
+### Parse and Render
+
+```csharp
+var parser = new TemplateParser();
+var template = parser.ParseFile("template.yaml");
+var data = new ObjectValue { ["name"] = "World" };
+
+using var renderer = new SkiaRenderer();
+var size = renderer.Measure(template, data);
+using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+renderer.Render(bitmap, template, data);
+```
+
+### Process Template Expressions
+
+```csharp
+var processor = new TemplateProcessor();
+var result = processor.Process("Hello {{name}}!", new ObjectValue { ["name"] = "World" });
+// result = "Hello World!"
+```
+
+### With Custom Limits via DI
+
+```csharp
+services.AddFlexRender(builder => builder
+    .WithBasePath("/templates")
+    .WithLimits(limits => { limits.MaxRenderDepth = 200; }));
+
+// Resolve from DI
+var renderer = serviceProvider.GetRequiredService<IFlexRenderer>();
+```
+
+## CLI Tool
+
+### Install as dotnet tool
+
+```bash
+dotnet tool install -g FlexRender.Cli
+```
+
+After installation the `flexrender` command is available globally:
+
+```bash
+flexrender render template.yaml -d data.json -o output.png
+flexrender validate template.yaml
+flexrender info template.yaml
+flexrender watch template.yaml -d data.json -o preview.png
+flexrender debug-layout template.yaml -d data.json
+```
+
+### Native AOT binary
+
+The CLI is fully AOT-compatible (`IsAotCompatible=true` on all projects, no reflection). Build a standalone native binary (no .NET runtime required):
+
+```bash
+dotnet publish src/FlexRender.Cli -c Release -r <RID> /p:PublishAot=true
+```
+
+Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`. The resulting binary is a single self-contained executable with no external dependencies (except native SkiaSharp libs).
+
+### Run from source (development)
+
+```bash
+dotnet run --project src/FlexRender.Cli -- render template.yaml -d data.json -o output.png
+```
+
+Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`
+
+The `--scale` option uses invariant culture -- always use `.` as the decimal separator (e.g., `--scale 2.0`).
+
+Working directory matters: CLI resolves all relative paths (template, data, fonts, image src) from the current working directory.
+
+### Distribution channels
+
+| Channel | Install | Requires .NET? | Use case |
+|---------|---------|---------------|----------|
+| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
+| Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
+
+Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x64, win-x64.
+
+## Coding Conventions
+
+- **.NET 10**, C# latest, `Nullable=enable`, `TreatWarningsAsErrors=true`
+- **AOT compatible** -- `IsAotCompatible=true` on library and CLI. No reflection anywhere. Use pattern matching (`switch` on concrete types) for type dispatch
+- **`GeneratedRegex`** -- source-generated regex for AOT compatibility
+- **`sealed` classes** -- all leaf/value/concrete classes must be `sealed`
+- **`sealed record`** -- for token types and small immutable data
+- **`readonly record struct`** -- for small value types (`IntrinsicSize`, `LayoutRect`, `FlexItemProperties`, `PaddingValues`)
+- **File-scoped namespaces** -- `namespace Foo.Bar;`
+- **XML documentation** -- `<summary>`, `<param>`, `<returns>`, `<exception>` on all public APIs
+- **Guard clauses** -- `ArgumentNullException.ThrowIfNull()`, `ArgumentException.ThrowIfNullOrWhiteSpace()`, `ObjectDisposedException.ThrowIf()`
+- **Immutability** -- value types are `readonly`, collections exposed as `IReadOnlyList<T>`
+- **Thread safety** -- `ConcurrentDictionary` where concurrent access is expected (e.g., `FontManager`)
+- **String comparison** -- `StringComparer.OrdinalIgnoreCase` for dictionaries keyed by names
+- **Switch-based dispatch** -- element type dispatch uses `switch` on concrete types, not base class properties
+
+## Test Conventions
+
+- **Framework**: xUnit with `[Fact]` and `[Theory]`/`[InlineData]`
+- **Assertions**: `Assert.*` from xUnit; `FluentAssertions` in some tests
+- **Naming**: `MethodUnderTest_Scenario_ExpectedResult` (e.g., `Parse_SimpleTextElement_ParsesCorrectly`)
+- **Class naming**: `{ClassName}Tests`
+- **Organization**: Mirrors source structure -- `Tests/Values/`, `Tests/Layout/`, `Tests/Parsing/`, etc.
+- **Snapshot testing**: `SnapshotTestBase` with golden images in `golden/`. Pixel-by-pixel comparison with `colorThreshold` and `maxDifferencePercent` (0.0 = exact match). Set `UPDATE_SNAPSHOTS=true` to regenerate
+- **Pattern**: Arrange-Act-Assert
+
+```bash
+dotnet test                           # Run all tests
+dotnet test --filter "ClassName"      # Filter by test class
+dotnet test --filter "MethodName"     # Filter by test method
+UPDATE_SNAPSHOTS=true dotnet test     # Regenerate golden snapshots
+```
+
+## Git Conventions
+
+Conventional Commits: `type(scope): description`
+
+- **Types**: `feat`, `fix`, `refactor`, `build`, `test`, `docs`, `chore`
+- **Scopes** (optional): `parser`, `layout`, `renderer`, `ast`, `examples`, `cli`
+- **Description**: lowercase, imperative mood
+
+## Important Patterns
+
+- **TextMeasurer delegate** -- `Func<TextElement, float, float, LayoutSize>?` on `LayoutEngine` (element, fontSize, maxWidth), wired up by `SkiaRenderer` for content-based text sizing with wrap-aware height measurement
+- **Content providers** -- `IContentProvider<TElement,TOutput>` returns rendered content for QR, barcode, image elements
+- **Resource loader chain** -- `IResourceLoader` with `CanHandle()`, `Load()`, `Priority` -- chain of responsibility pattern
+- **Flex-item properties** -- declared per concrete element class, dispatched via `switch` pattern matching (not on base class)
+- **Template processing layers** -- structural (`YamlPreprocessor` for `{{#each}}`/`{{#if}}`) and inline (`TemplateProcessor` for `{{variable}}`)
+
+## How to Add a New Element Type
+
+1. Create sealed AST class in `Parsing/Ast/` extending `TemplateElement`, add to `ElementType` enum
+2. Add parser function in `TemplateParser.cs` -- register in `_elementParsers` dictionary
+3. Add flex-item property support via `switch` pattern matching in layout engine
+4. Add rendering in `SkiaRenderer.RenderNode()` or create a provider implementing `IContentProvider<T,O>`
+5. Write tests for each step following TDD approach
+
+## How to Add a New Template Expression
+
+1. Add token type as `sealed record` in `ExpressionToken.cs`
+2. Add lexer support in `ExpressionLexer.cs`
+3. Add evaluation in `TemplateProcessor.cs`
+4. Write tests
+
+## How to Add a New Barcode Format
+
+1. Add format to `BarcodeFormat` enum in `Parsing/Ast/BarcodeElement.cs`
+2. Add parsing case in `TemplateParser.ParseBarcodeElement()`
+3. Add generation in `BarcodeProvider`
+4. Write tests

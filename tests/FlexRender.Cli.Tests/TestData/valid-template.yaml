@@ -1,0 +1,15 @@
+template:
+  name: "test-template"
+  version: 1
+
+canvas:
+  fixed: width
+  width: 300
+  background: "#ffffff"
+
+layout:
+  - type: text
+    content: "Hello World"
+    font: main
+    size: 1em
+    color: "#000000"
