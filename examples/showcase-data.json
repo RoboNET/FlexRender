@@ -1,0 +1,13 @@
+{
+  "title": "FlexRender Feature Showcase",
+  "subtitle": "All capabilities in one template",
+  "websiteUrl": "https://github.com/RoboNET/FlexRender",
+  "showBarcodeSection": true,
+  "features": [
+    {"name": "Flexbox Layout", "description": "Row and column directions with justify and align"},
+    {"name": "Template Expressions", "description": "Variables, loops, and conditionals"},
+    {"name": "Multiple Elements", "description": "Text, images, QR codes, barcodes, separators"}
+  ],
+  "version": "1.0.0",
+  "buildDate": "2026-02-04"
+}

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Skia\FlexRender.Skia.csproj" />
+  </ItemGroup>
+
+</Project>

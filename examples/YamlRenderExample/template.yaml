@@ -1,0 +1,37 @@
+# Simple example template demonstrating FlexRender
+# This template renders a greeting message with a title
+
+template:
+  name: "example"
+  version: 1
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: 20
+    gap: 16
+    align: center
+    children:
+      - type: text
+        content: "Hello from FlexRender!"
+        font: main
+        size: 24
+        color: "#333333"
+        align: center
+
+      - type: text
+        content: "This image was rendered programmatically using the FlexRender library with Dependency Injection."
+        size: 14
+        color: "#666666"
+        align: center
+
+      - type: text
+        content: "Template: {{templateName}}"
+        size: 12
+        color: "#999999"
+        align: center

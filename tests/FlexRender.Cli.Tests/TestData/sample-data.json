@@ -1,0 +1,13 @@
+{
+  "title": "Hello World",
+  "count": 42,
+  "enabled": true,
+  "price": 19.99,
+  "items": [
+    { "name": "Item 1", "value": 100 },
+    { "name": "Item 2", "value": 200 }
+  ],
+  "nested": {
+    "key": "value"
+  }
+}

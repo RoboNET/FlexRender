@@ -1,0 +1,3 @@
+# Ignore all snapshot test output files
+*.actual.png
+*.diff.png
