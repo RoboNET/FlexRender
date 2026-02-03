@@ -1,0 +1,160 @@
+# Receipt Template
+# Demonstrates: padding, flex row with space-between, separators,
+#   QR code centering, gap, text alignment
+
+template:
+  name: "receipt"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 320
+  background: "#ffffff"
+
+layout:
+  # Main container with padding
+  - type: flex
+    padding: "24 20"
+    gap: 12
+
+    children:
+      # Header
+      - type: flex
+        gap: 4
+        align: center
+        children:
+          - type: text
+            content: "{{shopName}}"
+            font: bold
+            size: 1.5em
+            align: center
+            color: "#1a1a1a"
+
+          - type: text
+            content: "{{address}}"
+            size: 0.85em
+            align: center
+            color: "#888888"
+
+      # Separator
+      - type: separator
+        style: dashed
+        color: "#cccccc"
+        thickness: 1
+
+      # Items list
+      - type: flex
+        gap: 6
+        children:
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "{{item1Name}}"
+                size: 1em
+                color: "#333333"
+              - type: text
+                content: "{{item1Price}} $"
+                size: 1em
+                color: "#333333"
+                align: right
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "{{item2Name}}"
+                size: 1em
+                color: "#333333"
+              - type: text
+                content: "{{item2Price}} $"
+                size: 1em
+                color: "#333333"
+                align: right
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "{{item3Name}}"
+                size: 1em
+                color: "#333333"
+              - type: text
+                content: "{{item3Price}} $"
+                size: 1em
+                color: "#333333"
+                align: right
+
+      # Separator
+      - type: separator
+        style: solid
+        color: "#1a1a1a"
+        thickness: 1
+
+      # Total
+      - type: flex
+        direction: row
+        justify: space-between
+        align: center
+        children:
+          - type: text
+            content: "TOTAL"
+            font: bold
+            size: 1.2em
+            color: "#1a1a1a"
+          - type: text
+            content: "{{total}} $"
+            font: bold
+            size: 1.2em
+            color: "#1a1a1a"
+            align: right
+
+      # Separator
+      - type: separator
+        style: dotted
+        color: "#cccccc"
+        thickness: 1
+
+      # QR Code centered
+      - type: flex
+        align: center
+        gap: 6
+        children:
+          - type: qr
+            data: "{{paymentUrl}}"
+            size: 120
+            errorCorrection: M
+
+          - type: text
+            content: "Scan to pay"
+            size: 0.75em
+            color: "#999999"
+            align: center
+
+      # Footer
+      - type: separator
+        style: dotted
+        color: "#cccccc"
+        thickness: 1
+
+      - type: flex
+        gap: 2
+        children:
+          - type: text
+            content: "Thank you for your purchase!"
+            size: 0.85em
+            align: center
+            color: "#666666"
+
+          - type: text
+            content: "{{date}}"
+            size: 0.75em
+            align: center
+            color: "#999999"

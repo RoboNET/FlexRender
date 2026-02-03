@@ -1,0 +1,8 @@
+template:
+  name: "test-template"
+  version: 1
+
+# Missing required canvas section
+layout:
+  - type: text
+    content: "Hello World"

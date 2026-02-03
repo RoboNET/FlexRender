@@ -1,0 +1,15 @@
+{
+  "shopName": "Coffee House",
+  "address": "123 Main Street, City",
+  "items": [
+    { "name": "Cappuccino", "price": "4.50", "quantity": 2 },
+    { "name": "Croissant", "price": "3.25" },
+    { "name": "Americano", "price": "3.75" }
+  ],
+  "subtotal": "15.00",
+  "discount": "4.50",
+  "total": "10.50",
+  "paymentStatus": "pending",
+  "paymentUrl": "https://pay.example.com/order/12345",
+  "date": "2026-02-03 14:30"
+}

@@ -1,0 +1,41 @@
+# Product Label Template
+# A simple product price label with barcode.
+
+template:
+  name: "product-label"
+  version: 1
+
+canvas:
+  fixed: width
+  width: 200
+  background: "#ffffff"
+
+layout:
+  - type: text
+    content: "{{productName}}"
+    font: bold
+    size: 1.1em
+    align: center
+    maxLines: 2
+    overflow: ellipsis
+
+  - type: text
+    content: "{{description}}"
+    size: 0.85em
+    color: "#666666"
+    align: center
+    maxLines: 2
+
+  - type: text
+    content: "{{price}} $"
+    font: bold
+    size: 1.3em
+    color: "#cc0000"
+    align: center
+
+  - type: barcode
+    data: "{{sku}}"
+    format: code128
+    width: 180
+    height: 40
+    showText: true

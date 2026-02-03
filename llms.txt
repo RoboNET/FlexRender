@@ -1,0 +1,305 @@
+# FlexRender
+
+> A modular .NET library for rendering images from YAML templates with flexbox layout. Render-backend agnostic with SkiaSharp as the default backend. AOT-compatible, no reflection.
+
+## Project Structure
+
+```
+src/FlexRender.Core/            # Core library (0 external dependencies)
+  Abstractions/                 # ILayoutRenderer<T>, ITemplateParser, IResourceLoader
+  Configuration/                # ResourceLimits, FlexRenderOptions
+  Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
+    Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
+  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader, HttpResourceLoader
+  Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, etc.
+  TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator
+  Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
+
+src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
+  Parsing/                      # TemplateParser, YamlPreprocessor
+src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
+  Abstractions/                 # IFlexRenderer, IFontLoader, IImageLoader, IFontManager
+  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
+  Loaders/                      # FontLoader, ImageLoader
+  Providers/                    # IContentProvider<T,O>, ImageProvider
+src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
+src/FlexRender.Barcode/         # Barcode provider (-> Skia)
+src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
+src/FlexRender.MetaPackage/     # Meta-package (references all sub-packages)
+
+src/FlexRender.Cli/             # CLI tool (System.CommandLine, uses all packages)
+tests/FlexRender.Tests/         # Unit + snapshot tests
+tests/FlexRender.Cli.Tests/     # CLI integration tests
+examples/                       # Example YAML templates
+```
+
+## Rendering Pipeline
+
+```
+YAML Template
+  -> TemplateParser           (YAML -> AST: Template with CanvasSettings + element tree)
+  -> TemplateExpander         (expand EachElement/IfElement to concrete elements based on data)
+  -> TemplateProcessor        (resolve {{variable}} expressions in element properties)
+  -> LayoutEngine             (two-pass: MeasureAllIntrinsics -> ComputeLayout -> LayoutNode tree)
+  -> SkiaRenderer             (traverse LayoutNode tree -> draw to SKBitmap via SkiaSharp)
+```
+
+Templates can be parsed once and cached for reuse with different data.
+
+## Element Types
+
+Eight element types, each a sealed class extending `TemplateElement`:
+
+| Type | Key Properties |
+|------|---------------|
+| **text** | content, font, size, color, align (left/center/right), wrap, overflow (ellipsis/clip/visible), maxLines, lineHeight |
+| **flex** | direction (row/column), wrap, gap, justify, align, alignContent, children |
+| **image** | src, width, height, fit (fill/contain/cover/none) |
+| **qr** | data, size, errorCorrection (L/M/Q/H), foreground |
+| **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground |
+| **separator** | orientation (horizontal/vertical), style (dotted/dashed/solid), thickness, color |
+| **each** | array, as, children -- iteration over data arrays |
+| **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
+
+All elements share common properties from `TemplateElement`: padding, margin, background, rotate.
+
+All elements (except flex containers) have flex-item properties: grow, shrink, basis, order, alignSelf, width, height.
+
+## Non-Uniform Padding
+
+Padding and margin support CSS-like shorthand with 1 to 4 space-separated values:
+
+- `"20"` -- all sides = 20
+- `"20 40"` -- top/bottom = 20, left/right = 40
+- `"20 40 30"` -- top = 20, left/right = 40, bottom = 30
+- `"20 40 30 10"` -- top = 20, right = 40, bottom = 30, left = 10
+
+Values can use px, %, or em units (e.g., `"10px 5% 2em 20"`).
+
+## Expression Syntax
+
+- `{{variable}}` -- simple substitution
+- `{{user.name}}` -- dot notation path
+- `{{items[0]}}` -- array index
+- `{{@index}}`, `{{@first}}`, `{{@last}}` -- loop variables (inside `type: each`)
+
+## Control Flow (AST-Level)
+
+### Iteration
+```yaml
+- type: each
+  array: items        # path to data array
+  as: item            # optional variable name
+  children:
+    - type: text
+      content: "{{item.name}}"
+```
+
+### Conditional
+```yaml
+- type: if
+  condition: isPremium
+  then:
+    - type: text
+      content: "Premium"
+  else:
+    - type: text
+      content: "Regular"
+
+# With comparison
+- type: if
+  condition: status
+  equals: "paid"      # or notEquals
+  then: [...]
+  elseIf:
+    condition: status
+    equals: "pending"
+    then: [...]
+  else: [...]
+```
+
+## Supported Units
+
+- `px` -- pixels (default when no unit specified)
+- `%` -- percentage of parent size
+- `em` -- relative to font size
+- `auto` -- automatic sizing
+
+## Template YAML Format
+
+```yaml
+template:
+  name: "receipt"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width          # width | height | both | none
+  width: 300
+  height: 0             # 0 = auto when not fixed
+  background: "#ffffff"
+  rotate: "none"        # none | left | right | flip | degrees
+
+layout:
+  - type: text
+    content: "Hello {{name}}"
+    font: "main"
+    size: "16px"
+    color: "#000000"
+    padding: "10 20"
+
+  - type: separator
+    style: dashed
+    color: "#cccccc"
+    thickness: 2
+
+  - type: flex
+    direction: row
+    gap: "10"
+    children:
+      - type: text
+        content: "Left"
+        grow: 1
+      - type: text
+        content: "Right"
+```
+
+## Configurable Resource Limits
+
+The `ResourceLimits` class centralizes all security limits. Defaults are safe-by-default.
+
+| Property | Default | Purpose |
+|----------|---------|---------|
+| MaxTemplateFileSize | 1 MB | YAML template file size |
+| MaxDataFileSize | 10 MB | JSON data file size |
+| MaxPreprocessorNestingDepth | 50 | Block nesting depth |
+| MaxPreprocessorInputSize | 1 MB | Preprocessor input size |
+| MaxTemplateNestingDepth | 100 | Expression nesting |
+| MaxRenderDepth | 100 | Render tree recursion |
+| MaxImageSize | 10 MB | Image loading |
+| HttpTimeout | 30s | Remote resource loading |
+
+Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 200; })`
+
+## DI / Builder API
+
+```csharp
+services.AddFlexRender(builder => builder
+    .WithBasePath("/app/templates")
+    .WithDefaultFont("Roboto")
+    .WithHttpTimeout(TimeSpan.FromSeconds(60))
+    .WithMaxImageSize(20 * 1024 * 1024)
+    .WithLimits(limits =>
+    {
+        limits.MaxTemplateFileSize = 2 * 1024 * 1024;
+        limits.MaxRenderDepth = 200;
+    })
+    .EnableCaching()
+    .AddEmbeddedResources<MyApp>()
+    .AddResourceLoader<CustomLoader>());
+```
+
+## Quick Code Examples
+
+### Parse and render
+
+```csharp
+var parser = new TemplateParser();
+var template = parser.ParseFile("template.yaml");
+var data = new ObjectValue { ["name"] = "World" };
+
+using var renderer = new SkiaRenderer();
+var size = renderer.Measure(template, data);
+using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+renderer.Render(bitmap, template, data);
+```
+
+### With custom resource limits
+
+```csharp
+var limits = new ResourceLimits { MaxRenderDepth = 200, MaxTemplateFileSize = 2 * 1024 * 1024 };
+using var renderer = new SkiaRenderer(limits);
+```
+
+## CLI Tool
+
+### Install as dotnet tool
+
+```bash
+dotnet tool install -g FlexRender.Cli
+```
+
+After installation the `flexrender` command is available globally:
+
+```bash
+flexrender render template.yaml -d data.json -o output.png
+flexrender validate template.yaml
+flexrender info template.yaml
+flexrender watch template.yaml -d data.json -o preview.png
+flexrender debug-layout template.yaml -d data.json
+```
+
+### Native AOT binary
+
+The CLI is fully AOT-compatible. Build a standalone native binary (no .NET runtime required):
+
+```bash
+dotnet publish src/FlexRender.Cli -c Release -r <RID> /p:PublishAot=true
+```
+
+Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`.
+
+### Distribution channels
+
+| Channel | Install | Requires .NET? | Use case |
+|---------|---------|---------------|----------|
+| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
+| Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
+
+Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x64, win-x64.
+
+### Run from source (development)
+
+```bash
+dotnet run --project src/FlexRender.Cli -- render template.yaml -d data.json -o output.png
+```
+
+Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`
+
+Note: The `--scale` option uses invariant culture -- always use `.` as the decimal separator (e.g., `--scale 2.0`).
+
+## Coding Conventions
+
+- .NET 10, C# latest, `Nullable=enable`, `TreatWarningsAsErrors=true`
+- AOT compatible -- no reflection, `GeneratedRegex`, `IsAotCompatible=true`
+- `sealed` all leaf classes; `sealed record` for tokens; `readonly record struct` for value types
+- XML documentation on all public APIs
+- Guard clauses: `ArgumentNullException.ThrowIfNull()`, `ArgumentException.ThrowIfNullOrWhiteSpace()`
+- Switch-based dispatch for element types (not base class properties)
+- TDD approach; xUnit with `[Fact]`/`[Theory]`; naming: `Method_Scenario_Expected`
+
+## How to Add a New Element Type
+
+1. Create sealed AST class in `Parsing/Ast/` extending `TemplateElement`
+2. Add to `ElementType` enum
+3. Register parser in `TemplateParser._elementParsers` dictionary
+4. Add layout calculation via switch pattern matching in `LayoutEngine`
+5. Add rendering in `SkiaRenderer.RenderNode()` or create a provider
+6. Write tests for each step
+
+## NuGet Package Dependencies
+
+| Package | Depends On | External Deps |
+|---------|-----------|---------------|
+| FlexRender.Core | -- | (none) |
+| FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
+| FlexRender.Skia | Core | SkiaSharp 3.119.1 |
+| FlexRender.QrCode | Skia | QRCoder 1.7.0 |
+| FlexRender.Barcode | Skia | (none) |
+| FlexRender.DependencyInjection | Core, Yaml, Skia | Microsoft.Extensions.DI |
+| FlexRender.MetaPackage | All | -- |
+| FlexRender.Cli | All | System.CommandLine |
