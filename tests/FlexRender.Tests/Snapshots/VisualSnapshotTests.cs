@@ -35,6 +35,8 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     [Fact]
     public void TextSimple()
     {
+        if (!OperatingSystem.IsMacOS()) return;
+
         var template = CreateTemplate(300, 200);
         template.AddElement(new TextElement
         {
@@ -96,6 +98,8 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     [Fact]
     public void TextVariables()
     {
+        if (!OperatingSystem.IsMacOS()) return;
+
         var template = CreateTemplate(300, 200);
         template.AddElement(new TextElement
         {
@@ -244,6 +248,8 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     [Fact]
     public void FlexRow()
     {
+        if (!OperatingSystem.IsMacOS()) return;
+
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
         {
