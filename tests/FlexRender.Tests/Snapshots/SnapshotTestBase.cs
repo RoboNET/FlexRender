@@ -77,7 +77,7 @@ public abstract class SnapshotTestBase : IDisposable
     /// </summary>
     protected SnapshotTestBase()
     {
-        _renderer = new SkiaRenderer(new ResourceLimits(), new QrProvider(), new BarcodeProvider());
+        _renderer = new SkiaRenderer(new ResourceLimits(), new QrProvider(), new BarcodeProvider(), imageLoader: null, deterministicRendering: true);
         _parser = new TemplateParser();
         _snapshotsBasePath = GetSnapshotsBasePath();
         _updateSnapshots = IsUpdateSnapshotsEnabled();

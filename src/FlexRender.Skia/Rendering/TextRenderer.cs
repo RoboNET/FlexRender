@@ -11,15 +11,21 @@ public sealed class TextRenderer
 {
     private const string Ellipsis = "...";
     private readonly FontManager _fontManager;
+    private readonly bool _deterministicRendering;
 
     /// <summary>
     /// Creates a new TextRenderer with the specified font manager.
     /// </summary>
     /// <param name="fontManager">The font manager to use for font loading.</param>
+    /// <param name="deterministicRendering">
+    /// When <c>true</c>, disables font hinting and subpixel rendering
+    /// to produce identical output across platforms.
+    /// </param>
     /// <exception cref="ArgumentNullException">Thrown when fontManager is null.</exception>
-    public TextRenderer(FontManager fontManager)
+    public TextRenderer(FontManager fontManager, bool deterministicRendering = false)
     {
         _fontManager = fontManager ?? throw new ArgumentNullException(nameof(fontManager));
+        _deterministicRendering = deterministicRendering;
     }
 
     /// <summary>
@@ -123,7 +129,10 @@ public sealed class TextRenderer
 
     /// <summary>
     /// Creates an <see cref="SKFont"/> configured for the given text element.
-    /// The font manages typeface, size, and subpixel settings.
+    /// When deterministic rendering is enabled, font hinting and subpixel positioning
+    /// are disabled to ensure identical output across macOS, Linux, and Windows.
+    /// Grayscale anti-aliasing is used instead of subpixel anti-aliasing because
+    /// LCD pixel layout varies across displays and platforms.
     /// </summary>
     /// <param name="element">The text element.</param>
     /// <param name="baseFontSize">Base font size for em calculations.</param>
@@ -133,10 +142,18 @@ public sealed class TextRenderer
         var typeface = _fontManager.GetTypeface(element.Font);
         var fontSize = FontSizeResolver.Resolve(element.Size, baseFontSize);
 
-        return new SKFont(typeface, fontSize)
+        var font = new SKFont(typeface, fontSize)
         {
-            Subpixel = true
+            Subpixel = !_deterministicRendering
         };
+
+        if (_deterministicRendering)
+        {
+            font.Hinting = SKFontHinting.None;
+            font.Edging = SKFontEdging.Antialias;
+        }
+
+        return font;
     }
 
     /// <summary>

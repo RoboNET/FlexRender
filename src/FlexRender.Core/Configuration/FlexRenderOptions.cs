@@ -81,6 +81,17 @@ public sealed class FlexRenderOptions
     public bool EnableCaching { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether deterministic rendering mode is enabled.
+    /// </summary>
+    /// <remarks>
+    /// When enabled, disables platform-specific font hinting and subpixel rendering
+    /// to produce identical output across macOS, Linux, and Windows.
+    /// Useful for snapshot testing. Slightly reduces text rendering quality.
+    /// </remarks>
+    /// <value>The default value is <c>false</c>.</value>
+    public bool DeterministicRendering { get; set; }
+
+    /// <summary>
     /// Gets the list of assemblies to search for embedded resources.
     /// </summary>
     /// <remarks>

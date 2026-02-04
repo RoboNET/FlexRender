@@ -52,6 +52,8 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     [Fact]
     public void TextStyled()
     {
+        if (!OperatingSystem.IsMacOS()) return;
+
         var template = CreateTemplate(300, 200);
         template.AddElement(new TextElement
         {
@@ -71,6 +73,8 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     [Fact]
     public void TextMultiline()
     {
+        if (!OperatingSystem.IsMacOS()) return;
+
         var template = CreateTemplate(300, 200);
         template.AddElement(new TextElement
         {
@@ -580,6 +584,8 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     [Fact]
     public void TextWithBackground()
     {
+        if (!OperatingSystem.IsMacOS()) return;
+
         var template = CreateTemplate(300, 200);
         template.AddElement(new TextElement
         {

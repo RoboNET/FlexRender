@@ -69,7 +69,7 @@ public static class ServiceCollectionExtensions
             var qrProvider = sp.GetService<IContentProvider<QrElement>>();
             var barcodeProvider = sp.GetService<IContentProvider<BarcodeElement>>();
             var imageLoader = sp.GetService<IImageLoader>();
-            return new SkiaRenderer(opts.Limits, qrProvider, barcodeProvider, imageLoader);
+            return new SkiaRenderer(opts.Limits, qrProvider, barcodeProvider, imageLoader, opts.DeterministicRendering);
         });
 
         return services;

@@ -77,12 +77,17 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
     /// <param name="qrProvider">Optional QR code content provider.</param>
     /// <param name="barcodeProvider">Optional barcode content provider.</param>
     /// <param name="imageLoader">Optional image loader for async pre-loading of images from various sources.</param>
+    /// <param name="deterministicRendering">
+    /// When <c>true</c>, disables font hinting and subpixel rendering for cross-platform consistency.
+    /// Default is <c>false</c>.
+    /// </param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="limits"/> is null.</exception>
     public SkiaRenderer(
         ResourceLimits limits,
         IContentProvider<QrElement>? qrProvider,
         IContentProvider<BarcodeElement>? barcodeProvider,
-        IImageLoader? imageLoader)
+        IImageLoader? imageLoader,
+        bool deterministicRendering = false)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
@@ -91,7 +96,7 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         _imageLoader = imageLoader;
         _templateProcessor = new TemplateProcessor(limits);
         _fontManager = new FontManager();
-        _textRenderer = new TextRenderer(_fontManager);
+        _textRenderer = new TextRenderer(_fontManager, deterministicRendering);
         _layoutEngine.TextMeasurer = (element, fontSize, maxWidth) =>
         {
             var measured = _textRenderer.MeasureText(element, maxWidth, BaseFontSize);

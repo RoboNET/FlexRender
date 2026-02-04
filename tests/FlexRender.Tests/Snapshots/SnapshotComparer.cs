@@ -188,12 +188,24 @@ public static class SnapshotComparer
     }
 
     /// <summary>
-    /// Gets a read-only span of pixels from a bitmap.
+    /// Gets all pixels from a bitmap as an array of <see cref="SKColor"/> values.
+    /// Uses <see cref="SKBitmap.GetPixel"/> to correctly handle any underlying color type
+    /// (e.g., Rgba8888 vs Bgra8888) rather than raw byte casting which can swap channels.
     /// </summary>
-    private static ReadOnlySpan<SKColor> GetPixels(SKBitmap bitmap)
+    private static SKColor[] GetPixels(SKBitmap bitmap)
     {
-        var pixels = bitmap.GetPixelSpan();
-        return System.Runtime.InteropServices.MemoryMarshal.Cast<byte, SKColor>(pixels);
+        var width = bitmap.Width;
+        var height = bitmap.Height;
+        var pixels = new SKColor[width * height];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                pixels[y * width + x] = bitmap.GetPixel(x, y);
+            }
+        }
+
+        return pixels;
     }
 
     /// <summary>
