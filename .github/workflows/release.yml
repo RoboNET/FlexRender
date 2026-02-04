@@ -7,19 +7,37 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_NOLOGO: true
 
 jobs:
-  release:
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          lfs: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test
+        run: dotnet test FlexRender.slnx -c Release
+
+  publish-nuget:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -30,14 +48,8 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
-      - name: Restore
-        run: dotnet restore FlexRender.slnx
-
       - name: Build
-        run: dotnet build FlexRender.slnx --no-restore --configuration Release
-
-      - name: Test
-        run: dotnet test FlexRender.slnx --no-build --configuration Release
+        run: dotnet build FlexRender.slnx -c Release -p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Pack NuGet packages
         run: |
@@ -56,22 +68,97 @@ jobs:
               --output ./artifacts
           done
 
+      - name: Login to NuGet with trusted publishing
+        id: nuget-login
+        uses: nuget/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Publish to NuGet.org
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
           dotnet nuget push ./artifacts/*.snupkg \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts/*.*nupkg
+
+  build-native:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            rid: osx-arm64
+            archive: tar.gz
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: tar.gz
+          - os: windows-latest
+            rid: win-x64
+            archive: zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Publish native AOT binary
+        run: >
+          dotnet publish src/FlexRender.Cli/FlexRender.Cli.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          /p:PublishAot=true
+          -o ./publish
+
+      - name: Archive (Unix)
+        if: matrix.archive == 'tar.gz'
+        working-directory: ./publish
+        run: tar -czf ../flexrender-${{ steps.version.outputs.VERSION }}-${{ matrix.rid }}.tar.gz .
+
+      - name: Archive (Windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: Compress-Archive -Path ./publish/* -DestinationPath flexrender-${{ steps.version.outputs.VERSION }}-${{ matrix.rid }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: flexrender-*.*
+
+  release:
+    needs: [publish-nuget, build-native]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./release-assets
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: ./artifacts/*.nupkg
+          files: ./release-assets/*

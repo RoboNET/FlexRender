@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.IO;
 using Xunit;
 
 namespace FlexRender.Cli.Tests;
@@ -47,8 +48,17 @@ public class ProgramTests : IDisposable
     [Fact]
     public async Task Main_WithHelpFlag_ReturnsZero()
     {
+        // Arrange - use InvocationConfiguration with TextWriter.Null to avoid
+        // Console.Out disposal race conditions in xUnit on net8.0
+        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var invocationConfig = new InvocationConfiguration
+        {
+            Output = TextWriter.Null,
+            Error = TextWriter.Null,
+        };
+
         // Act
-        var result = await Program.Main(["--help"]);
+        var result = await rootCommand.Parse(["--help"]).InvokeAsync(invocationConfig);
 
         // Assert
         Assert.Equal(0, result);
@@ -60,8 +70,16 @@ public class ProgramTests : IDisposable
     [Fact]
     public async Task Main_WithVersionFlag_ReturnsZero()
     {
+        // Arrange
+        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var invocationConfig = new InvocationConfiguration
+        {
+            Output = TextWriter.Null,
+            Error = TextWriter.Null,
+        };
+
         // Act
-        var result = await Program.Main(["--version"]);
+        var result = await rootCommand.Parse(["--version"]).InvokeAsync(invocationConfig);
 
         // Assert
         Assert.Equal(0, result);

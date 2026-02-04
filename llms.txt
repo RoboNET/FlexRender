@@ -97,8 +97,8 @@ template:
   version: 1
 
 fonts:
-  - name: "main"
-    path: "fonts/Roboto.ttf"
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width          # width | height | both | none
@@ -188,7 +188,15 @@ var limits = new ResourceLimits { MaxRenderDepth = 200, MaxTemplateFileSize = 2 
 using var renderer = new SkiaRenderer(limits);
 ```
 
-## CLI Commands
+## CLI Tool
+
+### Install as dotnet tool
+
+```bash
+dotnet tool install -g FlexRender.Cli
+```
+
+After installation the `flexrender` command is available globally:
 
 ```bash
 flexrender render template.yaml -d data.json -o output.png
@@ -198,7 +206,35 @@ flexrender watch template.yaml -d data.json -o preview.png
 flexrender debug-layout template.yaml -d data.json
 ```
 
+### Native AOT binary
+
+The CLI is fully AOT-compatible. Build a standalone native binary (no .NET runtime required):
+
+```bash
+dotnet publish src/FlexRender.Cli -c Release -r <RID> /p:PublishAot=true
+```
+
+Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`.
+
+### Distribution channels
+
+| Channel | Install | Requires .NET? | Use case |
+|---------|---------|---------------|----------|
+| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
+| Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
+
+Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x64, win-x64.
+
+### Run from source (development)
+
+```bash
+dotnet run --project src/FlexRender.Cli -- render template.yaml -d data.json -o output.png
+```
+
 Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`
+
+Note: The `--scale` option uses invariant culture -- always use `.` as the decimal separator (e.g., `--scale 2.0`).
 
 ## Coding Conventions
 
@@ -225,8 +261,8 @@ Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`
 |---------|-----------|---------------|
 | FlexRender.Core | -- | (none) |
 | FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
-| FlexRender.Skia | Core | SkiaSharp 2.88.9 |
-| FlexRender.QrCode | Skia | QRCoder 1.6.0 |
+| FlexRender.Skia | Core | SkiaSharp 3.119.1 |
+| FlexRender.QrCode | Skia | QRCoder 1.7.0 |
 | FlexRender.Barcode | Skia | (none) |
 | FlexRender.DependencyInjection | Core, Yaml, Skia | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |

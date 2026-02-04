@@ -183,11 +183,6 @@ All new features and non-trivial changes must be developed in separate branches.
 - **Types**: `feat`, `fix`, `refactor`, `build`, `test`, `docs`, `chore`
 - **Do NOT merge into `main`** -- leave the feature branch as-is after completing work. Merging is done manually by the maintainer or via GitHub PR
 - **Do NOT use git worktrees** -- work directly in the repository checkout. Worktrees add unnecessary complexity and cause issues with stash conflicts and asset path resolution
-- **Before completing a branch** -- squash all commits into a single commit with a comprehensive message. This keeps the main branch history clean:
-  ```bash
-  git reset --soft origin/main        # Squash: soft reset to main
-  git commit -m "type(scope): description"  # Single commit with full message
-  ```
 
 ### Commits
 
@@ -198,6 +193,53 @@ Conventional Commits: `type(scope): description`
 - **Description**: lowercase, imperative mood
 
 ## CLI Tool
+
+### Install as dotnet tool
+
+```bash
+dotnet tool install -g FlexRender.Cli
+```
+
+After installation the `flexrender` command is available globally:
+
+```bash
+flexrender render template.yaml -d data.json -o output.png
+flexrender validate template.yaml
+flexrender info template.yaml
+flexrender watch template.yaml -d data.json -o preview.png
+flexrender debug-layout template.yaml -d data.json
+```
+
+### Native AOT binary
+
+The CLI is fully AOT-compatible. To build a standalone native binary (no .NET runtime required):
+
+```bash
+dotnet publish src/FlexRender.Cli -c Release -r <RID> /p:PublishAot=true
+```
+
+Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`.
+
+### Distribution channels
+
+| Channel | Install | Requires .NET? | Use case |
+|---------|---------|---------------|----------|
+| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
+| Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
+
+Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x64, win-x64.
+
+### NuGet Trusted Publishing (OIDC)
+
+The release workflow uses NuGet trusted publishing via OIDC instead of long-lived API keys. Setup:
+
+1. Go to nuget.org -> username -> Trusted Publishing
+2. Add policy: owner/repo = `<owner>/SkiaLayout`, workflow = `release.yml`, tag pattern = `v*`
+3. Set `NUGET_USER` secret in GitHub repo settings (nuget.org username, not email)
+4. Remove old `NUGET_API_KEY` secret after verifying trusted publishing works
+
+### Run from source (development)
 
 ```bash
 dotnet run --project src/FlexRender.Cli -- render template.yaml -d data.json -o output.png

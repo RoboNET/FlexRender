@@ -70,6 +70,9 @@ public static partial class YamlPreprocessor
         if (string.IsNullOrEmpty(yaml) || data == null)
             return yaml;
 
+        // Normalize line endings for cross-platform compatibility (Windows \r\n → \n)
+        yaml = yaml.ReplaceLineEndings("\n");
+
         // Validate input size to prevent denial of service attacks
         var inputSizeBytes = Encoding.UTF8.GetByteCount(yaml);
         if (inputSizeBytes > limits.MaxPreprocessorInputSize)

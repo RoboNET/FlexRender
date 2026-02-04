@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
     <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 
@@ -21,6 +20,16 @@
     <ProjectReference Include="..\FlexRender.QrCode\FlexRender.QrCode.csproj" />
     <ProjectReference Include="..\FlexRender.Barcode\FlexRender.Barcode.csproj" />
     <ProjectReference Include="..\FlexRender.DependencyInjection\FlexRender.DependencyInjection.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" />
   </ItemGroup>
 
 </Project>

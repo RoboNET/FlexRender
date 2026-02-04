@@ -77,8 +77,8 @@ FlexRender.DependencyInjection  (Microsoft.Extensions.DI)
 |---------|-----------|---------------|
 | FlexRender.Core | -- | (none) |
 | FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
-| FlexRender.Skia | Core | SkiaSharp 2.88.9 |
-| FlexRender.QrCode | Skia | QRCoder 1.6.0 |
+| FlexRender.Skia | Core | SkiaSharp 3.119.1 |
+| FlexRender.QrCode | Skia | QRCoder 1.7.0 |
 | FlexRender.Barcode | Skia | (none) |
 | FlexRender.DependencyInjection | Core, Yaml, Skia | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
@@ -109,9 +109,9 @@ template:                     # Required: template metadata
   name: "my-template"         # Template name (string)
   version: 1                  # Template version (int)
 
-fonts:                        # Optional: font definitions
-  - name: "main"              # Font reference name
-    path: "fonts/Roboto.ttf"  # File path, base64, embedded://, or http://
+fonts:                                        # Optional: font definitions (key = reference name, value = path)
+  default: "assets/fonts/Inter-Regular.ttf"   # File path, base64, embedded://, or http://
+  bold: "assets/fonts/Inter-Bold.ttf"
 
 canvas:                       # Required: canvas configuration
   fixed: width                # Which dimension is fixed (width|height|both|none)
@@ -538,7 +538,15 @@ services.AddFlexRender(builder => builder
 var renderer = serviceProvider.GetRequiredService<IFlexRenderer>();
 ```
 
-## CLI Commands
+## CLI Tool
+
+### Install as dotnet tool
+
+```bash
+dotnet tool install -g FlexRender.Cli
+```
+
+After installation the `flexrender` command is available globally:
 
 ```bash
 flexrender render template.yaml -d data.json -o output.png
@@ -548,9 +556,37 @@ flexrender watch template.yaml -d data.json -o preview.png
 flexrender debug-layout template.yaml -d data.json
 ```
 
+### Native AOT binary
+
+The CLI is fully AOT-compatible (`IsAotCompatible=true` on all projects, no reflection). Build a standalone native binary (no .NET runtime required):
+
+```bash
+dotnet publish src/FlexRender.Cli -c Release -r <RID> /p:PublishAot=true
+```
+
+Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`. The resulting binary is a single self-contained executable with no external dependencies (except native SkiaSharp libs).
+
+### Run from source (development)
+
+```bash
+dotnet run --project src/FlexRender.Cli -- render template.yaml -d data.json -o output.png
+```
+
 Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`
 
+The `--scale` option uses invariant culture -- always use `.` as the decimal separator (e.g., `--scale 2.0`).
+
 Working directory matters: CLI resolves all relative paths (template, data, fonts, image src) from the current working directory.
+
+### Distribution channels
+
+| Channel | Install | Requires .NET? | Use case |
+|---------|---------|---------------|----------|
+| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
+| Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
+
+Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x64, win-x64.
 
 ## Coding Conventions
 
@@ -575,7 +611,7 @@ Working directory matters: CLI resolves all relative paths (template, data, font
 - **Naming**: `MethodUnderTest_Scenario_ExpectedResult` (e.g., `Parse_SimpleTextElement_ParsesCorrectly`)
 - **Class naming**: `{ClassName}Tests`
 - **Organization**: Mirrors source structure -- `Tests/Values/`, `Tests/Layout/`, `Tests/Parsing/`, etc.
-- **Snapshot testing**: `SnapshotTestBase` with platform-specific golden images in `golden/{macos,linux,windows}/`. Pixel-by-pixel comparison with `colorThreshold=5`. Set `UPDATE_SNAPSHOTS=true` to regenerate
+- **Snapshot testing**: `SnapshotTestBase` with golden images in `golden/`. Pixel-by-pixel comparison with `colorThreshold` and `maxDifferencePercent` (0.0 = exact match). Set `UPDATE_SNAPSHOTS=true` to regenerate
 - **Pattern**: Arrange-Act-Assert
 
 ```bash

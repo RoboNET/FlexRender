@@ -60,6 +60,12 @@ public abstract class SnapshotTestBase : IDisposable
     /// </summary>
     private const string OutputDirectoryName = "output";
 
+    /// <summary>
+    /// Default maximum allowed percentage of differing pixels for cross-platform tolerance.
+    /// Accounts for anti-aliasing differences between macOS (Core Text) and Linux (FreeType).
+    /// </summary>
+    private const double DefaultMaxDifferencePercent = 5.0;
+
     private readonly SkiaRenderer _renderer;
     private readonly TemplateParser _parser;
     private readonly string _snapshotsBasePath;
@@ -75,6 +81,11 @@ public abstract class SnapshotTestBase : IDisposable
         _parser = new TemplateParser();
         _snapshotsBasePath = GetSnapshotsBasePath();
         _updateSnapshots = IsUpdateSnapshotsEnabled();
+
+        // Register Inter font for deterministic cross-platform rendering
+        var fontPath = Path.Combine(_snapshotsBasePath, "Fonts", "Inter-Regular.ttf");
+        _renderer.FontManager.RegisterFont("main", fontPath);
+        _renderer.FontManager.RegisterFont("default", fontPath);
     }
 
     /// <summary>
@@ -107,7 +118,7 @@ public abstract class SnapshotTestBase : IDisposable
     /// </param>
     /// <param name="maxDifferencePercent">
     /// Maximum allowed percentage of differing pixels (0.0–100.0).
-    /// Default is 0.0 (exact match). Increase to tolerate cross-platform rendering differences.
+    /// Default is 5.0% to tolerate cross-platform anti-aliasing differences.
     /// </param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="testName"/>, <paramref name="template"/>, or <paramref name="data"/> is null.
@@ -123,7 +134,7 @@ public abstract class SnapshotTestBase : IDisposable
         Template template,
         ObjectValue data,
         int colorThreshold = SnapshotComparer.DefaultColorThreshold,
-        double maxDifferencePercent = 0.0)
+        double maxDifferencePercent = DefaultMaxDifferencePercent)
     {
         ArgumentNullException.ThrowIfNull(testName);
         ArgumentNullException.ThrowIfNull(template);

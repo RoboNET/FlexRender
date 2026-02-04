@@ -30,7 +30,7 @@ public class YamlPreprocessorTests
 
         var result = YamlPreprocessor.Preprocess(yaml, data);
 
-        Assert.Equal(yaml, result);
+        Assert.Equal(yaml.ReplaceLineEndings("\n"), result);
     }
 
     [Fact]
