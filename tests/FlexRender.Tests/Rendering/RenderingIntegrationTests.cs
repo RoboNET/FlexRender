@@ -25,7 +25,7 @@ public class RenderingIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void FullPipeline_YamlToImage_Works()
+    public async Task FullPipeline_YamlToImage_Works()
     {
         const string yaml = """
             template:
@@ -60,7 +60,8 @@ public class RenderingIntegrationTests : IDisposable
         };
 
         var filePath = Path.Combine(_tempDir, "receipt.png");
-        _renderer.RenderToFile(template, data, filePath);
+        await using var stream = File.Create(filePath);
+        await _renderer.RenderToPng(stream, template, data);
 
         Assert.True(File.Exists(filePath));
         var fileInfo = new FileInfo(filePath);
@@ -68,7 +69,7 @@ public class RenderingIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void FullPipeline_WithVariableSubstitution_SubstitutesCorrectly()
+    public async Task FullPipeline_WithVariableSubstitution_SubstitutesCorrectly()
     {
         const string yaml = """
             canvas:
@@ -86,14 +87,14 @@ public class RenderingIntegrationTests : IDisposable
             ["balance"] = 99.99m
         };
 
-        using var bitmap = _renderer.RenderToBitmap(template, data);
+        using var bitmap = await _renderer.Render(template, data);
 
         Assert.NotNull(bitmap);
         Assert.Equal(200, bitmap.Width);
     }
 
     [Fact]
-    public void FullPipeline_MultipleFormats_AllWork()
+    public async Task FullPipeline_MultipleFormats_AllWork()
     {
         const string yaml = """
             canvas:
@@ -112,8 +113,14 @@ public class RenderingIntegrationTests : IDisposable
         var pngPath = Path.Combine(_tempDir, "test.png");
         var jpgPath = Path.Combine(_tempDir, "test.jpg");
 
-        _renderer.RenderToFile(template, data, pngPath);
-        _renderer.RenderToFile(template, data, jpgPath);
+        await using (var pngStream = File.Create(pngPath))
+        {
+            await _renderer.RenderToPng(pngStream, template, data);
+        }
+        await using (var jpgStream = File.Create(jpgPath))
+        {
+            await _renderer.RenderToJpeg(jpgStream, template, data);
+        }
 
         Assert.True(File.Exists(pngPath));
         Assert.True(File.Exists(jpgPath));
@@ -142,7 +149,7 @@ public class RenderingIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void FullPipeline_ComplexLayout_RendersAllElements()
+    public async Task FullPipeline_ComplexLayout_RendersAllElements()
     {
         const string yaml = """
             canvas:
@@ -186,7 +193,7 @@ public class RenderingIntegrationTests : IDisposable
         var template = _parser.Parse(yaml);
         var data = new ObjectValue();
 
-        using var bitmap = _renderer.RenderToBitmap(template, data);
+        using var bitmap = await _renderer.Render(template, data);
 
         Assert.NotNull(bitmap);
         Assert.Equal(300, bitmap.Width);
@@ -194,7 +201,7 @@ public class RenderingIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void FullPipeline_TextRotation_DoesNotCrash()
+    public async Task FullPipeline_TextRotation_DoesNotCrash()
     {
         const string yaml = """
             canvas:
@@ -220,16 +227,16 @@ public class RenderingIntegrationTests : IDisposable
         var template = _parser.Parse(yaml);
         var data = new ObjectValue();
 
-        var exception = Record.Exception(() =>
+        var exception = await Record.ExceptionAsync(async () =>
         {
-            using var bitmap = _renderer.RenderToBitmap(template, data);
+            using var bitmap = await _renderer.Render(template, data);
         });
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void FullPipeline_LongText_WrapsCorrectly()
+    public async Task FullPipeline_LongText_WrapsCorrectly()
     {
         const string yaml = """
             canvas:
@@ -244,7 +251,7 @@ public class RenderingIntegrationTests : IDisposable
         var template = _parser.Parse(yaml);
         var data = new ObjectValue();
 
-        using var bitmap = _renderer.RenderToBitmap(template, data);
+        using var bitmap = await _renderer.Render(template, data);
 
         // Note: LayoutEngine currently calculates height for single line only.
         // Text wrapping is handled by TextRenderer during actual rendering.
@@ -254,7 +261,7 @@ public class RenderingIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void FullPipeline_EmptyData_RendersTemplateExpressions()
+    public async Task FullPipeline_EmptyData_RendersTemplateExpressions()
     {
         const string yaml = """
             canvas:
@@ -269,16 +276,16 @@ public class RenderingIntegrationTests : IDisposable
         var data = new ObjectValue(); // No data provided
 
         // Should not throw, and should render with unsubstituted placeholder
-        var exception = Record.Exception(() =>
+        var exception = await Record.ExceptionAsync(async () =>
         {
-            using var bitmap = _renderer.RenderToBitmap(template, data);
+            using var bitmap = await _renderer.Render(template, data);
         });
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void FullPipeline_ByteOutput_IsValidImage()
+    public async Task FullPipeline_ByteOutput_IsValidImage()
     {
         const string yaml = """
             canvas:
@@ -292,9 +299,17 @@ public class RenderingIntegrationTests : IDisposable
         var template = _parser.Parse(yaml);
         var data = new ObjectValue();
 
-        var pngBytes = _renderer.RenderToPng(template, data);
-        var jpegBytes = _renderer.RenderToJpeg(template, data, quality: 80);
-        var bmpBytes = _renderer.RenderToBmp(template, data);
+        using var pngStream = new MemoryStream();
+        using var jpegStream = new MemoryStream();
+        using var bmpStream = new MemoryStream();
+
+        await _renderer.RenderToPng(pngStream, template, data);
+        await _renderer.RenderToJpeg(jpegStream, template, data, quality: 80);
+        await _renderer.RenderToBmp(bmpStream, template, data);
+
+        var pngBytes = pngStream.ToArray();
+        var jpegBytes = jpegStream.ToArray();
+        var bmpBytes = bmpStream.ToArray();
 
         // Verify we can decode the images back
         using var pngImage = SKBitmap.Decode(pngBytes);

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.Http</PackageId>
+    <Description>HTTP resource loader for FlexRender. Enables loading images and fonts from HTTP/HTTPS URLs.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+  </ItemGroup>
+
+</Project>

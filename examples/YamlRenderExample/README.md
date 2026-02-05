@@ -6,7 +6,7 @@ Demonstrates rendering an image from a YAML template using FlexRender with depen
 
 - Parsing a YAML template file with `TemplateParser`
 - Setting up FlexRender via `Microsoft.Extensions.DependencyInjection`
-- Rendering to a PNG file using `IFlexRenderer`
+- Rendering to a PNG file using `ISkiaRenderer`
 - Passing template data with `ObjectValue`
 
 ## Packages used

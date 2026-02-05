@@ -13,7 +13,7 @@ A .NET library for rendering images from YAML templates with flexbox-like layout
 - **Flexbox Layout** - Row/column direction, wrap, justify, align, gap
 - **Template Engine** - Variables, loops (`type: each`), conditionals (`type: if`)
 - **Multiple Content Types** - Text, images, QR codes, barcodes
-- **Output Formats** - PNG, JPEG, BMP
+- **Output Formats** - PNG, JPEG, BMP, Raw
 - **CLI Tool** - Render templates from command line
 - **AOT Compatible** - No reflection, works with Native AOT
 - **Modular Architecture** - Install only what you need
@@ -58,6 +58,7 @@ dotnet add package FlexRender
 | `FlexRender.Skia` | SkiaSharp renderer |
 | `FlexRender.QrCode` | QR code support |
 | `FlexRender.Barcode` | Barcode support |
+| `FlexRender.Http` | HTTP/HTTPS resource loading |
 | `FlexRender.DependencyInjection` | Microsoft DI integration |
 
 ```bash
@@ -85,13 +86,6 @@ dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
 
 ```bash
 dotnet tool install -g FlexRender.Cli
-```
-
-### Dependency Injection
-
-```csharp
-// Register all FlexRender services
-services.AddFlexRender();
 ```
 
 ## Quick Start
@@ -149,42 +143,66 @@ layout:
 ### 2. Render with code
 
 ```csharp
-using FlexRender.Parsing;
-using FlexRender.Rendering;
-using FlexRender.Values;
-
-var parser = new TemplateParser();
-var renderer = new SkiaRenderer();
-
-var template = parser.ParseFile("receipt.yaml");
+// Build renderer with fluent API
+var render = new FlexRenderBuilder()
+    .WithBasePath("./templates")
+    .WithSkia(skia => skia
+        .WithQr()
+        .WithBarcode())
+    .Build();
 
 var data = new ObjectValue
 {
     ["shopName"] = "My Shop",
     ["total"] = 1500,
     ["paymentUrl"] = "https://pay.example.com/123",
-    ["items"] = new ArrayValue(new TemplateValue[]
-    {
+    ["items"] = new ArrayValue(
         new ObjectValue { ["name"] = "Product 1", ["price"] = 500 },
-        new ObjectValue { ["name"] = "Product 2", ["price"] = 1000 }
-    })
+        new ObjectValue { ["name"] = "Product 2", ["price"] = 1000 })
 };
 
-// Render to bitmap (async API)
-using var bitmap = await renderer.Render(template, data);
-
-// Save to file
-using var image = SKImage.FromBitmap(bitmap);
-using var pngData = image.Encode(SKEncodedImageFormat.Png, 100);
-using var stream = File.OpenWrite("receipt.png");
-pngData.SaveTo(stream);
+// Render to PNG bytes
+byte[] pngBytes = await render.RenderFile("receipt.yaml", data);
+await File.WriteAllBytesAsync("receipt.png", pngBytes);
 ```
 
-### 3. Or use CLI
+### 3. With Dependency Injection
+
+```csharp
+// Program.cs
+services.AddFlexRender(builder => builder
+    .WithBasePath("/app/templates")
+    .WithSkia(skia => skia
+        .WithQr()
+        .WithBarcode()));
+
+// In your service
+public class ReceiptService(IFlexRender render)
+{
+    public async Task<byte[]> Generate(ReceiptData data)
+    {
+        var values = MapToObjectValue(data);
+        return await render.RenderFile("receipt.yaml", values);
+    }
+}
+```
+
+### 4. Or use CLI
 
 ```bash
 flexrender render receipt.yaml -d data.json -o receipt.png
 ```
+
+## Output Formats
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| PNG | `.png` | Lossless compression, best quality |
+| JPEG | `.jpg` | Lossy compression, smaller file size |
+| BMP | `.bmp` | Uncompressed bitmap |
+| Raw | `.raw` | Raw BGRA pixel data (4 bytes per pixel) |
+
+The Raw format outputs uncompressed pixel data in BGRA order (Blue, Green, Red, Alpha), 4 bytes per pixel, row by row from top to bottom. Useful for direct hardware integration or custom processing pipelines.
 
 ## Template Syntax
 
@@ -382,57 +400,67 @@ flexrender watch template.yaml -d data.json -o preview.png
 
 ## API Reference
 
-### TemplateParser
+### FlexRenderBuilder (recommended)
 
 ```csharp
+// Minimal setup
+var render = new FlexRenderBuilder()
+    .WithSkia()
+    .Build();
+
+// Full configuration
+var render = new FlexRenderBuilder()
+    .WithHttpLoader()                              // Enable HTTP resource loading
+    .WithEmbeddedLoader(typeof(Program).Assembly)  // Load from embedded resources
+    .WithBasePath("./templates")                   // Base path for file resolution
+    .WithLimits(limits => limits.MaxRenderDepth = 200)
+    .WithSkia(skia => skia
+        .WithQr()                                  // Enable QR code support
+        .WithBarcode())                            // Enable barcode support
+    .Build();
+
+// Render from YAML file (requires FlexRender.Yaml package)
+byte[] png = await render.RenderFile("receipt.yaml", data);
+byte[] jpg = await render.RenderFile("receipt.yaml", data, ImageFormat.Jpeg);
+
+// Render from YAML string
+byte[] png = await render.RenderYaml(yamlString, data);
+
+// Render from parsed template (for caching)
 var parser = new TemplateParser();
+var template = parser.Parse(yamlString);
+byte[] png = await render.Render(template, data);
 
-// Parse from string
-Template template = parser.Parse(yamlString);
-
-// Parse from file (with 1MB size limit)
-Template template = parser.ParseFile("template.yaml");
-
-// Check supported element types
-IReadOnlyCollection<string> types = parser.SupportedElementTypes;
-// Returns: ["text", "qr", "barcode", "image", "flex", "separator", "each", "if"]
+// Sandboxed mode (no file system access)
+var sandboxed = new FlexRenderBuilder()
+    .WithoutDefaultLoaders()
+    .WithEmbeddedLoader(typeof(Program).Assembly)
+    .WithSkia()
+    .Build();
 ```
 
-### TemplateExpander
-
-Templates with `type: each` and `type: if` are automatically expanded during rendering.
-For manual expansion (useful for template caching):
+### Dependency Injection
 
 ```csharp
-var expander = new TemplateExpander();
+// Basic registration
+services.AddFlexRender(builder => builder
+    .WithSkia(skia => skia.WithQr().WithBarcode()));
 
-// Expand control flow elements with data
-Template expanded = expander.Expand(template, data);
+// With service provider access
+services.AddFlexRender((sp, builder) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    builder
+        .WithBasePath(config["FlexRender:BasePath"] ?? "./templates")
+        .WithSkia(skia => skia.WithQr().WithBarcode());
+});
 
-// The expanded template has no Each/If elements - they're replaced with concrete elements
-// This allows parsing once and rendering with different data
-```
-
-### SkiaRenderer
-
-```csharp
-using var renderer = new SkiaRenderer();
-
-// Set base font size (default: 12)
-renderer.BaseFontSize = 14f;
-
-// Measure required size
-SKSize size = renderer.Measure(template, data);
-
-// Render to canvas
-renderer.Render(canvas, template, data);
-renderer.Render(canvas, template, data, offset: new SKPoint(10, 10));
-
-// Render to bitmap
-renderer.Render(bitmap, template, data);
-
-// Async render via ILayoutRenderer<SKBitmap>
-using var bitmap = await renderer.Render(template, data);
+// Inject IFlexRender
+public class MyService(IFlexRender render)
+{
+    public Task<byte[]> GenerateImage(ObjectValue data)
+        => render.RenderFile("template.yaml", data);
+}
 ```
 
 ### TemplateValue Types
@@ -445,17 +473,15 @@ TemplateValue str = new StringValue("hello");
 // Number
 TemplateValue num = 42;                // implicit from int
 TemplateValue num = 3.14;              // implicit from double
-TemplateValue num = new NumberValue(42);
 
 // Boolean
 TemplateValue flag = true;             // implicit conversion
-TemplateValue flag = new BoolValue(true);
 
 // Null
 TemplateValue nil = NullValue.Instance;
 
 // Array
-var array = new ArrayValue(new TemplateValue[] { "a", "b", "c" });
+var array = new ArrayValue("a", "b", "c");
 int count = array.Count;
 TemplateValue first = array[0];
 

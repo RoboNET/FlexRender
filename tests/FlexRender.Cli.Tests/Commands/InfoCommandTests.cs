@@ -6,29 +6,8 @@ namespace FlexRender.Cli.Tests.Commands;
 /// <summary>
 /// Tests for the info CLI command.
 /// </summary>
-public class InfoCommandTests : IDisposable
+public class InfoCommandTests
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="InfoCommandTests"/> class.
-    /// </summary>
-    public InfoCommandTests()
-    {
-        _serviceProvider = Program.CreateServiceProvider();
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (_serviceProvider is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
     /// Verifies that the root command has an info subcommand.
     /// </summary>
@@ -36,7 +15,7 @@ public class InfoCommandTests : IDisposable
     public void CreateRootCommand_HasInfoSubcommand()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
 
         // Assert
         var infoCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "info");

@@ -10,15 +10,16 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Configuration/                # ResourceLimits, FlexRenderOptions
   Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
-  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader, HttpResourceLoader
+  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, etc.
   TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/                      # TemplateParser, YamlPreprocessor
+src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
-  Abstractions/                 # IFlexRenderer, IFontLoader, IImageLoader, IFontManager
+  Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
   Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
   Loaders/                      # FontLoader, ImageLoader
   Providers/                    # IContentProvider<T,O>, ImageProvider
@@ -184,44 +185,46 @@ The `ResourceLimits` class centralizes all security limits. Defaults are safe-by
 
 Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 200; })`
 
-## DI / Builder API
+## Builder API
+
+### Without DI
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithHttpLoader()
+    .WithBasePath("./templates")
+    .WithLimits(limits => limits.MaxRenderDepth = 200)
+    .WithSkia(skia => skia
+        .WithQr()
+        .WithBarcode())
+    .Build();
+
+byte[] png = await render.RenderFile("receipt.yaml", data);
+```
+
+### With DI
 
 ```csharp
 services.AddFlexRender(builder => builder
     .WithBasePath("/app/templates")
-    .WithDefaultFont("Roboto")
-    .WithHttpTimeout(TimeSpan.FromSeconds(60))
-    .WithMaxImageSize(20 * 1024 * 1024)
-    .WithLimits(limits =>
-    {
-        limits.MaxTemplateFileSize = 2 * 1024 * 1024;
-        limits.MaxRenderDepth = 200;
-    })
-    .EnableCaching()
-    .AddEmbeddedResources<MyApp>()
-    .AddResourceLoader<CustomLoader>());
+    .WithSkia(skia => skia.WithQr().WithBarcode()));
+
+// Inject IFlexRender
+public class MyService(IFlexRender render)
+{
+    public Task<byte[]> Generate(ObjectValue data)
+        => render.RenderFile("template.yaml", data);
+}
 ```
 
-## Quick Code Examples
-
-### Parse and render
+### Sandboxed (no file access)
 
 ```csharp
-var parser = new TemplateParser();
-var template = parser.ParseFile("template.yaml");
-var data = new ObjectValue { ["name"] = "World" };
-
-using var renderer = new SkiaRenderer();
-var size = renderer.Measure(template, data);
-using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-renderer.Render(bitmap, template, data);
-```
-
-### With custom resource limits
-
-```csharp
-var limits = new ResourceLimits { MaxRenderDepth = 200, MaxTemplateFileSize = 2 * 1024 * 1024 };
-using var renderer = new SkiaRenderer(limits);
+var render = new FlexRenderBuilder()
+    .WithoutDefaultLoaders()
+    .WithEmbeddedLoader(typeof(Program).Assembly)
+    .WithSkia()
+    .Build();
 ```
 
 ## CLI Tool
@@ -297,9 +300,10 @@ Note: The `--scale` option uses invariant culture -- always use `.` as the decim
 |---------|-----------|---------------|
 | FlexRender.Core | -- | (none) |
 | FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
+| FlexRender.Http | Core | (none) |
 | FlexRender.Skia | Core | SkiaSharp 3.119.1 |
 | FlexRender.QrCode | Skia | QRCoder 1.7.0 |
 | FlexRender.Barcode | Skia | (none) |
-| FlexRender.DependencyInjection | Core, Yaml, Skia | Microsoft.Extensions.DI |
+| FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
 | FlexRender.Cli | All | System.CommandLine |

@@ -1,10 +1,7 @@
 using System.CommandLine;
-using Microsoft.Extensions.DependencyInjection;
 using FlexRender.Abstractions;
-using FlexRender.Configuration;
 using FlexRender.Parsing;
-using FlexRender.Rendering;
-using SkiaSharp;
+using FlexRender.Yaml;
 
 namespace FlexRender.Cli.Commands;
 
@@ -16,9 +13,8 @@ public static class WatchCommand
     /// <summary>
     /// Creates the watch command.
     /// </summary>
-    /// <param name="serviceProvider">The service provider for dependency injection.</param>
     /// <returns>The configured watch command.</returns>
-    public static Command Create(IServiceProvider serviceProvider)
+    public static Command Create()
     {
         var templateArg = new Argument<FileInfo>("template")
         {
@@ -62,26 +58,21 @@ public static class WatchCommand
             var outputFile = parseResult.GetValue(outputOption);
             var quality = parseResult.GetValue(qualityOption);
             var open = parseResult.GetValue(openOption);
-            var scale = parseResult.GetValue(GlobalOptions.Scale);
-            var fontsDir = parseResult.GetValue(GlobalOptions.Fonts);
             var verbose = parseResult.GetValue(GlobalOptions.Verbose);
             var basePath = parseResult.GetValue(GlobalOptions.BasePath);
 
-            return await Execute(serviceProvider, templateFile!, dataFile, outputFile, quality, open, scale, fontsDir, verbose, basePath);
+            return await Execute(templateFile!, dataFile, outputFile, quality, open, verbose, basePath);
         });
 
         return command;
     }
 
     private static async Task<int> Execute(
-        IServiceProvider serviceProvider,
         FileInfo templateFile,
         FileInfo? dataFile,
         FileInfo? outputFile,
         int quality,
         bool open,
-        float scale,
-        DirectoryInfo? fontsDir,
         bool verbose,
         DirectoryInfo? basePath)
     {
@@ -125,16 +116,9 @@ public static class WatchCommand
             return 1;
         }
 
-        // Validate fonts directory if specified
-        if (fontsDir is not null && !fontsDir.Exists)
-        {
-            Console.Error.WriteLine($"Error: Fonts directory not found: {fontsDir.FullName}");
-            return 1;
-        }
-
-        // Set base path for resolving relative file references
-        var options = serviceProvider.GetRequiredService<FlexRenderOptions>();
-        options.BasePath = basePath?.FullName ?? templateFile.DirectoryName!;
+        // Create renderer with base path
+        var effectiveBasePath = basePath?.FullName ?? templateFile.DirectoryName!;
+        using var renderer = Program.CreateRenderBuilder(effectiveBasePath).Build();
 
         Console.WriteLine("Starting watch mode...");
         Console.WriteLine($"  Template: {templateFile.FullName}");
@@ -148,32 +132,7 @@ public static class WatchCommand
         Console.WriteLine();
 
         // Initial render
-        var renderer = serviceProvider.GetRequiredService<IFlexRenderer>();
-
-        if (fontsDir is not null)
-        {
-            var fontExtensions = new[] { ".ttf", ".otf" };
-            var fontFiles = Directory.GetFiles(fontsDir.FullName)
-                .Where(f => fontExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                .ToArray();
-
-            foreach (var fontPath in fontFiles)
-            {
-                var fontName = Path.GetFileNameWithoutExtension(fontPath);
-                renderer.FontManager.RegisterFont(fontName, fontPath);
-                if (verbose)
-                {
-                    Console.WriteLine($"Registered font: {fontName}");
-                }
-            }
-
-            if (verbose && fontFiles.Length > 0)
-            {
-                Console.WriteLine($"Loaded {fontFiles.Length} font(s) from: {fontsDir.FullName}");
-            }
-        }
-
-        var renderResult = await RenderOnce(renderer, templateFile, dataFile, outputFile, quality, scale, verbose);
+        var renderResult = await RenderOnce(renderer, templateFile, dataFile, outputFile, format, verbose);
         if (renderResult != 0 && verbose)
         {
             Console.WriteLine("Initial render failed, will retry on file changes.");
@@ -194,7 +153,7 @@ public static class WatchCommand
             var (templateWatcher, templateDebouncer) = CreateWatcher(templateFile, async () =>
             {
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Template changed: {templateFile.Name}");
-                await RenderOnce(renderer, templateFile, dataFile, outputFile, quality, scale, verbose);
+                await RenderOnce(renderer, templateFile, dataFile, outputFile, format, verbose);
             });
             watchers.Add(templateWatcher);
             debouncers.Add(templateDebouncer);
@@ -205,7 +164,7 @@ public static class WatchCommand
                 var (dataWatcher, dataDebouncer) = CreateWatcher(dataFile, async () =>
                 {
                     Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Data changed: {dataFile.Name}");
-                    await RenderOnce(renderer, templateFile, dataFile, outputFile, quality, scale, verbose);
+                    await RenderOnce(renderer, templateFile, dataFile, outputFile, format, verbose);
                 });
                 watchers.Add(dataWatcher);
                 debouncers.Add(dataDebouncer);
@@ -367,12 +326,11 @@ public static class WatchCommand
     }
 
     private static async Task<int> RenderOnce(
-        IFlexRenderer renderer,
+        IFlexRender renderer,
         FileInfo templateFile,
         FileInfo? dataFile,
         FileInfo outputFile,
-        int quality,
-        float scale,
+        OutputFormat format,
         bool verbose)
     {
         try
@@ -384,58 +342,21 @@ public static class WatchCommand
                 data = DataLoader.LoadFromFile(dataFile.FullName);
             }
 
-            // Parse template with data preprocessing (handles {{#each}} blocks)
-            var parser = new TemplateParser();
-            var yaml = await File.ReadAllTextAsync(templateFile.FullName);
-            var template = parser.Parse(yaml, data);
-
-            var format = OutputFormatExtensions.FromPath(outputFile.FullName);
-
             // Ensure output directory exists
             FileOpener.EnsureDirectoryExists(outputFile.FullName);
 
-            // Measure template to determine bitmap size
-            var renderData = data ?? new ObjectValue();
-            var size = await renderer.Measure(template, renderData);
-            var scaledWidth = (int)Math.Ceiling(size.Width * scale);
-            var scaledHeight = (int)Math.Ceiling(size.Height * scale);
-
-            // Create bitmap and render
-            using var bitmap = new SKBitmap(scaledWidth, scaledHeight);
-            using var canvas = new SKCanvas(bitmap);
-
-            // Apply scale transform
-            canvas.Scale(scale);
-
-            await renderer.Render(bitmap, template, renderData);
-
-            if (format == OutputFormat.Bmp)
+            // Map output format to ImageFormat
+            var imageFormat = format switch
             {
-                await using var stream = File.Create(outputFile.FullName);
-                BmpEncoder.Encode(bitmap, stream);
-            }
-            else
-            {
-                var skFormat = format switch
-                {
-                    OutputFormat.Png => SKEncodedImageFormat.Png,
-                    OutputFormat.Jpeg => SKEncodedImageFormat.Jpeg,
-                    _ => SKEncodedImageFormat.Png
-                };
+                OutputFormat.Png => ImageFormat.Png,
+                OutputFormat.Jpeg => ImageFormat.Jpeg,
+                OutputFormat.Bmp => ImageFormat.Bmp,
+                _ => ImageFormat.Png
+            };
 
-                using var image = SKImage.FromBitmap(bitmap);
-                using var encodedData = image.Encode(skFormat, quality);
-
-                if (encodedData is null)
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to encode image to {format}. The encoding operation returned null.");
-                }
-
-                // Save to file
-                await using var stream = File.Create(outputFile.FullName);
-                encodedData.SaveTo(stream);
-            }
+            // Render directly to file
+            await using var outputStream = File.Create(outputFile.FullName);
+            await renderer.RenderFile(outputStream, templateFile.FullName, data, imageFormat);
 
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Rendered: {outputFile.Name}");
             return 0;

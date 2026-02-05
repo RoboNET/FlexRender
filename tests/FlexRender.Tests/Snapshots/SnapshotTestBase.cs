@@ -91,7 +91,7 @@ public abstract class SnapshotTestBase : IDisposable
     /// <summary>
     /// Gets the renderer instance for rendering templates.
     /// </summary>
-    protected SkiaRenderer Renderer => _renderer;
+    internal SkiaRenderer Renderer => _renderer;
 
     /// <summary>
     /// Gets the template parser instance for parsing YAML templates.

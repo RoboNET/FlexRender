@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/FlexRender.Core/FlexRender.Core.csproj" />
     <Project Path="src/FlexRender.Yaml/FlexRender.Yaml.csproj" />
+    <Project Path="src/FlexRender.Http/FlexRender.Http.csproj" />
     <Project Path="src/FlexRender.Skia/FlexRender.Skia.csproj" />
     <Project Path="src/FlexRender.QrCode/FlexRender.QrCode.csproj" />
     <Project Path="src/FlexRender.Barcode/FlexRender.Barcode.csproj" />

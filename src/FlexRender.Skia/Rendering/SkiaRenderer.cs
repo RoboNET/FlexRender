@@ -11,7 +11,7 @@ namespace FlexRender.Rendering;
 /// <summary>
 /// Renders templates to SkiaSharp canvases and bitmaps.
 /// </summary>
-public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
+internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Default maximum render depth.
@@ -114,9 +114,6 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
     /// Gets the font manager for font registration.
     /// </summary>
     public FontManager FontManager => _fontManager;
-
-    /// <inheritdoc />
-    IFontManager IFlexRenderer.FontManager => _fontManager;
 
     /// <summary>
     /// Computes the layout tree for a template with data.
@@ -741,7 +738,15 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         return _templateProcessor.Process(value, data);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Renders a template to a new bitmap.
+    /// </summary>
+    /// <param name="layoutTemplate">The template to render.</param>
+    /// <param name="data">The data context for template expressions.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>A new bitmap containing the rendered template.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="layoutTemplate"/> or <paramref name="data"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     public async Task<SKBitmap> Render(
         Template layoutTemplate,
         ObjectValue data,
@@ -782,8 +787,17 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         }
     }
 
-    /// <inheritdoc />
-    async Task IFlexRenderer.Render(
+    /// <summary>
+    /// Renders a template to an existing bitmap asynchronously.
+    /// </summary>
+    /// <param name="bitmap">The target bitmap to render onto.</param>
+    /// <param name="layoutTemplate">The template to render.</param>
+    /// <param name="data">The data context for template expressions.</param>
+    /// <param name="offset">Optional offset for rendering position.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="bitmap"/>, <paramref name="layoutTemplate"/>, or <paramref name="data"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
+    public async Task Render(
         SKBitmap bitmap,
         Template layoutTemplate,
         ObjectValue data,
@@ -814,7 +828,15 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Renders a template to a PNG stream.
+    /// </summary>
+    /// <param name="output">The output stream to write PNG data to.</param>
+    /// <param name="layoutTemplate">The template to render.</param>
+    /// <param name="data">The data context for template expressions.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="output"/>, <paramref name="layoutTemplate"/>, or <paramref name="data"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     public async Task RenderToPng(
         Stream output,
         Template layoutTemplate,
@@ -853,7 +875,17 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Renders a template to a JPEG stream.
+    /// </summary>
+    /// <param name="output">The output stream to write JPEG data to.</param>
+    /// <param name="layoutTemplate">The template to render.</param>
+    /// <param name="data">The data context for template expressions.</param>
+    /// <param name="quality">JPEG quality (1-100, default 90).</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="output"/>, <paramref name="layoutTemplate"/>, or <paramref name="data"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="quality"/> is not between 1 and 100.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     public async Task RenderToJpeg(
         Stream output,
         Template layoutTemplate,
@@ -899,7 +931,15 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Renders a template to a BMP stream.
+    /// </summary>
+    /// <param name="output">The output stream to write BMP data to.</param>
+    /// <param name="layoutTemplate">The template to render.</param>
+    /// <param name="data">The data context for template expressions.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="output"/>, <paramref name="layoutTemplate"/>, or <paramref name="data"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     public async Task RenderToBmp(
         Stream output,
         Template layoutTemplate,
@@ -936,7 +976,62 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Renders a template to raw pixel data in BGRA8888 format.
+    /// </summary>
+    /// <param name="output">The output stream to write raw pixel data to.</param>
+    /// <param name="layoutTemplate">The template to render.</param>
+    /// <param name="data">The data context for template expressions.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="output"/>, <paramref name="layoutTemplate"/>, or <paramref name="data"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
+    public async Task RenderToRaw(
+        Stream output,
+        Template layoutTemplate,
+        ObjectValue data,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+        ArgumentNullException.ThrowIfNull(data);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var imageCache = _imageLoader is not null
+            ? await PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
+            : null;
+
+        try
+        {
+            // Measure returns the final size after rotation
+            var size = Measure(layoutTemplate, data);
+            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+
+            RenderToBitmapCore(bitmap, layoutTemplate, data, default, imageCache);
+
+            // Copy raw pixel bytes directly from the bitmap
+            var pixels = bitmap.Bytes;
+            await output.WriteAsync(pixels, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (imageCache is not null)
+            {
+                foreach (var bmp in imageCache.Values)
+                    bmp.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Measures template size without rendering.
+    /// </summary>
+    /// <param name="layoutTemplate">The template to measure.</param>
+    /// <param name="data">The data context for template expressions.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>The size of the template in pixels.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="layoutTemplate"/> or <paramref name="data"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     public Task<SKSize> Measure(
         Template layoutTemplate,
         ObjectValue data,
@@ -1009,7 +1104,10 @@ public sealed class SkiaRenderer : IFlexRenderer, ILayoutRenderer<SKBitmap>
         _disposed = true;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Asynchronously disposes the renderer and releases resources.
+    /// </summary>
+    /// <returns>A value task representing the asynchronous dispose operation.</returns>
     public ValueTask DisposeAsync()
     {
         Dispose();

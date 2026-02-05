@@ -7,7 +7,7 @@
 ```
 src/FlexRender.Core/            # Core library (0 external dependencies)
   Abstractions/                 # ILayoutRenderer<T>, ITemplateParser, IResourceLoader
-  Configuration/                # ResourceLimits, FlexRenderOptions
+  Configuration/                # FlexRenderBuilder, FlexRenderOptions, ResourceLimits
   Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
     FlexEnums.cs                # FlexDirection, FlexWrap, JustifyContent, AlignItems, AlignContent, AlignSelf
@@ -20,7 +20,7 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
     LayoutSize.cs               # Width/Height measurement result
     IntrinsicSize.cs            # Min/Max width/height measurements
     LineHeightResolver.cs       # Resolve lineHeight string to pixels
-  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader, HttpResourceLoader
+  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/
     Ast/                        # AST models: Template, CanvasSettings, TemplateElement, TextElement, FlexElement, QrElement, BarcodeElement, ImageElement, SeparatorElement
   TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator, TemplateContext
@@ -30,8 +30,12 @@ src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/
     TemplateParser.cs           # YAML to AST parser (includes EachElement, IfElement)
 
+src/FlexRender.Http/            # HTTP resource loader (-> Core)
+  HttpResourceLoader.cs         # Load images/fonts from HTTP/HTTPS URLs
+  FlexRenderBuilderExtensions.cs # WithHttpLoader() extension
+
 src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
-  Abstractions/                 # IFlexRenderer, IFontLoader, IImageLoader, IFontManager
+  Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
   Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
   Loaders/                      # FontLoader, ImageLoader
   Providers/                    # IContentProvider<T,O>, ImageProvider
@@ -44,7 +48,6 @@ src/FlexRender.Barcode/         # Barcode provider (-> Skia)
 
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
   ServiceCollectionExtensions.cs     # AddFlexRender() extension method
-  FlexRenderBuilder.cs               # Fluent builder for configuration
 
 src/FlexRender.MetaPackage/     # Meta-package (references all sub-packages)
 
@@ -60,26 +63,27 @@ examples/                       # Example YAML templates with data and output
 
 ```
 FlexRender.Core          (0 external deps)
-  ^          ^
-  |          |
-FlexRender.Yaml    FlexRender.Skia       (YamlDotNet)  (SkiaSharp)
-                     ^        ^
-                     |        |
-            FlexRender.QrCode  FlexRender.Barcode   (QRCoder)
-                     |        |
-FlexRender.DependencyInjection  (Microsoft.Extensions.DI)
-                     |
-            FlexRender.MetaPackage  (references all)
+  ^          ^        ^
+  |          |        |
+FlexRender.Yaml  FlexRender.Http  FlexRender.Skia   (YamlDotNet)  (SkiaSharp)
+                                    ^        ^
+                                    |        |
+                           FlexRender.QrCode  FlexRender.Barcode   (QRCoder)
+                                    |        |
+               FlexRender.DependencyInjection  (Microsoft.Extensions.DI)
+                                    |
+                           FlexRender.MetaPackage  (references all)
 ```
 
 | Package | Depends On | External Deps |
 |---------|-----------|---------------|
 | FlexRender.Core | -- | (none) |
 | FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
+| FlexRender.Http | Core | (none) |
 | FlexRender.Skia | Core | SkiaSharp 3.119.1 |
 | FlexRender.QrCode | Skia | QRCoder 1.7.0 |
 | FlexRender.Barcode | Skia | (none) |
-| FlexRender.DependencyInjection | Core, Yaml, Skia | Microsoft.Extensions.DI |
+| FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
 | FlexRender.Cli | All | System.CommandLine |
 
@@ -96,7 +100,7 @@ YAML Template
 
 ### Template Caching
 
-Templates can be parsed once and cached, then expanded with different data at render time:
+Templates can be parsed once and cached, then rendered with different data:
 
 ```csharp
 // Parse once (at startup)
@@ -106,7 +110,7 @@ templateCache["receipt"] = template;
 
 // Render many times (per request)
 var template = templateCache["receipt"];
-var bytes = renderer.RenderToPng(template, data);  // Expander called internally
+var bytes = await render.Render(template, data);  // Expander called internally
 ```
 
 ### Two-Pass Layout Engine
@@ -438,57 +442,144 @@ Resources (images, fonts) are loaded through `IResourceLoader` implementations u
 | FileResourceLoader | 100-199 (Normal) | Local file system | File paths |
 | HttpResourceLoader | 200+ (Low) | Remote HTTP/HTTPS resources | `http://`, `https://` |
 
-Custom loaders can be registered: `builder.AddResourceLoader<CustomLoader>()`. Implement `IResourceLoader` with `CanHandle()`, `Load()`, and `Priority`.
+Custom loaders can be added via `builder.ResourceLoaders.Add(new CustomLoader())` (internal API). Implement `IResourceLoader` with `CanHandle()`, `Load()`, and `Priority`.
 
-## DI / Builder API
+## Builder API
 
-### Registration
+### Without DI (Minimal)
 
 ```csharp
-services.AddFlexRender();                          // Default configuration
-services.AddFlexRender(builder => { ... });        // With configuration
+var render = new FlexRenderBuilder()
+    .WithSkia()
+    .Build();
+
+var parser = new TemplateParser();
+var template = parser.Parse(yaml);
+byte[] png = await render.Render(template, data);
+```
+
+### Without DI (Full Configuration)
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithHttpLoader(httpClient)                   // HTTP resource loading
+    .WithEmbeddedLoader(typeof(Program).Assembly) // Embedded resources
+    .WithBasePath("./templates")                  // Base path for files
+    .WithLimits(limits => limits.MaxRenderDepth = 200)
+    .WithSkia(skia => skia
+        .WithQr()                                 // QR code support
+        .WithBarcode())                           // Barcode support
+    .Build();
+
+// Extension from FlexRender.Yaml
+byte[] png = await render.RenderFile("receipt.yaml", data);
+byte[] jpg = await render.RenderFile("receipt.yaml", data, ImageFormat.Jpeg);
+byte[] raw = await render.RenderFile("receipt.yaml", data, ImageFormat.Raw);
+```
+
+### With DI
+
+```csharp
+// Program.cs - simple
+services.AddFlexRender(builder => builder
+    .WithSkia(skia => skia.WithQr().WithBarcode()));
+
+// Program.cs - with service provider
+services.AddFlexRender((sp, builder) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var basePath = config["FlexRender:BasePath"] ?? "./templates";
+
+    builder
+        .WithHttpLoader()
+        .WithBasePath(basePath)
+        .WithSkia(skia => skia
+            .WithQr()
+            .WithBarcode());
+});
+
+// In your service
+public class ReceiptService(IFlexRender render)
+{
+    public async Task<byte[]> Generate(ReceiptData data)
+    {
+        var values = MapToObjectValue(data);
+        return await render.RenderFile("receipt.yaml", values);
+    }
+}
+```
+
+### Sandboxed (No File System Access)
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithoutDefaultLoaders()
+    .WithEmbeddedLoader(typeof(Program).Assembly)
+    .WithSkia(skia => skia.WithQr())
+    .Build();
+```
+
+### Template Caching (User-Controlled)
+
+```csharp
+// Parse once at startup
+var parser = new TemplateParser();
+_templates["receipt"] = await parser.ParseFileAsync("receipt.yaml");
+
+// Render per request
+byte[] png = await render.Render(_templates["receipt"], data);
 ```
 
 ### FlexRenderBuilder Methods
 
 | Method | Description |
 |--------|-------------|
+| `WithSkia(Action<SkiaBuilder>?)` | Configure Skia renderer (required) |
 | `WithBasePath(string)` | Base path for resolving relative file paths |
-| `WithDefaultFont(string)` | Default font family (default: "Arial") |
-| `WithHttpTimeout(TimeSpan)` | HTTP request timeout (default: 30s) |
-| `WithMaxImageSize(int)` | Max image size in bytes (default: 10 MB) |
-| `WithLimits(Action<ResourceLimits>)` | Configure all resource limits |
-| `EnableCaching(bool)` | Enable/disable resource caching (default: true) |
-| `AddResourceLoader<T>()` | Register custom IResourceLoader |
-| `AddEmbeddedResources(Assembly)` | Add assembly for embedded resource search |
-| `AddEmbeddedResources<T>()` | Add assembly containing type T |
+| `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
+| `WithEmbeddedLoader(Assembly)` | Add embedded resource loader |
+| `WithHttpLoader(HttpClient?)` | Add HTTP resource loader |
+| `WithoutDefaultLoaders()` | Remove File and Base64 loaders |
 
-### Full Example
+### SkiaBuilder Methods
+
+| Method | Description |
+|--------|-------------|
+| `WithQr()` | Enable QR code support (requires FlexRender.QrCode) |
+| `WithBarcode()` | Enable barcode support (requires FlexRender.Barcode) |
+
+### IFlexRender Interface
 
 ```csharp
-services.AddFlexRender(builder => builder
-    .WithBasePath("/app/templates")
-    .WithDefaultFont("Roboto")
-    .WithHttpTimeout(TimeSpan.FromSeconds(60))
-    .WithMaxImageSize(20 * 1024 * 1024)
-    .WithLimits(limits =>
-    {
-        limits.MaxTemplateFileSize = 2 * 1024 * 1024;
-        limits.MaxRenderDepth = 200;
-        limits.MaxPreprocessorNestingDepth = 100;
-    })
-    .EnableCaching()
-    .AddEmbeddedResources<MyApp>()
-    .AddResourceLoader<CustomLoader>());
+public interface IFlexRender : IDisposable
+{
+    Task<byte[]> Render(
+        Template template,
+        ObjectValue? data = null,
+        ImageFormat format = ImageFormat.Png,
+        CancellationToken cancellationToken = default);
+
+    Task Render(
+        Stream output,
+        Template template,
+        ObjectValue? data = null,
+        ImageFormat format = ImageFormat.Png,
+        CancellationToken cancellationToken = default);
+}
+
+// Extension methods from FlexRender.Yaml:
+// - RenderYaml(yaml, data, format, ct) - render from YAML string
+// - RenderFile(path, data, format, ct) - render from YAML file
 ```
 
-### Registered Services
+### ImageFormat Enum
 
-`AddFlexRender()` registers:
-- Default resource loaders: `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader`
-- Image and font loaders: `ImageLoader`, `FontLoader`
-- Core services: `IFontManager` (FontManager), `IFlexRenderer` (SkiaRenderer)
-- Configuration: `FlexRenderOptions` (singleton)
+| Value | Description |
+|-------|-------------|
+| `Png` | Lossless PNG (default) |
+| `Jpeg` | Lossy JPEG |
+| `Bmp` | Uncompressed BMP |
+| `Raw` | Raw BGRA pixel data (4 bytes/pixel) |
 
 ## Configurable Resource Limits
 
@@ -572,17 +663,16 @@ var data = new ObjectValue
 
 ## Code Examples
 
-### Parse and Render
+### Basic Rendering
 
 ```csharp
-var parser = new TemplateParser();
-var template = parser.ParseFile("template.yaml");
-var data = new ObjectValue { ["name"] = "World" };
+var render = new FlexRenderBuilder()
+    .WithBasePath("./templates")
+    .WithSkia(skia => skia.WithQr())
+    .Build();
 
-using var renderer = new SkiaRenderer();
-var size = renderer.Measure(template, data);
-using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-renderer.Render(bitmap, template, data);
+var data = new ObjectValue { ["name"] = "World" };
+byte[] png = await render.RenderFile("template.yaml", data);
 ```
 
 ### Process Template Expressions
@@ -593,15 +683,17 @@ var result = processor.Process("Hello {{name}}!", new ObjectValue { ["name"] = "
 // result = "Hello World!"
 ```
 
-### With Custom Limits via DI
+### With Custom Limits
 
 ```csharp
-services.AddFlexRender(builder => builder
-    .WithBasePath("/templates")
-    .WithLimits(limits => { limits.MaxRenderDepth = 200; }));
-
-// Resolve from DI
-var renderer = serviceProvider.GetRequiredService<IFlexRenderer>();
+var render = new FlexRenderBuilder()
+    .WithLimits(limits =>
+    {
+        limits.MaxRenderDepth = 200;
+        limits.MaxTemplateFileSize = 2 * 1024 * 1024;
+    })
+    .WithSkia()
+    .Build();
 ```
 
 ## CLI Tool

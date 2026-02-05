@@ -1,6 +1,9 @@
 using System.CommandLine;
-using Microsoft.Extensions.DependencyInjection;
+using FlexRender.Barcode;
 using FlexRender.Cli.Commands;
+using FlexRender.Configuration;
+using FlexRender.Http;
+using FlexRender.QrCode;
 
 namespace FlexRender.Cli;
 
@@ -16,28 +19,36 @@ public class Program
     /// <returns>Exit code indicating success (0) or failure (non-zero).</returns>
     public static async Task<int> Main(string[] args)
     {
-        using var serviceProvider = CreateServiceProvider();
-        var rootCommand = CreateRootCommand(serviceProvider);
+        var rootCommand = CreateRootCommand();
         return await rootCommand.Parse(args).InvokeAsync();
     }
 
     /// <summary>
-    /// Creates and configures the dependency injection service provider.
+    /// Creates a configured FlexRender builder with all features enabled.
     /// </summary>
-    /// <returns>The configured service provider.</returns>
-    public static ServiceProvider CreateServiceProvider()
+    /// <param name="basePath">Optional base path for resolving relative file references.</param>
+    /// <returns>A configured <see cref="FlexRenderBuilder"/> instance.</returns>
+    public static FlexRenderBuilder CreateRenderBuilder(string? basePath = null)
     {
-        var services = new ServiceCollection();
-        services.AddFlexRender();
-        return services.BuildServiceProvider();
+        var builder = new FlexRenderBuilder()
+            .WithHttpLoader()
+            .WithSkia(skia => skia
+                .WithQr()
+                .WithBarcode());
+
+        if (basePath is not null)
+        {
+            builder.WithBasePath(basePath);
+        }
+
+        return builder;
     }
 
     /// <summary>
     /// Creates and configures the root command with all subcommands.
     /// </summary>
-    /// <param name="serviceProvider">The service provider for dependency injection.</param>
     /// <returns>The configured root command.</returns>
-    public static RootCommand CreateRootCommand(IServiceProvider serviceProvider)
+    public static RootCommand CreateRootCommand()
     {
         var rootCommand = new RootCommand("FlexRender - Render images from YAML templates");
 
@@ -46,10 +57,10 @@ public class Program
         rootCommand.Add(GlobalOptions.Scale);
         rootCommand.Add(GlobalOptions.BasePath);
 
-        rootCommand.Add(RenderCommand.Create(serviceProvider));
+        rootCommand.Add(RenderCommand.Create());
         rootCommand.Add(ValidateCommand.Create());
         rootCommand.Add(InfoCommand.Create());
-        rootCommand.Add(WatchCommand.Create(serviceProvider));
+        rootCommand.Add(WatchCommand.Create());
         rootCommand.Add(DebugLayoutCommand.Create());
 
         return rootCommand;
