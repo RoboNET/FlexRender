@@ -2,6 +2,8 @@
 
 > A modular .NET library for rendering images from YAML templates with flexbox layout. Render-backend agnostic with SkiaSharp as the default backend. AOT-compatible, no reflection.
 
+**For LLM Agents:** This is a concise overview. For comprehensive reference, see [`llms-full.txt`](llms-full.txt).
+
 ## Project Structure
 
 ```
@@ -16,7 +18,7 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
-  Parsing/                      # TemplateParser, YamlPreprocessor
+  Parsing/                      # TemplateParser
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
@@ -97,20 +99,44 @@ Values can use px, %, or em units (e.g., `"10px 5% 2em 20"`).
 ```
 
 ### Conditional
+
+Operators: truthy (no key), `equals`, `notEquals`, `in`, `notIn`, `contains`, `greaterThan`, `greaterThanOrEqual`, `lessThan`, `lessThanOrEqual`, `hasItems`, `countEquals`, `countGreaterThan`.
+
 ```yaml
+# Truthy check
 - type: if
   condition: isPremium
-  then:
-    - type: text
-      content: "Premium"
-  else:
-    - type: text
-      content: "Regular"
+  then: [...]
+  else: [...]
 
-# With comparison
+# Equality (numbers, strings, bool, arrays, null)
 - type: if
   condition: status
-  equals: "paid"      # or notEquals
+  equals: "paid"      # or notEquals: "cancelled"
+  then: [...]
+
+# In list
+- type: if
+  condition: role
+  in: ["admin", "moderator"]
+  then: [...]
+
+# Numeric comparison
+- type: if
+  condition: total
+  greaterThan: 1000
+  then: [...]
+
+# Array checks
+- type: if
+  condition: items
+  hasItems: true      # or countGreaterThan: 5
+  then: [...]
+
+# Else-if chain
+- type: if
+  condition: status
+  equals: "paid"
   then: [...]
   elseIf:
     condition: status
@@ -176,12 +202,9 @@ The `ResourceLimits` class centralizes all security limits. Defaults are safe-by
 |----------|---------|---------|
 | MaxTemplateFileSize | 1 MB | YAML template file size |
 | MaxDataFileSize | 10 MB | JSON data file size |
-| MaxPreprocessorNestingDepth | 50 | Block nesting depth |
-| MaxPreprocessorInputSize | 1 MB | Preprocessor input size |
 | MaxTemplateNestingDepth | 100 | Expression nesting |
 | MaxRenderDepth | 100 | Render tree recursion |
 | MaxImageSize | 10 MB | Image loading |
-| HttpTimeout | 30s | Remote resource loading |
 
 Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 200; })`
 
@@ -191,7 +214,10 @@ Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 2
 
 ```csharp
 var render = new FlexRenderBuilder()
-    .WithHttpLoader()
+    .WithHttpLoader(configure: opts => {
+        opts.Timeout = TimeSpan.FromSeconds(60);
+        opts.MaxResourceSize = 20 * 1024 * 1024;
+    })
     .WithBasePath("./templates")
     .WithLimits(limits => limits.MaxRenderDepth = 200)
     .WithSkia(skia => skia

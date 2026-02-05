@@ -104,10 +104,10 @@ public static class DebugLayoutCommand
                 }
             }
 
-            // Parse template with data preprocessing
+            // Parse template
             var parser = new TemplateParser();
             var yaml = File.ReadAllText(templateFile.FullName);
-            var template = parser.Parse(yaml, data);
+            var template = parser.Parse(yaml);
 
             if (verbose)
             {

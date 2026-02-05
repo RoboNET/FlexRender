@@ -31,7 +31,7 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
-  Parsing/                      # TemplateParser, YamlPreprocessor
+  Parsing/                      # TemplateParser
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
@@ -102,7 +102,10 @@ The builder pattern provides modular configuration without mandatory DI:
 ```csharp
 // Without DI
 var render = new FlexRenderBuilder()
-    .WithHttpLoader()
+    .WithHttpLoader(configure: opts => {
+        opts.Timeout = TimeSpan.FromSeconds(60);
+        opts.MaxResourceSize = 20 * 1024 * 1024;
+    })
     .WithBasePath("./templates")
     .WithSkia(skia => skia
         .WithQr()
@@ -172,12 +175,9 @@ All security limits are centralized in the `ResourceLimits` class (`Configuratio
 |----------|---------|---------|
 | `MaxTemplateFileSize` | 1 MB | YAML template file size |
 | `MaxDataFileSize` | 10 MB | JSON data file size |
-| `MaxPreprocessorNestingDepth` | 50 | Preprocessing block nesting |
-| `MaxPreprocessorInputSize` | 1 MB | Preprocessor input |
 | `MaxTemplateNestingDepth` | 100 | Expression nesting |
 | `MaxRenderDepth` | 100 | Render tree recursion |
 | `MaxImageSize` | 10 MB | Image loading |
-| `HttpTimeout` | 30s | Remote resource loading |
 
 Configure limits via builder:
 
@@ -384,6 +384,8 @@ Loop variables available inside `each`:
 
 ### If Element (Conditional)
 
+Supports 12 operators: truthy (no key), `equals`, `notEquals`, `in`, `notIn`, `contains`, `greaterThan`, `greaterThanOrEqual`, `lessThan`, `lessThanOrEqual`, `hasItems`, `countEquals`, `countGreaterThan`.
+
 ```yaml
 # Truthy check
 - type: if
@@ -391,17 +393,41 @@ Loop variables available inside `each`:
   then:
     - type: text
       content: "Premium"
-  else:
-    - type: text
-      content: "Regular"
 
-# Equality comparison
+# Equality (strings, numbers, bool, arrays, null)
 - type: if
   condition: status
-  equals: "paid"           # or notEquals: "cancelled"
+  equals: "paid"
   then:
     - type: text
       content: "Paid"
+
+# In list
+- type: if
+  condition: role
+  in: ["admin", "moderator"]
+  then:
+    - type: text
+      content: "Staff"
+
+# Numeric comparison
+- type: if
+  condition: total
+  greaterThan: 1000
+  then:
+    - type: text
+      content: "Large order"
+
+# Array checks
+- type: if
+  condition: items
+  hasItems: true
+  then:
+    - type: each
+      array: items
+      children:
+        - type: text
+          content: "{{item.name}}"
 
 # Else-if chain
 - type: if

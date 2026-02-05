@@ -1,5 +1,4 @@
 using FlexRender.Abstractions;
-using FlexRender.Configuration;
 
 namespace FlexRender.Http;
 
@@ -9,8 +8,8 @@ namespace FlexRender.Http;
 /// <remarks>
 /// <para>
 /// This loader downloads resources from remote web servers using <see cref="HttpClient"/>.
-/// It respects the <see cref="ResourceLimits.HttpTimeout"/> and
-/// <see cref="ResourceLimits.MaxImageSize"/> settings from <see cref="FlexRenderOptions"/>.
+/// It respects the <see cref="HttpResourceLoaderOptions.Timeout"/> and
+/// <see cref="HttpResourceLoaderOptions.MaxResourceSize"/> settings.
 /// </para>
 /// <para>
 /// The loader implements retry logic with exponential backoff for transient failures
@@ -25,10 +24,10 @@ namespace FlexRender.Http;
 ///     .WithSkia()
 ///     .Build();
 ///
-/// // Using with custom HttpClient
+/// // Using with custom HttpClient and options
 /// var httpClient = new HttpClient();
 /// var render = new FlexRenderBuilder()
-///     .WithHttpLoader(httpClient)
+///     .WithHttpLoader(httpClient, opts => opts.Timeout = TimeSpan.FromMinutes(1))
 ///     .WithSkia()
 ///     .Build();
 /// </code>
@@ -46,7 +45,7 @@ public sealed class HttpResourceLoader : IResourceLoader, IDisposable
         TimeSpan.FromSeconds(1)
     ];
 
-    private readonly FlexRenderOptions _options;
+    private readonly HttpResourceLoaderOptions _options;
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
     private bool _disposed;
@@ -55,16 +54,16 @@ public sealed class HttpResourceLoader : IResourceLoader, IDisposable
     /// Initializes a new instance of the <see cref="HttpResourceLoader"/> class.
     /// </summary>
     /// <param name="httpClient">The HTTP client to use for requests.</param>
-    /// <param name="options">The FlexRender configuration options.</param>
+    /// <param name="options">The HTTP resource loader options. If null, default options are used.</param>
     /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="httpClient"/> or <paramref name="options"/> is null.
+    /// Thrown when <paramref name="httpClient"/> is null.
     /// </exception>
     /// <remarks>
     /// When using this constructor, the caller retains ownership of the <see cref="HttpClient"/>
     /// and is responsible for its lifecycle. This is the recommended approach when using
     /// <c>IHttpClientFactory</c> or a shared <see cref="HttpClient"/> instance.
     /// </remarks>
-    public HttpResourceLoader(HttpClient httpClient, FlexRenderOptions options)
+    public HttpResourceLoader(HttpClient httpClient, HttpResourceLoaderOptions? options = null)
         : this(httpClient, options, ownsHttpClient: false)
     {
     }
@@ -73,21 +72,20 @@ public sealed class HttpResourceLoader : IResourceLoader, IDisposable
     /// Initializes a new instance of the <see cref="HttpResourceLoader"/> class with ownership control.
     /// </summary>
     /// <param name="httpClient">The HTTP client to use for requests.</param>
-    /// <param name="options">The FlexRender configuration options.</param>
+    /// <param name="options">The HTTP resource loader options. If null, default options are used.</param>
     /// <param name="ownsHttpClient">
     /// If <c>true</c>, the loader will dispose the <paramref name="httpClient"/> when disposed.
     /// If <c>false</c>, the caller retains ownership and is responsible for disposing the client.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="httpClient"/> or <paramref name="options"/> is null.
+    /// Thrown when <paramref name="httpClient"/> is null.
     /// </exception>
-    public HttpResourceLoader(HttpClient httpClient, FlexRenderOptions options, bool ownsHttpClient)
+    public HttpResourceLoader(HttpClient httpClient, HttpResourceLoaderOptions? options, bool ownsHttpClient)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
-        ArgumentNullException.ThrowIfNull(options);
 
         _httpClient = httpClient;
-        _options = options;
+        _options = options ?? new HttpResourceLoaderOptions();
         _ownsHttpClient = ownsHttpClient;
     }
 
@@ -117,7 +115,7 @@ public sealed class HttpResourceLoader : IResourceLoader, IDisposable
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="uri"/> is null.</exception>
     /// <exception cref="HttpRequestException">Thrown when the HTTP request fails after all retries.</exception>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the response exceeds <see cref="ResourceLimits.MaxImageSize"/>.
+    /// Thrown when the response exceeds <see cref="HttpResourceLoaderOptions.MaxResourceSize"/>.
     /// </exception>
     /// <exception cref="TaskCanceledException">Thrown when the request times out or is cancelled.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when this instance has been disposed.</exception>
@@ -135,6 +133,8 @@ public sealed class HttpResourceLoader : IResourceLoader, IDisposable
 
         for (var attempt = 0; attempt < MaxRetries; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 using var response = await _httpClient
@@ -162,11 +162,8 @@ public sealed class HttpResourceLoader : IResourceLoader, IDisposable
 
                 ValidateContentLength(response, uri);
 
-                var bytes = await response.Content
-                    .ReadAsByteArrayAsync(cancellationToken)
+                var bytes = await ReadWithSizeLimit(response.Content, uri, cancellationToken)
                     .ConfigureAwait(false);
-
-                ValidateActualSize(bytes, uri);
 
                 return new MemoryStream(bytes);
             }
@@ -233,27 +230,52 @@ public sealed class HttpResourceLoader : IResourceLoader, IDisposable
     {
         var contentLength = response.Content.Headers.ContentLength;
 
-        if (contentLength.HasValue && contentLength.Value > _options.MaxImageSize)
+        if (contentLength.HasValue && contentLength.Value > _options.MaxResourceSize)
         {
             throw new InvalidOperationException(
-                $"Resource at '{uri}' exceeds maximum allowed size of {_options.MaxImageSize} bytes " +
+                $"Resource at '{uri}' exceeds maximum allowed size of {_options.MaxResourceSize} bytes " +
                 $"(Content-Length: {contentLength.Value} bytes).");
         }
     }
 
     /// <summary>
-    /// Validates the actual downloaded data size.
+    /// Reads response content with streaming size limit validation.
     /// </summary>
-    /// <param name="bytes">The downloaded bytes.</param>
+    /// <param name="content">The HTTP response content.</param>
     /// <param name="uri">The request URI for error messages.</param>
-    /// <exception cref="InvalidOperationException">Thrown when actual size exceeds maximum allowed size.</exception>
-    private void ValidateActualSize(byte[] bytes, string uri)
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The content bytes.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when content exceeds maximum allowed size.</exception>
+    private async Task<byte[]> ReadWithSizeLimit(
+        HttpContent content,
+        string uri,
+        CancellationToken cancellationToken)
     {
-        if (bytes.Length > _options.MaxImageSize)
+        var maxSize = _options.MaxResourceSize;
+
+        await using var responseStream = await content
+            .ReadAsStreamAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        using var memoryStream = new MemoryStream();
+        var buffer = new byte[8192];
+        var totalRead = 0;
+        int read;
+
+        while ((read = await responseStream
+            .ReadAsync(buffer, cancellationToken)
+            .ConfigureAwait(false)) > 0)
         {
-            throw new InvalidOperationException(
-                $"Resource at '{uri}' exceeds maximum allowed size of {_options.MaxImageSize} bytes " +
-                $"(actual size: {bytes.Length} bytes).");
+            totalRead += read;
+            if (totalRead > maxSize)
+            {
+                throw new InvalidOperationException(
+                    $"Resource at '{uri}' exceeds maximum allowed size of {maxSize} bytes.");
+            }
+
+            memoryStream.Write(buffer, 0, read);
         }
+
+        return memoryStream.ToArray();
     }
 }

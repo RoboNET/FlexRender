@@ -138,7 +138,7 @@ public static class RenderCommand
             {
                 var parser = new TemplateParser();
                 var yaml = await File.ReadAllTextAsync(templateFile.FullName);
-                var template = parser.Parse(yaml, data);
+                var template = parser.Parse(yaml);
                 Console.WriteLine($"Template: {template.Name ?? templateFile.Name}");
                 Console.WriteLine($"Canvas: {template.Canvas.Width}x{template.Canvas.Height}px ({template.Canvas.Fixed})");
                 Console.WriteLine($"Output format: {format}");

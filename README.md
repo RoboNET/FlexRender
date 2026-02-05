@@ -7,6 +7,14 @@
 
 A .NET library for rendering images from YAML templates with flexbox-like layout system. Perfect for generating receipts, labels, tickets, and other structured documents.
 
+## For LLM Agents
+
+This project includes optimized documentation for AI coding assistants:
+
+- [`llms.txt`](llms.txt) - Concise project overview (~200 lines)
+- [`llms-full.txt`](llms-full.txt) - Comprehensive reference with all YAML properties, API details, and conventions (~600 lines)
+- [`AGENTS.md`](AGENTS.md) - Build commands, coding conventions, and contributor guidelines
+
 ## Features
 
 - **YAML Templates** - Define layouts in readable YAML format
@@ -323,34 +331,76 @@ content: "First: {{items[0].name}}"
 
 ### Conditionals (type: if)
 
+The `if` element supports 12 comparison operators:
+
+| Operator | YAML Key | Description |
+|----------|----------|-------------|
+| Truthy | (none) | Value exists and is not empty/zero/false |
+| Equals | `equals` | Value equals (strings, numbers, bool, arrays, null) |
+| NotEquals | `notEquals` | Value does not equal |
+| In | `in` | Value is in the list |
+| NotIn | `notIn` | Value is not in the list |
+| Contains | `contains` | Array contains element |
+| GreaterThan | `greaterThan` | Number is greater |
+| GreaterThanOrEqual | `greaterThanOrEqual` | Number >= |
+| LessThan | `lessThan` | Number is less |
+| LessThanOrEqual | `lessThanOrEqual` | Number <= |
+| HasItems | `hasItems` | Array is not empty (true) or empty (false) |
+| CountEquals | `countEquals` | Array length equals N |
+| CountGreaterThan | `countGreaterThan` | Array length > N |
+
 ```yaml
-# Simple truthy check
+# Truthy check
 - type: if
   condition: discount
   then:
     - type: text
       content: "Discount: {{discount}}%"
 
-# With else branch
-- type: if
-  condition: premium
-  then:
-    - type: text
-      content: "Premium member"
-  else:
-    - type: text
-      content: "Regular member"
-
-# Equality check
+# Equality (works with numbers, strings, bool, null)
 - type: if
   condition: status
   equals: "paid"
   then:
     - type: text
       content: "Payment received"
-      color: "#22c55e"
 
-# Chained else-if
+# In list
+- type: if
+  condition: role
+  in: ["admin", "moderator"]
+  then:
+    - type: text
+      content: "Staff member"
+
+# Numeric comparison
+- type: if
+  condition: total
+  greaterThan: 1000
+  then:
+    - type: text
+      content: "Free shipping!"
+
+# Array has items
+- type: if
+  condition: items
+  hasItems: true
+  then:
+    - type: each
+      array: items
+      children:
+        - type: text
+          content: "{{item.name}}"
+
+# Array count
+- type: if
+  condition: items
+  countGreaterThan: 5
+  then:
+    - type: text
+      content: "Bulk order discount applied"
+
+# Else-if chain
 - type: if
   condition: status
   equals: "paid"
@@ -413,7 +463,10 @@ var render = new FlexRenderBuilder()
 
 // Full configuration
 var render = new FlexRenderBuilder()
-    .WithHttpLoader()                              // Enable HTTP resource loading
+    .WithHttpLoader(configure: opts => {           // Enable HTTP resource loading
+        opts.Timeout = TimeSpan.FromSeconds(60);   // Custom timeout
+        opts.MaxResourceSize = 20 * 1024 * 1024;   // Custom max size
+    })
     .WithEmbeddedLoader(typeof(Program).Assembly)  // Load from embedded resources
     .WithBasePath("./templates")                   // Base path for file resolution
     .WithLimits(limits => limits.MaxRenderDepth = 200)

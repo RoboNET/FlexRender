@@ -75,20 +75,6 @@ public sealed class TemplateParser : ITemplateParser
     }
 
     /// <summary>
-    /// Parses a YAML string into a Template AST with data preprocessing.
-    /// This method expands {{#each}} blocks using the provided data before parsing.
-    /// </summary>
-    /// <param name="yaml">The YAML string to parse.</param>
-    /// <param name="data">The data to use for preprocessing (expanding {{#each}} blocks).</param>
-    /// <returns>The parsed template.</returns>
-    /// <exception cref="TemplateParseException">Thrown when parsing fails.</exception>
-    public Template Parse(string yaml, TemplateValue? data)
-    {
-        var preprocessedYaml = YamlPreprocessor.Preprocess(yaml, data, _limits);
-        return Parse(preprocessedYaml);
-    }
-
-    /// <summary>
     /// Parses a YAML string into a Template AST.
     /// </summary>
     /// <param name="content">The YAML string to parse.</param>
@@ -192,13 +178,9 @@ public sealed class TemplateParser : ITemplateParser
     /// </remarks>
     public async Task<Template> ParseFile(string path, CancellationToken cancellationToken)
     {
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException($"Template file not found: {path}", path);
-        }
-
+        // Let ReadAllTextAsync throw FileNotFoundException naturally to avoid TOCTOU issues
         var fileInfo = new FileInfo(path);
-        if (fileInfo.Length > _limits.MaxTemplateFileSize)
+        if (fileInfo.Exists && fileInfo.Length > _limits.MaxTemplateFileSize)
         {
             throw new TemplateParseException(
                 $"Template file size ({fileInfo.Length} bytes) exceeds maximum allowed size ({_limits.MaxTemplateFileSize} bytes)");
@@ -206,33 +188,6 @@ public sealed class TemplateParser : ITemplateParser
 
         var yaml = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
         return Parse(yaml);
-    }
-
-    /// <summary>
-    /// Asynchronously parses a YAML file with data preprocessing.
-    /// </summary>
-    /// <param name="path">The path to the YAML file.</param>
-    /// <param name="data">The data for preprocessing.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The parsed template.</returns>
-    /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-    /// <exception cref="TemplateParseException">Thrown when parsing fails or file exceeds maximum size.</exception>
-    public async Task<Template> ParseFile(string path, TemplateValue? data, CancellationToken cancellationToken)
-    {
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException($"Template file not found: {path}", path);
-        }
-
-        var fileInfo = new FileInfo(path);
-        if (fileInfo.Length > _limits.MaxTemplateFileSize)
-        {
-            throw new TemplateParseException(
-                $"Template file size ({fileInfo.Length} bytes) exceeds maximum allowed size ({_limits.MaxTemplateFileSize} bytes)");
-        }
-
-        var yaml = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-        return Parse(yaml, data);
     }
 
     /// <summary>
@@ -754,22 +709,7 @@ public sealed class TemplateParser : ITemplateParser
             throw new TemplateParseException("If element requires 'condition' property");
         }
 
-        ConditionOperator? op = null;
-        string? compareValue = null;
-
-        var equalsValue = GetStringValue(node, "equals");
-        var notEqualsValue = GetStringValue(node, "notEquals");
-
-        if (equalsValue != null)
-        {
-            op = ConditionOperator.Equals;
-            compareValue = equalsValue;
-        }
-        else if (notEqualsValue != null)
-        {
-            op = ConditionOperator.NotEquals;
-            compareValue = notEqualsValue;
-        }
+        var (op, compareValue) = ParseConditionOperator(node);
 
         var thenBranch = ParseChildren(node, "then");
         var elseBranch = ParseChildren(node, "else");
@@ -787,6 +727,114 @@ public sealed class TemplateParser : ITemplateParser
             CompareValue = compareValue,
             ElseIf = elseIf
         };
+    }
+
+    /// <summary>
+    /// Parses the condition operator and compare value from a YAML node.
+    /// Only one operator key is allowed per condition.
+    /// </summary>
+    /// <param name="node">The YAML node containing the condition.</param>
+    /// <returns>A tuple of the operator (null for truthy check) and the compare value.</returns>
+    private static (ConditionOperator? Operator, object? CompareValue) ParseConditionOperator(YamlMappingNode node)
+    {
+        // Check for equals/notEquals (string comparison)
+        var equalsValue = GetStringValue(node, "equals");
+        if (equalsValue != null)
+        {
+            return (ConditionOperator.Equals, equalsValue);
+        }
+
+        var notEqualsValue = GetStringValue(node, "notEquals");
+        if (notEqualsValue != null)
+        {
+            return (ConditionOperator.NotEquals, notEqualsValue);
+        }
+
+        // Check for in/notIn (array of strings)
+        if (TryGetSequence(node, "in", out var inSequence))
+        {
+            var inValues = ParseStringArray(inSequence);
+            return (ConditionOperator.In, inValues);
+        }
+
+        if (TryGetSequence(node, "notIn", out var notInSequence))
+        {
+            var notInValues = ParseStringArray(notInSequence);
+            return (ConditionOperator.NotIn, notInValues);
+        }
+
+        // Check for contains (string)
+        var containsValue = GetStringValue(node, "contains");
+        if (containsValue != null)
+        {
+            return (ConditionOperator.Contains, containsValue);
+        }
+
+        // Check for numeric comparisons
+        var greaterThanValue = GetDoubleValue(node, "greaterThan");
+        if (greaterThanValue.HasValue)
+        {
+            return (ConditionOperator.GreaterThan, greaterThanValue.Value);
+        }
+
+        var greaterThanOrEqualValue = GetDoubleValue(node, "greaterThanOrEqual");
+        if (greaterThanOrEqualValue.HasValue)
+        {
+            return (ConditionOperator.GreaterThanOrEqual, greaterThanOrEqualValue.Value);
+        }
+
+        var lessThanValue = GetDoubleValue(node, "lessThan");
+        if (lessThanValue.HasValue)
+        {
+            return (ConditionOperator.LessThan, lessThanValue.Value);
+        }
+
+        var lessThanOrEqualValue = GetDoubleValue(node, "lessThanOrEqual");
+        if (lessThanOrEqualValue.HasValue)
+        {
+            return (ConditionOperator.LessThanOrEqual, lessThanOrEqualValue.Value);
+        }
+
+        // Check for hasItems (bool)
+        var hasItemsValue = GetNullableBoolValue(node, "hasItems");
+        if (hasItemsValue.HasValue)
+        {
+            return (ConditionOperator.HasItems, hasItemsValue.Value);
+        }
+
+        // Check for count comparisons
+        var countEqualsValue = GetNullableIntValue(node, "countEquals");
+        if (countEqualsValue.HasValue)
+        {
+            return (ConditionOperator.CountEquals, countEqualsValue.Value);
+        }
+
+        var countGreaterThanValue = GetNullableIntValue(node, "countGreaterThan");
+        if (countGreaterThanValue.HasValue)
+        {
+            return (ConditionOperator.CountGreaterThan, countGreaterThanValue.Value);
+        }
+
+        // No operator specified - truthy check
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Parses a YAML sequence node into an array of strings.
+    /// </summary>
+    /// <param name="sequence">The YAML sequence node.</param>
+    /// <returns>A list of strings.</returns>
+    private static List<string> ParseStringArray(YamlSequenceNode sequence)
+    {
+        var result = new List<string>(sequence.Children.Count);
+        foreach (var child in sequence.Children)
+        {
+            if (child is YamlScalarNode scalar && scalar.Value != null)
+            {
+                result.Add(scalar.Value);
+            }
+        }
+        return result;
     }
 
     /// <summary>
@@ -940,6 +988,39 @@ public sealed class TemplateParser : ITemplateParser
             return boolValue;
         }
         return defaultValue;
+    }
+
+    /// <summary>
+    /// Gets a nullable boolean value from a mapping node by key.
+    /// </summary>
+    /// <param name="node">The mapping node to search.</param>
+    /// <param name="key">The key to look up.</param>
+    /// <returns>The boolean value if found and valid; otherwise, null.</returns>
+    private static bool? GetNullableBoolValue(YamlMappingNode node, string key)
+    {
+        var strValue = GetStringValue(node, key);
+        if (strValue != null && bool.TryParse(strValue, out var boolValue))
+        {
+            return boolValue;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets a nullable double value from a mapping node by key.
+    /// </summary>
+    /// <param name="node">The mapping node to search.</param>
+    /// <param name="key">The key to look up.</param>
+    /// <returns>The double value if found and valid; otherwise, null.</returns>
+    private static double? GetDoubleValue(YamlMappingNode node, string key)
+    {
+        var strValue = GetStringValue(node, key);
+        if (strValue != null && double.TryParse(strValue, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var doubleValue))
+        {
+            return doubleValue;
+        }
+        return null;
     }
 
     #endregion

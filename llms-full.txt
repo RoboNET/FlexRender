@@ -378,16 +378,32 @@ Available inside `each` children:
 
 ### Element Type: if (IfElement)
 
-Conditional rendering based on data values.
+Conditional rendering based on data values. Supports 13 operators.
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | condition | string | Yes | Path to value for condition check |
-| equals | string | No | Compare condition path value equals this string |
-| notEquals | string | No | Compare condition path value does not equal this string |
 | then | TemplateElement[] | Yes | Elements to render when condition is true |
 | elseIf | IfElement | No | Nested else-if condition |
 | else | TemplateElement[] | No | Elements to render when all conditions are false |
+
+**Condition Operators** (only one per `if`, use nested `if` for AND/OR):
+
+| Operator | YAML Key | Value Type | Description |
+|----------|----------|------------|-------------|
+| Truthy | (none) | - | Value exists and is non-empty/non-zero/non-false |
+| Equals | `equals` | any | Value equals (numbers, strings, bool, arrays, null) |
+| NotEquals | `notEquals` | any | Value does not equal |
+| In | `in` | array | Value is in the list |
+| NotIn | `notIn` | array | Value is not in the list |
+| Contains | `contains` | any | Array contains the element |
+| GreaterThan | `greaterThan` | number | Numeric greater than |
+| GreaterThanOrEqual | `greaterThanOrEqual` | number | Numeric >= |
+| LessThan | `lessThan` | number | Numeric less than |
+| LessThanOrEqual | `lessThanOrEqual` | number | Numeric <= |
+| HasItems | `hasItems` | bool | Array is non-empty (true) or empty (false) |
+| CountEquals | `countEquals` | number | Array length equals N |
+| CountGreaterThan | `countGreaterThan` | number | Array length > N |
 
 ```yaml
 # Truthy check (non-empty, non-zero, non-false)
@@ -396,17 +412,41 @@ Conditional rendering based on data values.
   then:
     - type: text
       content: "Premium member"
-  else:
-    - type: text
-      content: "Regular member"
 
-# Equality comparison
+# Equality (works with numbers, strings, bool, arrays, null)
 - type: if
   condition: status
   equals: "paid"
   then:
     - type: text
       content: "Paid"
+
+# In list
+- type: if
+  condition: role
+  in: ["admin", "moderator"]
+  then:
+    - type: text
+      content: "Staff member"
+
+# Numeric comparison
+- type: if
+  condition: total
+  greaterThan: 1000
+  then:
+    - type: text
+      content: "Large order"
+
+# Array checks
+- type: if
+  condition: items
+  hasItems: true
+  then:
+    - type: each
+      array: items
+      children:
+        - type: text
+          content: "{{item.name}}"
 
 # Else-if chain
 - type: if
@@ -589,12 +629,9 @@ The `ResourceLimits` class centralizes all security limits. All properties valid
 |----------|------|---------|---------|
 | MaxTemplateFileSize | long | 1,048,576 (1 MB) | Maximum YAML template file size in bytes |
 | MaxDataFileSize | long | 10,485,760 (10 MB) | Maximum JSON data file size in bytes |
-| MaxPreprocessorNestingDepth | int | 50 | Maximum nesting depth for {{#each}}/{{#if}} blocks |
-| MaxPreprocessorInputSize | int | 1,048,576 (1 MB) | Maximum preprocessor input size in bytes |
 | MaxTemplateNestingDepth | int | 100 | Maximum nesting depth for template engine control flow |
 | MaxRenderDepth | int | 100 | Maximum recursion depth when rendering layout tree |
 | MaxImageSize | int | 10,485,760 (10 MB) | Maximum allowed image size in bytes |
-| HttpTimeout | TimeSpan | 30 seconds | Timeout for HTTP requests loading remote resources |
 
 ### Direct Usage
 
@@ -627,10 +664,28 @@ These limits exist to prevent abuse and resource exhaustion. Never remove or wea
 | BasePath | string? | null | Base path for resolving relative file paths |
 | DefaultFontFamily | string | "Arial" | Default font family |
 | BaseFontSize | float | 12 | Base font size in points |
-| HttpTimeout | TimeSpan | 30s | Delegates to Limits.HttpTimeout |
 | MaxImageSize | int | 10 MB | Delegates to Limits.MaxImageSize |
 | EnableCaching | bool | true | Resource caching toggle |
 | EmbeddedResourceAssemblies | List\<Assembly\> | [] | Assemblies for embedded resource search |
+
+## HttpResourceLoaderOptions
+
+Configuration for HTTP resource loading (fonts, images from URLs):
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| Timeout | TimeSpan | 30 seconds | Timeout for HTTP requests |
+| MaxResourceSize | int | 10,485,760 (10 MB) | Maximum allowed resource size in bytes |
+
+### Usage
+
+```csharp
+builder.WithHttpLoader(configure: opts =>
+{
+    opts.Timeout = TimeSpan.FromMinutes(1);
+    opts.MaxResourceSize = 20 * 1024 * 1024;
+});
+```
 
 ## Data Types (TemplateValue)
 
@@ -793,7 +848,7 @@ Conventional Commits: `type(scope): description`
 - **Content providers** -- `IContentProvider<TElement,TOutput>` returns rendered content for QR, barcode, image elements
 - **Resource loader chain** -- `IResourceLoader` with `CanHandle()`, `Load()`, `Priority` -- chain of responsibility pattern
 - **Flex-item properties** -- declared per concrete element class, dispatched via `switch` pattern matching (not on base class)
-- **Template processing layers** -- structural (`YamlPreprocessor` for `{{#each}}`/`{{#if}}`) and inline (`TemplateProcessor` for `{{variable}}`)
+- **Template processing layers** -- AST-level (`TemplateExpander` for `type: each`/`type: if`) and inline (`TemplateProcessor` for `{{variable}}`)
 
 ## How to Add a New Element Type
 

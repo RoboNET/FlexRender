@@ -310,14 +310,8 @@ public sealed class LayoutEngine
         var gap = ParseAbsolutePixelValue(flex.Gap, 0f);
 
         // Measure all children first (bottom-up)
-        var childSizes = new List<IntrinsicSize>(flex.Children.Count);
-        foreach (var child in flex.Children)
-        {
-            var childIntrinsic = MeasureIntrinsic(child, sizes);
-            childSizes.Add(childIntrinsic);
-        }
-
-        if (childSizes.Count == 0)
+        var childCount = flex.Children.Count;
+        if (childCount == 0)
         {
             var empty = new IntrinsicSize();
             empty = empty.WithPadding(padding);
@@ -338,7 +332,13 @@ public sealed class LayoutEngine
             return empty;
         }
 
-        var totalGaps = gap * Math.Max(0, childSizes.Count - 1);
+        var childSizes = new IntrinsicSize[childCount];
+        for (var i = 0; i < childCount; i++)
+        {
+            childSizes[i] = MeasureIntrinsic(flex.Children[i], sizes);
+        }
+
+        var totalGaps = gap * Math.Max(0, childCount - 1);
 
         float minWidth, maxWidth, minHeight, maxHeight;
 

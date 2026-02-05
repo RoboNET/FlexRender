@@ -71,7 +71,7 @@ public sealed class TemplateExpander
             throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
         }
 
-        var result = new List<TemplateElement>();
+        var result = new List<TemplateElement>(elements.Count);
 
         foreach (var element in elements)
         {
@@ -202,7 +202,7 @@ public sealed class TemplateExpander
         // Check else-if chain
         if (ifEl.ElseIf != null)
         {
-            return ExpandIf(ifEl.ElseIf, context, depth);
+            return ExpandIf(ifEl.ElseIf, context, depth + 1);
         }
 
         // Return else branch
@@ -219,21 +219,188 @@ public sealed class TemplateExpander
             return ExpressionEvaluator.IsTruthy(value);
         }
 
-        // Comparison
-        var stringValue = value switch
+        return ifEl.Operator.Value switch
+        {
+            ConditionOperator.Equals => AreEqual(value, ifEl.CompareValue),
+            ConditionOperator.NotEquals => !AreEqual(value, ifEl.CompareValue),
+            ConditionOperator.In => IsIn(value, ifEl.CompareValue as IEnumerable<string>),
+            ConditionOperator.NotIn => !IsIn(value, ifEl.CompareValue as IEnumerable<string>),
+            ConditionOperator.Contains => ArrayContains(value, ifEl.CompareValue),
+            ConditionOperator.GreaterThan => CompareNumeric(value, ifEl.CompareValue) > 0,
+            ConditionOperator.GreaterThanOrEqual => CompareNumeric(value, ifEl.CompareValue) >= 0,
+            ConditionOperator.LessThan => CompareNumeric(value, ifEl.CompareValue) < 0,
+            ConditionOperator.LessThanOrEqual => CompareNumeric(value, ifEl.CompareValue) <= 0,
+            ConditionOperator.HasItems => HasItems(value, ifEl.CompareValue),
+            ConditionOperator.CountEquals => GetCount(value) == Convert.ToInt32(ifEl.CompareValue, CultureInfo.InvariantCulture),
+            ConditionOperator.CountGreaterThan => GetCount(value) > Convert.ToInt32(ifEl.CompareValue, CultureInfo.InvariantCulture),
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Performs universal equality comparison between a template value and a compare value.
+    /// Supports strings, numbers, booleans, arrays, and null.
+    /// </summary>
+    /// <param name="templateValue">The template value to compare.</param>
+    /// <param name="compareValue">The comparison value (can be string, double, bool, or null).</param>
+    /// <returns>True if the values are equal; otherwise, false.</returns>
+    private static bool AreEqual(TemplateValue? templateValue, object? compareValue)
+    {
+        // Handle null comparisons
+        if (templateValue is NullValue || templateValue == null)
+        {
+            return compareValue == null;
+        }
+
+        if (compareValue == null)
+        {
+            return false;
+        }
+
+        return templateValue switch
+        {
+            StringValue s => s.Value == compareValue.ToString(),
+            NumberValue n when compareValue is double d => n.Value == (decimal)d,
+            NumberValue n when compareValue is string str && double.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) => n.Value == (decimal)d,
+            NumberValue n => n.Value.ToString(CultureInfo.InvariantCulture) == compareValue.ToString(),
+            BoolValue b when compareValue is bool boolCompare => b.Value == boolCompare,
+            BoolValue b when compareValue is string str => b.Value.ToString().Equals(str, StringComparison.OrdinalIgnoreCase),
+            ArrayValue arr when compareValue is ArrayValue arrCompare => arr.Equals(arrCompare),
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Checks if a value is in a list of strings.
+    /// </summary>
+    /// <param name="templateValue">The template value to check.</param>
+    /// <param name="list">The list of strings to check against.</param>
+    /// <returns>True if the value is in the list; otherwise, false.</returns>
+    private static bool IsIn(TemplateValue? templateValue, IEnumerable<string>? list)
+    {
+        if (list == null)
+        {
+            return false;
+        }
+
+        var stringValue = templateValue switch
         {
             StringValue s => s.Value,
             NumberValue n => n.Value.ToString(CultureInfo.InvariantCulture),
             BoolValue b => b.Value.ToString().ToLowerInvariant(),
-            _ => ""
+            NullValue => null,
+            _ => null
         };
 
-        return ifEl.Operator switch
+        if (stringValue == null)
         {
-            ConditionOperator.Equals => stringValue == ifEl.CompareValue,
-            ConditionOperator.NotEquals => stringValue != ifEl.CompareValue,
-            _ => false
-        };
+            return false;
+        }
+
+        return list.Contains(stringValue, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Checks if an array contains a specified element.
+    /// </summary>
+    /// <param name="templateValue">The template value (expected to be an array).</param>
+    /// <param name="element">The element to search for.</param>
+    /// <returns>True if the array contains the element; otherwise, false.</returns>
+    private static bool ArrayContains(TemplateValue? templateValue, object? element)
+    {
+        if (templateValue is not ArrayValue array || element == null)
+        {
+            return false;
+        }
+
+        var searchString = element.ToString();
+
+        foreach (var item in array)
+        {
+            var itemString = item switch
+            {
+                StringValue s => s.Value,
+                NumberValue n => n.Value.ToString(CultureInfo.InvariantCulture),
+                BoolValue b => b.Value.ToString().ToLowerInvariant(),
+                _ => null
+            };
+
+            if (itemString != null && itemString == searchString)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Compares a numeric template value against a comparison value.
+    /// </summary>
+    /// <param name="templateValue">The template value to compare.</param>
+    /// <param name="compareValue">The comparison value (expected to be double).</param>
+    /// <returns>-1 if less, 0 if equal, 1 if greater; or 0 if comparison is not possible.</returns>
+    private static int CompareNumeric(TemplateValue? templateValue, object? compareValue)
+    {
+        if (templateValue is not NumberValue numberValue)
+        {
+            return 0;
+        }
+
+        double compareDouble;
+        if (compareValue is double d)
+        {
+            compareDouble = d;
+        }
+        else if (compareValue != null && double.TryParse(compareValue.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+        {
+            compareDouble = parsed;
+        }
+        else
+        {
+            return 0;
+        }
+
+        return numberValue.Value.CompareTo((decimal)compareDouble);
+    }
+
+    /// <summary>
+    /// Checks if an array has items based on the expected boolean value.
+    /// </summary>
+    /// <param name="templateValue">The template value (expected to be an array).</param>
+    /// <param name="expectedHasItems">True to check if array has items, false to check if empty.</param>
+    /// <returns>True if the condition matches; otherwise, false.</returns>
+    private static bool HasItems(TemplateValue? templateValue, object? expectedHasItems)
+    {
+        if (templateValue is not ArrayValue array)
+        {
+            return false;
+        }
+
+        var hasItems = array.Count > 0;
+
+        if (expectedHasItems is bool expected)
+        {
+            return hasItems == expected;
+        }
+
+        // Default behavior: check if has items
+        return hasItems;
+    }
+
+    /// <summary>
+    /// Gets the count of items in an array.
+    /// </summary>
+    /// <param name="templateValue">The template value (expected to be an array).</param>
+    /// <returns>The count of items, or -1 if not an array.</returns>
+    private static int GetCount(TemplateValue? templateValue)
+    {
+        if (templateValue is ArrayValue array)
+        {
+            return array.Count;
+        }
+
+        return -1;
     }
 
     private FlexElement ExpandFlex(FlexElement flex, TemplateContext context, int depth)

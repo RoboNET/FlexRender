@@ -49,17 +49,19 @@ public static class FlexRenderExtensions
     /// var bytes = await render.RenderYaml(yaml, data);
     /// </code>
     /// </example>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
     public static async Task<byte[]> RenderYaml(
         this IFlexRender render,
         string yaml,
         ObjectValue? data = null,
         ImageFormat format = ImageFormat.Png,
+        TemplateParser? parser = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(yaml);
 
-        var parser = new TemplateParser();
+        parser ??= new TemplateParser();
         var template = parser.Parse(yaml);
         return await render.Render(template, data, format, cancellationToken).ConfigureAwait(false);
     }
@@ -77,19 +79,21 @@ public static class FlexRenderExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/>, <paramref name="output"/>, or <paramref name="yaml"/> is null.</exception>
     /// <exception cref="TemplateParseException">Thrown when the YAML content cannot be parsed.</exception>
     /// <exception cref="InvalidOperationException">Thrown when rendering fails due to invalid template structure or resource loading errors.</exception>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
     public static async Task RenderYaml(
         this IFlexRender render,
         Stream output,
         string yaml,
         ObjectValue? data = null,
         ImageFormat format = ImageFormat.Png,
+        TemplateParser? parser = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(yaml);
 
-        var parser = new TemplateParser();
+        parser ??= new TemplateParser();
         var template = parser.Parse(yaml);
         await render.Render(output, template, data, format, cancellationToken).ConfigureAwait(false);
     }
@@ -118,17 +122,19 @@ public static class FlexRenderExtensions
     /// await File.WriteAllBytesAsync("receipt.png", bytes);
     /// </code>
     /// </example>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
     public static async Task<byte[]> RenderFile(
         this IFlexRender render,
         string path,
         ObjectValue? data = null,
         ImageFormat format = ImageFormat.Png,
+        TemplateParser? parser = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(path);
 
-        var parser = new TemplateParser();
+        parser ??= new TemplateParser();
         var template = await parser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
         return await render.Render(template, data, format, cancellationToken).ConfigureAwait(false);
     }
@@ -147,19 +153,21 @@ public static class FlexRenderExtensions
     /// <exception cref="FileNotFoundException">Thrown when the template file does not exist.</exception>
     /// <exception cref="TemplateParseException">Thrown when the file content cannot be parsed or exceeds maximum size.</exception>
     /// <exception cref="InvalidOperationException">Thrown when rendering fails due to invalid template structure or resource loading errors.</exception>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
     public static async Task RenderFile(
         this IFlexRender render,
         Stream output,
         string path,
         ObjectValue? data = null,
         ImageFormat format = ImageFormat.Png,
+        TemplateParser? parser = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(path);
 
-        var parser = new TemplateParser();
+        parser ??= new TemplateParser();
         var template = await parser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
         await render.Render(output, template, data, format, cancellationToken).ConfigureAwait(false);
     }

@@ -114,7 +114,8 @@ public static class BmpEncoder
     /// </summary>
     private static void WritePixelData(BinaryWriter writer, SKBitmap bitmap, int width, int height)
     {
-        var rowBytes = width * 4;
+        var bmpRowBytes = width * 4;     // BMP row size (what we write)
+        var bitmapRowBytes = bitmap.RowBytes; // Actual stride in bitmap (for reading)
 
         if (bitmap.ColorType == SKColorType.Bgra8888)
         {
@@ -122,23 +123,26 @@ public static class BmpEncoder
             var span = bitmap.GetPixelSpan();
             for (var y = height - 1; y >= 0; y--)
             {
-                var row = span.Slice(y * rowBytes, rowBytes);
+                var row = span.Slice(y * bitmapRowBytes, bmpRowBytes);
                 writer.Write(row);
             }
         }
         else
         {
-            // Slow path: read each pixel individually for correct color space conversion
+            // Slow path: use row buffer to reduce write calls
+            Span<byte> rowBuffer = stackalloc byte[bmpRowBytes];
             for (var y = height - 1; y >= 0; y--)
             {
                 for (var x = 0; x < width; x++)
                 {
                     var pixel = bitmap.GetPixel(x, y);
-                    writer.Write(pixel.Blue);
-                    writer.Write(pixel.Green);
-                    writer.Write(pixel.Red);
-                    writer.Write(pixel.Alpha);
+                    var offset = x * 4;
+                    rowBuffer[offset] = pixel.Blue;
+                    rowBuffer[offset + 1] = pixel.Green;
+                    rowBuffer[offset + 2] = pixel.Red;
+                    rowBuffer[offset + 3] = pixel.Alpha;
                 }
+                writer.Write(rowBuffer);
             }
         }
     }
