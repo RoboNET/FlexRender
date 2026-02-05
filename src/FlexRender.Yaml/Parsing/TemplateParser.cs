@@ -168,20 +168,35 @@ public sealed class TemplateParser : ITemplateParser
     }
 
     /// <summary>
-    /// Parses a YAML file into a Template AST.
+    /// Asynchronously parses a YAML file into a Template AST.
     /// </summary>
     /// <param name="path">The path to the YAML file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The parsed template.</returns>
     /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
     /// <exception cref="TemplateParseException">Thrown when parsing fails or file exceeds maximum size.</exception>
-    public Template ParseFile(string path)
+    public Task<Template> ParseFileAsync(string path, CancellationToken cancellationToken = default)
+        => ParseFile(path, cancellationToken);
+
+    /// <summary>
+    /// Asynchronously parses a YAML file into a Template AST.
+    /// </summary>
+    /// <param name="path">The path to the YAML file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The parsed template.</returns>
+    /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
+    /// <exception cref="TemplateParseException">Thrown when parsing fails or file exceeds maximum size.</exception>
+    /// <remarks>
+    /// This method is equivalent to <see cref="ParseFileAsync(string, CancellationToken)"/>.
+    /// The non-suffixed name follows the project's async naming convention.
+    /// </remarks>
+    public async Task<Template> ParseFile(string path, CancellationToken cancellationToken)
     {
         if (!File.Exists(path))
         {
             throw new FileNotFoundException($"Template file not found: {path}", path);
         }
 
-        // Security: Validate file size before reading to prevent resource exhaustion
         var fileInfo = new FileInfo(path);
         if (fileInfo.Length > _limits.MaxTemplateFileSize)
         {
@@ -189,8 +204,35 @@ public sealed class TemplateParser : ITemplateParser
                 $"Template file size ({fileInfo.Length} bytes) exceeds maximum allowed size ({_limits.MaxTemplateFileSize} bytes)");
         }
 
-        var yaml = File.ReadAllText(path);
+        var yaml = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
         return Parse(yaml);
+    }
+
+    /// <summary>
+    /// Asynchronously parses a YAML file with data preprocessing.
+    /// </summary>
+    /// <param name="path">The path to the YAML file.</param>
+    /// <param name="data">The data for preprocessing.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The parsed template.</returns>
+    /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
+    /// <exception cref="TemplateParseException">Thrown when parsing fails or file exceeds maximum size.</exception>
+    public async Task<Template> ParseFile(string path, TemplateValue? data, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException($"Template file not found: {path}", path);
+        }
+
+        var fileInfo = new FileInfo(path);
+        if (fileInfo.Length > _limits.MaxTemplateFileSize)
+        {
+            throw new TemplateParseException(
+                $"Template file size ({fileInfo.Length} bytes) exceeds maximum allowed size ({_limits.MaxTemplateFileSize} bytes)");
+        }
+
+        var yaml = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+        return Parse(yaml, data);
     }
 
     /// <summary>

@@ -1,15 +1,19 @@
 using Microsoft.Extensions.DependencyInjection;
 using FlexRender;
 using FlexRender.Abstractions;
+using FlexRender.Barcode;
 using FlexRender.Parsing;
+using FlexRender.QrCode;
+using FlexRender.Yaml;
 
 // Build service provider with FlexRender services
 var services = new ServiceCollection();
-services.AddFlexRender();
+services.AddFlexRender(builder => builder
+    .WithSkia(skia => skia.WithQr().WithBarcode()));
 using var serviceProvider = services.BuildServiceProvider();
 
 // Get the renderer from DI
-var renderer = serviceProvider.GetRequiredService<IFlexRenderer>();
+var renderer = serviceProvider.GetRequiredService<IFlexRender>();
 
 // Determine paths
 var baseDirectory = AppContext.BaseDirectory;
@@ -37,10 +41,10 @@ Console.WriteLine("FlexRender YAML Render Example");
 Console.WriteLine("==============================");
 Console.WriteLine();
 
-// Parse the YAML template
+// Parse template just for displaying info
 Console.WriteLine($"Loading template: {templatePath}");
 var parser = new TemplateParser();
-var template = parser.ParseFile(templatePath);
+var template = await parser.ParseFile(templatePath, CancellationToken.None);
 Console.WriteLine($"Template name: {template.Name ?? "unnamed"}");
 
 // Prepare data for variable substitution
@@ -49,12 +53,12 @@ var data = new ObjectValue
     ["templateName"] = new StringValue(template.Name ?? "example")
 };
 
-// Render to PNG file
+// Render to PNG file using the simple IFlexRender API
 Console.WriteLine();
 Console.WriteLine("Rendering to PNG...");
 
 await using var outputStream = File.Create(outputPath);
-await renderer.RenderToPng(outputStream, template, data);
+await renderer.RenderFile(outputStream, templatePath, data, ImageFormat.Png);
 
 Console.WriteLine($"Output saved: {outputPath}");
 Console.WriteLine();

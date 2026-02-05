@@ -6,29 +6,8 @@ namespace FlexRender.Cli.Tests.Commands;
 /// <summary>
 /// Tests for the validate CLI command.
 /// </summary>
-public class ValidateCommandTests : IDisposable
+public class ValidateCommandTests
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ValidateCommandTests"/> class.
-    /// </summary>
-    public ValidateCommandTests()
-    {
-        _serviceProvider = Program.CreateServiceProvider();
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (_serviceProvider is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
     /// Verifies that the root command has a validate subcommand.
     /// </summary>
@@ -36,7 +15,7 @@ public class ValidateCommandTests : IDisposable
     public void CreateRootCommand_HasValidateSubcommand()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
 
         // Assert
         var validateCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "validate");

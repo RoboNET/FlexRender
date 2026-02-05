@@ -6,29 +6,8 @@ namespace FlexRender.Cli.Tests.Commands;
 /// <summary>
 /// Tests for the watch CLI command.
 /// </summary>
-public class WatchCommandTests : IDisposable
+public class WatchCommandTests
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="WatchCommandTests"/> class.
-    /// </summary>
-    public WatchCommandTests()
-    {
-        _serviceProvider = Program.CreateServiceProvider();
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (_serviceProvider is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
     /// Verifies that the root command has a watch subcommand.
     /// </summary>
@@ -36,7 +15,7 @@ public class WatchCommandTests : IDisposable
     public void CreateRootCommand_HasWatchSubcommand()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
 
         // Assert
         var watchCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "watch");
@@ -51,7 +30,7 @@ public class WatchCommandTests : IDisposable
     public void WatchCommand_HasTemplateArgument()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var watchCommand = rootCommand.Subcommands.First(c => c.Name == "watch");
 
         // Assert
@@ -66,7 +45,7 @@ public class WatchCommandTests : IDisposable
     public void WatchCommand_HasDataOption()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var watchCommand = rootCommand.Subcommands.First(c => c.Name == "watch");
 
         // Assert
@@ -81,7 +60,7 @@ public class WatchCommandTests : IDisposable
     public void WatchCommand_HasOutputOption()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var watchCommand = rootCommand.Subcommands.First(c => c.Name == "watch");
 
         // Assert
@@ -96,7 +75,7 @@ public class WatchCommandTests : IDisposable
     public void WatchCommand_HasOpenOption()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var watchCommand = rootCommand.Subcommands.First(c => c.Name == "watch");
 
         // Assert

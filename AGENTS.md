@@ -25,16 +25,17 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Configuration/                # ResourceLimits, FlexRenderOptions
   Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
-  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader, HttpResourceLoader
+  Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, etc.
   TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/                      # TemplateParser, YamlPreprocessor
+src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
-  Abstractions/                 # IFlexRenderer, IFontLoader, IImageLoader, IFontManager
-  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper
+  Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
+  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
   Loaders/                      # FontLoader, ImageLoader
   Providers/                    # IContentProvider<T,O>, ImageProvider
 src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
@@ -54,16 +55,16 @@ examples/                       # Example YAML templates
 
 ```
 FlexRender.Core          (0 external deps)
-  ^          ^
-  |          |
-FlexRender.Yaml    FlexRender.Skia       (YamlDotNet)  (SkiaSharp)
-                     ^        ^
-                     |        |
-            FlexRender.QrCode  FlexRender.Barcode   (QRCoder)
-                     |        |
-FlexRender.DependencyInjection  (Microsoft.Extensions.DI)
-                     |
-            FlexRender.MetaPackage  (references all)
+  ^          ^        ^
+  |          |        |
+FlexRender.Yaml  FlexRender.Http  FlexRender.Skia   (YamlDotNet)  (SkiaSharp)
+                                    ^        ^
+                                    |        |
+                           FlexRender.QrCode  FlexRender.Barcode   (QRCoder)
+                                    |        |
+               FlexRender.DependencyInjection  (Microsoft.Extensions.DI)
+                                    |
+                           FlexRender.MetaPackage  (references all)
 ```
 
 ## SkiaSharp Native Assets on Linux
@@ -94,19 +95,38 @@ YAML Template
   -> SkiaRenderer             (traverse LayoutNode tree -> draw to SKBitmap via SkiaSharp)
 ```
 
+### FlexRenderBuilder API
+
+The builder pattern provides modular configuration without mandatory DI:
+
+```csharp
+// Without DI
+var render = new FlexRenderBuilder()
+    .WithHttpLoader()
+    .WithBasePath("./templates")
+    .WithSkia(skia => skia
+        .WithQr()
+        .WithBarcode())
+    .Build();
+
+byte[] png = await render.RenderFile("receipt.yaml", data);
+
+// With DI
+services.AddFlexRender(builder => builder
+    .WithSkia(skia => skia.WithQr().WithBarcode()));
+```
+
 ### Template Caching
 
-Templates can be parsed once and cached, then expanded with different data at render time:
+Templates can be parsed once and cached, then rendered with different data:
 
 ```csharp
 // Parse once (at startup)
 var parser = new TemplateParser();
-var template = parser.Parse(yaml);
-templateCache["receipt"] = template;
+_templates["receipt"] = await parser.ParseFileAsync("receipt.yaml");
 
 // Render many times (per request)
-var template = templateCache["receipt"];
-var bytes = renderer.RenderToPng(template, data);  // Expander called internally
+byte[] png = await render.Render(_templates["receipt"], data);
 ```
 
 ### Two-Pass Layout Engine
@@ -118,13 +138,15 @@ var bytes = renderer.RenderToPng(template, data);  // Expander called internally
 
 | Stage | Key Classes |
 |-------|------------|
+| Configuration | `FlexRenderBuilder`, `SkiaBuilder`, `FlexRenderOptions`, `ResourceLimits` |
+| Abstractions | `IFlexRender`, `IResourceLoader` |
 | Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `EachElement`, `IfElement` |
 | Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext` |
 | Layout | `LayoutEngine`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize`, `Unit`, `UnitParser` |
-| Rendering | `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder` |
+| Rendering | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder` |
 | Providers | `IContentProvider<T,O>`, `QrProvider`, `BarcodeProvider`, `ImageProvider` |
-| DI | `ServiceCollectionExtensions.AddFlexRender()`, `FlexRenderBuilder`, `FlexRenderOptions` |
-| Abstractions | `IFlexRenderer`, `ILayoutRenderer<T>`, `ITemplateParser` |
+| Loaders | `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader` |
+| DI | `ServiceCollectionExtensions.AddFlexRender()` |
 | Values | `TemplateValue` (abstract), `StringValue`, `NumberValue`, `BoolValue`, `NullValue`, `ArrayValue`, `ObjectValue` |
 
 ## Coding Conventions

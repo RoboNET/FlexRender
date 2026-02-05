@@ -35,18 +35,18 @@ public static class ValidateCommand
         return command;
     }
 
-    private static Task<int> Execute(FileInfo templateFile, bool verbose)
+    private static async Task<int> Execute(FileInfo templateFile, bool verbose)
     {
         if (!templateFile.Exists)
         {
             Console.Error.WriteLine($"Error: Template file not found: {templateFile.FullName}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         try
         {
             var parser = new TemplateParser();
-            var template = parser.ParseFile(templateFile.FullName);
+            var template = await parser.ParseFile(templateFile.FullName, CancellationToken.None);
 
             if (verbose)
             {
@@ -57,17 +57,17 @@ public static class ValidateCommand
             }
 
             Console.WriteLine($"Valid: {templateFile.Name}");
-            return Task.FromResult(0);
+            return 0;
         }
         catch (TemplateParseException ex)
         {
             Console.Error.WriteLine($"Validation error: {ex.Message}");
-            return Task.FromResult(1);
+            return 1;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Error: {ex.Message}");
-            return Task.FromResult(1);
+            return 1;
         }
     }
 }

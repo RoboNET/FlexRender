@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="FlexRender.Tests" />
+    <InternalsVisibleTo Include="FlexRender.DependencyInjection" />
+    <InternalsVisibleTo Include="FlexRender.Barcode" />
+    <InternalsVisibleTo Include="FlexRender.QrCode" />
+    <InternalsVisibleTo Include="flexrender-cli" />
   </ItemGroup>
 
   <ItemGroup>

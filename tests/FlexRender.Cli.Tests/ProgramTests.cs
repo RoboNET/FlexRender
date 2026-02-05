@@ -7,29 +7,8 @@ namespace FlexRender.Cli.Tests;
 /// <summary>
 /// Tests for the CLI Program class.
 /// </summary>
-public class ProgramTests : IDisposable
+public class ProgramTests
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ProgramTests"/> class.
-    /// </summary>
-    public ProgramTests()
-    {
-        _serviceProvider = Program.CreateServiceProvider();
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (_serviceProvider is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
     /// Verifies that the root command is created with the expected description.
     /// </summary>
@@ -37,7 +16,7 @@ public class ProgramTests : IDisposable
     public void CreateRootCommand_ReturnsRootCommand_WithDescription()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
 
         // Assert
         Assert.NotNull(rootCommand);
@@ -52,7 +31,7 @@ public class ProgramTests : IDisposable
     {
         // Arrange - use InvocationConfiguration with TextWriter.Null to avoid
         // Console.Out disposal race conditions in xUnit on net8.0
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var invocationConfig = new InvocationConfiguration
         {
             Output = TextWriter.Null,
@@ -73,7 +52,7 @@ public class ProgramTests : IDisposable
     public async Task Main_WithVersionFlag_ReturnsZero()
     {
         // Arrange
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var invocationConfig = new InvocationConfiguration
         {
             Output = TextWriter.Null,

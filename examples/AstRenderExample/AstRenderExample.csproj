@@ -7,6 +7,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FlexRender.Core\FlexRender.Core.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.QrCode\FlexRender.QrCode.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Barcode\FlexRender.Barcode.csproj" />
   </ItemGroup>
 
 </Project>

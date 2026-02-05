@@ -1,7 +1,10 @@
 using FlexRender;
+using FlexRender.Abstractions;
+using FlexRender.Barcode;
+using FlexRender.Configuration;
 using FlexRender.Layout;
 using FlexRender.Parsing.Ast;
-using FlexRender.Rendering;
+using FlexRender.QrCode;
 
 // Build template programmatically — no YAML parsing required
 var template = new Template
@@ -68,8 +71,10 @@ template.AddElement(new TextElement
     Margin = "8 0 0 0"
 });
 
-// Render using SkiaRenderer directly — no DI container needed
-using var renderer = new SkiaRenderer();
+// Render using FlexRenderBuilder — no DI container needed for simple use
+using var renderer = new FlexRenderBuilder()
+    .WithSkia(skia => skia.WithQr().WithBarcode())
+    .Build();
 var data = new ObjectValue();
 
 // Determine output path
@@ -89,7 +94,7 @@ Console.WriteLine();
 
 Console.WriteLine("Rendering to PNG...");
 await using var outputStream = File.Create(outputPath);
-await renderer.RenderToPng(outputStream, template, data);
+await renderer.Render(outputStream, template, data, ImageFormat.Png);
 
 Console.WriteLine($"Output saved: {outputPath}");
 Console.WriteLine();

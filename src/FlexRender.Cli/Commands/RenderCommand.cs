@@ -1,10 +1,7 @@
 using System.CommandLine;
-using Microsoft.Extensions.DependencyInjection;
 using FlexRender.Abstractions;
-using FlexRender.Configuration;
 using FlexRender.Parsing;
-using FlexRender.Rendering;
-using SkiaSharp;
+using FlexRender.Yaml;
 
 namespace FlexRender.Cli.Commands;
 
@@ -16,9 +13,8 @@ public static class RenderCommand
     /// <summary>
     /// Creates the render command.
     /// </summary>
-    /// <param name="serviceProvider">The service provider for dependency injection.</param>
     /// <returns>The configured render command.</returns>
-    public static Command Create(IServiceProvider serviceProvider)
+    public static Command Create()
     {
         var templateArg = new Argument<FileInfo>("template")
         {
@@ -62,26 +58,21 @@ public static class RenderCommand
             var outputFile = parseResult.GetValue(outputOption);
             var quality = parseResult.GetValue(qualityOption);
             var open = parseResult.GetValue(openOption);
-            var scale = parseResult.GetValue(GlobalOptions.Scale);
-            var fontsDir = parseResult.GetValue(GlobalOptions.Fonts);
             var verbose = parseResult.GetValue(GlobalOptions.Verbose);
             var basePath = parseResult.GetValue(GlobalOptions.BasePath);
 
-            return await Execute(serviceProvider, templateFile!, dataFile, outputFile, quality, open, scale, fontsDir, verbose, basePath);
+            return await Execute(templateFile!, dataFile, outputFile, quality, open, verbose, basePath);
         });
 
         return command;
     }
 
     private static async Task<int> Execute(
-        IServiceProvider serviceProvider,
         FileInfo templateFile,
         FileInfo? dataFile,
         FileInfo? outputFile,
         int quality,
         bool open,
-        float scale,
-        DirectoryInfo? fontsDir,
         bool verbose,
         DirectoryInfo? basePath)
     {
@@ -125,18 +116,11 @@ public static class RenderCommand
             return 1;
         }
 
-        // Validate fonts directory if specified
-        if (fontsDir is not null && !fontsDir.Exists)
-        {
-            Console.Error.WriteLine($"Error: Fonts directory not found: {fontsDir.FullName}");
-            return 1;
-        }
-
         try
         {
-            // Set base path for resolving relative file references
-            var options = serviceProvider.GetRequiredService<FlexRenderOptions>();
-            options.BasePath = basePath?.FullName ?? templateFile.DirectoryName!;
+            // Create renderer with base path
+            var effectiveBasePath = basePath?.FullName ?? templateFile.DirectoryName!;
+            using var renderer = Program.CreateRenderBuilder(effectiveBasePath).Build();
 
             // Load data if provided
             ObjectValue? data = null;
@@ -149,98 +133,36 @@ public static class RenderCommand
                 }
             }
 
-            // Parse template with data preprocessing (handles {{#each}} blocks)
-            var parser = new TemplateParser();
-            var yaml = await File.ReadAllTextAsync(templateFile.FullName);
-            var template = parser.Parse(yaml, data);
-
+            // Parse template for verbose info only
             if (verbose)
             {
+                var parser = new TemplateParser();
+                var yaml = await File.ReadAllTextAsync(templateFile.FullName);
+                var template = parser.Parse(yaml, data);
                 Console.WriteLine($"Template: {template.Name ?? templateFile.Name}");
                 Console.WriteLine($"Canvas: {template.Canvas.Width}x{template.Canvas.Height}px ({template.Canvas.Fixed})");
                 Console.WriteLine($"Output format: {format}");
-                Console.WriteLine($"Scale: {scale}x");
                 if (format == OutputFormat.Jpeg)
                 {
                     Console.WriteLine($"Quality: {quality}");
                 }
             }
 
-            // Get renderer from DI and load fonts
-            var renderer = serviceProvider.GetRequiredService<IFlexRenderer>();
-            if (fontsDir is not null)
-            {
-                var fontExtensions = new[] { ".ttf", ".otf" };
-                var fontFiles = Directory.GetFiles(fontsDir.FullName)
-                    .Where(f => fontExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                    .ToArray();
-
-                foreach (var fontPath in fontFiles)
-                {
-                    var fontName = Path.GetFileNameWithoutExtension(fontPath);
-                    renderer.FontManager.RegisterFont(fontName, fontPath);
-                    if (verbose)
-                    {
-                        Console.WriteLine($"Registered font: {fontName}");
-                    }
-                }
-
-                if (verbose && fontFiles.Length > 0)
-                {
-                    Console.WriteLine($"Loaded {fontFiles.Length} font(s) from: {fontsDir.FullName}");
-                }
-            }
-
-            // Measure template to determine bitmap size
-            var renderData = data ?? new ObjectValue();
-            var size = await renderer.Measure(template, renderData);
-            var scaledWidth = (int)Math.Ceiling(size.Width * scale);
-            var scaledHeight = (int)Math.Ceiling(size.Height * scale);
-
-            if (verbose)
-            {
-                Console.WriteLine($"Measured size: {size.Width}x{size.Height}px");
-                Console.WriteLine($"Scaled size: {scaledWidth}x{scaledHeight}px");
-            }
-
-            // Create bitmap and render
-            using var bitmap = new SKBitmap(scaledWidth, scaledHeight);
-            using var canvas = new SKCanvas(bitmap);
-
-            // Apply scale transform
-            canvas.Scale(scale);
-
-            await renderer.Render(bitmap, template, renderData);
-
-            // Ensure output directory exists and save
+            // Ensure output directory exists
             FileOpener.EnsureDirectoryExists(outputFile.FullName);
 
-            if (format == OutputFormat.Bmp)
+            // Map output format to ImageFormat
+            var imageFormat = format switch
             {
-                await using var stream = File.Create(outputFile.FullName);
-                BmpEncoder.Encode(bitmap, stream);
-            }
-            else
-            {
-                var skFormat = format switch
-                {
-                    OutputFormat.Png => SKEncodedImageFormat.Png,
-                    OutputFormat.Jpeg => SKEncodedImageFormat.Jpeg,
-                    _ => SKEncodedImageFormat.Png
-                };
+                OutputFormat.Png => ImageFormat.Png,
+                OutputFormat.Jpeg => ImageFormat.Jpeg,
+                OutputFormat.Bmp => ImageFormat.Bmp,
+                _ => ImageFormat.Png
+            };
 
-                using var image = SKImage.FromBitmap(bitmap);
-                using var encodedData = image.Encode(skFormat, quality);
-
-                if (encodedData is null)
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to encode image to {format}. The encoding operation returned null.");
-                }
-
-                await using var stream = File.Create(outputFile.FullName);
-                encodedData.SaveTo(stream);
-            }
+            // Render directly to file
+            await using var outputStream = File.Create(outputFile.FullName);
+            await renderer.RenderFile(outputStream, templateFile.FullName, data, imageFormat);
 
             Console.WriteLine($"Rendered: {outputFile.FullName}");
             if (open)

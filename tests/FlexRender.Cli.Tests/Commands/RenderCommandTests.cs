@@ -6,29 +6,8 @@ namespace FlexRender.Cli.Tests.Commands;
 /// <summary>
 /// Tests for the render CLI command.
 /// </summary>
-public class RenderCommandTests : IDisposable
+public class RenderCommandTests
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RenderCommandTests"/> class.
-    /// </summary>
-    public RenderCommandTests()
-    {
-        _serviceProvider = Program.CreateServiceProvider();
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (_serviceProvider is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
     /// Verifies that the root command has a render subcommand.
     /// </summary>
@@ -36,7 +15,7 @@ public class RenderCommandTests : IDisposable
     public void CreateRootCommand_HasRenderSubcommand()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
 
         // Assert
         var renderCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "render");
@@ -51,7 +30,7 @@ public class RenderCommandTests : IDisposable
     public void RenderCommand_HasTemplateArgument()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var renderCommand = rootCommand.Subcommands.First(c => c.Name == "render");
 
         // Assert
@@ -66,7 +45,7 @@ public class RenderCommandTests : IDisposable
     public void RenderCommand_HasDataOption()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var renderCommand = rootCommand.Subcommands.First(c => c.Name == "render");
 
         // Assert
@@ -82,7 +61,7 @@ public class RenderCommandTests : IDisposable
     public void RenderCommand_HasOutputOption()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var renderCommand = rootCommand.Subcommands.First(c => c.Name == "render");
 
         // Assert
@@ -98,7 +77,7 @@ public class RenderCommandTests : IDisposable
     public void RenderCommand_HasQualityOption()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var renderCommand = rootCommand.Subcommands.First(c => c.Name == "render");
 
         // Assert
@@ -113,7 +92,7 @@ public class RenderCommandTests : IDisposable
     public void RenderCommand_HasOpenOption()
     {
         // Act
-        var rootCommand = Program.CreateRootCommand(_serviceProvider);
+        var rootCommand = Program.CreateRootCommand();
         var renderCommand = rootCommand.Subcommands.First(c => c.Name == "render");
 
         // Assert

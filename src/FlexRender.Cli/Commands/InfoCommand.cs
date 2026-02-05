@@ -36,31 +36,31 @@ public static partial class InfoCommand
         return command;
     }
 
-    private static Task<int> Execute(FileInfo templateFile)
+    private static async Task<int> Execute(FileInfo templateFile)
     {
         if (!templateFile.Exists)
         {
             Console.Error.WriteLine($"Error: Template file not found: {templateFile.FullName}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         try
         {
             var parser = new TemplateParser();
-            var template = parser.ParseFile(templateFile.FullName);
+            var template = await parser.ParseFile(templateFile.FullName, CancellationToken.None);
 
             PrintTemplateInfo(template, templateFile);
-            return Task.FromResult(0);
+            return 0;
         }
         catch (TemplateParseException ex)
         {
             Console.Error.WriteLine($"Parse error: {ex.Message}");
-            return Task.FromResult(1);
+            return 1;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Error: {ex.Message}");
-            return Task.FromResult(1);
+            return 1;
         }
     }
 
