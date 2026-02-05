@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
+using FlexRender.Http;
 using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
 using FlexRender.Rendering;
@@ -18,12 +19,9 @@ public sealed class ResourceLimitsTests
 
         Assert.Equal(1024 * 1024, limits.MaxTemplateFileSize);
         Assert.Equal(10L * 1024 * 1024, limits.MaxDataFileSize);
-        Assert.Equal(50, limits.MaxPreprocessorNestingDepth);
-        Assert.Equal(1024 * 1024, limits.MaxPreprocessorInputSize);
         Assert.Equal(100, limits.MaxTemplateNestingDepth);
         Assert.Equal(100, limits.MaxRenderDepth);
         Assert.Equal(10 * 1024 * 1024, limits.MaxImageSize);
-        Assert.Equal(TimeSpan.FromSeconds(30), limits.HttpTimeout);
     }
 
     [Fact]
@@ -33,22 +31,16 @@ public sealed class ResourceLimitsTests
         {
             MaxTemplateFileSize = 2 * 1024 * 1024,
             MaxDataFileSize = 20L * 1024 * 1024,
-            MaxPreprocessorNestingDepth = 25,
-            MaxPreprocessorInputSize = 512 * 1024,
             MaxTemplateNestingDepth = 50,
             MaxRenderDepth = 200,
-            MaxImageSize = 5 * 1024 * 1024,
-            HttpTimeout = TimeSpan.FromSeconds(60)
+            MaxImageSize = 5 * 1024 * 1024
         };
 
         Assert.Equal(2 * 1024 * 1024, limits.MaxTemplateFileSize);
         Assert.Equal(20L * 1024 * 1024, limits.MaxDataFileSize);
-        Assert.Equal(25, limits.MaxPreprocessorNestingDepth);
-        Assert.Equal(512 * 1024, limits.MaxPreprocessorInputSize);
         Assert.Equal(50, limits.MaxTemplateNestingDepth);
         Assert.Equal(200, limits.MaxRenderDepth);
         Assert.Equal(5 * 1024 * 1024, limits.MaxImageSize);
-        Assert.Equal(TimeSpan.FromSeconds(60), limits.HttpTimeout);
     }
 
     [Fact]
@@ -65,22 +57,6 @@ public sealed class ResourceLimitsTests
         var limits = new ResourceLimits();
         Assert.Throws<ArgumentOutOfRangeException>(() => limits.MaxDataFileSize = 0);
         Assert.Throws<ArgumentOutOfRangeException>(() => limits.MaxDataFileSize = -1);
-    }
-
-    [Fact]
-    public void MaxPreprocessorNestingDepth_ZeroOrNegative_Throws()
-    {
-        var limits = new ResourceLimits();
-        Assert.Throws<ArgumentOutOfRangeException>(() => limits.MaxPreprocessorNestingDepth = 0);
-        Assert.Throws<ArgumentOutOfRangeException>(() => limits.MaxPreprocessorNestingDepth = -1);
-    }
-
-    [Fact]
-    public void MaxPreprocessorInputSize_ZeroOrNegative_Throws()
-    {
-        var limits = new ResourceLimits();
-        Assert.Throws<ArgumentOutOfRangeException>(() => limits.MaxPreprocessorInputSize = 0);
-        Assert.Throws<ArgumentOutOfRangeException>(() => limits.MaxPreprocessorInputSize = -1);
     }
 
     [Fact]
@@ -108,14 +84,6 @@ public sealed class ResourceLimitsTests
     }
 
     [Fact]
-    public void HttpTimeout_ZeroOrNegative_Throws()
-    {
-        var limits = new ResourceLimits();
-        Assert.Throws<ArgumentOutOfRangeException>(() => limits.HttpTimeout = TimeSpan.Zero);
-        Assert.Throws<ArgumentOutOfRangeException>(() => limits.HttpTimeout = TimeSpan.FromSeconds(-1));
-    }
-
-    [Fact]
     public void FlexRenderOptions_HasResourceLimits_WithDefaults()
     {
         var options = new FlexRenderOptions();
@@ -131,7 +99,6 @@ public sealed class ResourceLimitsTests
         var options = new FlexRenderOptions();
 
         Assert.Equal(options.Limits.MaxImageSize, options.MaxImageSize);
-        Assert.Equal(options.Limits.HttpTimeout, options.HttpTimeout);
     }
 
     [Fact]
@@ -144,15 +111,6 @@ public sealed class ResourceLimitsTests
     }
 
     [Fact]
-    public void FlexRenderOptions_SetHttpTimeout_UpdatesLimits()
-    {
-        var options = new FlexRenderOptions();
-        options.HttpTimeout = TimeSpan.FromSeconds(60);
-
-        Assert.Equal(TimeSpan.FromSeconds(60), options.Limits.HttpTimeout);
-    }
-
-    [Fact]
     public void FlexRenderOptions_SetLimitsMaxImageSize_UpdatesProperty()
     {
         var options = new FlexRenderOptions();
@@ -162,21 +120,53 @@ public sealed class ResourceLimitsTests
     }
 
     [Fact]
-    public void FlexRenderOptions_SetLimitsHttpTimeout_UpdatesProperty()
-    {
-        var options = new FlexRenderOptions();
-        options.Limits.HttpTimeout = TimeSpan.FromSeconds(60);
-
-        Assert.Equal(TimeSpan.FromSeconds(60), options.HttpTimeout);
-    }
-
-    [Fact]
     public void BackwardCompatConstants_MatchResourceLimitsDefaults()
     {
         var limits = new ResourceLimits();
 
         Assert.Equal(TemplateParser.MaxFileSize, limits.MaxTemplateFileSize);
         Assert.Equal(TemplateProcessor.MaxNestingDepth, limits.MaxTemplateNestingDepth);
+    }
+}
+
+public sealed class HttpResourceLoaderOptionsTests
+{
+    [Fact]
+    public void Defaults_HaveExpectedValues()
+    {
+        var options = new HttpResourceLoaderOptions();
+
+        Assert.Equal(TimeSpan.FromSeconds(30), options.Timeout);
+        Assert.Equal(10 * 1024 * 1024, options.MaxResourceSize);
+    }
+
+    [Fact]
+    public void Properties_CanBeSet()
+    {
+        var options = new HttpResourceLoaderOptions
+        {
+            Timeout = TimeSpan.FromMinutes(2),
+            MaxResourceSize = 5 * 1024 * 1024
+        };
+
+        Assert.Equal(TimeSpan.FromMinutes(2), options.Timeout);
+        Assert.Equal(5 * 1024 * 1024, options.MaxResourceSize);
+    }
+
+    [Fact]
+    public void Timeout_ZeroOrNegative_Throws()
+    {
+        var options = new HttpResourceLoaderOptions();
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Timeout = TimeSpan.Zero);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Timeout = TimeSpan.FromSeconds(-1));
+    }
+
+    [Fact]
+    public void MaxResourceSize_ZeroOrNegative_Throws()
+    {
+        var options = new HttpResourceLoaderOptions();
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.MaxResourceSize = 0);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.MaxResourceSize = -1);
     }
 }
 
@@ -233,10 +223,21 @@ public sealed class FlexRenderBuilderLimitsTests
     }
 
     [Fact]
-    public void WithLimits_ViaLimitsProperty_ConfiguresHttpTimeout()
+    public void WithHttpLoader_ConfiguresTimeout()
     {
         using var render = new FlexRenderBuilder()
-            .WithLimits(limits => limits.HttpTimeout = TimeSpan.FromSeconds(60))
+            .WithHttpLoader(configure: opts => opts.Timeout = TimeSpan.FromSeconds(60))
+            .WithSkia()
+            .Build();
+
+        Assert.NotNull(render);
+    }
+
+    [Fact]
+    public void WithHttpLoader_ConfiguresMaxResourceSize()
+    {
+        using var render = new FlexRenderBuilder()
+            .WithHttpLoader(configure: opts => opts.MaxResourceSize = 5 * 1024 * 1024)
             .WithSkia()
             .Build();
 
@@ -323,12 +324,9 @@ public sealed class ResourceLimitsIntegrationTests
         var limits = new ResourceLimits
         {
             MaxTemplateFileSize = 512 * 1024,
-            MaxPreprocessorNestingDepth = 10,
-            MaxPreprocessorInputSize = 256 * 1024,
             MaxTemplateNestingDepth = 20,
             MaxRenderDepth = 50,
-            MaxImageSize = 1 * 1024 * 1024,
-            HttpTimeout = TimeSpan.FromSeconds(15)
+            MaxImageSize = 1 * 1024 * 1024
         };
 
         var options = new FlexRenderOptions();
@@ -370,11 +368,8 @@ public sealed class ResourceLimitsIntegrationTests
 
         Assert.Equal(1024 * 1024, limits.MaxTemplateFileSize);
         Assert.Equal(10L * 1024 * 1024, limits.MaxDataFileSize);
-        Assert.Equal(50, limits.MaxPreprocessorNestingDepth);
-        Assert.Equal(1024 * 1024, limits.MaxPreprocessorInputSize);
         Assert.Equal(100, limits.MaxTemplateNestingDepth);
         Assert.Equal(100, limits.MaxRenderDepth);
         Assert.Equal(10 * 1024 * 1024, limits.MaxImageSize);
-        Assert.Equal(TimeSpan.FromSeconds(30), limits.HttpTimeout);
     }
 }

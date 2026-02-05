@@ -1,5 +1,6 @@
 # Dynamic Receipt Template
 # Demonstrates: type: each for dynamic item lists, type: if for conditional rendering
+# Operators used: truthy, equals, elseIf, greaterThan, hasItems, in
 # This template is caching-friendly - parse once, render with different data
 
 template:
@@ -44,40 +45,44 @@ layout:
         color: "#cccccc"
         thickness: 1
 
-      # Dynamic items list using type: each
-      - type: flex
-        gap: 6
-        children:
-          - type: each
-            array: items
-            as: item
+      # Dynamic items list - only show if hasItems
+      - type: if
+        condition: items
+        hasItems: true
+        then:
+          - type: flex
+            gap: 6
             children:
-              - type: flex
-                direction: row
-                justify: space-between
+              - type: each
+                array: items
+                as: item
                 children:
                   - type: flex
-                    direction: column
-                    gap: 2
-                    shrink: 1
+                    direction: row
+                    justify: space-between
                     children:
+                      - type: flex
+                        direction: column
+                        gap: 2
+                        shrink: 1
+                        children:
+                          - type: text
+                            content: "{{item.name}}"
+                            size: 1em
+                            color: "#333333"
+                          # Show quantity only if > 1
+                          - type: if
+                            condition: item.quantity
+                            then:
+                              - type: text
+                                content: "x{{item.quantity}}"
+                                size: 0.8em
+                                color: "#888888"
                       - type: text
-                        content: "{{item.name}}"
+                        content: "{{item.price}} $"
                         size: 1em
                         color: "#333333"
-                      # Show quantity only if > 1
-                      - type: if
-                        condition: item.quantity
-                        then:
-                          - type: text
-                            content: "x{{item.quantity}}"
-                            size: 0.8em
-                            color: "#888888"
-                  - type: text
-                    content: "{{item.price}} $"
-                    size: 1em
-                    color: "#333333"
-                    align: right
+                        align: right
 
       - type: separator
         style: solid
@@ -126,17 +131,32 @@ layout:
                 color: "#cccccc"
                 thickness: 1
 
-      # Total
+      # Total with "Large order" badge if total > 10
       - type: flex
         direction: row
         justify: space-between
         align: center
         children:
-          - type: text
-            content: "TOTAL"
-            font: bold
-            size: 1.2em
-            color: "#1a1a1a"
+          - type: flex
+            direction: row
+            gap: 8
+            align: center
+            children:
+              - type: text
+                content: "TOTAL"
+                font: bold
+                size: 1.2em
+                color: "#1a1a1a"
+              - type: if
+                condition: totalNumber
+                greaterThan: 10
+                then:
+                  - type: text
+                    content: "LARGE"
+                    size: 0.65em
+                    color: "#ffffff"
+                    background: "#3b82f6"
+                    padding: "2 6"
           - type: text
             content: "{{total}} $"
             font: bold

@@ -194,23 +194,4 @@ public class TemplateParserFileTests : IDisposable
             () => parser.ParseFile(filePath, CancellationToken.None));
         Assert.Contains("exceeds maximum", ex.Message.ToLowerInvariant());
     }
-
-    [Fact]
-    public void Parse_WithDataAndCustomPreprocessorInputSize_RejectsOversizedInput()
-    {
-        var limits = new ResourceLimits { MaxPreprocessorInputSize = 50 };
-        var parser = new TemplateParser(limits);
-
-        var yaml = """
-            canvas:
-              width: 300
-            layout:
-              - type: text
-                content: "Hello"
-            """ + new string('#', 100);
-        var data = new ObjectValue { ["x"] = "y" };
-
-        var ex = Assert.Throws<ArgumentException>(() => parser.Parse(yaml, data));
-        Assert.Contains("exceeds maximum", ex.Message.ToLowerInvariant());
-    }
 }

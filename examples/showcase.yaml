@@ -456,7 +456,7 @@ layout:
     thickness: 2
 
   # ============================================================
-  # SECTION 5: Data-driven section with {{#each}} loop
+  # SECTION 5: Data-driven section with type: each
   # Demonstrates: template iteration, dynamic content generation
   # ============================================================
   - type: flex
@@ -469,33 +469,35 @@ layout:
         size: 14px
         color: "#1a1a2e"
 
-      {{#each features}}
-      - type: flex
-        direction: row
-        background: "#f5f5fa"
-        padding: "10 16"
-        gap: 16
-        align: center
+      - type: each
+        array: features
+        as: feature
         children:
-          # Feature name badge
           - type: flex
-            width: 220
-            background: "#1a1a2e"
-            padding: "6 12"
+            direction: row
+            background: "#f5f5fa"
+            padding: "10 16"
+            gap: 16
+            align: center
             children:
-              - type: text
-                content: "{{name}}"
-                font: semibold
-                size: 11px
-                color: "#ffffff"
+              # Feature name badge
+              - type: flex
+                width: 220
+                background: "#1a1a2e"
+                padding: "6 12"
+                children:
+                  - type: text
+                    content: "{{feature.name}}"
+                    font: semibold
+                    size: 11px
+                    color: "#ffffff"
 
-          # Feature description
-          - type: text
-            content: "{{description}}"
-            size: 11px
-            color: "#555555"
-            wrap: true
-      {{/each}}
+              # Feature description
+              - type: text
+                content: "{{feature.description}}"
+                size: 11px
+                color: "#555555"
+                wrap: true
 
   # Dashed separator
   - type: separator
@@ -504,72 +506,73 @@ layout:
     thickness: 1
 
   # ============================================================
-  # SECTION 6: Conditional section with {{#if}}
+  # SECTION 6: Conditional section with type: if
   # Demonstrates: conditional rendering, QR code with expression
   #   data, barcode (code128), vertical separator, errorCorrection
   # ============================================================
-  {{#if showBarcodeSection}}
-  - type: flex
-    padding: "20 40"
-    gap: 16
-    children:
-      - type: text
-        content: "QR Code and Barcode (conditional section)"
-        font: bold
-        size: 14px
-        color: "#1a1a2e"
-
+  - type: if
+    condition: showBarcodeSection
+    then:
       - type: flex
-        direction: row
-        gap: 20
+        padding: "20 40"
+        gap: 16
         children:
-          # QR code with expression data
+          - type: text
+            content: "QR Code and Barcode (conditional section)"
+            font: bold
+            size: 14px
+            color: "#1a1a2e"
+
           - type: flex
-            width: 200
-            gap: 6
-            align: center
+            direction: row
+            gap: 20
             children:
-              - type: qr
-                data: "{{websiteUrl}}"
-                size: 140
-                errorCorrection: H
-                foreground: "#1a1a2e"
-
-              - type: text
-                content: "QR: {{websiteUrl}}"
-                size: 8px
-                color: "#888888"
+              # QR code with expression data
+              - type: flex
+                width: 200
+                gap: 6
                 align: center
-                wrap: true
+                children:
+                  - type: qr
+                    data: "{{websiteUrl}}"
+                    size: 140
+                    errorCorrection: H
+                    foreground: "#1a1a2e"
 
-          # Vertical separator between QR and barcode
-          - type: separator
-            orientation: vertical
-            style: dotted
-            color: "#cccccc"
-            thickness: 1
-            height: 180px
+                  - type: text
+                    content: "QR: {{websiteUrl}}"
+                    size: 8px
+                    color: "#888888"
+                    align: center
+                    wrap: true
 
-          # Barcode section
-          - type: flex
-            width: 480
-            gap: 8
-            align: center
-            justify: center
-            children:
-              - type: barcode
-                data: "SKIA-2026-SHOWCASE"
-                format: code128
-                width: 400
-                height: 60
-                showText: true
+              # Vertical separator between QR and barcode
+              - type: separator
+                orientation: vertical
+                style: dotted
+                color: "#cccccc"
+                thickness: 1
+                height: 180px
 
-              - type: text
-                content: "Code128 barcode with showText enabled"
-                size: 9px
-                color: "#888888"
+              # Barcode section
+              - type: flex
+                width: 480
+                gap: 8
                 align: center
-  {{/if}}
+                justify: center
+                children:
+                  - type: barcode
+                    data: "SKIA-2026-SHOWCASE"
+                    format: code128
+                    width: 400
+                    height: 60
+                    showText: true
+
+                  - type: text
+                    content: "Code128 barcode with showText enabled"
+                    size: 9px
+                    color: "#888888"
+                    align: center
 
   # Solid separator
   - type: separator

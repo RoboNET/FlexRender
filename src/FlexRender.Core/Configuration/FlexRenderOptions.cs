@@ -42,20 +42,6 @@ public sealed class FlexRenderOptions
     public float BaseFontSize { get; set; } = 12f;
 
     /// <summary>
-    /// Gets or sets the timeout duration for HTTP requests when loading remote resources.
-    /// </summary>
-    /// <value>The default value is 30 seconds.</value>
-    /// <remarks>
-    /// This property delegates to <see cref="Limits"/>.<see cref="ResourceLimits.HttpTimeout"/>.
-    /// Both this property and <c>Limits.HttpTimeout</c> reflect the same value.
-    /// </remarks>
-    public TimeSpan HttpTimeout
-    {
-        get => Limits.HttpTimeout;
-        set => Limits.HttpTimeout = value;
-    }
-
-    /// <summary>
     /// Gets or sets the maximum allowed image size in bytes.
     /// </summary>
     /// <remarks>

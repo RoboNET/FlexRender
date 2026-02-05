@@ -25,9 +25,15 @@ public sealed class IfElement : TemplateElement
 
     /// <summary>
     /// Gets or sets the value to compare against.
-    /// Used when Operator is Equals or NotEquals.
+    /// Supports different types based on the operator:
+    /// - Equals/NotEquals: string, double, bool, or null
+    /// - In/NotIn: IReadOnlyList&lt;string&gt;
+    /// - Contains: string
+    /// - GreaterThan/GreaterThanOrEqual/LessThan/LessThanOrEqual: double
+    /// - HasItems: bool
+    /// - CountEquals/CountGreaterThan: int
     /// </summary>
-    public string? CompareValue { get; set; }
+    public object? CompareValue { get; set; }
 
     /// <summary>
     /// Gets the elements to render when the condition is true.

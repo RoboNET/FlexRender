@@ -35,7 +35,7 @@ public sealed class SkiaRender : IFlexRender
 {
     private readonly SkiaRenderer _renderer;
     private readonly IReadOnlyList<IResourceLoader> _resourceLoaders;
-    private bool _disposed;
+    private int _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SkiaRender"/> class.
@@ -90,7 +90,7 @@ public sealed class SkiaRender : IFlexRender
         ImageFormat format = ImageFormat.Png,
         CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
         ArgumentNullException.ThrowIfNull(layoutTemplate);
 
         var effectiveData = data ?? new ObjectValue();
@@ -118,7 +118,7 @@ public sealed class SkiaRender : IFlexRender
         ImageFormat format = ImageFormat.Png,
         CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(layoutTemplate);
 
@@ -168,7 +168,7 @@ public sealed class SkiaRender : IFlexRender
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
         {
             return;
         }
@@ -182,7 +182,5 @@ public sealed class SkiaRender : IFlexRender
                 disposable.Dispose();
             }
         }
-
-        _disposed = true;
     }
 }

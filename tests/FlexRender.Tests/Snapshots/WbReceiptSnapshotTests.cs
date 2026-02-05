@@ -7,8 +7,8 @@ namespace FlexRender.Tests.Snapshots;
 
 /// <summary>
 /// Snapshot tests for the WB Bank ATM receipt template.
-/// Loads the receipt template from YAML, preprocesses it with JSON data,
-/// renders the result, and compares against a golden image.
+/// Loads the receipt template from YAML, renders the result with JSON data,
+/// and compares against a golden image.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -17,7 +17,7 @@ namespace FlexRender.Tests.Snapshots;
 /// <item>Custom fonts loaded from relative file paths</item>
 /// <item>Images loaded from relative file paths</item>
 /// <item>Template variable substitution (<c>{{operationTitle}}</c>, <c>{{amount}}</c>, etc.)</item>
-/// <item><c>{{#each}}</c> preprocessor blocks for dynamic detail rows</item>
+/// <item>AST-level control flow (<c>type: each</c>, <c>type: if</c>) for dynamic content</item>
 /// <item>QR code generation from template data</item>
 /// <item>Complex nested flex layouts</item>
 /// </list>
@@ -51,7 +51,7 @@ public sealed class WbReceiptSnapshotTests : SnapshotTestBase
         var json = File.ReadAllText(jsonPath);
 
         var data = ConvertJsonToObjectValue(json);
-        var template = Parser.Parse(yaml, data);
+        var template = Parser.Parse(yaml);
 
         var previousDirectory = Directory.GetCurrentDirectory();
         try

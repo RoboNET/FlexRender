@@ -15,6 +15,9 @@ public static class FlexRenderBuilderExtensions
     /// An optional <see cref="HttpClient"/> instance to use for HTTP requests.
     /// If <c>null</c>, a new <see cref="HttpClient"/> will be created and managed internally.
     /// </param>
+    /// <param name="configure">
+    /// An optional action to configure <see cref="HttpResourceLoaderOptions"/> including timeout and max resource size.
+    /// </param>
     /// <returns>The builder instance for method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
     /// <remarks>
@@ -24,14 +27,21 @@ public static class FlexRenderBuilderExtensions
     /// </para>
     /// <para>
     /// When no <see cref="HttpClient"/> is provided, an internal client is created with the
-    /// <see cref="ResourceLimits.HttpTimeout"/> from the builder's options.
+    /// configured timeout from <see cref="HttpResourceLoaderOptions"/>.
     /// </para>
     /// </remarks>
     /// <example>
-    /// Using default HttpClient:
+    /// Using default HttpClient with default options:
     /// <code>
     /// var render = new FlexRenderBuilder()
     ///     .WithHttpLoader()
+    ///     .WithSkia()
+    ///     .Build();
+    /// </code>
+    /// Using default HttpClient with custom timeout:
+    /// <code>
+    /// var render = new FlexRenderBuilder()
+    ///     .WithHttpLoader(configure: opts => opts.Timeout = TimeSpan.FromMinutes(1))
     ///     .WithSkia()
     ///     .Build();
     /// </code>
@@ -46,23 +56,27 @@ public static class FlexRenderBuilderExtensions
     /// </example>
     public static FlexRenderBuilder WithHttpLoader(
         this FlexRenderBuilder builder,
-        HttpClient? httpClient = null)
+        HttpClient? httpClient = null,
+        Action<HttpResourceLoaderOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var options = new HttpResourceLoaderOptions();
+        configure?.Invoke(options);
+
         if (httpClient is not null)
         {
-            builder.ResourceLoaders.Add(new HttpResourceLoader(httpClient, builder.Options));
+            builder.ResourceLoaders.Add(new HttpResourceLoader(httpClient, options));
         }
         else
         {
             var client = new HttpClient
             {
-                Timeout = builder.Options.Limits.HttpTimeout
+                Timeout = options.Timeout
             };
             try
             {
-                builder.ResourceLoaders.Add(new HttpResourceLoader(client, builder.Options, ownsHttpClient: true));
+                builder.ResourceLoaders.Add(new HttpResourceLoader(client, options, ownsHttpClient: true));
             }
             catch
             {

@@ -2,6 +2,10 @@
 
 Read [AGENTS.md](./AGENTS.md) for project overview, architecture, build commands, conventions, and resource limits.
 
+## Git Safety
+
+- **NEVER use `git reset --hard`** — Only use `git reset --soft` to preserve changes. Hard reset destroys work.
+
 ## Agent Workflow
 
 Follow the global workflow from `~/.claude/CLAUDE.md`:

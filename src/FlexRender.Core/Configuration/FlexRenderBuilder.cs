@@ -227,7 +227,21 @@ public sealed class FlexRenderBuilder
         }
 
         _built = true;
-        return _rendererFactory(this);
+
+        try
+        {
+            return _rendererFactory(this);
+        }
+        catch
+        {
+            // Dispose all resource loaders if renderer factory throws
+            foreach (var loader in ResourceLoaders)
+            {
+                (loader as IDisposable)?.Dispose();
+            }
+
+            throw;
+        }
     }
 
     /// <summary>
