@@ -1,5 +1,6 @@
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
+using FlexRender.QrCode.Providers;
 using SkiaSharp;
 using Xunit;
 

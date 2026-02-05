@@ -37,6 +37,9 @@ All examples are in the [`examples/`](examples/) directory. Render them with the
 flexrender render examples/receipt.yaml -d examples/receipt-data.json -o examples/output/receipt.png
 flexrender render examples/ticket.yaml -d examples/ticket-data.json -o examples/output/ticket.png
 flexrender render examples/receipt-dynamic.yaml -d examples/receipt-dynamic-data.json -o examples/output/receipt-dynamic.png
+
+# Watch mode - auto re-render on file changes
+flexrender watch examples/receipt.yaml -d examples/receipt-data.json -o preview.png
 ```
 
 The `receipt-dynamic.yaml` demonstrates AST-level control flow with `type: each` for item lists and `type: if` for conditional sections.
@@ -85,7 +88,7 @@ dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
 ### CLI tool
 
 ```bash
-dotnet tool install -g FlexRender.Cli
+dotnet tool install -g flexrender-cli
 ```
 
 ## Quick Start

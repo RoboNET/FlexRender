@@ -85,7 +85,7 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia   (YamlDotNet)  (SkiaSharp)
 | FlexRender.Barcode | Skia | (none) |
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
-| FlexRender.Cli | All | System.CommandLine |
+| flexrender-cli | All | System.CommandLine |
 
 ## Rendering Pipeline
 
@@ -701,7 +701,7 @@ var render = new FlexRenderBuilder()
 ### Install as dotnet tool
 
 ```bash
-dotnet tool install -g FlexRender.Cli
+dotnet tool install -g flexrender-cli
 ```
 
 After installation the `flexrender` command is available globally:
@@ -740,7 +740,7 @@ Working directory matters: CLI resolves all relative paths (template, data, font
 
 | Channel | Install | Requires .NET? | Use case |
 |---------|---------|---------------|----------|
-| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| dotnet tool | `dotnet tool install -g flexrender-cli` | Yes | .NET developers |
 | GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
 | Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
 

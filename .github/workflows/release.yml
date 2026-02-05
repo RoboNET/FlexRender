@@ -56,6 +56,7 @@ jobs:
           for project in \
             src/FlexRender.Core/FlexRender.Core.csproj \
             src/FlexRender.Yaml/FlexRender.Yaml.csproj \
+            src/FlexRender.Http/FlexRender.Http.csproj \
             src/FlexRender.Skia/FlexRender.Skia.csproj \
             src/FlexRender.QrCode/FlexRender.QrCode.csproj \
             src/FlexRender.Barcode/FlexRender.Barcode.csproj \
