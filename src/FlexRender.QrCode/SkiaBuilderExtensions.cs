@@ -1,4 +1,5 @@
 using FlexRender.Providers;
+using FlexRender.QrCode.Providers;
 using FlexRender.Skia;
 
 namespace FlexRender.QrCode;

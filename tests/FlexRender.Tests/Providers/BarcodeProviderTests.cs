@@ -1,3 +1,4 @@
+using FlexRender.Barcode.Providers;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
 using SkiaSharp;

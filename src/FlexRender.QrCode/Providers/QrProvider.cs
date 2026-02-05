@@ -1,9 +1,10 @@
-using QRCoder;
 using FlexRender.Parsing.Ast;
+using FlexRender.Providers;
 using FlexRender.Rendering;
+using QRCoder;
 using SkiaSharp;
 
-namespace FlexRender.Providers;
+namespace FlexRender.QrCode.Providers;
 
 /// <summary>
 /// Provides QR code generation using SkiaSharp.QrCode.

@@ -1,9 +1,10 @@
 using System.Text;
 using FlexRender.Parsing.Ast;
+using FlexRender.Providers;
 using FlexRender.Rendering;
 using SkiaSharp;
 
-namespace FlexRender.Providers;
+namespace FlexRender.Barcode.Providers;
 
 /// <summary>
 /// Provides barcode generation using pure SkiaSharp drawing.

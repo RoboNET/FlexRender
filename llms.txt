@@ -232,7 +232,7 @@ var render = new FlexRenderBuilder()
 ### Install as dotnet tool
 
 ```bash
-dotnet tool install -g FlexRender.Cli
+dotnet tool install -g flexrender-cli
 ```
 
 After installation the `flexrender` command is available globally:
@@ -259,7 +259,7 @@ Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`.
 
 | Channel | Install | Requires .NET? | Use case |
 |---------|---------|---------------|----------|
-| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| dotnet tool | `dotnet tool install -g flexrender-cli` | Yes | .NET developers |
 | GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
 | Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
 
@@ -306,4 +306,4 @@ Note: The `--scale` option uses invariant culture -- always use `.` as the decim
 | FlexRender.Barcode | Skia | (none) |
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
-| FlexRender.Cli | All | System.CommandLine |
+| flexrender-cli | All | System.CommandLine |

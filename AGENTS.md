@@ -233,7 +233,7 @@ Conventional Commits: `type(scope): description`
 ### Install as dotnet tool
 
 ```bash
-dotnet tool install -g FlexRender.Cli
+dotnet tool install -g flexrender-cli
 ```
 
 After installation the `flexrender` command is available globally:
@@ -260,7 +260,7 @@ Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`.
 
 | Channel | Install | Requires .NET? | Use case |
 |---------|---------|---------------|----------|
-| dotnet tool | `dotnet tool install -g FlexRender.Cli` | Yes | .NET developers |
+| dotnet tool | `dotnet tool install -g flexrender-cli` | Yes | .NET developers |
 | GitHub Release | Download binary from Releases | No | Everyone else (CI, Docker, non-.NET) |
 | Build from source | `dotnet publish /p:PublishAot=true -r <RID>` | Build-time only | Custom builds |
 
