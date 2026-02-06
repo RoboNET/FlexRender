@@ -66,6 +66,8 @@ Eight element types, each a sealed class extending `TemplateElement`:
 
 All elements share common properties from `TemplateElement`: padding, margin, background, rotate, display (flex/none), position, top, right, bottom, left, aspectRatio, minWidth, maxWidth, minHeight, maxHeight.
 
+Element-level `rotate` supports named values (`none`, `left`, `right`, `flip`) and arbitrary degrees (e.g., `"30"`). Rotation is rendered for: text, image, qr, barcode. Canvas-level `rotate` applies post-render rotation to the entire output.
+
 All elements (except flex containers) have flex-item properties: grow, shrink, basis, order, alignSelf, width, height.
 
 ### Positioning

@@ -145,10 +145,10 @@ dotnet run --project ../../src/FlexRender.Cli --no-build --framework net8.0 -- \
 
 4. **Update Wiki Documentation**
 
-   Add reference in `docs/wiki/Visual-{Category}.md`:
+   Add reference in `docs/wiki/Visual-Reference.md` (single consolidated page):
 
    ```markdown
-   | `your-feature` | Description | ![your-feature](../../examples/visual-docs/output/category-your-feature.png) |
+   | `your-feature` | Description | ![your-feature](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/category-your-feature.png) |
    ```
 
 5. **Verify**
@@ -216,7 +216,7 @@ After making changes to visual docs:
 - **Total YAML templates:** 51
 - **Total PNG outputs:** 51 (1:1 mapping)
 - **Categories:** 11 (align, barcode, canvas, direction, image, justify, position, qr, separator, text, wrap)
-- **Wiki pages:** 12 (includes Visual-Reference.md)
+- **Wiki pages:** 1 (Visual-Reference.md — consolidated)
 
 Last updated: February 2026
 
