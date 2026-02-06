@@ -1,0 +1,86 @@
+template:
+  name: "position-inset-sizing"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 16
+    children:
+      # Title
+      - type: text
+        content: "Inset-Based Sizing"
+        font: bold
+        size: 16px
+        color: "#333333"
+
+      - type: text
+        content: "Absolute elements sized by opposing insets (no explicit width/height)"
+        size: 12px
+        color: "#95a5a6"
+
+      # Example 1: All four insets
+      - type: text
+        content: "left: 20, right: 20, top: 20, bottom: 20"
+        size: 11px
+        color: "#95a5a6"
+
+      - type: flex
+        background: "#f5f5f5"
+        height: "300"
+        children:
+          # Absolute element stretched by all four insets
+          - type: flex
+            position: absolute
+            top: "20"
+            right: "20"
+            bottom: "20"
+            left: "20"
+            background: "#3498db"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Stretched by insets"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center
+
+      # Example 2: Horizontal insets only
+      - type: text
+        content: "left: 20, right: 20 (horizontal stretch only)"
+        size: 11px
+        color: "#95a5a6"
+
+      - type: flex
+        background: "#f5f5f5"
+        height: "120"
+        children:
+          # Absolute element stretched horizontally only
+          - type: flex
+            position: absolute
+            top: "20"
+            left: "20"
+            right: "20"
+            background: "#3498db"
+            padding: "12"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Horizontal stretch"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center

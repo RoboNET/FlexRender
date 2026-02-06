@@ -18,6 +18,7 @@ These pages demonstrate the core flexbox layout properties with visual examples:
 - [[Visual-Align]] - `align` property alignment (5 values: stretch, start, center, end, baseline)
 - [[Visual-Direction]] - `direction` property main axis control (4 values: row, column, row-reverse, column-reverse)
 - [[Visual-Wrap]] - `wrap` property wrapping behavior (3 values: nowrap, wrap, wrap-reverse)
+- [[Visual-Position]] - `position` property (3 values: static, relative, absolute) with inset placement and practical patterns
 
 ### Element Types
 

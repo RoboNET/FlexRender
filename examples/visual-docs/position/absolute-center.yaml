@@ -1,0 +1,75 @@
+template:
+  name: "position-absolute-center"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 16
+    children:
+      # Title
+      - type: text
+        content: "position: absolute (centered)"
+        font: bold
+        size: 16px
+        color: "#333333"
+
+      - type: text
+        content: "Box centered via equal insets on all sides"
+        size: 12px
+        color: "#95a5a6"
+
+      # Container with centered absolute element
+      - type: flex
+        direction: column
+        background: "#f5f5f5"
+        padding: "20"
+        height: "200"
+        gap: 12
+        children:
+          # Normal flow content
+          - type: text
+            content: "Background content"
+            size: 13px
+            color: "#95a5a6"
+
+          - type: flex
+            width: "200"
+            height: "30"
+            background: "#95a5a6"
+            padding: "4"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Normal flow"
+                color: "#ffffff"
+                size: 12px
+
+          # Centered absolute box using equal insets
+          - type: flex
+            position: absolute
+            top: "30"
+            bottom: "30"
+            left: "50"
+            right: "50"
+            background: "#3498db"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Centered"
+                color: "#ffffff"
+                font: bold
+                size: 16px
+                align: center

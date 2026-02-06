@@ -403,30 +403,59 @@ public sealed class TemplateExpander
         return -1;
     }
 
+    /// <summary>
+    /// Copies all base flex-item and positioning properties from source to target element.
+    /// This avoids duplication across all Clone methods.
+    /// Properties that require per-element transformation (Background via SubstituteVariables,
+    /// Rotate, Padding, Margin) are intentionally excluded and must be set in each caller.
+    /// </summary>
+    /// <param name="source">The source element to copy properties from.</param>
+    /// <param name="target">The target element to copy properties to.</param>
+    private static void CopyBaseProperties(TemplateElement source, TemplateElement target)
+    {
+        // Flex-item properties
+        target.Grow = source.Grow;
+        target.Shrink = source.Shrink;
+        target.Basis = source.Basis;
+        target.AlignSelf = source.AlignSelf;
+        target.Order = source.Order;
+        target.Width = source.Width;
+        target.Height = source.Height;
+        target.MinWidth = source.MinWidth;
+        target.MaxWidth = source.MaxWidth;
+        target.MinHeight = source.MinHeight;
+        target.MaxHeight = source.MaxHeight;
+
+        // Position properties
+        target.Position = source.Position;
+        target.Top = source.Top;
+        target.Right = source.Right;
+        target.Bottom = source.Bottom;
+        target.Left = source.Left;
+
+        // Other base properties
+        target.Display = source.Display;
+        target.AspectRatio = source.AspectRatio;
+    }
+
     private FlexElement ExpandFlex(FlexElement flex, TemplateContext context, int depth)
     {
         var expandedChildren = ExpandElements(flex.Children, context, depth + 1);
 
-        return new FlexElement
+        var clone = new FlexElement
         {
-            // Container properties
+            // Flex container-specific properties
             Direction = flex.Direction,
             Wrap = flex.Wrap,
             Gap = flex.Gap,
             Justify = flex.Justify,
             Align = flex.Align,
             AlignContent = flex.AlignContent,
+            Overflow = flex.Overflow,
+            RowGap = flex.RowGap,
+            ColumnGap = flex.ColumnGap,
 
-            // Item properties
-            Grow = flex.Grow,
-            Shrink = flex.Shrink,
-            Basis = flex.Basis,
-            AlignSelf = flex.AlignSelf,
-            Order = flex.Order,
-            Width = flex.Width,
-            Height = flex.Height,
-
-            // Base element properties (from TemplateElement)
+            // Base element properties requiring per-element handling
             Rotate = flex.Rotate,
             Background = SubstituteVariables(flex.Background, context),
             Padding = flex.Padding,
@@ -435,6 +464,9 @@ public sealed class TemplateExpander
             // Expanded children
             Children = expandedChildren
         };
+
+        CopyBaseProperties(flex, clone);
+        return clone;
     }
 
     /// <summary>
@@ -524,7 +556,7 @@ public sealed class TemplateExpander
 
     private static TextElement CloneTextElement(TextElement text, TemplateContext context)
     {
-        return new TextElement
+        var clone = new TextElement
         {
             Content = SubstituteVariables(text.Content, context),
             Font = text.Font,
@@ -538,21 +570,16 @@ public sealed class TemplateExpander
             Rotate = text.Rotate,
             Background = SubstituteVariables(text.Background, context),
             Padding = text.Padding,
-            Margin = text.Margin,
-            // Flex item properties
-            Grow = text.Grow,
-            Shrink = text.Shrink,
-            Basis = text.Basis,
-            AlignSelf = text.AlignSelf,
-            Order = text.Order,
-            Width = text.Width,
-            Height = text.Height
+            Margin = text.Margin
         };
+
+        CopyBaseProperties(text, clone);
+        return clone;
     }
 
     private static ImageElement CloneImageElement(ImageElement image, TemplateContext context)
     {
-        return new ImageElement
+        var clone = new ImageElement
         {
             Src = SubstituteVariables(image.Src, context),
             ImageWidth = image.ImageWidth,
@@ -561,21 +588,16 @@ public sealed class TemplateExpander
             Rotate = image.Rotate,
             Background = SubstituteVariables(image.Background, context),
             Padding = image.Padding,
-            Margin = image.Margin,
-            // Flex item properties
-            Grow = image.Grow,
-            Shrink = image.Shrink,
-            Basis = image.Basis,
-            AlignSelf = image.AlignSelf,
-            Order = image.Order,
-            Width = image.Width,
-            Height = image.Height
+            Margin = image.Margin
         };
+
+        CopyBaseProperties(image, clone);
+        return clone;
     }
 
     private static QrElement CloneQrElement(QrElement qr, TemplateContext context)
     {
-        return new QrElement
+        var clone = new QrElement
         {
             Data = SubstituteVariables(qr.Data, context),
             Size = qr.Size,
@@ -584,21 +606,16 @@ public sealed class TemplateExpander
             Rotate = qr.Rotate,
             Background = SubstituteVariables(qr.Background, context),
             Padding = qr.Padding,
-            Margin = qr.Margin,
-            // Flex item properties
-            Grow = qr.Grow,
-            Shrink = qr.Shrink,
-            Basis = qr.Basis,
-            AlignSelf = qr.AlignSelf,
-            Order = qr.Order,
-            Width = qr.Width,
-            Height = qr.Height
+            Margin = qr.Margin
         };
+
+        CopyBaseProperties(qr, clone);
+        return clone;
     }
 
     private static BarcodeElement CloneBarcodeElement(BarcodeElement barcode, TemplateContext context)
     {
-        return new BarcodeElement
+        var clone = new BarcodeElement
         {
             Data = SubstituteVariables(barcode.Data, context),
             Format = barcode.Format,
@@ -609,21 +626,16 @@ public sealed class TemplateExpander
             Rotate = barcode.Rotate,
             Background = SubstituteVariables(barcode.Background, context),
             Padding = barcode.Padding,
-            Margin = barcode.Margin,
-            // Flex item properties
-            Grow = barcode.Grow,
-            Shrink = barcode.Shrink,
-            Basis = barcode.Basis,
-            AlignSelf = barcode.AlignSelf,
-            Order = barcode.Order,
-            Width = barcode.Width,
-            Height = barcode.Height
+            Margin = barcode.Margin
         };
+
+        CopyBaseProperties(barcode, clone);
+        return clone;
     }
 
     private static SeparatorElement CloneSeparatorElement(SeparatorElement sep, TemplateContext context)
     {
-        return new SeparatorElement
+        var clone = new SeparatorElement
         {
             Orientation = sep.Orientation,
             Style = sep.Style,
@@ -632,15 +644,10 @@ public sealed class TemplateExpander
             Rotate = sep.Rotate,
             Background = SubstituteVariables(sep.Background, context),
             Padding = sep.Padding,
-            Margin = sep.Margin,
-            // Flex item properties
-            Grow = sep.Grow,
-            Shrink = sep.Shrink,
-            Basis = sep.Basis,
-            AlignSelf = sep.AlignSelf,
-            Order = sep.Order,
-            Width = sep.Width,
-            Height = sep.Height
+            Margin = sep.Margin
         };
+
+        CopyBaseProperties(sep, clone);
+        return clone;
     }
 }

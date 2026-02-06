@@ -1,0 +1,65 @@
+template:
+  name: "position-overlay"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 16
+    children:
+      # Title
+      - type: text
+        content: "Text Overlay Pattern"
+        font: bold
+        size: 16px
+        color: "#333333"
+
+      - type: text
+        content: "Dark overlay bar with text at the bottom of an image"
+        size: 12px
+        color: "#95a5a6"
+
+      # Image card with text overlay
+      - type: flex
+        height: "180"
+        overflow: hidden
+        children:
+          # Background image
+          - type: image
+            src: "test-pattern.png"
+            width: "100%"
+            height: "180"
+            fit: cover
+
+          # Dark overlay bar at bottom
+          - type: flex
+            position: absolute
+            bottom: "0"
+            left: "0"
+            right: "0"
+            background: "#333333"
+            padding: "12 16"
+            gap: 4
+            children:
+              # Article title
+              - type: text
+                content: "Article Title"
+                font: bold
+                size: 16px
+                color: "#ffffff"
+
+              # Subtitle
+              - type: text
+                content: "A brief description of the article content"
+                size: 12px
+                color: "#cccccc"

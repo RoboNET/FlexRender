@@ -131,37 +131,37 @@ layout:
                 color: "#cccccc"
                 thickness: 1
 
-      # Total with star badge (if total > 10)
+      # Total with star badge overlay (if total > 10)
       - type: flex
         direction: row
         justify: space-between
         align: center
         children:
-          - type: flex
-            direction: row
-            gap: 4
-            align: center
-            children:
-              - type: text
-                content: "TOTAL"
-                font: bold
-                size: 1.2em
-                color: "#1a1a1a"
-              - type: if
-                condition: totalNumber
-                greaterThan: 10
-                then:
-                  - type: image
-                    src: "assets/placeholder/star-badge.png"
-                    width: "16"
-                    height: "16"
-                    fit: contain
+          - type: text
+            content: "TOTAL"
+            font: bold
+            size: 1.2em
+            color: "#1a1a1a"
           - type: text
             content: "{{total}} $"
             font: bold
             size: 1.2em
             color: "#1a1a1a"
             align: right
+          # Star badge as absolute overlay on TOTAL text
+          - type: if
+            condition: totalNumber
+            greaterThan: 10
+            then:
+              - type: image
+                position: absolute
+                top: "-8"
+                left: "36"
+                rotate: 30
+                src: "assets/placeholder/star-badge.png"
+                width: "24"
+                height: "24"
+                fit: contain
 
       - type: separator
         style: dotted

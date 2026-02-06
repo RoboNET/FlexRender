@@ -1,0 +1,105 @@
+template:
+  name: "position-flow-exclusion"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 16
+    children:
+      # Title
+      - type: text
+        content: "Flow Exclusion"
+        font: bold
+        size: 16px
+        color: "#333333"
+
+      - type: text
+        content: "Absolute elements are excluded from flex flow"
+        size: 12px
+        color: "#95a5a6"
+
+      - type: text
+        content: "A, C, D stack normally -- B floats in top-right corner"
+        size: 11px
+        color: "#95a5a6"
+
+      # Container with mixed static and absolute children
+      - type: flex
+        direction: column
+        background: "#f5f5f5"
+        padding: "20"
+        gap: 8
+        height: "260"
+        children:
+          # Box A - normal flow
+          - type: flex
+            height: "50"
+            background: "#2ecc71"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "A (static)"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center
+
+          # Box B - absolute, floats in top-right corner
+          - type: flex
+            position: absolute
+            top: "10"
+            right: "10"
+            background: "#e74c3c"
+            padding: "8 16"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "B (absolute)"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center
+
+          # Box C - normal flow
+          - type: flex
+            height: "50"
+            background: "#3498db"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "C (static)"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center
+
+          # Box D - normal flow
+          - type: flex
+            height: "50"
+            background: "#f39c12"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "D (static)"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center

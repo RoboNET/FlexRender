@@ -1,0 +1,60 @@
+template:
+  name: "position-floating-label"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 16
+    children:
+      # Title
+      - type: text
+        content: "Floating Label Pattern"
+        font: bold
+        size: 16px
+        color: "#333333"
+
+      - type: text
+        content: "Small label floats above the input border using negative top offset"
+        size: 12px
+        color: "#95a5a6"
+
+      # Spacer to give room for the floating label above
+      - type: flex
+        height: "16"
+
+      # Input field container
+      - type: flex
+        background: "#f5f5f5"
+        border: "1"
+        borderColor: "#cccccc"
+        padding: "16 12"
+        children:
+          # Input value text
+          - type: text
+            content: "john@example.com"
+            size: 14px
+            color: "#333333"
+
+          # Floating label
+          - type: flex
+            position: absolute
+            top: "-8"
+            left: "12"
+            background: "#ffffff"
+            padding: "0 4"
+            children:
+              - type: text
+                content: "Email"
+                size: 11px
+                color: "#3498db"

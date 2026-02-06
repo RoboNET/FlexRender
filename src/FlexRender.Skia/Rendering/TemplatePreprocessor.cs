@@ -112,6 +112,41 @@ internal sealed class TemplatePreprocessor
     }
 
     /// <summary>
+    /// Copies all base flex-item and positioning properties from source to target element.
+    /// This avoids duplication across all element processing branches.
+    /// Properties that require per-element transformation (Background via ProcessExpression,
+    /// Rotate, Padding, Margin) are intentionally excluded and must be set in each caller.
+    /// </summary>
+    /// <param name="source">The source element to copy properties from.</param>
+    /// <param name="target">The target element to copy properties to.</param>
+    private static void CopyBaseProperties(TemplateElement source, TemplateElement target)
+    {
+        // Flex-item properties
+        target.Grow = source.Grow;
+        target.Shrink = source.Shrink;
+        target.Basis = source.Basis;
+        target.AlignSelf = source.AlignSelf;
+        target.Order = source.Order;
+        target.Width = source.Width;
+        target.Height = source.Height;
+        target.MinWidth = source.MinWidth;
+        target.MaxWidth = source.MaxWidth;
+        target.MinHeight = source.MinHeight;
+        target.MaxHeight = source.MaxHeight;
+
+        // Position properties
+        target.Position = source.Position;
+        target.Top = source.Top;
+        target.Right = source.Right;
+        target.Bottom = source.Bottom;
+        target.Left = source.Left;
+
+        // Other base properties
+        target.Display = source.Display;
+        target.AspectRatio = source.AspectRatio;
+    }
+
+    /// <summary>
     /// Processes a single template element by resolving expressions in its properties.
     /// </summary>
     /// <param name="element">The element to process.</param>
@@ -121,151 +156,145 @@ internal sealed class TemplatePreprocessor
     {
         return element switch
         {
-            TextElement text => new TextElement
-            {
-                Content = ProcessExpression(text.Content, data),
-                Font = ProcessExpression(text.Font, data),
-                Size = ProcessExpression(text.Size, data),
-                Color = ProcessExpression(text.Color, data),
-                Align = text.Align,
-                Wrap = text.Wrap,
-                Overflow = text.Overflow,
-                MaxLines = text.MaxLines,
-                Rotate = text.Rotate,
-                Width = text.Width,
-                Height = text.Height,
-                Grow = text.Grow,
-                Background = ProcessExpression(text.Background, data),
-                Padding = text.Padding,
-                Margin = text.Margin,
-                LineHeight = text.LineHeight,
-                Shrink = text.Shrink,
-                Basis = text.Basis,
-                AlignSelf = text.AlignSelf,
-                Order = text.Order,
-                Display = text.Display,
-                Position = text.Position,
-                Top = text.Top,
-                Right = text.Right,
-                Bottom = text.Bottom,
-                Left = text.Left,
-                AspectRatio = text.AspectRatio
-            },
-
-            QrElement qr => new QrElement
-            {
-                Data = ProcessExpression(qr.Data, data),
-                Size = qr.Size,
-                ErrorCorrection = qr.ErrorCorrection,
-                Foreground = ProcessExpression(qr.Foreground, data),
-                Rotate = qr.Rotate,
-                Width = qr.Width,
-                Height = qr.Height,
-                Grow = qr.Grow,
-                Background = ProcessExpression(qr.Background, data),
-                Padding = qr.Padding,
-                Margin = qr.Margin,
-                Shrink = qr.Shrink,
-                Basis = qr.Basis,
-                AlignSelf = qr.AlignSelf,
-                Order = qr.Order,
-                Display = qr.Display,
-                Position = qr.Position,
-                Top = qr.Top,
-                Right = qr.Right,
-                Bottom = qr.Bottom,
-                Left = qr.Left,
-                AspectRatio = qr.AspectRatio
-            },
-
-            BarcodeElement barcode => new BarcodeElement
-            {
-                Data = ProcessExpression(barcode.Data, data),
-                Format = barcode.Format,
-                BarcodeWidth = barcode.BarcodeWidth,
-                BarcodeHeight = barcode.BarcodeHeight,
-                ShowText = barcode.ShowText,
-                Foreground = ProcessExpression(barcode.Foreground, data),
-                Rotate = barcode.Rotate,
-                Width = barcode.Width,
-                Height = barcode.Height,
-                Grow = barcode.Grow,
-                Background = ProcessExpression(barcode.Background, data),
-                Padding = barcode.Padding,
-                Margin = barcode.Margin,
-                Shrink = barcode.Shrink,
-                Basis = barcode.Basis,
-                AlignSelf = barcode.AlignSelf,
-                Order = barcode.Order,
-                Display = barcode.Display,
-                Position = barcode.Position,
-                Top = barcode.Top,
-                Right = barcode.Right,
-                Bottom = barcode.Bottom,
-                Left = barcode.Left,
-                AspectRatio = barcode.AspectRatio
-            },
-
-            ImageElement image => new ImageElement
-            {
-                Src = ProcessExpression(image.Src, data),
-                ImageWidth = image.ImageWidth,
-                ImageHeight = image.ImageHeight,
-                Fit = image.Fit,
-                Rotate = image.Rotate,
-                Width = image.Width,
-                Height = image.Height,
-                Grow = image.Grow,
-                Background = ProcessExpression(image.Background, data),
-                Padding = image.Padding,
-                Margin = image.Margin,
-                Shrink = image.Shrink,
-                Basis = image.Basis,
-                AlignSelf = image.AlignSelf,
-                Order = image.Order,
-                Display = image.Display,
-                Position = image.Position,
-                Top = image.Top,
-                Right = image.Right,
-                Bottom = image.Bottom,
-                Left = image.Left,
-                AspectRatio = image.AspectRatio
-            },
-
+            TextElement text => ProcessTextElement(text, data),
+            QrElement qr => ProcessQrElement(qr, data),
+            BarcodeElement barcode => ProcessBarcodeElement(barcode, data),
+            ImageElement image => ProcessImageElement(image, data),
             FlexElement flex => ProcessFlexElement(flex, data),
-
-            SeparatorElement separator => new SeparatorElement
-            {
-                Orientation = separator.Orientation,
-                Style = separator.Style,
-                Thickness = separator.Thickness,
-                Color = ProcessExpression(separator.Color, data),
-                Width = separator.Width,
-                Height = separator.Height,
-                Grow = separator.Grow,
-                Shrink = separator.Shrink,
-                Basis = separator.Basis,
-                AlignSelf = separator.AlignSelf,
-                Order = separator.Order,
-                Rotate = separator.Rotate,
-                // NOTE: Padding/Margin expressions are not processed here. This is
-                // consistent with the existing pattern for other element types where
-                // Padding and Margin are passed through as-is (they are resolved by
-                // the layout engine, not by the template processor).
-                Background = ProcessExpression(separator.Background, data),
-                Padding = separator.Padding,
-                Margin = separator.Margin,
-                Display = separator.Display,
-                Position = separator.Position,
-                Top = separator.Top,
-                Right = separator.Right,
-                Bottom = separator.Bottom,
-                Left = separator.Left,
-                AspectRatio = separator.AspectRatio
-            },
-
+            SeparatorElement separator => ProcessSeparatorElement(separator, data),
             _ => element
         };
+    }
+
+    /// <summary>
+    /// Processes a text element by resolving expressions in its properties.
+    /// </summary>
+    /// <param name="text">The text element to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <returns>A new text element with expressions resolved.</returns>
+    private TextElement ProcessTextElement(TextElement text, ObjectValue data)
+    {
+        var clone = new TextElement
+        {
+            Content = ProcessExpression(text.Content, data),
+            Font = ProcessExpression(text.Font, data),
+            Size = ProcessExpression(text.Size, data),
+            Color = ProcessExpression(text.Color, data),
+            Align = text.Align,
+            Wrap = text.Wrap,
+            Overflow = text.Overflow,
+            MaxLines = text.MaxLines,
+            LineHeight = text.LineHeight,
+            Rotate = text.Rotate,
+            Background = ProcessExpression(text.Background, data),
+            Padding = text.Padding,
+            Margin = text.Margin
+        };
+
+        CopyBaseProperties(text, clone);
+        return clone;
+    }
+
+    /// <summary>
+    /// Processes a QR element by resolving expressions in its properties.
+    /// </summary>
+    /// <param name="qr">The QR element to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <returns>A new QR element with expressions resolved.</returns>
+    private QrElement ProcessQrElement(QrElement qr, ObjectValue data)
+    {
+        var clone = new QrElement
+        {
+            Data = ProcessExpression(qr.Data, data),
+            Size = qr.Size,
+            ErrorCorrection = qr.ErrorCorrection,
+            Foreground = ProcessExpression(qr.Foreground, data),
+            Rotate = qr.Rotate,
+            Background = ProcessExpression(qr.Background, data),
+            Padding = qr.Padding,
+            Margin = qr.Margin
+        };
+
+        CopyBaseProperties(qr, clone);
+        return clone;
+    }
+
+    /// <summary>
+    /// Processes a barcode element by resolving expressions in its properties.
+    /// </summary>
+    /// <param name="barcode">The barcode element to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <returns>A new barcode element with expressions resolved.</returns>
+    private BarcodeElement ProcessBarcodeElement(BarcodeElement barcode, ObjectValue data)
+    {
+        var clone = new BarcodeElement
+        {
+            Data = ProcessExpression(barcode.Data, data),
+            Format = barcode.Format,
+            BarcodeWidth = barcode.BarcodeWidth,
+            BarcodeHeight = barcode.BarcodeHeight,
+            ShowText = barcode.ShowText,
+            Foreground = ProcessExpression(barcode.Foreground, data),
+            Rotate = barcode.Rotate,
+            Background = ProcessExpression(barcode.Background, data),
+            Padding = barcode.Padding,
+            Margin = barcode.Margin
+        };
+
+        CopyBaseProperties(barcode, clone);
+        return clone;
+    }
+
+    /// <summary>
+    /// Processes an image element by resolving expressions in its properties.
+    /// </summary>
+    /// <param name="image">The image element to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <returns>A new image element with expressions resolved.</returns>
+    private ImageElement ProcessImageElement(ImageElement image, ObjectValue data)
+    {
+        var clone = new ImageElement
+        {
+            Src = ProcessExpression(image.Src, data),
+            ImageWidth = image.ImageWidth,
+            ImageHeight = image.ImageHeight,
+            Fit = image.Fit,
+            Rotate = image.Rotate,
+            Background = ProcessExpression(image.Background, data),
+            Padding = image.Padding,
+            Margin = image.Margin
+        };
+
+        CopyBaseProperties(image, clone);
+        return clone;
+    }
+
+    /// <summary>
+    /// Processes a separator element by resolving expressions in its properties.
+    /// </summary>
+    /// <param name="separator">The separator element to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <returns>A new separator element with expressions resolved.</returns>
+    private SeparatorElement ProcessSeparatorElement(SeparatorElement separator, ObjectValue data)
+    {
+        var clone = new SeparatorElement
+        {
+            Orientation = separator.Orientation,
+            Style = separator.Style,
+            Thickness = separator.Thickness,
+            Color = ProcessExpression(separator.Color, data),
+            Rotate = separator.Rotate,
+            // NOTE: Padding/Margin expressions are not processed here. This is
+            // consistent with the existing pattern for other element types where
+            // Padding and Margin are passed through as-is (they are resolved by
+            // the layout engine, not by the template processor).
+            Background = ProcessExpression(separator.Background, data),
+            Padding = separator.Padding,
+            Margin = separator.Margin
+        };
+
+        CopyBaseProperties(separator, clone);
+        return clone;
     }
 
     /// <summary>
@@ -278,32 +307,25 @@ internal sealed class TemplatePreprocessor
     {
         var processed = new FlexElement
         {
+            // Flex container-specific properties
             Direction = flex.Direction,
             Wrap = flex.Wrap,
             Justify = flex.Justify,
             Align = flex.Align,
             AlignContent = flex.AlignContent,
             Gap = flex.Gap,
-            Padding = flex.Padding,
-            Margin = flex.Margin,
-            Background = ProcessExpression(flex.Background, data),
-            Width = flex.Width,
-            Height = flex.Height,
-            Grow = flex.Grow,
-            Shrink = flex.Shrink,
-            Basis = flex.Basis,
-            AlignSelf = flex.AlignSelf,
-            Order = flex.Order,
+            Overflow = flex.Overflow,
+            RowGap = flex.RowGap,
+            ColumnGap = flex.ColumnGap,
+
+            // Base element properties requiring per-element handling
             Rotate = flex.Rotate,
-            Display = flex.Display,
-            Position = flex.Position,
-            Top = flex.Top,
-            Right = flex.Right,
-            Bottom = flex.Bottom,
-            Left = flex.Left,
-            AspectRatio = flex.AspectRatio,
-            Overflow = flex.Overflow
+            Background = ProcessExpression(flex.Background, data),
+            Padding = flex.Padding,
+            Margin = flex.Margin
         };
+
+        CopyBaseProperties(flex, processed);
 
         foreach (var child in flex.Children)
         {
