@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>FlexRender.Skia</PackageId>
-    <Description>SkiaSharp rendering for FlexRender.</Description>
+    <Description>SkiaSharp rendering for FlexRender. Linux/Docker: add SkiaSharp.NativeAssets.Linux to your executable project.</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 

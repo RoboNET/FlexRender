@@ -1,5 +1,3 @@
-using FlexRender.Layout;
-
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -68,39 +66,4 @@ public sealed class SeparatorElement : TemplateElement
     /// The color of the separator in hex format.
     /// </summary>
     public string Color { get; set; } = "#000000";
-
-    /// <summary>
-    /// Explicit width override.
-    /// </summary>
-    public string? Width { get; set; }
-
-    /// <summary>
-    /// Explicit height override.
-    /// </summary>
-    public string? Height { get; set; }
-
-    /// <summary>
-    /// Flex grow factor.
-    /// </summary>
-    public float Grow { get; set; }
-
-    /// <summary>
-    /// Flex shrink factor.
-    /// </summary>
-    public float Shrink { get; set; } = 1f;
-
-    /// <summary>
-    /// Flex basis value.
-    /// </summary>
-    public string Basis { get; set; } = "auto";
-
-    /// <summary>
-    /// Flex order for sorting.
-    /// </summary>
-    public int Order { get; set; }
-
-    /// <summary>
-    /// Individual alignment override.
-    /// </summary>
-    public AlignSelf AlignSelf { get; set; } = AlignSelf.Auto;
 }

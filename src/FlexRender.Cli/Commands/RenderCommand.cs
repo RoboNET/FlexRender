@@ -1,6 +1,7 @@
 using System.CommandLine;
 using FlexRender.Abstractions;
 using FlexRender.Parsing;
+using FlexRender.Skia;
 using FlexRender.Yaml;
 
 namespace FlexRender.Cli.Commands;
@@ -42,13 +43,20 @@ public static class RenderCommand
             Description = "Open the rendered file after saving"
         };
 
+        var bmpColorOption = new Option<BmpColorMode>("--bmp-color")
+        {
+            Description = "BMP color mode: Bgra32, Rgb24, Rgb565, Grayscale8, Grayscale4, Monochrome1 (only applies to BMP output)",
+            DefaultValueFactory = _ => BmpColorMode.Bgra32
+        };
+
         var command = new Command("render", "Render a template to an image file")
         {
             templateArg,
             dataOption,
             outputOption,
             qualityOption,
-            openOption
+            openOption,
+            bmpColorOption
         };
 
         command.SetAction(async (parseResult) =>
@@ -58,10 +66,11 @@ public static class RenderCommand
             var outputFile = parseResult.GetValue(outputOption);
             var quality = parseResult.GetValue(qualityOption);
             var open = parseResult.GetValue(openOption);
+            var bmpColor = parseResult.GetValue(bmpColorOption);
             var verbose = parseResult.GetValue(GlobalOptions.Verbose);
             var basePath = parseResult.GetValue(GlobalOptions.BasePath);
 
-            return await Execute(templateFile!, dataFile, outputFile, quality, open, verbose, basePath);
+            return await Execute(templateFile!, dataFile, outputFile, quality, open, bmpColor, verbose, basePath);
         });
 
         return command;
@@ -73,6 +82,7 @@ public static class RenderCommand
         FileInfo? outputFile,
         int quality,
         bool open,
+        BmpColorMode bmpColor,
         bool verbose,
         DirectoryInfo? basePath)
     {
@@ -122,6 +132,10 @@ public static class RenderCommand
             var effectiveBasePath = basePath?.FullName ?? templateFile.DirectoryName!;
             using var renderer = Program.CreateRenderBuilder(effectiveBasePath).Build();
 
+            // Set BMP color mode if applicable
+            if (renderer is SkiaRender skiaRender)
+                skiaRender.BmpColorMode = bmpColor;
+
             // Load data if provided
             ObjectValue? data = null;
             if (dataFile is not null)
@@ -145,6 +159,10 @@ public static class RenderCommand
                 if (format == OutputFormat.Jpeg)
                 {
                     Console.WriteLine($"Quality: {quality}");
+                }
+                if (format == OutputFormat.Bmp && bmpColor != BmpColorMode.Bgra32)
+                {
+                    Console.WriteLine($"BMP color mode: {bmpColor}");
                 }
             }
 

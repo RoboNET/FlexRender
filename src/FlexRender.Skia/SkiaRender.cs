@@ -38,6 +38,12 @@ public sealed class SkiaRender : IFlexRender
     private int _disposed;
 
     /// <summary>
+    /// Gets or sets the BMP color mode used when rendering to BMP format.
+    /// Defaults to <see cref="BmpColorMode.Bgra32"/>.
+    /// </summary>
+    public BmpColorMode BmpColorMode { get; set; } = BmpColorMode.Bgra32;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SkiaRender"/> class.
     /// </summary>
     /// <param name="limits">Resource limits for rendering operations.</param>
@@ -151,7 +157,7 @@ public sealed class SkiaRender : IFlexRender
                 break;
 
             case ImageFormat.Bmp:
-                await _renderer.RenderToBmp(output, layoutTemplate, data, cancellationToken)
+                await _renderer.RenderToBmp(output, layoutTemplate, data, BmpColorMode, cancellationToken)
                     .ConfigureAwait(false);
                 break;
 

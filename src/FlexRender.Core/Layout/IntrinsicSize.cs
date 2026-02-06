@@ -57,4 +57,20 @@ public readonly record struct IntrinsicSize(
             MinHeight + m2,
             MaxHeight + m2);
     }
+
+    /// <summary>
+    /// Returns a new IntrinsicSize with non-uniform margin added.
+    /// </summary>
+    /// <param name="margin">The per-side margin values.</param>
+    /// <returns>A new IntrinsicSize with margin applied.</returns>
+    public IntrinsicSize WithMargin(PaddingValues margin)
+    {
+        var h = Math.Max(0f, margin.Horizontal);
+        var v = Math.Max(0f, margin.Vertical);
+        return new IntrinsicSize(
+            MinWidth + h,
+            MaxWidth + h,
+            MinHeight + v,
+            MaxHeight + v);
+    }
 }

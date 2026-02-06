@@ -869,4 +869,399 @@ public class LayoutEnginePaddingMarginTests
         Assert.Equal(20f, flex.Children[0].Y);
         Assert.Equal(90f, flex.Height); // 50 + 20 + 20
     }
+
+    // ============================================
+    // 4-Side Margin Tests
+    // ============================================
+
+    /// <summary>
+    /// Verifies that 4-value margin applies individual margins to each side.
+    /// margin: "10 20 30 40" -> top=10, right=20, bottom=30, left=40
+    /// </summary>
+    [Fact]
+    public void ComputeLayout_Margin4Side_AppliesIndividualMargins()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Height = "30", Margin = "10 20 30 40" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var flex = root.Children[0];
+        var child = flex.Children[0];
+
+        // Child should be offset by left=40, top=10
+        Assert.Equal(40f, child.X, 0.1f);
+        Assert.Equal(10f, child.Y, 0.1f);
+    }
+
+    /// <summary>
+    /// Verifies that 2-value margin applies vertical and horizontal margins.
+    /// margin: "10 30" -> top/bottom=10, left/right=30
+    /// </summary>
+    [Fact]
+    public void ComputeLayout_Margin2Value_AppliesVerticalHorizontal()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Height = "30", Margin = "10 30" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var flex = root.Children[0];
+        var child = flex.Children[0];
+
+        // Child should be offset by left=30, top=10
+        Assert.Equal(30f, child.X, 0.1f);
+        Assert.Equal(10f, child.Y, 0.1f);
+    }
+
+    /// <summary>
+    /// Verifies that 4-side margin in column direction affects Y position
+    /// and includes top + bottom margins in stacking.
+    /// </summary>
+    [Fact]
+    public void ComputeLayout_MarginColumn_AffectsYPositionAndXPosition()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "First", Height = "30", Margin = "5 10 15 20" },
+                        new TextElement { Content = "Second", Height = "30", Margin = "5 10 15 20" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var flex = root.Children[0];
+
+        // First child: X=left(20), Y=top(5)
+        Assert.Equal(20f, flex.Children[0].X, 0.1f);
+        Assert.Equal(5f, flex.Children[0].Y, 0.1f);
+
+        // Second child: Y = first.Y(5) + first.Height(30) + first.marginBottom(15) + second.marginTop(5) = 55
+        Assert.Equal(55f, flex.Children[1].Y, 0.1f);
+        Assert.Equal(20f, flex.Children[1].X, 0.1f);
+    }
+
+    /// <summary>
+    /// Verifies that 4-side margin in row direction affects X position
+    /// and includes left + right margins in stacking.
+    /// </summary>
+    [Fact]
+    public void ComputeLayout_MarginRow_AffectsXPositionAndYPosition()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Row,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "First", Width = "60", Height = "30", Margin = "5 10 15 20" },
+                        new TextElement { Content = "Second", Width = "60", Height = "30", Margin = "5 10 15 20" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var flex = root.Children[0];
+
+        // First child: X=left(20), Y=top(5)
+        Assert.Equal(20f, flex.Children[0].X, 0.1f);
+        Assert.Equal(5f, flex.Children[0].Y, 0.1f);
+
+        // Second child: X = first.X(20) + first.Width(60) + first.marginRight(10) + second.marginLeft(20) = 110
+        Assert.Equal(110f, flex.Children[1].X, 0.1f);
+        Assert.Equal(5f, flex.Children[1].Y, 0.1f);
+    }
+
+    /// <summary>
+    /// Verifies that margin and gap are both applied (they stack).
+    /// </summary>
+    [Fact]
+    public void ComputeLayout_MarginWithGap_BothApplied()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Gap = "10",
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "First", Height = "30", Margin = "5 0 5 0" },
+                        new TextElement { Content = "Second", Height = "30", Margin = "5 0 5 0" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var flex = root.Children[0];
+
+        // First child: Y = marginTop(5)
+        Assert.Equal(5f, flex.Children[0].Y, 0.1f);
+
+        // Second child: Y = first.Y(5) + first.Height(30) + first.marginBottom(5) + gap(10) + second.marginTop(5) = 55
+        Assert.Equal(55f, flex.Children[1].Y, 0.1f);
+    }
+
+    /// <summary>
+    /// Verifies that negative margin values (if parsed) are clamped to zero.
+    /// </summary>
+    [Fact]
+    public void ComputeLayout_MarginNegativeClamp_ClampsToZero()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Height = "30", Margin = "-5" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var flex = root.Children[0];
+        var child = flex.Children[0];
+
+        // Negative margin should be clamped to 0
+        Assert.True(child.X >= 0f, $"X={child.X} should be >= 0 (negative margin clamped)");
+        Assert.True(child.Y >= 0f, $"Y={child.Y} should be >= 0 (negative margin clamped)");
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Cross-axis margin subtraction in Center/End/Stretch (M5 bug fix)
+    // ────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ComputeLayout_ColumnAlignCenter_MarginSubtractedFromCrossAxis()
+    {
+        // Arrange: Column 300x200, align:center, child 100px wide with margin "0 20" (left=20, right=20).
+        // crossAxisSize = 300. Available for centering = 300 - 100 - 20 - 20 = 160.
+        // Center offset = 160/2 = 80. child.X = 20 (mLeft) + 0 (padding) + 80 = 100.
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Width = "300",
+                    Height = "200",
+                    Align = AlignItems.Center,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Width = "100", Height = "50", Margin = "0 20" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var child = root.Children[0].Children[0];
+
+        // With margin subtraction: X = mLeft(20) + (300 - 100 - 20 - 20) / 2 = 20 + 80 = 100
+        Assert.Equal(100f, child.X, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_ColumnAlignEnd_MarginSubtractedFromCrossAxis()
+    {
+        // Arrange: Column 300x200, align:end, child 100px wide with margin "0 20" (left=20, right=20).
+        // crossAxisSize = 300. child.X = 20 (mLeft) + (300 - 100 - 20 - 20) = 20 + 160 = 180.
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Width = "300",
+                    Height = "200",
+                    Align = AlignItems.End,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Width = "100", Height = "50", Margin = "0 20" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var child = root.Children[0].Children[0];
+
+        // With margin subtraction: X = mLeft(20) + 300 - 100 - 20 - 20 = 180
+        Assert.Equal(180f, child.X, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_ColumnAlignStretch_MarginSubtractedFromWidth()
+    {
+        // Arrange: Column 300x200, align:stretch (default), child with no explicit width, margin "0 20".
+        // Stretch should set width = crossAxisSize - mLeft - mRight = 300 - 20 - 20 = 260.
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Column,
+                    Width = "300",
+                    Height = "200",
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Height = "50", Margin = "0 20" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var child = root.Children[0].Children[0];
+
+        // Stretch width = 300 - 20 - 20 = 260
+        Assert.Equal(260f, child.Width, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_RowAlignCenter_MarginSubtractedFromCrossAxis()
+    {
+        // Arrange: Row 300x200, align:center, child 50px tall with margin "10 0" (top=10, bottom=10).
+        // crossAxisSize = 200. Available for centering = 200 - 50 - 10 - 10 = 130.
+        // Center offset = 130/2 = 65. child.Y = 10 (mTop) + 0 (padding) + 65 = 75.
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Row,
+                    Width = "300",
+                    Height = "200",
+                    Align = AlignItems.Center,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Width = "100", Height = "50", Margin = "10 0" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var child = root.Children[0].Children[0];
+
+        // With margin subtraction: Y = mTop(10) + (200 - 50 - 10 - 10) / 2 = 10 + 65 = 75
+        Assert.Equal(75f, child.Y, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_RowAlignEnd_MarginSubtractedFromCrossAxis()
+    {
+        // Arrange: Row 300x200, align:end, child 50px tall with margin "10 0" (top=10, bottom=10).
+        // crossAxisSize = 200. child.Y = 10 (mTop) + (200 - 50 - 10 - 10) = 10 + 130 = 140.
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Row,
+                    Width = "300",
+                    Height = "200",
+                    Align = AlignItems.End,
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Width = "100", Height = "50", Margin = "10 0" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var child = root.Children[0].Children[0];
+
+        // With margin subtraction: Y = mTop(10) + 200 - 50 - 10 - 10 = 140
+        Assert.Equal(140f, child.Y, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_RowAlignStretch_MarginSubtractedFromHeight()
+    {
+        // Arrange: Row 300x200, align:stretch (default), child with no explicit height, margin "10 0".
+        // Stretch should set height = crossAxisSize - mTop - mBottom = 200 - 10 - 10 = 180.
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300 },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Direction = FlexDirection.Row,
+                    Width = "300",
+                    Height = "200",
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Test", Width = "100", Margin = "10 0" }
+                    }
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var child = root.Children[0].Children[0];
+
+        // Stretch height = 200 - 10 - 10 = 180
+        Assert.Equal(180f, child.Height, 1);
+    }
 }

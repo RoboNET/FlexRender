@@ -1,5 +1,3 @@
-using FlexRender.Layout;
-
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -55,27 +53,4 @@ public sealed class ImageElement : TemplateElement
     /// How the image should be fitted within its container bounds.
     /// </summary>
     public ImageFit Fit { get; set; } = ImageFit.Contain;
-
-    // Flex item properties
-
-    /// <summary>Flex grow factor.</summary>
-    public float Grow { get; set; }
-
-    /// <summary>Flex shrink factor.</summary>
-    public float Shrink { get; set; } = 1f;
-
-    /// <summary>Flex basis (px, %, em, auto).</summary>
-    public string Basis { get; set; } = "auto";
-
-    /// <summary>Self alignment override.</summary>
-    public AlignSelf AlignSelf { get; set; } = AlignSelf.Auto;
-
-    /// <summary>Display order.</summary>
-    public int Order { get; set; }
-
-    /// <summary>Width (px, %, em, auto).</summary>
-    public string? Width { get; set; }
-
-    /// <summary>Height (px, %, em, auto).</summary>
-    public string? Height { get; set; }
 }

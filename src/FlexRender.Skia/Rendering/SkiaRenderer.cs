@@ -24,7 +24,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
     private readonly FontManager _fontManager;
     private readonly TextRenderer _textRenderer;
-    private readonly LayoutEngine _layoutEngine = new();
+    private readonly LayoutEngine _layoutEngine;
     private readonly IContentProvider<QrElement>? _qrProvider;
     private readonly IContentProvider<BarcodeElement>? _barcodeProvider;
     private readonly IImageLoader? _imageLoader;
@@ -102,6 +102,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         _expander = new TemplateExpander(limits);
         _fontManager = new FontManager();
         _textRenderer = new TextRenderer(_fontManager, deterministicRendering);
+        _layoutEngine = new LayoutEngine(_limits);
         _layoutEngine.TextMeasurer = (element, fontSize, maxWidth) =>
         {
             var measured = _textRenderer.MeasureText(element, maxWidth, BaseFontSize);
@@ -333,16 +334,33 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 $"Maximum render depth ({_limits.MaxRenderDepth}) exceeded. Template may be too deeply nested.");
         }
 
+        // Skip elements with display:none
+        if (node.Element.Display == Display.None)
+            return;
+
         var x = node.X + offsetX;
         var y = node.Y + offsetY;
 
         // Draw current element
         DrawElement(canvas, node.Element, x, y, node.Width, node.Height, imageCache);
 
+        // Apply overflow:hidden clipping for flex containers
+        var needsClip = node.Element is FlexElement { Overflow: Overflow.Hidden };
+        if (needsClip)
+        {
+            canvas.Save();
+            canvas.ClipRect(new SKRect(x, y, x + node.Width, y + node.Height));
+        }
+
         // Recursively render children
         foreach (var child in node.Children)
         {
             RenderNode(canvas, child, x, y, imageCache, depth + 1);
+        }
+
+        if (needsClip)
+        {
+            canvas.Restore();
         }
     }
 
@@ -596,7 +614,14 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 Shrink = text.Shrink,
                 Basis = text.Basis,
                 AlignSelf = text.AlignSelf,
-                Order = text.Order
+                Order = text.Order,
+                Display = text.Display,
+                Position = text.Position,
+                Top = text.Top,
+                Right = text.Right,
+                Bottom = text.Bottom,
+                Left = text.Left,
+                AspectRatio = text.AspectRatio
             },
 
             QrElement qr => new QrElement
@@ -615,7 +640,14 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 Shrink = qr.Shrink,
                 Basis = qr.Basis,
                 AlignSelf = qr.AlignSelf,
-                Order = qr.Order
+                Order = qr.Order,
+                Display = qr.Display,
+                Position = qr.Position,
+                Top = qr.Top,
+                Right = qr.Right,
+                Bottom = qr.Bottom,
+                Left = qr.Left,
+                AspectRatio = qr.AspectRatio
             },
 
             BarcodeElement barcode => new BarcodeElement
@@ -636,7 +668,14 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 Shrink = barcode.Shrink,
                 Basis = barcode.Basis,
                 AlignSelf = barcode.AlignSelf,
-                Order = barcode.Order
+                Order = barcode.Order,
+                Display = barcode.Display,
+                Position = barcode.Position,
+                Top = barcode.Top,
+                Right = barcode.Right,
+                Bottom = barcode.Bottom,
+                Left = barcode.Left,
+                AspectRatio = barcode.AspectRatio
             },
 
             ImageElement image => new ImageElement
@@ -655,7 +694,14 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 Shrink = image.Shrink,
                 Basis = image.Basis,
                 AlignSelf = image.AlignSelf,
-                Order = image.Order
+                Order = image.Order,
+                Display = image.Display,
+                Position = image.Position,
+                Top = image.Top,
+                Right = image.Right,
+                Bottom = image.Bottom,
+                Left = image.Left,
+                AspectRatio = image.AspectRatio
             },
 
             FlexElement flex => ProcessFlexElement(flex, data),
@@ -680,7 +726,14 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 // the layout engine, not by the template processor).
                 Background = ProcessExpression(separator.Background, data),
                 Padding = separator.Padding,
-                Margin = separator.Margin
+                Margin = separator.Margin,
+                Display = separator.Display,
+                Position = separator.Position,
+                Top = separator.Top,
+                Right = separator.Right,
+                Bottom = separator.Bottom,
+                Left = separator.Left,
+                AspectRatio = separator.AspectRatio
             },
 
             _ => element
@@ -707,7 +760,15 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             Basis = flex.Basis,
             AlignSelf = flex.AlignSelf,
             Order = flex.Order,
-            Rotate = flex.Rotate
+            Rotate = flex.Rotate,
+            Display = flex.Display,
+            Position = flex.Position,
+            Top = flex.Top,
+            Right = flex.Right,
+            Bottom = flex.Bottom,
+            Left = flex.Left,
+            AspectRatio = flex.AspectRatio,
+            Overflow = flex.Overflow
         };
 
         foreach (var child in flex.Children)
@@ -937,6 +998,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     /// <param name="output">The output stream to write BMP data to.</param>
     /// <param name="layoutTemplate">The template to render.</param>
     /// <param name="data">The data context for template expressions.</param>
+    /// <param name="colorMode">The BMP color depth mode to use for encoding.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="output"/>, <paramref name="layoutTemplate"/>, or <paramref name="data"/> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
@@ -944,6 +1006,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         Stream output,
         Template layoutTemplate,
         ObjectValue data,
+        BmpColorMode colorMode = BmpColorMode.Bgra32,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -964,7 +1027,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
             RenderToBitmapCore(bitmap, layoutTemplate, data, default, imageCache);
 
-            BmpEncoder.Encode(bitmap, output);
+            BmpEncoder.Encode(bitmap, output, colorMode);
         }
         finally
         {

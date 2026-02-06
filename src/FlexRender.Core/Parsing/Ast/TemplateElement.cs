@@ -1,3 +1,5 @@
+using FlexRender.Layout;
+
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -75,4 +77,62 @@ public abstract class TemplateElement
     /// Margin outside the element (px, %, em). Default is "0".
     /// </summary>
     public string Margin { get; set; } = "0";
+
+    /// <summary>
+    /// Display mode. None removes the element from layout flow.
+    /// </summary>
+    public Display Display { get; set; } = Display.Flex;
+
+    // Flex item properties (when this element is inside a flex container)
+
+    /// <summary>Flex grow factor.</summary>
+    public float Grow { get; set; }
+
+    /// <summary>Flex shrink factor.</summary>
+    public float Shrink { get; set; } = 1f;
+
+    /// <summary>Flex basis (px, %, em, auto).</summary>
+    public string Basis { get; set; } = "auto";
+
+    /// <summary>Self alignment override.</summary>
+    public AlignSelf AlignSelf { get; set; } = AlignSelf.Auto;
+
+    /// <summary>Display order.</summary>
+    public int Order { get; set; }
+
+    /// <summary>Width (px, %, em, auto).</summary>
+    public string? Width { get; set; }
+
+    /// <summary>Height (px, %, em, auto).</summary>
+    public string? Height { get; set; }
+
+    /// <summary>Minimum width constraint (px, %, em).</summary>
+    public string? MinWidth { get; set; }
+
+    /// <summary>Maximum width constraint (px, %, em).</summary>
+    public string? MaxWidth { get; set; }
+
+    /// <summary>Minimum height constraint (px, %, em).</summary>
+    public string? MinHeight { get; set; }
+
+    /// <summary>Maximum height constraint (px, %, em).</summary>
+    public string? MaxHeight { get; set; }
+
+    /// <summary>Positioning mode.</summary>
+    public Position Position { get; set; } = Position.Static;
+
+    /// <summary>Top inset for positioned elements.</summary>
+    public string? Top { get; set; }
+
+    /// <summary>Right inset for positioned elements.</summary>
+    public string? Right { get; set; }
+
+    /// <summary>Bottom inset for positioned elements.</summary>
+    public string? Bottom { get; set; }
+
+    /// <summary>Left inset for positioned elements.</summary>
+    public string? Left { get; set; }
+
+    /// <summary>Aspect ratio (width / height). When one dimension is known, the other is computed.</summary>
+    public float? AspectRatio { get; set; }
 }

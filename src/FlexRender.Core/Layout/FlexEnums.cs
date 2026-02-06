@@ -8,7 +8,11 @@ public enum FlexDirection
     /// <summary>Main axis is horizontal (left to right).</summary>
     Row = 0,
     /// <summary>Main axis is vertical (top to bottom).</summary>
-    Column = 1
+    Column = 1,
+    /// <summary>Main axis is horizontal (right to left).</summary>
+    RowReverse = 2,
+    /// <summary>Main axis is vertical (bottom to top).</summary>
+    ColumnReverse = 3
 }
 
 /// <summary>
@@ -76,7 +80,20 @@ public enum AlignContent
     /// <summary>Lines evenly distributed.</summary>
     SpaceBetween = 4,
     /// <summary>Lines evenly distributed with space around.</summary>
-    SpaceAround = 5
+    SpaceAround = 5,
+    /// <summary>Lines evenly distributed with equal space between slots.</summary>
+    SpaceEvenly = 6
+}
+
+/// <summary>
+/// Controls whether an element participates in layout.
+/// </summary>
+public enum Display
+{
+    /// <summary>Element participates in flex layout.</summary>
+    Flex = 0,
+    /// <summary>Element is hidden and removed from layout flow.</summary>
+    None = 1
 }
 
 /// <summary>
@@ -96,4 +113,28 @@ public enum AlignSelf
     Stretch = 4,
     /// <summary>Align by baseline.</summary>
     Baseline = 5
+}
+
+/// <summary>
+/// CSS positioning mode for an element.
+/// </summary>
+public enum Position
+{
+    /// <summary>Normal flow (default).</summary>
+    Static = 0,
+    /// <summary>Offset from normal flow position.</summary>
+    Relative = 1,
+    /// <summary>Removed from flow, positioned relative to container.</summary>
+    Absolute = 2
+}
+
+/// <summary>
+/// Controls how content that overflows the element's bounds is handled.
+/// </summary>
+public enum Overflow
+{
+    /// <summary>Content is visible outside bounds.</summary>
+    Visible = 0,
+    /// <summary>Content is clipped at bounds.</summary>
+    Hidden = 1
 }

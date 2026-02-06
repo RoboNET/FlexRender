@@ -24,7 +24,7 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Abstractions/                 # ILayoutRenderer<T>, ITemplateParser, IResourceLoader
   Configuration/                # ResourceLimits, FlexRenderOptions
   Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
-    Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
+    Units/                      # Unit, UnitParser, PaddingValues, PaddingParser, MarginValue, MarginValues
   Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, etc.
   TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator
@@ -145,7 +145,7 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | Abstractions | `IFlexRender`, `IResourceLoader` |
 | Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `EachElement`, `IfElement` |
 | Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext` |
-| Layout | `LayoutEngine`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize`, `Unit`, `UnitParser` |
+| Layout | `LayoutEngine`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize`, `Unit`, `UnitParser`, `MarginValue`, `MarginValues`, `PaddingParser.ParseMargin` |
 | Rendering | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder` |
 | Providers | `IContentProvider<T,O>`, `QrProvider`, `BarcodeProvider`, `ImageProvider` |
 | Loaders | `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader` |
@@ -159,7 +159,7 @@ byte[] png = await render.Render(_templates["receipt"], data);
 - **`GeneratedRegex`** -- source-generated regex for AOT compatibility
 - **`sealed` classes** -- all leaf/value/concrete classes must be `sealed`
 - **`sealed record`** -- for token types and small immutable data
-- **`readonly record struct`** -- for small value types (`IntrinsicSize`, `LayoutRect`, `FlexItemProperties`)
+- **`readonly record struct`** -- for small value types (`IntrinsicSize`, `LayoutRect`, `PaddingValues`)
 - **File-scoped namespaces** -- `namespace Foo.Bar;`
 - **XML documentation** -- `<summary>`, `<param>`, `<returns>`, `<exception>` on all public APIs
 - **Guard clauses** -- `ArgumentNullException.ThrowIfNull()`, `ArgumentException.ThrowIfNullOrWhiteSpace()`, `ObjectDisposedException.ThrowIf()`
@@ -178,6 +178,7 @@ All security limits are centralized in the `ResourceLimits` class (`Configuratio
 | `MaxTemplateNestingDepth` | 100 | Expression nesting |
 | `MaxRenderDepth` | 100 | Render tree recursion |
 | `MaxImageSize` | 10 MB | Image loading |
+| `MaxFlexLines` | 1000 | Maximum flex lines when wrapping |
 
 Configure limits via builder:
 
@@ -201,6 +202,7 @@ These limits exist to prevent abuse and resource exhaustion. Never remove or wea
 
 ## Test Conventions
 
+- **Total tests**: 1204 (unit + snapshot + integration)
 - **Framework**: xUnit with `[Fact]` and `[Theory]`/`[InlineData]`
 - **Assertions**: `Assert.*` from xUnit; `FluentAssertions` in some tests
 - **Naming**: `MethodUnderTest_Scenario_ExpectedResult` (e.g., `Parse_SimpleTextElement_ParsesCorrectly`)
@@ -363,6 +365,85 @@ var sb = new StringBuilder(estimatedCapacity);
 - **Resource loader chain** -- `IResourceLoader` with `CanHandle()`, `Load()`, `Priority` -- chain of responsibility pattern
 - **Flex-item properties** -- declared per concrete element class, dispatched via `switch` pattern matching (not on base class)
 - **Template processing layers** -- AST-level (`TemplateExpander` for `type: each`/`type: if`) and inline (`TemplateProcessor` for `{{variable}}`)
+
+## AST Element Properties
+
+### TemplateElement (base class)
+
+All elements inherit these properties:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `Rotate` | string | `"none"` | Rotation of the element |
+| `Background` | string? | null | Background color in hex format |
+| `Padding` | string | `"0"` | Padding inside (px, %, em, CSS shorthand) |
+| `Margin` | string | `"0"` | Margin outside (px, %, em, auto, CSS shorthand) |
+| `Display` | Display | `Flex` | Display mode (Flex, None) |
+| `Grow` | float | 0 | Flex grow factor |
+| `Shrink` | float | 1 | Flex shrink factor |
+| `Basis` | string | `"auto"` | Flex basis (px, %, em, auto) |
+| `AlignSelf` | AlignSelf | `Auto` | Self alignment override |
+| `Order` | int | 0 | Display order |
+| `Width` | string? | null | Width (px, %, em, auto) |
+| `Height` | string? | null | Height (px, %, em, auto) |
+| `MinWidth` | string? | null | Minimum width constraint |
+| `MaxWidth` | string? | null | Maximum width constraint |
+| `MinHeight` | string? | null | Minimum height constraint |
+| `MaxHeight` | string? | null | Maximum height constraint |
+| `Position` | Position | `Static` | Positioning mode (Static, Relative, Absolute) |
+| `Top` | string? | null | Top inset for positioned elements |
+| `Right` | string? | null | Right inset for positioned elements |
+| `Bottom` | string? | null | Bottom inset for positioned elements |
+| `Left` | string? | null | Left inset for positioned elements |
+| `AspectRatio` | float? | null | Width/height ratio; when one dimension is known, the other is computed |
+
+### FlexElement (container)
+
+Additional container-only properties:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `Direction` | FlexDirection | `Column` | Main axis direction |
+| `Wrap` | FlexWrap | `NoWrap` | Whether items wrap to new lines |
+| `Gap` | string | `"0"` | Gap shorthand (sets both row-gap and column-gap) |
+| `ColumnGap` | string? | null | Gap between items along main axis |
+| `RowGap` | string? | null | Gap between wrapped lines |
+| `Justify` | JustifyContent | `Start` | Main axis alignment |
+| `Align` | AlignItems | `Stretch` | Cross axis alignment |
+| `AlignContent` | AlignContent | `Start` | Alignment of wrapped lines (note: CSS default is Stretch) |
+| `Overflow` | Overflow | `Visible` | Content overflow behavior (Visible, Hidden) |
+
+## Layout Enums
+
+All enums in `FlexRender.Layout.FlexEnums`:
+
+| Enum | Values | Description |
+|------|--------|-------------|
+| `FlexDirection` | Row, Column, RowReverse, ColumnReverse | Main axis direction |
+| `FlexWrap` | NoWrap, Wrap, WrapReverse | Line wrapping behavior |
+| `JustifyContent` | Start, Center, End, SpaceBetween, SpaceAround, SpaceEvenly | Main axis alignment |
+| `AlignItems` | Start, Center, End, Stretch, Baseline | Cross axis alignment |
+| `AlignContent` | Start, Center, End, Stretch, SpaceBetween, SpaceAround, SpaceEvenly | Multi-line alignment |
+| `AlignSelf` | Auto, Start, Center, End, Stretch, Baseline | Per-item alignment override |
+| `Display` | Flex, None | Element visibility in layout |
+| `Position` | Static, Relative, Absolute | CSS positioning mode |
+| `Overflow` | Visible, Hidden | Content overflow handling |
+
+## Margin Types
+
+`MarginValue` -- readonly record struct representing a single margin side:
+- `MarginValue.Fixed(float px)` -- fixed pixel value
+- `MarginValue.Auto` -- auto margin that consumes free space
+- `ResolvedPixels` -- resolved value (0 for unresolved auto)
+
+`MarginValues` -- readonly record struct for all four sides:
+- `Top`, `Right`, `Bottom`, `Left` -- individual `MarginValue` sides
+- `HasAuto` -- whether any side is auto
+- `MainAxisAutoCount(bool isColumn)` -- count of auto margins on main axis (0, 1, or 2)
+- `CrossAxisAutoCount(bool isColumn)` -- count of auto margins on cross axis (0, 1, or 2)
+- `MarginValues.Zero` -- all sides zero, no auto
+
+`PaddingParser.ParseMargin(string, float, float)` -- parses CSS margin shorthand with auto support, returns `MarginValues`.
 
 ## Control Flow Elements
 

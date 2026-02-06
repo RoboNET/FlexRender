@@ -56,7 +56,7 @@ Eight element types, each a sealed class extending `TemplateElement`:
 | Type | Key Properties |
 |------|---------------|
 | **text** | content, font, size, color, align (left/center/right), wrap, overflow (ellipsis/clip/visible), maxLines, lineHeight |
-| **flex** | direction (row/column), wrap, gap, justify, align, alignContent, children |
+| **flex** | direction (row/column), wrap, gap, rowGap, columnGap, justify, align, alignContent, overflow, children |
 | **image** | src, width, height, fit (fill/contain/cover/none) |
 | **qr** | data, size, errorCorrection (L/M/Q/H), foreground |
 | **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground |
@@ -64,9 +64,31 @@ Eight element types, each a sealed class extending `TemplateElement`:
 | **each** | array, as, children -- iteration over data arrays |
 | **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
 
-All elements share common properties from `TemplateElement`: padding, margin, background, rotate.
+All elements share common properties from `TemplateElement`: padding, margin, background, rotate, display (flex/none), position, top, right, bottom, left, aspectRatio, minWidth, maxWidth, minHeight, maxHeight.
 
 All elements (except flex containers) have flex-item properties: grow, shrink, basis, order, alignSelf, width, height.
+
+### Positioning
+
+- `position`: `static` (default), `relative`, `absolute`
+- `top`, `right`, `bottom`, `left`: inset values for positioned elements (px, %, em)
+- Relative: offset from normal flow position
+- Absolute: removed from flow, positioned relative to nearest flex container
+
+### Aspect Ratio
+
+- `aspectRatio`: float (width / height). When one dimension is known, the other is computed automatically.
+
+### Overflow
+
+- FlexElement-only: `overflow`: `visible` (default), `hidden` -- clips content at container bounds when set to `hidden`
+
+### Auto Margins
+
+- `margin: "auto"` -- all sides auto (centers both axes)
+- `margin: "0 auto"` -- horizontal centering within flex container
+- Auto margins on main axis consume free space before justify-content
+- Auto margins on cross axis override align-items/align-self
 
 ## Non-Uniform Padding
 
@@ -205,6 +227,7 @@ The `ResourceLimits` class centralizes all security limits. Defaults are safe-by
 | MaxTemplateNestingDepth | 100 | Expression nesting |
 | MaxRenderDepth | 100 | Render tree recursion |
 | MaxImageSize | 10 MB | Image loading |
+| MaxFlexLines | 1000 | Maximum flex lines when wrapping |
 
 Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 200; })`
 
@@ -333,3 +356,5 @@ Note: The `--scale` option uses invariant culture -- always use `.` as the decim
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |
+
+**Linux/Docker:** SkiaSharp requires native libraries. Add `SkiaSharp.NativeAssets.Linux` (or `.NoDependencies` for minimal containers) to your executable project to avoid `DllNotFoundException: libSkiaSharp`.

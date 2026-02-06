@@ -60,6 +60,14 @@ The `receipt-dynamic.yaml` demonstrates AST-level control flow with `type: each`
 dotnet add package FlexRender
 ```
 
+> [!IMPORTANT]
+> **Linux / Docker users:** SkiaSharp requires native libraries. Add the native assets package to avoid `DllNotFoundException: libSkiaSharp`:
+> ```bash
+> dotnet add package SkiaSharp.NativeAssets.Linux
+> # For minimal containers without fontconfig/freetype:
+> dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
+> ```
+
 ### Individual packages
 
 | Package | Description |
@@ -79,18 +87,6 @@ dotnet add package FlexRender.Yaml
 
 # Or install the Skia renderer
 dotnet add package FlexRender.Skia
-```
-
-### Linux / Docker
-
-SkiaSharp requires native libraries on Linux. If you get `DllNotFoundException: libSkiaSharp`, add the native assets package:
-
-```bash
-# Standard Linux (requires system fontconfig/freetype)
-dotnet add package SkiaSharp.NativeAssets.Linux
-
-# Minimal containers without system libs
-dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
 ```
 
 ### CLI tool
