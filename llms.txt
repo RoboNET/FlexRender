@@ -27,6 +27,7 @@ src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
   Providers/                    # IContentProvider<T,O>, ImageProvider
 src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
 src/FlexRender.Barcode/         # Barcode provider (-> Skia)
+src/FlexRender.HarfBuzz/        # HarfBuzz text shaping (-> Skia + SkiaSharp.HarfBuzz)
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
 src/FlexRender.MetaPackage/     # Meta-package (references all sub-packages)
 
@@ -55,20 +56,33 @@ Eight element types, each a sealed class extending `TemplateElement`:
 
 | Type | Key Properties |
 |------|---------------|
-| **text** | content, font, size, color, align (left/center/right), wrap, overflow (ellipsis/clip/visible), maxLines, lineHeight |
+| **text** | content, font, size, color, align (left/center/right/start/end), wrap, overflow (ellipsis/clip/visible), maxLines, lineHeight |
 | **flex** | direction (row/column), wrap, gap, rowGap, columnGap, justify, align, alignContent, overflow, children |
 | **image** | src, width, height, fit (fill/contain/cover/none) |
-| **qr** | data, size, errorCorrection (L/M/Q/H), foreground |
-| **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground |
+| **qr** | data, size, errorCorrection (L/M/Q/H), foreground — requires `FlexRender.QrCode` package |
+| **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground — requires `FlexRender.Barcode` package |
 | **separator** | orientation (horizontal/vertical), style (dotted/dashed/solid), thickness, color |
 | **each** | array, as, children -- iteration over data arrays |
 | **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
 
-All elements share common properties from `TemplateElement`: padding, margin, background, rotate, display (flex/none), position, top, right, bottom, left, aspectRatio, minWidth, maxWidth, minHeight, maxHeight.
+All elements share common properties from `TemplateElement`: padding, margin, background, rotate, display (flex/none), position, top, right, bottom, left, aspectRatio, minWidth, maxWidth, minHeight, maxHeight, text-direction, border, border-top, border-right, border-bottom, border-left, border-width, border-color, border-style, border-radius.
 
 Element-level `rotate` supports named values (`none`, `left`, `right`, `flip`) and arbitrary degrees (e.g., `"30"`). Rotation is rendered for: text, image, qr, barcode. Canvas-level `rotate` applies post-render rotation to the entire output.
 
 All elements (except flex containers) have flex-item properties: grow, shrink, basis, order, alignSelf, width, height.
+
+### Borders
+
+- `border`: shorthand for all sides -- `"width style color"` (e.g., `"2 solid #333"`, `"1 dashed"`, `"3"`)
+- `border-top`, `border-right`, `border-bottom`, `border-left`: per-side shorthand overrides
+- `border-width`, `border-color`, `border-style`: individual property overrides for all sides
+- `border-radius`: corner rounding (px, em, %)
+- Border styles: `solid`, `dashed`, `dotted`, `none`
+- Borders consume layout space (added to element size alongside padding)
+
+### Order
+
+- `order`: integer (default `0`). Controls visual display order of flex items. Lower values appear first. Negative values supported. Items with equal order preserve source order (stable sort).
 
 ### Positioning
 
@@ -91,6 +105,18 @@ All elements (except flex containers) have flex-item properties: grow, shrink, b
 - `margin: "0 auto"` -- horizontal centering within flex container
 - Auto margins on main axis consume free space before justify-content
 - Auto margins on cross axis override align-items/align-self
+
+## RTL (Right-to-Left) Support
+
+- Canvas `text-direction`: `ltr` (default), `rtl` -- sets default text direction for the entire template
+- Element `text-direction`: `ltr`, `rtl`, or null (inherit from parent/canvas) -- per-element override
+- Text `align`: `start` and `end` are logical values that resolve based on direction:
+  - `start` resolves to `left` in LTR, `right` in RTL
+  - `end` resolves to `right` in LTR, `left` in RTL
+- Row layout is mirrored in RTL: items flow right-to-left instead of left-to-right
+- Column layout is unaffected by direction
+- HarfBuzz text shaping: optional `FlexRender.HarfBuzz` package provides proper Arabic/Hebrew glyph shaping via `.WithHarfBuzz()` on the Skia builder
+- Arabic font support: use an Arabic-capable font (e.g., Noto Sans Arabic) in the `fonts` section for Arabic text rendering. Combine with `text-direction: rtl` and HarfBuzz for full Arabic support
 
 ## Non-Uniform Padding
 
@@ -193,6 +219,7 @@ canvas:
   height: 0             # 0 = auto when not fixed
   background: "#ffffff"
   rotate: "none"        # none | left | right | flip | degrees
+  text-direction: ltr   # ltr | rtl (text/layout direction)
 
 layout:
   - type: text
@@ -247,7 +274,8 @@ var render = new FlexRenderBuilder()
     .WithLimits(limits => limits.MaxRenderDepth = 200)
     .WithSkia(skia => skia
         .WithQr()
-        .WithBarcode())
+        .WithBarcode()
+        .WithHarfBuzz())
     .Build();
 
 byte[] png = await render.RenderFile("receipt.yaml", data);
@@ -355,6 +383,7 @@ Note: The `--scale` option uses invariant culture -- always use `.` as the decim
 | FlexRender.Skia | Core | SkiaSharp 3.119.1 |
 | FlexRender.QrCode | Skia | QRCoder 1.7.0 |
 | FlexRender.Barcode | Skia | (none) |
+| FlexRender.HarfBuzz | Skia | SkiaSharp.HarfBuzz 3.119.1, HarfBuzzSharp 8.3.1.2 |
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |

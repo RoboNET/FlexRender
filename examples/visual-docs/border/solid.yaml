@@ -1,0 +1,34 @@
+template:
+  name: "border-solid"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "30"
+    gap: 16
+    children:
+      - type: flex
+        border: "2 solid #333333"
+        padding: "16"
+        gap: 8
+        children:
+          - type: text
+            content: "Solid Border"
+            font: bold
+            size: 16px
+            color: "#333333"
+          - type: text
+            content: "A simple 2px solid border around a flex container with text children."
+            size: 13px
+            color: "#666666"
+            wrap: true
+            lineHeight: "1.5"

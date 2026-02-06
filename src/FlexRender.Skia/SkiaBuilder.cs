@@ -1,5 +1,6 @@
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
+using SkiaSharp;
 
 namespace FlexRender.Skia;
 
@@ -83,5 +84,49 @@ public sealed class SkiaBuilder
             throw new InvalidOperationException("Barcode provider is already configured. WithBarcode() can only be called once.");
         }
         BarcodeProvider = provider;
+    }
+
+    /// <summary>
+    /// Gets the configured shaped text measurer delegate, if any.
+    /// When set, text measurement uses HarfBuzz shaping for accurate width calculation
+    /// of complex scripts (Arabic, Hebrew, etc.).
+    /// </summary>
+    /// <remarks>
+    /// The delegate parameters are: text, font, direction (0=LTR, 1=RTL). Returns shaped width in pixels.
+    /// This is set by calling the <c>WithHarfBuzz()</c> extension method from the FlexRender.HarfBuzz package.
+    /// </remarks>
+    internal Func<string, SKFont, int, float>? ShapedTextMeasurer { get; private set; }
+
+    /// <summary>
+    /// Gets the configured shaped text drawer delegate, if any.
+    /// When set, text rendering uses HarfBuzz shaping for correct glyph ordering,
+    /// contextual forms, and ligatures.
+    /// </summary>
+    /// <remarks>
+    /// The delegate parameters are: canvas, text, x, y, font, paint, direction (0=LTR, 1=RTL).
+    /// This is set by calling the <c>WithHarfBuzz()</c> extension method from the FlexRender.HarfBuzz package.
+    /// </remarks>
+    internal Action<SKCanvas, string, float, float, SKFont, SKPaint, int>? ShapedTextDrawer { get; private set; }
+
+    /// <summary>
+    /// Sets the shaped text measurer delegate.
+    /// </summary>
+    /// <param name="measurer">The measurer delegate. Parameters: text, font, direction (0=LTR, 1=RTL). Returns width.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="measurer"/> is null.</exception>
+    internal void SetShapedTextMeasurer(Func<string, SKFont, int, float> measurer)
+    {
+        ArgumentNullException.ThrowIfNull(measurer);
+        ShapedTextMeasurer = measurer;
+    }
+
+    /// <summary>
+    /// Sets the shaped text drawer delegate.
+    /// </summary>
+    /// <param name="drawer">The drawer delegate. Parameters: canvas, text, x, y, font, paint, direction (0=LTR, 1=RTL).</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="drawer"/> is null.</exception>
+    internal void SetShapedTextDrawer(Action<SKCanvas, string, float, float, SKFont, SKPaint, int> drawer)
+    {
+        ArgumentNullException.ThrowIfNull(drawer);
+        ShapedTextDrawer = drawer;
     }
 }

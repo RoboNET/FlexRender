@@ -11,10 +11,14 @@ A comprehensive visual guide with rendered examples for all FlexRender propertie
   - [All Canvas Properties](#all-canvas-properties)
 - [Flex Layout](#flex-layout)
   - [direction](#direction)
+    - [RTL Direction](#rtl-direction)
+    - [RTL with Arabic Text](#rtl-with-arabic-text)
   - [justify](#justify)
   - [align](#align)
   - [wrap](#wrap)
+  - [order](#order)
   - [position](#position)
+  - [border](#border)
 - [Element Types](#element-types)
   - [text](#text)
   - [separator](#separator)
@@ -68,6 +72,7 @@ The `rotate` property applies a post-render rotation to the entire canvas. The l
 | `height` | integer | Canvas height in pixels | `0` (auto) |
 | `background` | color | Background color in hex format (e.g., `#ffffff`) | `#ffffff` |
 | `rotate` | string | Post-render rotation: `none`, `left`, `right`, `flip`, or numeric degrees | `none` |
+| `dir` | enum | Text direction: `ltr`, `rtl` | `ltr` |
 
 ---
 
@@ -83,6 +88,27 @@ The `direction` property defines the main axis direction in which flex items are
 | `column` | Items are laid out vertically from top to bottom. The main axis runs vertically. | ![direction: column](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-column.png) |
 | `row-reverse` | Items are laid out horizontally from right to left. The main axis runs horizontally in reverse. | ![direction: row-reverse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-reverse.png) |
 | `column-reverse` | Items are laid out vertically from bottom to top. The main axis runs vertically in reverse. | ![direction: column-reverse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-column-reverse.png) |
+
+#### RTL Direction
+
+When `dir: rtl` is set on the canvas or element, row layout is mirrored so items flow right-to-left.
+
+| Value | Description | Visual Example |
+|-------|-------------|----------------|
+| `row` (RTL) | Items flow right-to-left instead of left-to-right. | ![row RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-rtl.png) |
+| `row-reverse` (RTL) | Items flow left-to-right (reversed from RTL default). | ![row-reverse RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-reverse-rtl.png) |
+| `row` (RTL, labeled) | Three labeled items showing right-to-left positioning with `dir: rtl`. | ![RTL row](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-row.png) |
+
+#### RTL with Arabic Text
+
+FlexRender supports Arabic and other RTL scripts when using an Arabic-capable font (e.g., Noto Sans Arabic). Use `dir: rtl` on the canvas for full RTL layout and text alignment.
+
+| Example | Description | Visual |
+|---------|-------------|--------|
+| Arabic card | RTL layout with Arabic heading and body text using Noto Sans Arabic font. | ![RTL Arabic](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-arabic.png) |
+| Mixed LTR/RTL | RTL page with a nested `dir: ltr` section for left-to-right content within an RTL context. | ![RTL mixed](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-mixed.png) |
+
+> **Note:** For proper Arabic glyph shaping (ligatures, contextual forms), enable HarfBuzz text shaping via `.WithHarfBuzz()` on the Skia builder, or use the `--harfbuzz` flag with the CLI.
 
 ### justify
 
@@ -169,6 +195,61 @@ Element is removed from flex flow and positioned relative to its containing flex
 - `top` takes priority over `bottom` when both are specified (for `position: relative`)
 - For `position: absolute`, opposing insets (`left` + `right` or `top` + `bottom`) without explicit size compute the element's width/height (inset sizing)
 
+### order
+
+The `order` property controls the visual order of flex items independently from their source order in the YAML template. Items with lower `order` values appear first. Items with equal `order` preserve their source order (stable sort). The default value is `0`.
+
+| Example | Description | Visual |
+|---------|-------------|--------|
+| Basic reordering | Three items A(order:2), B(order:0), C(order:1) display as B, C, A. | ![order basic](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/order-basic.png) |
+| Negative order | Item B(order:-1) moves before A(order:0) and C(order:0), displaying as B, A, C. | ![order negative](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/order-negative.png) |
+
+### border
+
+Border properties add visible borders around any element. Borders support CSS-like shorthand syntax and per-side customization.
+
+**Shorthand format:** `"width style color"` (e.g., `"2 solid #333"`)
+
+**Styles:** `solid`, `dashed`, `dotted`, `none`
+
+#### Solid Border
+
+A simple solid border around a flex container.
+
+![Solid Border](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-solid.png)
+
+#### Border Styles
+
+Three boxes side by side showing solid, dashed, and dotted border styles.
+
+![Border Styles](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-styles.png)
+
+#### Per-Side Borders
+
+Different border styles, widths, and colors on each side using `border-top`, `border-right`, `border-bottom`, and `border-left`.
+
+![Per-Side Borders](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-per-side.png)
+
+#### Border Radius
+
+Rounded corners using `border-radius`. Larger values create more rounding.
+
+![Border Radius](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-radius.png)
+
+#### All Border Properties
+
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| `border` | string | Shorthand for all sides: `"width style color"` | (none) |
+| `border-top` | string | Top side shorthand: `"width style color"` | (none) |
+| `border-right` | string | Right side shorthand | (none) |
+| `border-bottom` | string | Bottom side shorthand | (none) |
+| `border-left` | string | Left side shorthand | (none) |
+| `border-width` | string | Width override for all sides (px, em) | (none) |
+| `border-color` | color | Color override for all sides | (none) |
+| `border-style` | enum | Style override: `solid`, `dashed`, `dotted`, `none` | (none) |
+| `border-radius` | string | Corner rounding (px, em, %) | (none) |
+
 ---
 
 ## Element Types
@@ -181,9 +262,15 @@ The `text` element is used to display styled text content in your templates.
 
 The `align` property controls horizontal text alignment within its container.
 
-**Values:** `left`, `center`, `right`
+**Values:** `left`, `center`, `right`, `start` (logical), `end` (logical)
 
 ![Text Alignment](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/text-align.png)
+
+##### Logical Alignment (RTL)
+
+The `start` and `end` values resolve based on the text direction. In RTL mode, `start` maps to right-aligned and `end` maps to left-aligned.
+
+![Text Alignment RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/text-align-start-rtl.png)
 
 #### Text Wrapping
 
@@ -214,7 +301,7 @@ The `lineHeight` property controls vertical spacing between lines of text.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | `content` | string | Text to display | (required) |
-| `align` | enum | Horizontal alignment: `left`, `center`, `right` | `left` |
+| `align` | enum | Horizontal alignment: `left`, `center`, `right`, `start` (logical), `end` (logical) | `left` |
 | `size` | length | Font size (e.g., `14px`, `1em`) | `14px` |
 | `color` | color | Text color | `#000000` |
 | `font` | string | Font variant (e.g., `default`, `bold`, `semibold`) | `default` |

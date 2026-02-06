@@ -1,3 +1,4 @@
+using FlexRender.Layout;
 using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
 using Xunit;
@@ -235,6 +236,13 @@ public class TemplateParserCanvasTests
     /// <summary>
     /// Verifies that the deprecated 'size' canvas property throws an informative error.
     /// </summary>
+    [Fact]
+    public void CanvasSettings_Dir_DefaultsToLtr()
+    {
+        var canvas = new CanvasSettings();
+        Assert.Equal(TextDirection.Ltr, canvas.TextDirection);
+    }
+
     [Fact]
     public void Parse_CanvasWithDeprecatedSize_ThrowsError()
     {

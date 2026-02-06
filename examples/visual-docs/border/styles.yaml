@@ -1,0 +1,75 @@
+template:
+  name: "border-styles"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    padding: "20"
+    gap: 12
+    children:
+      - type: flex
+        grow: 1
+        border: "2 solid #3498db"
+        padding: "12"
+        align: center
+        gap: 8
+        children:
+          - type: text
+            content: "Solid"
+            font: bold
+            size: 14px
+            color: "#3498db"
+            align: center
+          - type: text
+            content: "2px solid"
+            size: 11px
+            color: "#888888"
+            align: center
+
+      - type: flex
+        grow: 1
+        border: "2 dashed #e74c3c"
+        padding: "12"
+        align: center
+        gap: 8
+        children:
+          - type: text
+            content: "Dashed"
+            font: bold
+            size: 14px
+            color: "#e74c3c"
+            align: center
+          - type: text
+            content: "2px dashed"
+            size: 11px
+            color: "#888888"
+            align: center
+
+      - type: flex
+        grow: 1
+        border: "2 dotted #2ecc71"
+        padding: "12"
+        align: center
+        gap: 8
+        children:
+          - type: text
+            content: "Dotted"
+            font: bold
+            size: 14px
+            color: "#2ecc71"
+            align: center
+          - type: text
+            content: "2px dotted"
+            size: 11px
+            color: "#888888"
+            align: center

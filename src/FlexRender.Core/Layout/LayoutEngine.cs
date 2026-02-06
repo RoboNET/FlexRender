@@ -135,7 +135,7 @@ public sealed class LayoutEngine
         var rootElement = new FlexElement { Direction = FlexDirection.Column };
         var root = new LayoutNode(rootElement, 0, 0, width, height);
 
-        var context = new LayoutContext(width, contextHeight, BaseFontSize, intrinsicSizes);
+        var context = new LayoutContext(width, contextHeight, BaseFontSize, intrinsicSizes, canvas.TextDirection);
 
         // Process top-level elements
         foreach (var element in template.Elements)
@@ -186,7 +186,7 @@ public sealed class LayoutEngine
 
     private LayoutNode LayoutElement(TemplateElement element, LayoutContext context)
     {
-        return element switch
+        var node = element switch
         {
             FlexElement flex => LayoutFlexElement(flex, context),
             TextElement text => LayoutTextElement(text, context),
@@ -196,6 +196,8 @@ public sealed class LayoutEngine
             SeparatorElement separator => LayoutSeparatorElement(separator, context),
             _ => new LayoutNode(element, 0, 0, context.ContainerWidth, DefaultTextHeight)
         };
+        node.Direction = LayoutHelpers.ResolveDirection(element, context.Direction);
+        return node;
     }
 
     private LayoutNode LayoutFlexElement(FlexElement flex, LayoutContext context)
@@ -206,12 +208,23 @@ public sealed class LayoutEngine
         var node = new LayoutNode(flex, 0, 0, width, height);
 
         var padding = PaddingParser.Parse(flex.Padding, width, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(flex, width, context.FontSize);
+        // Combine padding and border into effective padding (Option A from design doc).
+        // Layout strategies use this for all inset calculations transparently.
+        var effectivePadding = new PaddingValues(
+            padding.Top + border.Top.Width,
+            padding.Right + border.Right.Width,
+            padding.Bottom + border.Bottom.Width,
+            padding.Left + border.Left.Width);
         var gap = UnitParser.Parse(flex.Gap).Resolve(width, context.FontSize) ?? 0f;
 
-        // For inner context height: use explicit height minus padding, or 0 to indicate auto-sizing
+        // For inner context height: use explicit height minus effective padding (padding + border), or 0 to indicate auto-sizing
         // This prevents propagating large "unconstrained" heights down to children
-        var innerHeight = height > 0 ? height - padding.Vertical : 0f;
-        var innerContext = context.WithSize(width - padding.Horizontal, innerHeight);
+        var innerHeight = height > 0 ? height - effectivePadding.Vertical : 0f;
+        var innerContext = context.WithSize(width - effectivePadding.Horizontal, innerHeight);
+
+        var effectiveDirection = LayoutHelpers.ResolveDirection(flex, context.Direction);
+        innerContext = innerContext.WithDirection(effectiveDirection);
 
         var isColumn = flex.Direction is FlexDirection.Column or FlexDirection.ColumnReverse;
 
@@ -238,13 +251,13 @@ public sealed class LayoutEngine
 
                 if (!LayoutHelpers.HasExplicitWidth(child) && leftInset.HasValue && rightInset.HasValue)
                 {
-                    childNode.Width = Math.Max(0f, width - padding.Left - padding.Right - leftInset.Value - rightInset.Value);
+                    childNode.Width = Math.Max(0f, width - effectivePadding.Left - effectivePadding.Right - leftInset.Value - rightInset.Value);
                 }
 
                 if (!LayoutHelpers.HasExplicitHeight(child) && topInset.HasValue && bottomInset.HasValue)
                 {
                     var containerHeight = height > 0 ? height : node.Height;
-                    childNode.Height = Math.Max(0f, containerHeight - padding.Top - padding.Bottom - topInset.Value - bottomInset.Value);
+                    childNode.Height = Math.Max(0f, containerHeight - effectivePadding.Top - effectivePadding.Bottom - topInset.Value - bottomInset.Value);
                 }
 
                 // Apply aspect ratio for absolute children
@@ -291,6 +304,13 @@ public sealed class LayoutEngine
             node.AddChild(flowChildNode);
         }
 
+        // CSS order: sort children by order property before layout.
+        // Only sort when at least one child has a non-default order to avoid allocation.
+        if (HasNonDefaultOrder(node))
+        {
+            node.SortChildrenByOrder();
+        }
+
         // Apply flex layout
         if (flex.Wrap != FlexWrap.NoWrap)
         {
@@ -313,21 +333,28 @@ public sealed class LayoutEngine
                 else
                     mainGap = colGapValue;
             }
-            _wrappedStrategy.LayoutWrappedFlex(node, flex, innerContext, padding, mainGap, crossGap);
+            _wrappedStrategy.LayoutWrappedFlex(node, flex, innerContext, effectivePadding, mainGap, crossGap);
         }
         else if (isColumn)
         {
-            ColumnFlexLayoutStrategy.LayoutColumnFlex(node, flex, innerContext, padding, gap);
+            ColumnFlexLayoutStrategy.LayoutColumnFlex(node, flex, innerContext, effectivePadding, gap);
         }
         else
         {
-            RowFlexLayoutStrategy.LayoutRowFlex(node, flex, innerContext, padding, gap);
+            RowFlexLayoutStrategy.LayoutRowFlex(node, flex, innerContext, effectivePadding, gap);
+        }
+
+        // RTL mirroring for row layouts (after strategy has completed, including any RowReverse flip)
+        // Per CSS spec: Row+RTL = mirror, RowReverse+RTL = double mirror (cancels to LTR)
+        if (!isColumn && effectiveDirection == TextDirection.Rtl)
+        {
+            MirrorRowXPositions(node, effectivePadding);
         }
 
         // Calculate height if not specified (skip for wrapped containers — they set height in LayoutWrappedFlex)
         if (height == 0f && node.Children.Count > 0 && flex.Wrap == FlexWrap.NoWrap)
         {
-            node.Height = LayoutHelpers.CalculateTotalHeight(node) + padding.Bottom;
+            node.Height = LayoutHelpers.CalculateTotalHeight(node) + effectivePadding.Bottom;
         }
 
         // Position absolute children after flex layout is complete
@@ -342,9 +369,9 @@ public sealed class LayoutEngine
 
             // X positioning: left takes priority, then right, then justify/align fallback
             if (leftInset.HasValue)
-                child.X = padding.Left + leftInset.Value;
+                child.X = effectivePadding.Left + leftInset.Value;
             else if (rightInset.HasValue)
-                child.X = node.Width - padding.Right - child.Width - rightInset.Value;
+                child.X = node.Width - effectivePadding.Right - child.Width - rightInset.Value;
             else
             {
                 // No horizontal insets — use justify-content (row) or align-items (column)
@@ -354,10 +381,10 @@ public sealed class LayoutEngine
                     // Row: main axis = X, use justify-content
                     child.X = flex.Justify switch
                     {
-                        JustifyContent.End => node.Width - padding.Right - child.Width,
+                        JustifyContent.End => node.Width - effectivePadding.Right - child.Width,
                         JustifyContent.Center or JustifyContent.SpaceAround or JustifyContent.SpaceEvenly
-                            => padding.Left + (node.Width - padding.Left - padding.Right - child.Width) / 2f,
-                        _ => padding.Left // Start, SpaceBetween
+                            => effectivePadding.Left + (node.Width - effectivePadding.Left - effectivePadding.Right - child.Width) / 2f,
+                        _ => effectivePadding.Left // Start, SpaceBetween
                     };
                 }
                 else
@@ -366,18 +393,18 @@ public sealed class LayoutEngine
                     var align = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
                     child.X = align switch
                     {
-                        AlignItems.End => node.Width - padding.Right - child.Width,
-                        AlignItems.Center => padding.Left + (node.Width - padding.Left - padding.Right - child.Width) / 2f,
-                        _ => padding.Left // Start, Stretch, Baseline
+                        AlignItems.End => node.Width - effectivePadding.Right - child.Width,
+                        AlignItems.Center => effectivePadding.Left + (node.Width - effectivePadding.Left - effectivePadding.Right - child.Width) / 2f,
+                        _ => effectivePadding.Left // Start, Stretch, Baseline
                     };
                 }
             }
 
             // Y positioning: top takes priority, then bottom, then justify/align fallback
             if (topInset.HasValue)
-                child.Y = padding.Top + topInset.Value;
+                child.Y = effectivePadding.Top + topInset.Value;
             else if (bottomInset.HasValue)
-                child.Y = node.Height - padding.Bottom - child.Height - bottomInset.Value;
+                child.Y = node.Height - effectivePadding.Bottom - child.Height - bottomInset.Value;
             else
             {
                 var isColumnDir = flex.Direction is FlexDirection.Column or FlexDirection.ColumnReverse;
@@ -386,10 +413,10 @@ public sealed class LayoutEngine
                     // Column: main axis = Y, use justify-content
                     child.Y = flex.Justify switch
                     {
-                        JustifyContent.End => node.Height - padding.Bottom - child.Height,
+                        JustifyContent.End => node.Height - effectivePadding.Bottom - child.Height,
                         JustifyContent.Center or JustifyContent.SpaceAround or JustifyContent.SpaceEvenly
-                            => padding.Top + (node.Height - padding.Top - padding.Bottom - child.Height) / 2f,
-                        _ => padding.Top
+                            => effectivePadding.Top + (node.Height - effectivePadding.Top - effectivePadding.Bottom - child.Height) / 2f,
+                        _ => effectivePadding.Top
                     };
                 }
                 else
@@ -398,9 +425,9 @@ public sealed class LayoutEngine
                     var align = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
                     child.Y = align switch
                     {
-                        AlignItems.End => node.Height - padding.Bottom - child.Height,
-                        AlignItems.Center => padding.Top + (node.Height - padding.Top - padding.Bottom - child.Height) / 2f,
-                        _ => padding.Top
+                        AlignItems.End => node.Height - effectivePadding.Bottom - child.Height,
+                        AlignItems.Center => effectivePadding.Top + (node.Height - effectivePadding.Top - effectivePadding.Bottom - child.Height) / 2f,
+                        _ => effectivePadding.Top
                     };
                 }
             }
@@ -412,6 +439,7 @@ public sealed class LayoutEngine
     private LayoutNode LayoutTextElement(TextElement text, LayoutContext context)
     {
         var padding = PaddingParser.Parse(text.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(text, context.ContainerWidth, context.FontSize);
 
         float contentWidth;
         if (!string.IsNullOrEmpty(text.Width))
@@ -451,9 +479,9 @@ public sealed class LayoutEngine
             contentHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightMultiplier);
         }
 
-        // Total size includes padding (margin is applied in flex layout pass)
-        var totalWidth = contentWidth + padding.Horizontal;
-        var totalHeight = contentHeight + padding.Vertical;
+        // Total size includes padding and border (margin is applied in flex layout pass)
+        var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
+        var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         return new LayoutNode(text, 0, 0, totalWidth, totalHeight);
     }
@@ -491,6 +519,7 @@ public sealed class LayoutEngine
     private static LayoutNode LayoutQrElement(QrElement qr, LayoutContext context)
     {
         var padding = PaddingParser.Parse(qr.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(qr, context.ContainerWidth, context.FontSize);
 
         // QR code is square, size is both width and height
         // Check if explicit width/height are provided via flex properties
@@ -498,9 +527,9 @@ public sealed class LayoutEngine
         var contentWidth = context.ResolveWidth(qr.Width) ?? (float?)qr.Size ?? context.ContainerWidth;
         var contentHeight = context.ResolveHeight(qr.Height) ?? (float?)qr.Size ?? context.ContainerHeight;
 
-        // Total size includes padding (margin is applied in flex layout pass)
-        var totalWidth = contentWidth + padding.Horizontal;
-        var totalHeight = contentHeight + padding.Vertical;
+        // Total size includes padding and border (margin is applied in flex layout pass)
+        var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
+        var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         return new LayoutNode(qr, 0, 0, totalWidth, totalHeight);
     }
@@ -511,15 +540,16 @@ public sealed class LayoutEngine
     private static LayoutNode LayoutBarcodeElement(BarcodeElement barcode, LayoutContext context)
     {
         var padding = PaddingParser.Parse(barcode.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(barcode, context.ContainerWidth, context.FontSize);
 
         // Use explicit flex dimensions if provided, otherwise fall back to barcode-specific dimensions
         // Priority: flex Width/Height > BarcodeWidth/BarcodeHeight > container defaults
         var contentWidth = context.ResolveWidth(barcode.Width) ?? (float?)barcode.BarcodeWidth ?? context.ContainerWidth;
         var contentHeight = context.ResolveHeight(barcode.Height) ?? (float?)barcode.BarcodeHeight ?? context.ContainerHeight;
 
-        // Total size includes padding (margin is applied in flex layout pass)
-        var totalWidth = contentWidth + padding.Horizontal;
-        var totalHeight = contentHeight + padding.Vertical;
+        // Total size includes padding and border (margin is applied in flex layout pass)
+        var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
+        var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         return new LayoutNode(barcode, 0, 0, totalWidth, totalHeight);
     }
@@ -530,14 +560,15 @@ public sealed class LayoutEngine
     private static LayoutNode LayoutImageElement(ImageElement image, LayoutContext context)
     {
         var padding = PaddingParser.Parse(image.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(image, context.ContainerWidth, context.FontSize);
 
         // Priority: flex Width/Height > ImageWidth/ImageHeight > container defaults
         var contentWidth = context.ResolveWidth(image.Width) ?? image.ImageWidth ?? context.ContainerWidth;
         var contentHeight = context.ResolveHeight(image.Height) ?? image.ImageHeight ?? context.ContainerHeight;
 
-        // Total size includes padding (margin is applied in flex layout pass)
-        var totalWidth = contentWidth + padding.Horizontal;
-        var totalHeight = contentHeight + padding.Vertical;
+        // Total size includes padding and border (margin is applied in flex layout pass)
+        var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
+        var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         return new LayoutNode(image, 0, 0, totalWidth, totalHeight);
     }
@@ -548,6 +579,7 @@ public sealed class LayoutEngine
     private static LayoutNode LayoutSeparatorElement(SeparatorElement separator, LayoutContext context)
     {
         var padding = PaddingParser.Parse(separator.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(separator, context.ContainerWidth, context.FontSize);
 
         float contentWidth;
         float contentHeight;
@@ -565,9 +597,41 @@ public sealed class LayoutEngine
             contentHeight = context.ResolveHeight(separator.Height) ?? separator.Thickness;
         }
 
-        var totalWidth = contentWidth + padding.Horizontal;
-        var totalHeight = contentHeight + padding.Vertical;
+        var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
+        var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         return new LayoutNode(separator, 0, 0, totalWidth, totalHeight);
+    }
+
+    /// <summary>
+    /// Checks whether any flow (non-absolute) child in the node has a non-default
+    /// <see cref="Parsing.Ast.TemplateElement.Order"/> value.
+    /// Returns <c>false</c> when all flow children have <c>Order == 0</c>, allowing the caller to skip sorting.
+    /// Absolute-positioned children are excluded because they are removed from the flex flow.
+    /// </summary>
+    private static bool HasNonDefaultOrder(LayoutNode node)
+    {
+        foreach (var child in node.Children)
+        {
+            if (child.Element.Position == Position.Absolute)
+                continue;
+            if (child.Element.Order != 0)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Mirrors all flow child X positions for RTL layout.
+    /// Transforms: child.X = containerWidth - padding.Right - (child.X - padding.Left) - child.Width
+    /// </summary>
+    private static void MirrorRowXPositions(LayoutNode node, PaddingValues padding)
+    {
+        foreach (var child in node.Children)
+        {
+            if (child.Element.Display == Display.None) continue;
+            if (child.Element.Position == Position.Absolute) continue;
+            child.X = node.Width - padding.Right - (child.X - padding.Left) - child.Width;
+        }
     }
 }

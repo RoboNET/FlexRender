@@ -436,6 +436,20 @@ public sealed class TemplateExpander
         // Other base properties
         target.Display = source.Display;
         target.AspectRatio = source.AspectRatio;
+
+        // Border properties
+        target.Border = source.Border;
+        target.BorderWidth = source.BorderWidth;
+        target.BorderColor = source.BorderColor;
+        target.BorderStyle = source.BorderStyle;
+        target.BorderTop = source.BorderTop;
+        target.BorderRight = source.BorderRight;
+        target.BorderBottom = source.BorderBottom;
+        target.BorderLeft = source.BorderLeft;
+        target.BorderRadius = source.BorderRadius;
+
+        // Text direction
+        target.TextDirection = source.TextDirection;
     }
 
     private FlexElement ExpandFlex(FlexElement flex, TemplateContext context, int depth)

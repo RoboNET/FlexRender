@@ -23,6 +23,9 @@ public sealed class LayoutContext
     /// </summary>
     public IReadOnlyDictionary<TemplateElement, IntrinsicSize>? IntrinsicSizes { get; }
 
+    /// <summary>Current text direction (inherited from canvas or parent).</summary>
+    public TextDirection Direction { get; }
+
     /// <summary>
     /// Creates a new layout context.
     /// </summary>
@@ -30,12 +33,16 @@ public sealed class LayoutContext
     /// <param name="containerHeight">Available height from container.</param>
     /// <param name="fontSize">Current font size for em calculations.</param>
     /// <param name="intrinsicSizes">Optional pre-computed intrinsic sizes from the measure pass.</param>
-    public LayoutContext(float containerWidth, float containerHeight, float fontSize, IReadOnlyDictionary<TemplateElement, IntrinsicSize>? intrinsicSizes = null)
+    /// <param name="direction">Text direction for layout. Defaults to LTR.</param>
+    public LayoutContext(float containerWidth, float containerHeight, float fontSize,
+        IReadOnlyDictionary<TemplateElement, IntrinsicSize>? intrinsicSizes = null,
+        TextDirection direction = TextDirection.Ltr)
     {
         ContainerWidth = containerWidth;
         ContainerHeight = containerHeight;
         FontSize = fontSize;
         IntrinsicSizes = intrinsicSizes;
+        Direction = direction;
     }
 
     /// <summary>
@@ -46,7 +53,7 @@ public sealed class LayoutContext
     /// <returns>A new LayoutContext with the specified size.</returns>
     public LayoutContext WithSize(float width, float height)
     {
-        return new LayoutContext(width, height, FontSize, IntrinsicSizes);
+        return new LayoutContext(width, height, FontSize, IntrinsicSizes, Direction);
     }
 
     /// <summary>
@@ -56,7 +63,17 @@ public sealed class LayoutContext
     /// <returns>A new LayoutContext with the specified font size.</returns>
     public LayoutContext WithFontSize(float fontSize)
     {
-        return new LayoutContext(ContainerWidth, ContainerHeight, fontSize, IntrinsicSizes);
+        return new LayoutContext(ContainerWidth, ContainerHeight, fontSize, IntrinsicSizes, Direction);
+    }
+
+    /// <summary>
+    /// Creates a new context with a different text direction.
+    /// </summary>
+    /// <param name="direction">The new text direction.</param>
+    /// <returns>A new LayoutContext with the specified direction.</returns>
+    public LayoutContext WithDirection(TextDirection direction)
+    {
+        return new LayoutContext(ContainerWidth, ContainerHeight, FontSize, IntrinsicSizes, direction);
     }
 
     /// <summary>

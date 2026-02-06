@@ -135,4 +135,38 @@ public abstract class TemplateElement
 
     /// <summary>Aspect ratio (width / height). When one dimension is known, the other is computed.</summary>
     public float? AspectRatio { get; set; }
+
+    // Border properties
+
+    /// <summary>Border shorthand: "width style color" (e.g., "2 solid #333"). Applies to all sides.</summary>
+    public string? Border { get; set; }
+
+    /// <summary>Border width (px, em). Overrides shorthand width on all sides.</summary>
+    public string? BorderWidth { get; set; }
+
+    /// <summary>Border color in hex format. Overrides shorthand color on all sides.</summary>
+    public string? BorderColor { get; set; }
+
+    /// <summary>Border style: solid, dashed, dotted, none. Overrides shorthand style on all sides.</summary>
+    public string? BorderStyle { get; set; }
+
+    /// <summary>Per-side border shorthand for the top side: "width style color".</summary>
+    public string? BorderTop { get; set; }
+
+    /// <summary>Per-side border shorthand for the right side: "width style color".</summary>
+    public string? BorderRight { get; set; }
+
+    /// <summary>Per-side border shorthand for the bottom side: "width style color".</summary>
+    public string? BorderBottom { get; set; }
+
+    /// <summary>Per-side border shorthand for the left side: "width style color".</summary>
+    public string? BorderLeft { get; set; }
+
+    /// <summary>Border radius for corner rounding (px, em, %).</summary>
+    public string? BorderRadius { get; set; }
+
+    /// <summary>
+    /// Text direction override. Null means inherit from parent/canvas.
+    /// </summary>
+    public TextDirection? TextDirection { get; set; }
 }

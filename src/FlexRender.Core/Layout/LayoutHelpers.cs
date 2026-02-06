@@ -194,6 +194,25 @@ internal static class LayoutHelpers
     }
 
     /// <summary>
+    /// Resolves logical text alignment (Start/End) to physical alignment (Left/Right) based on direction.
+    /// Physical values (Left, Center, Right) are returned as-is.
+    /// </summary>
+    /// <param name="align">The text alignment value.</param>
+    /// <param name="direction">The effective text direction.</param>
+    /// <returns>The resolved physical alignment.</returns>
+    internal static TextAlign ResolveLogicalAlign(TextAlign align, TextDirection direction)
+    {
+        return (align, direction) switch
+        {
+            (TextAlign.Start, TextDirection.Ltr) => TextAlign.Left,
+            (TextAlign.Start, TextDirection.Rtl) => TextAlign.Right,
+            (TextAlign.End, TextDirection.Ltr) => TextAlign.Right,
+            (TextAlign.End, TextDirection.Rtl) => TextAlign.Left,
+            _ => align
+        };
+    }
+
+    /// <summary>
     /// Calculates the total height needed to contain all children.
     /// </summary>
     /// <param name="node">The parent layout node.</param>
@@ -232,5 +251,17 @@ internal static class LayoutHelpers
                 maxRight = right;
         }
         return maxRight;
+    }
+
+    /// <summary>
+    /// Resolves the effective text direction for an element.
+    /// Per-element TextDirection overrides inherited direction.
+    /// </summary>
+    /// <param name="element">The element to resolve direction for.</param>
+    /// <param name="inherited">The inherited direction from parent/canvas.</param>
+    /// <returns>The effective text direction.</returns>
+    internal static TextDirection ResolveDirection(TemplateElement element, TextDirection inherited)
+    {
+        return element.TextDirection ?? inherited;
     }
 }

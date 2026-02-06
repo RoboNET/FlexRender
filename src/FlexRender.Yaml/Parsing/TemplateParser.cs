@@ -218,6 +218,13 @@ public sealed class TemplateParser : ITemplateParser
         canvas.Background = GetStringValue(node, "background", "#ffffff");
         canvas.Rotate = GetStringValue(node, "rotate", "none");
 
+        var dirStr = GetStringValue(node, "text-direction", "ltr");
+        canvas.TextDirection = dirStr.ToLowerInvariant() switch
+        {
+            "rtl" => TextDirection.Rtl,
+            _ => TextDirection.Ltr
+        };
+
         var sizeValue = GetStringValue(node, "size");
         if (sizeValue != null)
         {

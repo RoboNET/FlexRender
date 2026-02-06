@@ -1,3 +1,4 @@
+using System.Globalization;
 using FlexRender.Layout;
 using FlexRender.Parsing.Ast;
 using YamlDotNet.RepresentationModel;
@@ -60,13 +61,33 @@ internal sealed class ElementParsers
         };
 
         // Width/Height: Barcode and Image YAML width/height map to content-specific properties
-        // (BarcodeWidth/BarcodeHeight, ImageWidth/ImageHeight), NOT to the base flex Width/Height.
-        // This preserves backward compatibility.
+        // (BarcodeWidth/BarcodeHeight, ImageWidth/ImageHeight) in their element-specific parsers.
+        // We also propagate those values to the base flex Width/Height so the layout engine
+        // can properly center elements via margin auto or align properties.
         switch (element)
         {
-            case BarcodeElement:
-            case ImageElement:
-                // width/height already parsed in element-specific parsers
+            case BarcodeElement bc:
+                // Set flex Width/Height from barcode-specific dimensions for proper layout centering
+                if (bc.BarcodeWidth.HasValue)
+                    element.Width = bc.BarcodeWidth.Value.ToString(CultureInfo.InvariantCulture);
+                if (bc.BarcodeHeight.HasValue)
+                    element.Height = bc.BarcodeHeight.Value.ToString(CultureInfo.InvariantCulture);
+                break;
+            case QrElement qr:
+                // QR is square: Size maps to both Width and Height for proper layout centering
+                if (qr.Size.HasValue)
+                {
+                    var sizeStr = qr.Size.Value.ToString(CultureInfo.InvariantCulture);
+                    element.Width = sizeStr;
+                    element.Height = sizeStr;
+                }
+                break;
+            case ImageElement img:
+                // Set flex Width/Height from image-specific dimensions for proper layout centering
+                if (img.ImageWidth.HasValue)
+                    element.Width = img.ImageWidth.Value.ToString(CultureInfo.InvariantCulture);
+                if (img.ImageHeight.HasValue)
+                    element.Height = img.ImageHeight.Value.ToString(CultureInfo.InvariantCulture);
                 break;
             default:
                 element.Width = GetStringValue(node, "width");
@@ -98,6 +119,28 @@ internal sealed class ElementParsers
         // Aspect ratio
         element.AspectRatio = GetNullableFloatValue(node, "aspectRatio")
                               ?? GetNullableFloatValue(node, "aspect-ratio");
+
+        // Border properties
+        element.Border = GetStringValue(node, "border");
+        element.BorderWidth = GetStringValue(node, "border-width") ?? GetStringValue(node, "borderWidth");
+        element.BorderColor = GetStringValue(node, "border-color") ?? GetStringValue(node, "borderColor");
+        element.BorderStyle = GetStringValue(node, "border-style") ?? GetStringValue(node, "borderStyle");
+        element.BorderTop = GetStringValue(node, "border-top") ?? GetStringValue(node, "borderTop");
+        element.BorderRight = GetStringValue(node, "border-right") ?? GetStringValue(node, "borderRight");
+        element.BorderBottom = GetStringValue(node, "border-bottom") ?? GetStringValue(node, "borderBottom");
+        element.BorderLeft = GetStringValue(node, "border-left") ?? GetStringValue(node, "borderLeft");
+        element.BorderRadius = GetStringValue(node, "border-radius") ?? GetStringValue(node, "borderRadius");
+
+        var dirStr = GetStringValue(node, "text-direction");
+        if (dirStr != null)
+        {
+            element.TextDirection = dirStr.ToLowerInvariant() switch
+            {
+                "rtl" => TextDirection.Rtl,
+                "ltr" => TextDirection.Ltr,
+                _ => null
+            };
+        }
     }
 
     /// <summary>
@@ -128,6 +171,8 @@ internal sealed class ElementParsers
             "left" => TextAlign.Left,
             "center" => TextAlign.Center,
             "right" => TextAlign.Right,
+            "start" => TextAlign.Start,
+            "end" => TextAlign.End,
             _ => TextAlign.Left
         };
 
@@ -258,7 +303,7 @@ internal sealed class ElementParsers
             Data = GetStringValue(node, "data", ""),
             Size = GetIntValue(node, "size", 100),
             Foreground = GetStringValue(node, "foreground", "#000000"),
-            Background = GetStringValue(node, "background", "#ffffff"),
+            Background = GetStringValue(node, "background"),
             Rotate = GetStringValue(node, "rotate", "none"),
             Padding = GetStringValue(node, "padding", "0"),
             Margin = GetStringValue(node, "margin", "0")
@@ -292,7 +337,7 @@ internal sealed class ElementParsers
             BarcodeHeight = GetIntValue(node, "height", 80),
             ShowText = GetBoolValue(node, "showText", true),
             Foreground = GetStringValue(node, "foreground", "#000000"),
-            Background = GetStringValue(node, "background", "#ffffff"),
+            Background = GetStringValue(node, "background"),
             Rotate = GetStringValue(node, "rotate", "none"),
             Padding = GetStringValue(node, "padding", "0"),
             Margin = GetStringValue(node, "margin", "0")

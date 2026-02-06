@@ -147,13 +147,21 @@ internal sealed class ColumnFlexLayoutStrategy
             }
         }
 
-        // Apply resolved sizes to child nodes
+        // Apply resolved sizes to child nodes, tracking which ones changed
+        Span<bool> heightChanged = itemCount <= 32 ? stackalloc bool[itemCount] : new bool[itemCount];
         for (var i = 0; i < itemCount; i++)
         {
             if (node.Children[i].Element.Display == Display.None) continue;
             if (node.Children[i].Element.Position == Position.Absolute) continue;
-            node.Children[i].Height = Math.Max(0, sizes[i]);
+            var newHeight = Math.Max(0, sizes[i]);
+            heightChanged[i] = Math.Abs(node.Children[i].Height - newHeight) > 0.01f;
+            node.Children[i].Height = newHeight;
         }
+
+        // After flex grow/shrink changes row container heights, their children's
+        // cross-axis (vertical) positions are stale. Re-align grandchildren so that
+        // align-items: center, margin: auto 0, etc. use the NEW row height.
+        RealignRowChildren(node, heightChanged, context);
 
         // Re-apply aspect ratio after flex resolution changed main-axis size (column: main=height)
         foreach (var child in node.Children)
@@ -368,6 +376,73 @@ internal sealed class ColumnFlexLayoutStrategy
             if (effectiveAlign == AlignItems.Stretch && !LayoutHelpers.HasExplicitWidth(child.Element) && !hasAspectWidth && crossAxisSize > 0)
             {
                 child.Width = crossAxisSize;
+            }
+        }
+    }
+
+    /// <summary>
+    /// After flex grow/shrink changes row container heights, re-aligns
+    /// grandchildren along the cross axis (vertical for row containers).
+    /// Only processes children whose height actually changed during flex resolution.
+    /// This replicates the cross-axis alignment logic from
+    /// <see cref="RowFlexLayoutStrategy"/> so that align-items: center,
+    /// margin: auto 0, and similar properties use the updated row height.
+    /// </summary>
+    /// <param name="node">The column container whose children may be row flex containers.</param>
+    /// <param name="heightChanged">Per-child flags indicating which heights changed during flex resolution.</param>
+    /// <param name="context">The layout context for resolving units.</param>
+    private static void RealignRowChildren(LayoutNode node, Span<bool> heightChanged, LayoutContext context)
+    {
+        for (var i = 0; i < node.Children.Count; i++)
+        {
+            if (!heightChanged[i]) continue;
+
+            var child = node.Children[i];
+            if (child.Element.Display == Display.None) continue;
+            if (child.Element.Position == Position.Absolute) continue;
+            if (child.Element is not FlexElement childFlex) continue;
+            if (childFlex.Direction is not (FlexDirection.Row or FlexDirection.RowReverse)) continue;
+
+            var childPadding = PaddingParser.Parse(childFlex.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+            var newCrossAxisSize = child.Height - childPadding.Vertical;
+            if (newCrossAxisSize <= 0) continue;
+
+            // For row containers, hasExplicitHeight is true since the height was set by flex grow/shrink
+            foreach (var grandchild in child.Children)
+            {
+                if (grandchild.Element.Display == Display.None) continue;
+                if (grandchild.Element.Position == Position.Absolute) continue;
+
+                var m = PaddingParser.ParseMargin(grandchild.Element.Margin, context.ContainerWidth, context.FontSize);
+
+                if (m.CrossAxisAutoCount(isColumn: false) > 0)
+                {
+                    RowFlexLayoutStrategy.ApplyRowCrossAxisMargins(
+                        grandchild, m, childFlex, childPadding, newCrossAxisSize, hasExplicitHeight: true);
+                }
+                else
+                {
+                    var mTop = Math.Max(0f, m.Top.ResolvedPixels);
+                    var mBottom = Math.Max(0f, m.Bottom.ResolvedPixels);
+
+                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(grandchild.Element, childFlex.Align);
+                    grandchild.Y = mTop + (newCrossAxisSize > 0 ? effectiveAlign switch
+                    {
+                        AlignItems.Start => childPadding.Top,
+                        AlignItems.Center => childPadding.Top + (newCrossAxisSize - grandchild.Height - mTop - mBottom) / 2,
+                        AlignItems.End => childPadding.Top + newCrossAxisSize - grandchild.Height - mTop - mBottom,
+                        AlignItems.Stretch => childPadding.Top,
+                        _ => childPadding.Top
+                    } : childPadding.Top);
+
+                    // Stretch height if align is stretch and no explicit height on grandchild
+                    var hasAspectHeight = grandchild.Element.AspectRatio.HasValue && grandchild.Element.AspectRatio.Value > 0f
+                        && LayoutHelpers.HasExplicitWidth(grandchild.Element) && !LayoutHelpers.HasExplicitHeight(grandchild.Element);
+                    if (effectiveAlign == AlignItems.Stretch && !LayoutHelpers.HasExplicitHeight(grandchild.Element) && !hasAspectHeight && newCrossAxisSize > 0)
+                    {
+                        grandchild.Height = newCrossAxisSize - mTop - mBottom;
+                    }
+                }
             }
         }
     }

@@ -1,0 +1,78 @@
+template:
+  name: "border-radius"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "30"
+    gap: 16
+    children:
+      - type: flex
+        border: "2 solid #3498db"
+        border-radius: "12"
+        padding: "16"
+        gap: 8
+        children:
+          - type: text
+            content: "Rounded Corners"
+            font: bold
+            size: 16px
+            color: "#3498db"
+          - type: text
+            content: "border-radius: 12px creates smooth rounded corners on all sides."
+            size: 13px
+            color: "#666666"
+            wrap: true
+            lineHeight: "1.5"
+
+      - type: flex
+        direction: row
+        gap: 12
+        children:
+          - type: flex
+            grow: 1
+            border: "2 solid #e74c3c"
+            border-radius: "4"
+            padding: "12"
+            align: center
+            children:
+              - type: text
+                content: "4px"
+                size: 13px
+                color: "#e74c3c"
+                align: center
+
+          - type: flex
+            grow: 1
+            border: "2 solid #2ecc71"
+            border-radius: "16"
+            padding: "12"
+            align: center
+            children:
+              - type: text
+                content: "16px"
+                size: 13px
+                color: "#2ecc71"
+                align: center
+
+          - type: flex
+            grow: 1
+            border: "2 solid #9b59b6"
+            border-radius: "30"
+            padding: "12"
+            align: center
+            children:
+              - type: text
+                content: "30px"
+                size: 13px
+                color: "#9b59b6"
+                align: center

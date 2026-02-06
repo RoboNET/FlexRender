@@ -31,6 +31,9 @@ public sealed class LayoutNode
     /// <summary>Computed height.</summary>
     public float Height { get; set; }
 
+    /// <summary>Effective text direction for this node.</summary>
+    public TextDirection Direction { get; set; } = TextDirection.Ltr;
+
     /// <summary>Right edge (X + Width).</summary>
     public float Right => X + Width;
 
@@ -71,5 +74,38 @@ public sealed class LayoutNode
     {
         ArgumentNullException.ThrowIfNull(child);
         _children.Add(child);
+    }
+
+    /// <summary>
+    /// Sorts flow (non-absolute) children by their <see cref="TemplateElement.Order"/> property
+    /// using a stable sort. Items with equal order values preserve their original source order.
+    /// Absolute-positioned children are excluded from sorting and appended at the end,
+    /// preserving their original relative order.
+    /// </summary>
+    internal void SortChildrenByOrder()
+    {
+        var count = _children.Count;
+        var flow = new List<(LayoutNode node, int order, int index)>();
+        var absolute = new List<LayoutNode>();
+
+        for (var i = 0; i < count; i++)
+        {
+            if (_children[i].Element.Position == Position.Absolute)
+                absolute.Add(_children[i]);
+            else
+                flow.Add((_children[i], _children[i].Element.Order, i));
+        }
+
+        flow.Sort(static (a, b) =>
+        {
+            var cmp = a.order.CompareTo(b.order);
+            return cmp != 0 ? cmp : a.index.CompareTo(b.index);
+        });
+
+        _children.Clear();
+        foreach (var item in flow)
+            _children.Add(item.node);
+        foreach (var item in absolute)
+            _children.Add(item);
     }
 }

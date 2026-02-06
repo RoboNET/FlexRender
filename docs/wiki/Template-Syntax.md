@@ -22,6 +22,7 @@ canvas:                       # Required: canvas configuration
   fixed: width                # Which dimension is fixed
   width: 300                  # Canvas width in pixels
   background: "#ffffff"       # Background color
+  dir: ltr                    # Text direction: ltr (default), rtl
 
 layout:                       # Required: array of elements
   - type: text
@@ -37,6 +38,7 @@ layout:                       # Required: array of elements
 | `height` | int | `0` | Canvas height (0 = auto when not fixed) |
 | `background` | string | `"#ffffff"` | Background color in hex |
 | `rotate` | string | `"none"` | Post-render rotation |
+| `dir` | TextDirection | `ltr` | Text direction: `ltr`, `rtl` |
 
 ### Fixed Dimension
 
@@ -103,7 +105,7 @@ Renders text content with font, size, color, alignment, and wrapping options.
 | `font` | string | `"main"` | Font reference name from `fonts` section |
 | `size` | string | `"1em"` | Font size (px, em, %) |
 | `color` | string | `"#000000"` | Text color in hex |
-| `align` | TextAlign | `left` | Text alignment: `left`, `center`, `right` |
+| `align` | TextAlign | `left` | Text alignment: `left`, `center`, `right`, `start` (logical), `end` (logical) |
 | `wrap` | bool | `true` | Whether text wraps to multiple lines |
 | `overflow` | TextOverflow | `ellipsis` | Overflow handling: `ellipsis`, `clip`, `visible` |
 | `maxLines` | int? | `null` | Maximum number of lines (null = unlimited) |
@@ -357,6 +359,7 @@ All elements inherit these properties from `TemplateElement`:
 | `bottom` | string? | `null` | Bottom inset for positioned elements |
 | `left` | string? | `null` | Left inset for positioned elements |
 | `aspectRatio` | float? | `null` | Width/height ratio constraint |
+| `dir` | TextDirection? | `null` | Text direction override: `ltr`, `rtl` (null = inherit from parent/canvas) |
 
 ## Units
 

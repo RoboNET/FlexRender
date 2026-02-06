@@ -62,4 +62,16 @@ public class FlexEnumsTests
         Assert.Equal(4, (int)AlignSelf.Stretch);
         Assert.Equal(5, (int)AlignSelf.Baseline);
     }
+
+    [Fact]
+    public void TextDirection_Ltr_HasValueZero()
+    {
+        Assert.Equal(0, (int)TextDirection.Ltr);
+    }
+
+    [Fact]
+    public void TextDirection_Rtl_HasValueOne()
+    {
+        Assert.Equal(1, (int)TextDirection.Rtl);
+    }
 }

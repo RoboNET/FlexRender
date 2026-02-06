@@ -170,7 +170,7 @@ public sealed class BarcodeProvider : IContentProvider<BarcodeElement>
         var foreground = ColorParser.Parse(element.Foreground);
         var background = element.Background is not null
             ? ColorParser.Parse(element.Background)
-            : SKColors.White;
+            : SKColors.Transparent;
 
         // Fill background
         canvas.Clear(background);

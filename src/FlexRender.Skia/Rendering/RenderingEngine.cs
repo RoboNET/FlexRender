@@ -1,6 +1,7 @@
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Layout;
+using FlexRender.Layout.Units;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
 using FlexRender.TemplateEngine;
@@ -193,7 +194,7 @@ internal sealed class RenderingEngine
         var y = node.Y + offsetY;
 
         // Draw current element
-        DrawElement(canvas, node.Element, x, y, node.Width, node.Height, imageCache, renderOptions);
+        DrawElement(canvas, node.Element, x, y, node.Width, node.Height, imageCache, renderOptions, node.Direction);
 
         // Apply overflow:hidden clipping for flex containers
         var needsClip = node.Element is FlexElement { Overflow: Overflow.Hidden };
@@ -226,6 +227,7 @@ internal sealed class RenderingEngine
     /// <param name="height">Available height.</param>
     /// <param name="imageCache">Optional pre-loaded image cache for thread-safe rendering.</param>
     /// <param name="renderOptions">Per-call rendering options.</param>
+    /// <param name="direction">Text direction for this element.</param>
     private void DrawElement(
         SKCanvas canvas,
         TemplateElement element,
@@ -234,21 +236,35 @@ internal sealed class RenderingEngine
         float width,
         float height,
         IReadOnlyDictionary<string, SKBitmap>? imageCache,
-        RenderOptions renderOptions)
+        RenderOptions renderOptions,
+        TextDirection direction = TextDirection.Ltr)
     {
+        // Resolve border-radius for background clipping and border rendering
+        var borderRadius = ResolveBorderRadius(element, width, height, _baseFontSize);
+
         // Draw background if specified
         if (!string.IsNullOrEmpty(element.Background))
         {
             var bgColor = ColorParser.Parse(element.Background);
             using var bgPaint = new SKPaint { Color = bgColor };
-            canvas.DrawRect(x, y, width, height, bgPaint);
+            if (borderRadius > 0f)
+            {
+                canvas.DrawRoundRect(x, y, width, height, borderRadius, borderRadius, bgPaint);
+            }
+            else
+            {
+                canvas.DrawRect(x, y, width, height, bgPaint);
+            }
         }
+
+        // Draw borders between background and content
+        DrawBorders(canvas, element, x, y, width, height, borderRadius, _baseFontSize);
 
         switch (element)
         {
             case TextElement text:
                 var bounds = new SKRect(x, y, x + width, y + height);
-                _textRenderer.DrawText(canvas, text, bounds, _baseFontSize, renderOptions);
+                _textRenderer.DrawText(canvas, text, bounds, _baseFontSize, renderOptions, direction);
                 break;
 
             case QrElement qr when _qrProvider is not null:
@@ -471,5 +487,184 @@ internal sealed class RenderingEngine
         }
 
         return cache;
+    }
+
+    /// <summary>
+    /// Resolves the border-radius for an element, clamped to half the smaller dimension.
+    /// </summary>
+    /// <param name="element">The element whose border-radius to resolve.</param>
+    /// <param name="width">The element width for percentage resolution and clamping.</param>
+    /// <param name="height">The element height for clamping.</param>
+    /// <param name="fontSize">The base font size for em/rem resolution.</param>
+    private static float ResolveBorderRadius(TemplateElement element, float width, float height, float fontSize)
+    {
+        if (string.IsNullOrEmpty(element.BorderRadius))
+            return 0f;
+
+        var unit = UnitParser.Parse(element.BorderRadius);
+        var resolved = unit.Resolve(Math.Min(width, height), fontSize) ?? 0f;
+        // Clamp to half the smaller dimension to avoid rendering artifacts
+        return Math.Max(0f, Math.Min(resolved, Math.Min(width, height) / 2f));
+    }
+
+    /// <summary>
+    /// Draws borders for an element. Called between background and content rendering.
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="element">The element whose borders to draw.</param>
+    /// <param name="x">X position.</param>
+    /// <param name="y">Y position.</param>
+    /// <param name="width">Element width.</param>
+    /// <param name="height">Element height.</param>
+    /// <param name="borderRadius">The resolved border-radius value.</param>
+    /// <param name="fontSize">The base font size for em/rem resolution.</param>
+    private static void DrawBorders(
+        SKCanvas canvas,
+        TemplateElement element,
+        float x,
+        float y,
+        float width,
+        float height,
+        float borderRadius,
+        float fontSize)
+    {
+        var border = BorderParser.Resolve(element, width, fontSize);
+        if (!border.HasVisibleBorder)
+            return;
+
+        if (AllSidesEqual(border))
+        {
+            DrawUniformBorder(canvas, border.Top, x, y, width, height, borderRadius);
+        }
+        else
+        {
+            DrawPerSideBorders(canvas, border, x, y, width, height);
+        }
+    }
+
+    /// <summary>
+    /// Checks whether all four border sides have the same width, style, and color.
+    /// </summary>
+    private static bool AllSidesEqual(BorderValues border)
+    {
+        return border.Top == border.Right
+            && border.Right == border.Bottom
+            && border.Bottom == border.Left;
+    }
+
+    /// <summary>
+    /// Draws a uniform border (all sides identical) as a single stroked rect.
+    /// </summary>
+    private static void DrawUniformBorder(
+        SKCanvas canvas,
+        BorderSide side,
+        float x,
+        float y,
+        float width,
+        float height,
+        float borderRadius)
+    {
+        if (!side.IsVisible)
+            return;
+
+        using var paint = new SKPaint
+        {
+            Color = ColorParser.Parse(side.Color),
+            StrokeWidth = side.Width,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+
+        ApplyBorderDashPattern(paint, side);
+
+        // Inset by half stroke width (SkiaSharp draws stroke centered on path)
+        var half = side.Width / 2f;
+        if (borderRadius > 0f)
+        {
+            canvas.DrawRoundRect(x + half, y + half, width - side.Width, height - side.Width, borderRadius, borderRadius, paint);
+        }
+        else
+        {
+            canvas.DrawRect(x + half, y + half, width - side.Width, height - side.Width, paint);
+        }
+    }
+
+    /// <summary>
+    /// Draws per-side borders when sides have different styles/widths/colors.
+    /// </summary>
+    private static void DrawPerSideBorders(
+        SKCanvas canvas,
+        BorderValues border,
+        float x,
+        float y,
+        float width,
+        float height)
+    {
+        // Top border
+        if (border.Top.IsVisible)
+        {
+            DrawBorderLine(canvas, border.Top,
+                x, y + border.Top.Width / 2f,
+                x + width, y + border.Top.Width / 2f);
+        }
+
+        // Right border
+        if (border.Right.IsVisible)
+        {
+            DrawBorderLine(canvas, border.Right,
+                x + width - border.Right.Width / 2f, y,
+                x + width - border.Right.Width / 2f, y + height);
+        }
+
+        // Bottom border
+        if (border.Bottom.IsVisible)
+        {
+            DrawBorderLine(canvas, border.Bottom,
+                x, y + height - border.Bottom.Width / 2f,
+                x + width, y + height - border.Bottom.Width / 2f);
+        }
+
+        // Left border
+        if (border.Left.IsVisible)
+        {
+            DrawBorderLine(canvas, border.Left,
+                x + border.Left.Width / 2f, y,
+                x + border.Left.Width / 2f, y + height);
+        }
+    }
+
+    /// <summary>
+    /// Draws a single border line with the given side's style.
+    /// </summary>
+    private static void DrawBorderLine(SKCanvas canvas, BorderSide side, float x1, float y1, float x2, float y2)
+    {
+        using var paint = new SKPaint
+        {
+            Color = ColorParser.Parse(side.Color),
+            StrokeWidth = side.Width,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+
+        ApplyBorderDashPattern(paint, side);
+        canvas.DrawLine(x1, y1, x2, y2, paint);
+    }
+
+    /// <summary>
+    /// Applies dash/dot pattern to paint based on border line style.
+    /// </summary>
+    private static void ApplyBorderDashPattern(SKPaint paint, BorderSide side)
+    {
+        switch (side.Style)
+        {
+            case BorderLineStyle.Dotted:
+                paint.PathEffect = SKPathEffect.CreateDash(
+                    new[] { side.Width, side.Width * 2 }, 0);
+                break;
+            case BorderLineStyle.Dashed:
+                paint.PathEffect = SKPathEffect.CreateDash(
+                    new[] { side.Width * 4, side.Width * 2 }, 0);
+                break;
+        }
     }
 }

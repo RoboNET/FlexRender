@@ -134,7 +134,7 @@ Control how the element behaves as a child within a `flex` container.
 | Shrink | `shrink` | float | `1` | >= 0 | How much the item shrinks when overflowing. `0` means it will not shrink. |
 | Basis | `basis` | string | `"auto"` | px, %, em, auto | Initial main-axis size before grow/shrink. |
 | AlignSelf | `alignSelf` | AlignSelf | `auto` | auto, start, center, end, stretch, baseline | Override parent's `align` for this item. |
-| Order | `order` | int | `0` | any integer | Display order hint. Currently reserved for future use. |
+| Order | `order` | int | `0` | any integer | Display order for sorting. Lower values appear first. Negative values allowed. |
 | Display | `display` | Display | `flex` | flex, none | `none` removes the element from layout entirely. |
 
 ```yaml
@@ -277,6 +277,7 @@ When both opposing insets are set (e.g., `left` + `right`) without an explicit d
 | Background | `background` | string? | `null` | Hex color (#rgb or #rrggbb) | Background color. `null` means transparent. |
 | Rotate | `rotate` | string | `"none"` | none, left, right, flip, or degrees (e.g., "45") | Element rotation applied after rendering. |
 | AspectRatio | `aspectRatio` or `aspect-ratio` | float? | `null` | Any positive float | Width/height ratio. When one dimension is known, the other is computed. |
+| Dir | `dir` | TextDirection? | `null` | ltr, rtl, null | Text direction override. `null` inherits from parent or canvas. |
 
 ```yaml
 # Background color
@@ -333,6 +334,55 @@ When both opposing insets are set (e.g., `left` + `right`) without an explicit d
 | `"right"` | 90 degrees CW, swaps width and height |
 | `"flip"` | 180 degrees |
 | `"<number>"` | Arbitrary degrees, e.g. `"45"`, `"15"`, `"270"` |
+
+### Border Properties
+
+Add visible borders around any element. Borders consume space in layout (like padding). All border properties are inherited from the base `TemplateElement` class and available on every element type.
+
+| Property | YAML Name | Type | Default | Description |
+|----------|-----------|------|---------|-------------|
+| Border | `border` | string? | `null` | Shorthand for all sides: `"width style color"` (e.g., `"2 solid #333"`). |
+| BorderTop | `border-top` | string? | `null` | Per-side shorthand for top: `"width style color"`. Overrides `border`. |
+| BorderRight | `border-right` | string? | `null` | Per-side shorthand for right side. Overrides `border`. |
+| BorderBottom | `border-bottom` | string? | `null` | Per-side shorthand for bottom side. Overrides `border`. |
+| BorderLeft | `border-left` | string? | `null` | Per-side shorthand for left side. Overrides `border`. |
+| BorderWidth | `border-width` | string? | `null` | Width override for all sides (px, em). Overrides shorthand width. |
+| BorderColor | `border-color` | string? | `null` | Color override for all sides. Overrides shorthand color. |
+| BorderStyle | `border-style` | string? | `null` | Style override: `solid`, `dashed`, `dotted`, `none`. Overrides shorthand style. |
+| BorderRadius | `border-radius` | string? | `null` | Corner rounding radius (px, em, %). |
+
+**CSS cascade order:**
+1. `border` shorthand sets all four sides
+2. `border-width`, `border-color`, `border-style` override individual properties on all sides
+3. `border-top`, `border-right`, `border-bottom`, `border-left` override specific sides
+
+```yaml
+# Uniform solid border
+- type: flex
+  border: "2 solid #333333"
+  padding: "16"
+  children:
+    - type: text
+      content: "Bordered box"
+
+# Per-side borders
+- type: flex
+  border-top: "3 solid #3498db"
+  border-bottom: "1 dashed #cccccc"
+  padding: "16"
+  children:
+    - type: text
+      content: "Top and bottom borders"
+
+# Rounded corners
+- type: flex
+  border: "2 solid #3498db"
+  border-radius: "12"
+  padding: "16"
+  children:
+    - type: text
+      content: "Rounded box"
+```
 
 ---
 
@@ -652,7 +702,7 @@ Renders text content with font styling, alignment, wrapping, overflow handling, 
 | Font | `font` | string | `"main"` | Any key defined in the `fonts` section | No | Font reference name. Falls back to `"default"` if `"main"` is not defined. |
 | Size | `size` | string | `"1em"` | px, em, % | No | Font size. |
 | Color | `color` | string | `"#000000"` | Hex color (#rgb or #rrggbb) | No | Text color. |
-| Align | `align` | TextAlign | `left` | left, center, right | No | Horizontal text alignment within the element. |
+| Align | `align` | TextAlign | `left` | left, center, right, start (logical), end (logical) | No | Horizontal text alignment within the element. `start`/`end` resolve based on text direction. |
 | Wrap | `wrap` | bool | `true` | true, false | No | Whether text wraps to multiple lines when exceeding width. |
 | Overflow | `overflow` | TextOverflow | `ellipsis` | ellipsis, clip, visible | No | How overflowing text is handled when `maxLines` is reached or `wrap` is `false`. |
 | MaxLines | `maxLines` | int? | `null` | Any positive integer, or null for unlimited | No | Maximum number of lines. Text beyond this limit is truncated per `overflow`. |

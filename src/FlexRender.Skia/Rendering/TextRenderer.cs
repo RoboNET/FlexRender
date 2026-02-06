@@ -73,7 +73,8 @@ public sealed class TextRenderer
     /// <param name="bounds">The bounding rectangle.</param>
     /// <param name="baseFontSize">Base font size for em calculations.</param>
     /// <param name="renderOptions">Per-call rendering options controlling antialiasing, font hinting, and text rendering mode.</param>
-    public void DrawText(SKCanvas canvas, TextElement element, SKRect bounds, float baseFontSize, RenderOptions? renderOptions = null)
+    /// <param name="direction">The effective text direction for resolving logical alignment (Start/End).</param>
+    public void DrawText(SKCanvas canvas, TextElement element, SKRect bounds, float baseFontSize, RenderOptions? renderOptions = null, TextDirection direction = TextDirection.Ltr)
     {
         if (string.IsNullOrEmpty(element.Content))
             return;
@@ -113,7 +114,7 @@ public sealed class TextRenderer
         foreach (var line in lines)
         {
             var lineWidth = font.MeasureText(line);
-            var x = CalculateX(element.Align, bounds, lineWidth);
+            var x = CalculateX(element.Align, bounds, lineWidth, direction);
 
             canvas.DrawText(line, x, y, SKTextAlign.Left, font, paint);
             y += lineHeight;
@@ -195,9 +196,11 @@ public sealed class TextRenderer
         };
     }
 
-    private static float CalculateX(TextAlign align, SKRect bounds, float lineWidth)
+    private static float CalculateX(TextAlign align, SKRect bounds, float lineWidth, TextDirection direction = TextDirection.Ltr)
     {
-        return align switch
+        var effectiveAlign = LayoutHelpers.ResolveLogicalAlign(align, direction);
+
+        return effectiveAlign switch
         {
             TextAlign.Center => bounds.Left + (bounds.Width - lineWidth) / 2,
             TextAlign.Right => bounds.Right - lineWidth,

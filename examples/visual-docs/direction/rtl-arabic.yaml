@@ -1,0 +1,46 @@
+template:
+  name: "direction-rtl-arabic"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  arabic: "../../assets/fonts/NotoSansArabic-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  text-direction: rtl
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "24"
+    gap: 12
+    children:
+      - type: flex
+        border: "1 solid #e0e0e0"
+        border-radius: "8"
+        padding: "20"
+        gap: 10
+        background: "#fafafa"
+        children:
+          - type: text
+            font: arabic
+            size: 22px
+            color: "#1a1a2e"
+            align: right
+            content: "\u0645\u0631\u062D\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645"
+
+          - type: separator
+            style: solid
+            thickness: 1
+            color: "#e0e0e0"
+
+          - type: text
+            font: arabic
+            size: 15px
+            color: "#555555"
+            align: right
+            wrap: true
+            lineHeight: "1.6"
+            content: "\u0647\u0630\u0627 \u0645\u062B\u0627\u0644"

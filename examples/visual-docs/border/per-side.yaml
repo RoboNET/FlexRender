@@ -1,0 +1,53 @@
+template:
+  name: "border-per-side"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "30"
+    gap: 20
+    children:
+      - type: flex
+        border-top: "3 solid #3498db"
+        border-right: "2 dashed #e74c3c"
+        border-bottom: "3 solid #2ecc71"
+        border-left: "2 dashed #f39c12"
+        padding: "16"
+        align: center
+        gap: 6
+        children:
+          - type: text
+            content: "Per-Side Borders"
+            font: bold
+            size: 16px
+            color: "#333333"
+            align: center
+          - type: text
+            content: "Top: 3px solid blue"
+            size: 12px
+            color: "#3498db"
+            align: center
+          - type: text
+            content: "Right: 2px dashed red"
+            size: 12px
+            color: "#e74c3c"
+            align: center
+          - type: text
+            content: "Bottom: 3px solid green"
+            size: 12px
+            color: "#2ecc71"
+            align: center
+          - type: text
+            content: "Left: 2px dashed orange"
+            size: 12px
+            color: "#f39c12"
+            align: center

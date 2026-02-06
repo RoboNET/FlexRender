@@ -31,11 +31,6 @@ layout:
         size: 1.1em
         color: "#8888aa"
         align: center
-      - type: text
-        content: "Version {{version}} -- Built {{buildDate}}"
-        size: 0.8em
-        color: "#555577"
-        align: center
 
   # -- separator: solid --
   - type: separator
@@ -1478,6 +1473,7 @@ layout:
                 width: 400
                 height: 60
                 showText: true
+                margin: "0 auto"
               - type: text
                 content: "Code128 barcode with showText enabled"
                 size: 9px
@@ -1505,6 +1501,7 @@ layout:
                 width: 180
                 height: 50
                 showText: true
+                margin: "0 auto"
               - type: text
                 content: "With text label"
                 size: 9px
@@ -1523,6 +1520,7 @@ layout:
                 width: 180
                 height: 50
                 showText: false
+                margin: "0 auto"
               - type: text
                 content: "Without text label"
                 size: 9px
@@ -1542,6 +1540,7 @@ layout:
                 height: 50
                 showText: true
                 foreground: "#ffffff"
+                margin: "0 auto"
               - type: text
                 content: "Custom colors"
                 size: 9px

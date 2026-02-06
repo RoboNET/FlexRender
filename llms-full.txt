@@ -10,7 +10,7 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Configuration/                # FlexRenderBuilder, FlexRenderOptions, ResourceLimits
   Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
-    FlexEnums.cs                # FlexDirection, FlexWrap, JustifyContent, AlignItems, AlignContent, AlignSelf
+    FlexEnums.cs                # FlexDirection, FlexWrap, JustifyContent, AlignItems, AlignContent, AlignSelf, TextDirection
     FontSizeResolver.cs         # Resolve fontSize string to pixels
     LayoutEngine.cs             # Main layout calculator
     LayoutNode.cs               # Computed layout tree node
@@ -43,6 +43,10 @@ src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
 
 src/FlexRender.Barcode/         # Barcode provider (-> Skia)
   Providers/                    # BarcodeProvider (implements IContentProvider<BarcodeElement, SKBitmap>)
+
+src/FlexRender.HarfBuzz/        # HarfBuzz text shaping (-> Skia + SkiaSharp.HarfBuzz)
+  HarfBuzzTextShaper.cs         # Shaped text measurement and drawing
+  SkiaBuilderExtensions.cs      # .WithHarfBuzz() extension
 
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
   ServiceCollectionExtensions.cs     # AddFlexRender() extension method
@@ -81,6 +85,7 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia   (YamlDotNet)  (SkiaSharp)
 | FlexRender.Skia | Core | SkiaSharp 3.119.1 |
 | FlexRender.QrCode | Skia | QRCoder 1.7.0 |
 | FlexRender.Barcode | Skia | (none) |
+| FlexRender.HarfBuzz | Skia | SkiaSharp.HarfBuzz 3.119.1, HarfBuzzSharp 8.3.1.2 |
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |
@@ -152,6 +157,7 @@ layout:                       # Required: array of elements
 | height | int | 0 | Canvas height in pixels (0 = auto when unfixed) |
 | background | string | "#ffffff" | Background color in hex format |
 | rotate | string | "none" | Post-render rotation |
+| text-direction | TextDirection | Ltr | Text direction: `ltr` (default), `rtl`. Alias: `dir` |
 
 ### Canvas Rotation Values
 
@@ -186,6 +192,16 @@ All elements inherit from `TemplateElement`:
 | minHeight | string? | null | Minimum height constraint (px, %, em) |
 | maxHeight | string? | null | Maximum height constraint (px, %, em) |
 | display | Display | Flex | Display mode: `flex` (default), `none` (removes from layout flow) |
+| text-direction | TextDirection? | null | Text direction override: `ltr`, `rtl` (null = inherit from parent/canvas). Alias: `dir` |
+| border | string? | null | Border shorthand for all sides: `"width style color"` (e.g., `"2 solid #333"`) |
+| borderTop | string? | null | Per-side border shorthand for top: `"width style color"` |
+| borderRight | string? | null | Per-side border shorthand for right side |
+| borderBottom | string? | null | Per-side border shorthand for bottom side |
+| borderLeft | string? | null | Per-side border shorthand for left side |
+| borderWidth | string? | null | Border width override for all sides (px, em) |
+| borderColor | string? | null | Border color override for all sides |
+| borderStyle | string? | null | Border style override: `solid`, `dashed`, `dotted`, `none` |
+| borderRadius | string? | null | Corner rounding radius (px, em, %) |
 
 ## Non-Uniform Padding and Margin
 
@@ -291,6 +307,69 @@ FlexElement containers support content clipping via the `overflow` property:
       content: "This text will be clipped if it exceeds the container bounds"
 ```
 
+## Borders
+
+All elements support CSS-like border properties. Borders consume space in layout (added to element size alongside padding).
+
+**Shorthand format:** `"width style color"` (e.g., `"2 solid #333"`, `"1 dashed"`, `"3"`)
+
+**CSS cascade order:**
+1. `border` shorthand sets all four sides
+2. `borderWidth`, `borderColor`, `borderStyle` override individual properties on all sides
+3. `borderTop`, `borderRight`, `borderBottom`, `borderLeft` override specific sides
+
+**Border styles:** `solid`, `dashed`, `dotted`, `none`
+
+```yaml
+# Solid border with rounded corners
+- type: flex
+  border: "2 solid #3498db"
+  border-radius: "12"
+  padding: "16"
+  children:
+    - type: text
+      content: "Rounded box"
+
+# Per-side borders
+- type: flex
+  border-top: "3 solid #3498db"
+  border-bottom: "1 dashed #cccccc"
+  padding: "16"
+  children:
+    - type: text
+      content: "Different borders"
+```
+
+## Order
+
+The `order` property controls the visual display order of flex items. Items are sorted by `order` before layout -- lower values appear first. Items with equal `order` preserve source order (stable sort). Default is `0`. Negative values are supported. Absolute-positioned children are excluded from order sorting.
+
+```yaml
+# Display order: B (0), C (1), A (2)
+- type: flex
+  direction: row
+  children:
+    - type: text
+      content: "A"
+      order: 2
+    - type: text
+      content: "B"
+      order: 0
+    - type: text
+      content: "C"
+      order: 1
+```
+
+## RTL (Right-to-Left) Support
+
+- Canvas `text-direction`: `ltr` (default), `rtl` -- sets default text direction for the entire template
+- Element `text-direction`: `ltr`, `rtl`, or null (inherit from parent/canvas) -- per-element override
+- Text `align`: `start` and `end` are logical values that resolve based on direction
+- Row layout is mirrored in RTL: items flow right-to-left
+- Column layout is unaffected by direction
+- Arabic font support: use an Arabic-capable font (e.g., Noto Sans Arabic) in the `fonts` section for Arabic text rendering
+- HarfBuzz text shaping: optional `FlexRender.HarfBuzz` package provides proper Arabic/Hebrew glyph shaping via `.WithHarfBuzz()` on the Skia builder
+
 ## Flex-Item Properties
 
 All leaf elements (text, image, qr, barcode, separator) and flex containers (when nested) have these flex-item properties:
@@ -300,7 +379,7 @@ All leaf elements (text, image, qr, barcode, separator) and flex containers (whe
 | grow | float | 0 | Flex grow factor |
 | shrink | float | 1 | Flex shrink factor |
 | basis | string | "auto" | Flex basis (px, %, em, auto) |
-| order | int | 0 | Display order for sorting |
+| order | int | 0 | Display order for sorting. Lower values appear first. Negative values supported. Stable sort preserves source order for equal values |
 | alignSelf | AlignSelf | Auto | Individual alignment override |
 | width | string? | null | Explicit width (px, %, em, auto) |
 | height | string? | null | Explicit height (px, %, em, auto) |
@@ -313,7 +392,7 @@ All leaf elements (text, image, qr, barcode, separator) and flex containers (whe
 | font | string | "main" | Font reference name from `fonts` section |
 | size | string | "1em" | Font size (px, em, %) |
 | color | string | "#000000" | Text color in hex format |
-| align | TextAlign | Left | Text alignment: `left`, `center`, `right` |
+| align | TextAlign | Left | Text alignment: `left`, `center`, `right`, `start` (logical), `end` (logical) |
 | wrap | bool | true | Whether text wraps to multiple lines |
 | overflow | TextOverflow | Ellipsis | Overflow handling: `ellipsis`, `clip`, `visible` |
 | maxLines | int? | null | Maximum number of lines (null = unlimited) |
@@ -690,6 +769,7 @@ byte[] png = await render.Render(_templates["receipt"], data);
 |--------|-------------|
 | `WithQr()` | Enable QR code support (requires FlexRender.QrCode) |
 | `WithBarcode()` | Enable barcode support (requires FlexRender.Barcode) |
+| `WithHarfBuzz()` | Enable HarfBuzz text shaping for RTL scripts (requires FlexRender.HarfBuzz) |
 
 ### IFlexRender Interface
 
