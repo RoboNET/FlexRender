@@ -174,7 +174,7 @@ All elements inherit from `TemplateElement`:
 | padding | string | "0" | Inner spacing (px, %, em). Supports non-uniform CSS shorthand |
 | margin | string | "0" | Outer spacing (px, %, em). Supports non-uniform CSS shorthand and `auto` |
 | background | string? | null | Background color in hex (null = transparent) |
-| rotate | string | "none" | Element rotation (none/left/right/flip/degrees) |
+| rotate | string | "none" | Element rotation (none/left/right/flip/degrees). Rendered for: text, image, qr, barcode. Rotation is around the element's center point |
 | position | Position | Static | Positioning mode: `static`, `relative`, `absolute` |
 | top | string? | null | Top inset for positioned elements (px, %, em) |
 | right | string? | null | Right inset for positioned elements (px, %, em) |
