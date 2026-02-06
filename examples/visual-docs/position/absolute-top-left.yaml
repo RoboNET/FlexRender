@@ -1,0 +1,86 @@
+template:
+  name: "position-absolute-top-left"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 16
+    children:
+      # Title
+      - type: text
+        content: "position: absolute (top/left)"
+        font: bold
+        size: 16px
+        color: "#333333"
+
+      - type: text
+        content: "Red box pinned to top: 10, left: 10"
+        size: 12px
+        color: "#95a5a6"
+
+      # Container with normal flow + absolute element
+      - type: flex
+        direction: column
+        background: "#f5f5f5"
+        padding: "20"
+        height: "180"
+        gap: 12
+        children:
+          # Normal flow content
+          - type: flex
+            width: "200"
+            height: "40"
+            background: "#3498db"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Normal flow"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#95a5a6"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Normal flow"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+
+          # Absolute positioned box
+          - type: flex
+            position: absolute
+            top: "10"
+            left: "10"
+            width: "80"
+            height: "40"
+            background: "#e74c3c"
+            padding: "4"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Absolute"
+                color: "#ffffff"
+                font: bold
+                size: 11px
+                align: center

@@ -213,10 +213,10 @@ After making changes to visual docs:
 
 ## Current Statistics
 
-- **Total YAML templates:** 42
-- **Total PNG outputs:** 42 (1:1 mapping)
-- **Categories:** 10 (align, barcode, canvas, direction, image, justify, qr, separator, text, wrap)
-- **Wiki pages:** 11 (includes Visual-Reference.md)
+- **Total YAML templates:** 51
+- **Total PNG outputs:** 51 (1:1 mapping)
+- **Categories:** 11 (align, barcode, canvas, direction, image, justify, position, qr, separator, text, wrap)
+- **Wiki pages:** 12 (includes Visual-Reference.md)
 
 Last updated: February 2026
 

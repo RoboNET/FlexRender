@@ -828,4 +828,285 @@ public sealed class LayoutEnginePositionTests
         Assert.Equal(400f, child.Height, 1);
         Assert.Equal(800f, child.Width, 1);
     }
+
+    // ────────────────────────────────────────────────────────────────
+    // Visual Docs Diagnostic Tests — modeled after position/*.yaml
+    // ────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ComputeLayout_PositionAbsolute_Column_TopLeft_PositionsCorrectly()
+    {
+        // Models absolute-top-left.yaml: Column container 360x180, padding=20, gap=12.
+        // Two flow children followed by one absolute child with top=10, left=10.
+        // Absolute child should be placed at padding + inset, NOT after flow children.
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Column,
+            Width = "360",
+            Height = "180",
+            Padding = "20",
+            Gap = "12",
+            Background = "#f5f5f5"
+        };
+        flex.AddChild(new FlexElement { Width = "200", Height = "40" });
+        flex.AddChild(new FlexElement { Width = "160", Height = "40" });
+        flex.AddChild(new FlexElement
+        {
+            Width = "80",
+            Height = "40",
+            Position = Position.Absolute,
+            Top = "10",
+            Left = "10"
+        });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 360 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        // Act
+        var root = _engine.ComputeLayout(template);
+
+        // Assert: absolute child at padding + inset = (20+10, 20+10) = (30, 30)
+        var container = root.Children[0];
+        var absChild = container.Children[2];
+        Assert.Equal(30f, absChild.X, 1);
+        Assert.Equal(30f, absChild.Y, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_PositionAbsolute_Column_BottomRight_PositionsCorrectly()
+    {
+        // Models absolute-bottom-right.yaml: Column container 360x180, padding=20, gap=12.
+        // Same container but absolute child has bottom=10, right=10.
+        // X = 360 - 20 - 80 - 10 = 250, Y = 180 - 20 - 40 - 10 = 110.
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Column,
+            Width = "360",
+            Height = "180",
+            Padding = "20",
+            Gap = "12",
+            Background = "#f5f5f5"
+        };
+        flex.AddChild(new FlexElement { Width = "200", Height = "40" });
+        flex.AddChild(new FlexElement { Width = "160", Height = "40" });
+        flex.AddChild(new FlexElement
+        {
+            Width = "80",
+            Height = "40",
+            Position = Position.Absolute,
+            Bottom = "10",
+            Right = "10"
+        });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 360 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        // Act
+        var root = _engine.ComputeLayout(template);
+
+        // Assert: X = container(360) - padding(20) - width(80) - right(10) = 250
+        //         Y = container(180) - padding(20) - height(40) - bottom(10) = 110
+        var container = root.Children[0];
+        var absChild = container.Children[2];
+        Assert.Equal(250f, absChild.X, 1);
+        Assert.Equal(110f, absChild.Y, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_PositionAbsolute_Column_FlowExclusion_WithGap()
+    {
+        // Models flow-exclusion.yaml: Column container 360x260, padding=20, gap=8.
+        // Child A (static, h=50), Child B (absolute, top=10, right=10),
+        // Child C (static, h=50), Child D (static, h=50).
+        // The absolute child B should be excluded from flow, so C follows A with gap.
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Column,
+            Width = "360",
+            Height = "260",
+            Padding = "20",
+            Gap = "8"
+        };
+        // Child A — static flow
+        flex.AddChild(new FlexElement { Height = "50" });
+        // Child B — absolute, excluded from flow
+        flex.AddChild(new FlexElement
+        {
+            Padding = "8 16",
+            Position = Position.Absolute,
+            Top = "10",
+            Right = "10"
+        });
+        // Child C — static flow
+        flex.AddChild(new FlexElement { Height = "50" });
+        // Child D — static flow
+        flex.AddChild(new FlexElement { Height = "50" });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 360 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        // Act
+        var root = _engine.ComputeLayout(template);
+
+        // Assert
+        var container = root.Children[0];
+        var childA = container.Children[0];
+        var childC = container.Children[2];
+        var childD = container.Children[3];
+
+        // Child A at padding top = 20
+        Assert.Equal(20f, childA.Y, 1);
+        // Child C follows A: 20 + 50 + 8 (gap) = 78
+        Assert.Equal(78f, childC.Y, 1);
+        // Child D follows C: 78 + 50 + 8 (gap) = 136
+        Assert.Equal(136f, childD.Y, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_PositionRelative_Row_WithGap_VisibleShift()
+    {
+        // Models relative-offset.yaml: Row container 360x120, padding=20, gap=16, align=start.
+        // Box1 (80x60), Box2 (80x60, relative, top=15, left=20), Box3 (80x60).
+        // Box2 shifts visually but does not affect Box3's position.
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Width = "360",
+            Height = "120",
+            Padding = "20",
+            Gap = "16",
+            Align = AlignItems.Start
+        };
+        flex.AddChild(new FlexElement { Width = "80", Height = "60" });
+        flex.AddChild(new FlexElement
+        {
+            Width = "80",
+            Height = "60",
+            Position = Position.Relative,
+            Top = "15",
+            Left = "20"
+        });
+        flex.AddChild(new FlexElement { Width = "80", Height = "60" });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 360 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        // Act
+        var root = _engine.ComputeLayout(template);
+
+        // Assert
+        var container = root.Children[0];
+        var box1 = container.Children[0];
+        var box2 = container.Children[1];
+        var box3 = container.Children[2];
+
+        // Box1 at padding left = 20
+        Assert.Equal(20f, box1.X, 1);
+        // Box2 normal flow X = 20 + 80 + 16 = 116, then + left offset 20 = 136
+        Assert.Equal(136f, box2.X, 1);
+        // Box2 normal flow Y = 20, then + top offset 15 = 35
+        Assert.Equal(35f, box2.Y, 1);
+        // Box3 unaffected by Box2's offset: 20 + 80 + 16 + 80 + 16 = 212
+        Assert.Equal(212f, box3.X, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_PositionAbsolute_Column_CenteredByInsets()
+    {
+        // Models absolute-center.yaml: Column container 360x200, padding=20, gap=12.
+        // One flow child plus one absolute child with top=40, bottom=40, left=100, right=100.
+        // Insets are relative to the padding box (content area).
+        // Content area: 360-20-20=320 wide, 200-20-20=160 tall.
+        // Absolute child: width = 320 - 100 - 100 = 120, height = 160 - 40 - 40 = 80.
+        // Position: X = 20 + 100 = 120, Y = 20 + 40 = 60.
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Column,
+            Width = "360",
+            Height = "200",
+            Padding = "20",
+            Gap = "12"
+        };
+        flex.AddChild(new TextElement { Content = "Flow content" });
+        flex.AddChild(new FlexElement
+        {
+            Position = Position.Absolute,
+            Top = "40",
+            Bottom = "40",
+            Left = "100",
+            Right = "100"
+        });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 360 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        // Act
+        var root = _engine.ComputeLayout(template);
+
+        // Assert
+        var container = root.Children[0];
+        var absChild = container.Children[1];
+
+        Assert.Equal(120f, absChild.Width, 1);
+        Assert.Equal(80f, absChild.Height, 1);
+        Assert.Equal(120f, absChild.X, 1);
+        Assert.Equal(60f, absChild.Y, 1);
+    }
+
+    [Fact]
+    public void ComputeLayout_PositionAbsolute_InsetSizing_AllFourInsets()
+    {
+        // Models inset-sizing.yaml: Column container 360x300, no padding.
+        // Absolute child with top=20, bottom=20, left=20, right=20, no explicit width/height.
+        // Expected: width = 360 - 20 - 20 = 320, height = 300 - 20 - 20 = 260.
+        // Position: X = 20, Y = 20.
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Column,
+            Width = "360",
+            Height = "300",
+            Padding = "0"
+        };
+        flex.AddChild(new FlexElement
+        {
+            Position = Position.Absolute,
+            Top = "20",
+            Bottom = "20",
+            Left = "20",
+            Right = "20"
+        });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 360 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        // Act
+        var root = _engine.ComputeLayout(template);
+
+        // Assert
+        var container = root.Children[0];
+        var absChild = container.Children[0];
+
+        Assert.Equal(320f, absChild.Width, 1);
+        Assert.Equal(260f, absChild.Height, 1);
+        Assert.Equal(20f, absChild.X, 1);
+        Assert.Equal(20f, absChild.Y, 1);
+    }
 }

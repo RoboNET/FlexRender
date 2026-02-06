@@ -254,14 +254,14 @@ internal sealed class RenderingEngine
             case QrElement qr when _qrProvider is not null:
                 using (var bitmap = _qrProvider.Generate(qr))
                 {
-                    canvas.DrawBitmap(bitmap, x, y);
+                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
                 }
                 break;
 
             case BarcodeElement barcode when _barcodeProvider is not null:
                 using (var bitmap = _barcodeProvider.Generate(barcode))
                 {
-                    canvas.DrawBitmap(bitmap, x, y);
+                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
                 }
                 break;
 
@@ -273,7 +273,7 @@ internal sealed class RenderingEngine
                     layoutWidth: (int)width,
                     layoutHeight: (int)height))
                 {
-                    canvas.DrawBitmap(bitmap, x, y);
+                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
                 }
                 break;
 
@@ -284,6 +284,44 @@ internal sealed class RenderingEngine
             case FlexElement:
                 // FlexElement is a container, children are rendered via RenderNode recursion
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Draws a bitmap on the canvas, applying rotation from the element's <see cref="TemplateElement.Rotate"/> property.
+    /// If no rotation is specified, the bitmap is drawn directly at (<paramref name="x"/>, <paramref name="y"/>).
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="bitmap">The bitmap to draw.</param>
+    /// <param name="element">The element whose rotation property is used.</param>
+    /// <param name="x">X position.</param>
+    /// <param name="y">Y position.</param>
+    /// <param name="width">Element width (used to compute rotation center).</param>
+    /// <param name="height">Element height (used to compute rotation center).</param>
+    private static void DrawBitmapWithRotation(
+        SKCanvas canvas,
+        SKBitmap bitmap,
+        TemplateElement element,
+        float x,
+        float y,
+        float width,
+        float height)
+    {
+        var rotation = RotationHelper.ParseRotation(element.Rotate);
+
+        if (RotationHelper.HasRotation(rotation))
+        {
+            canvas.Save();
+            var centerX = x + width / 2f;
+            var centerY = y + height / 2f;
+            canvas.RotateDegrees(rotation, centerX, centerY);
+        }
+
+        canvas.DrawBitmap(bitmap, x, y);
+
+        if (RotationHelper.HasRotation(rotation))
+        {
+            canvas.Restore();
         }
     }
 

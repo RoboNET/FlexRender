@@ -1,0 +1,68 @@
+template:
+  name: "position-badge"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 16
+    children:
+      # Title
+      - type: text
+        content: "Badge Pattern"
+        font: bold
+        size: 16px
+        color: "#333333"
+
+      - type: text
+        content: "Star badge positioned absolute over a product card"
+        size: 12px
+        color: "#95a5a6"
+
+      # Product card
+      - type: flex
+        direction: column
+        background: "#f5f5f5"
+        padding: "12"
+        gap: 10
+        overflow: hidden
+        children:
+          # Product image
+          - type: image
+            src: "test-pattern.png"
+            width: "100%"
+            height: "120"
+            fit: cover
+
+          # Product name
+          - type: text
+            content: "Premium Widget"
+            font: bold
+            size: 16px
+            color: "#333333"
+
+          # Price
+          - type: text
+            content: "$49.99"
+            font: bold
+            size: 18px
+            color: "#2ecc71"
+
+          # Star badge overlay
+          - type: image
+            position: absolute
+            top: "8"
+            right: "8"
+            src: "star-badge.png"
+            width: "24"
+            height: "24"
