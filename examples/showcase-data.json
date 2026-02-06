@@ -2,12 +2,30 @@
   "title": "FlexRender Feature Showcase",
   "subtitle": "All capabilities in one template",
   "websiteUrl": "https://github.com/RoboNET/FlexRender",
-  "showBarcodeSection": true,
-  "features": [
-    {"name": "Flexbox Layout", "description": "Row and column directions with justify and align"},
-    {"name": "Template Expressions", "description": "Variables, loops, and conditionals"},
-    {"name": "Multiple Elements", "description": "Text, images, QR codes, barcodes, separators"}
-  ],
   "version": "1.0.0",
-  "buildDate": "2026-02-04"
+  "buildDate": "2026-02-06",
+  "dashboard": {
+    "revenue": "$48.2K",
+    "users": "12,847",
+    "orders": "1,024",
+    "uptime": "99.97%",
+    "latency": "42ms",
+    "errors": "3"
+  },
+  "dashboardTrends": {
+    "revenue": "+12.5%",
+    "users": "+3.2%",
+    "orders": "-1.8%",
+    "uptime": "+0.01%",
+    "latency": "-8ms",
+    "errors": "-2"
+  },
+  "features": [
+    {"name": "Flexbox Layout", "description": "Row/column directions with full justify, align, wrap"},
+    {"name": "Template Expressions", "description": "Dynamic content with {{variable}} syntax"},
+    {"name": "Control Flow", "description": "Loops with each, conditionals with if/else-if/else"},
+    {"name": "Content Types", "description": "Text, images, QR codes, barcodes, separators"},
+    {"name": "CSS Positioning", "description": "Static, relative, and absolute positioning"}
+  ],
+  "status": "active"
 }

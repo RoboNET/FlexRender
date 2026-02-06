@@ -1,0 +1,41 @@
+template:
+  name: "text-maxLines"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 500
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    gap: 20
+    padding: "20"
+    children:
+      - type: flex
+        width: "200"
+        children:
+          - type: text
+            content: "This is a long text that demonstrates maxLines property. The text will be truncated after two lines with an ellipsis to indicate there is more content available."
+            wrap: true
+            maxLines: 2
+            overflow: ellipsis
+            size: 14px
+            color: "#1a1a2e"
+            background: "#fff4e6"
+            padding: "10"
+
+      - type: flex
+        width: "200"
+        children:
+          - type: text
+            content: "This is a long text without maxLines property. All content will be displayed regardless of how many lines it takes to show the complete text."
+            wrap: true
+            size: 14px
+            color: "#1a1a2e"
+            background: "#e8f8e8"
+            padding: "10"

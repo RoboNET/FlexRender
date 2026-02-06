@@ -1,0 +1,41 @@
+template:
+  name: "text-align"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 500
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 20
+    padding: "20"
+    children:
+      - type: text
+        content: "Left aligned text content"
+        align: left
+        size: 18px
+        color: "#1a1a2e"
+        background: "#f0f0f0"
+        padding: "10"
+
+      - type: text
+        content: "Center aligned text content"
+        align: center
+        size: 18px
+        color: "#1a1a2e"
+        background: "#f0f0f0"
+        padding: "10"
+
+      - type: text
+        content: "Right aligned text content"
+        align: right
+        size: 18px
+        color: "#1a1a2e"
+        background: "#f0f0f0"
+        padding: "10"

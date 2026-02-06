@@ -1,0 +1,49 @@
+template:
+  name: "barcode-showText"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 600
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 30
+    padding: "30"
+    children:
+      - type: flex
+        direction: column
+        gap: 10
+        align: center
+        children:
+          - type: text
+            content: "showText: true (displays barcode value below)"
+            size: 14px
+            color: "#666666"
+          - type: barcode
+            data: "FLEXRENDER-2026"
+            format: code128
+            width: 250
+            height: 60
+            showText: true
+
+      - type: flex
+        direction: column
+        gap: 10
+        align: center
+        children:
+          - type: text
+            content: "showText: false (barcode only)"
+            size: 14px
+            color: "#666666"
+          - type: barcode
+            data: "FLEXRENDER-2026"
+            format: code128
+            width: 250
+            height: 60
+            showText: false

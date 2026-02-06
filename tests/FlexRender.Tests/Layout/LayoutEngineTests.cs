@@ -2000,4 +2000,182 @@ public class LayoutEngineTests
         Assert.Equal(0f, flexNode.Children[0].X, 0.1f);
         Assert.Equal(120f, flexNode.Children[1].X, 0.1f);
     }
+
+    // ================================================================
+    // Image sizing: Container dimension inheritance
+    // ================================================================
+
+    [Fact]
+    public void ComputeLayout_ImageWithoutSize_UsesContainerDimensions()
+    {
+        // Arrange: Image without explicit dimensions inside a sized container
+        var container = new FlexElement
+        {
+            Width = "200",
+            Height = "200",
+            Children = new List<TemplateElement>
+            {
+                new ImageElement
+                {
+                    // No Width, Height, ImageWidth, ImageHeight
+                }
+            }
+        };
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement> { container }
+        };
+
+        var engine = new LayoutEngine();
+
+        // Act
+        var root = engine.ComputeLayout(template);
+        var flexNode = root.Children[0];
+        var imageNode = flexNode.Children[0];
+
+        // Assert: Container dimensions
+        Assert.Equal(200f, flexNode.Width, 1f);
+        Assert.Equal(200f, flexNode.Height, 1f);
+
+        // Assert: Image should use container dimensions as fallback
+        // Per LayoutEngine.cs: contentWidth = ResolveWidth(Width) ?? ImageWidth ?? ContainerWidth
+        Assert.Equal(200f, imageNode.Width, 1f);
+        Assert.Equal(200f, imageNode.Height, 1f);
+    }
+
+    [Fact]
+    public void ComputeLayout_ImageWithoutSize_InSizedContainer()
+    {
+        // Arrange: Image with fit mode but no explicit size
+        var container = new FlexElement
+        {
+            Width = "200",
+            Height = "200",
+            Background = "#f0f0f0",
+            Children = new List<TemplateElement>
+            {
+                new ImageElement
+                {
+                    Src = "test.png",
+                    Fit = ImageFit.Contain
+                    // NO ImageWidth or ImageHeight
+                }
+            }
+        };
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings
+            {
+                Fixed = FixedDimension.Both,
+                Width = 200,
+                Height = 200,
+                Background = "#FFFFFF"
+            },
+            Elements = new List<TemplateElement> { container }
+        };
+
+        var engine = new LayoutEngine();
+
+        // Act
+        var root = engine.ComputeLayout(template);
+        var flexNode = root.Children[0];
+        var imageNode = flexNode.Children[0];
+
+        // Assert: Image takes full container dimensions at layout time
+        // The fit calculation (aspect ratio preservation) happens at render time
+        Assert.Equal(200f, imageNode.Width, 1f);
+        Assert.Equal(200f, imageNode.Height, 1f);
+    }
+
+    [Fact]
+    public void ComputeLayout_QrWithoutSize_UsesContainerDimensions()
+    {
+        // Arrange: QR code without size in a sized container
+        var container = new FlexElement
+        {
+            Width = "150",
+            Height = "150",
+            Background = "#f0f0f0",
+            Children = new List<TemplateElement>
+            {
+                new QrElement
+                {
+                    Data = "https://example.com"
+                    // NO Size attribute
+                }
+            }
+        };
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings
+            {
+                Fixed = FixedDimension.Both,
+                Width = 150,
+                Height = 150,
+                Background = "#FFFFFF"
+            },
+            Elements = new List<TemplateElement> { container }
+        };
+
+        var engine = new LayoutEngine();
+
+        // Act
+        var root = engine.ComputeLayout(template);
+        var flexNode = root.Children[0];
+        var qrNode = flexNode.Children[0];
+
+        // Assert: QR code uses container dimensions when Size is not specified
+        // Per LayoutEngine.cs: contentWidth = ResolveWidth(Width) ?? Size ?? ContainerWidth
+        Assert.Equal(150f, qrNode.Width, 1f);
+        Assert.Equal(150f, qrNode.Height, 1f);
+    }
+
+    [Fact]
+    public void ComputeLayout_BarcodeWithoutSize_UsesContainerDimensions()
+    {
+        // Arrange: Barcode without explicit size in a sized container
+        var container = new FlexElement
+        {
+            Width = "200",
+            Height = "100",
+            Background = "#f0f0f0",
+            Children = new List<TemplateElement>
+            {
+                new BarcodeElement
+                {
+                    Data = "TEST123",
+                    Format = BarcodeFormat.Code128
+                    // NO BarcodeWidth or BarcodeHeight
+                }
+            }
+        };
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings
+            {
+                Fixed = FixedDimension.Both,
+                Width = 200,
+                Height = 100,
+                Background = "#FFFFFF"
+            },
+            Elements = new List<TemplateElement> { container }
+        };
+
+        var engine = new LayoutEngine();
+
+        // Act
+        var root = engine.ComputeLayout(template);
+        var flexNode = root.Children[0];
+        var barcodeNode = flexNode.Children[0];
+
+        // Assert: Barcode uses container dimensions when BarcodeWidth/BarcodeHeight not specified
+        // Per LayoutEngine.cs: contentWidth = ResolveWidth(Width) ?? BarcodeWidth ?? ContainerWidth
+        Assert.Equal(200f, barcodeNode.Width, 1f);
+        Assert.Equal(100f, barcodeNode.Height, 1f);
+    }
 }

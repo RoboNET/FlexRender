@@ -1,0 +1,59 @@
+template:
+  name: "canvas-fixed-none"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: none
+  background: "#f8f9fa"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 12
+    padding: "20"
+    children:
+      - type: text
+        content: "fixed: none"
+        font: bold
+        size: 18px
+        color: "#1a1a2e"
+
+      - type: text
+        content: "Both width and height adjust to fit content exactly."
+        size: 13px
+        color: "#555555"
+
+      - type: flex
+        direction: row
+        gap: 8
+        children:
+          - type: flex
+            background: "#3498db"
+            padding: "12"
+            children:
+              - type: text
+                content: "Short"
+                color: "#ffffff"
+                size: 14px
+
+          - type: flex
+            background: "#2ecc71"
+            padding: "12"
+            children:
+              - type: text
+                content: "Medium text"
+                color: "#ffffff"
+                size: 14px
+
+      - type: flex
+        background: "#e74c3c"
+        padding: "12"
+        children:
+          - type: text
+            content: "Content determines canvas size"
+            color: "#ffffff"
+            size: 14px

@@ -133,8 +133,10 @@ public static class RenderCommand
             using var renderer = Program.CreateRenderBuilder(effectiveBasePath).Build();
 
             // Set BMP color mode if applicable
+#pragma warning disable CS0618 // Obsolete BmpColorMode property - CLI still supports legacy option
             if (renderer is SkiaRender skiaRender)
                 skiaRender.BmpColorMode = bmpColor;
+#pragma warning restore CS0618
 
             // Load data if provided
             ObjectValue? data = null;

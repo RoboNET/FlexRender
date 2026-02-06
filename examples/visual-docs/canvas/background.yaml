@@ -1,0 +1,98 @@
+template:
+  name: "canvas-background"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#1a1a2e"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 16
+    padding: "24"
+    children:
+      - type: text
+        content: "Dark Background (#1a1a2e)"
+        font: bold
+        size: 18px
+        color: "#ffffff"
+
+      - type: text
+        content: "The canvas background property sets the base color behind all content."
+        size: 13px
+        color: "#cccccc"
+        wrap: true
+
+      - type: flex
+        direction: row
+        gap: 10
+        children:
+          - type: flex
+            background: "#ffffff"
+            padding: "16"
+            grow: 1
+            children:
+              - type: text
+                content: "White"
+                color: "#1a1a2e"
+                size: 13px
+
+          - type: flex
+            background: "#3498db"
+            padding: "16"
+            grow: 1
+            children:
+              - type: text
+                content: "Blue"
+                color: "#ffffff"
+                size: 13px
+
+          - type: flex
+            background: "#2ecc71"
+            padding: "16"
+            grow: 1
+            children:
+              - type: text
+                content: "Green"
+                color: "#ffffff"
+                size: 13px
+
+      - type: flex
+        direction: row
+        gap: 10
+        children:
+          - type: flex
+            background: "#e74c3c"
+            padding: "16"
+            grow: 1
+            children:
+              - type: text
+                content: "Red"
+                color: "#ffffff"
+                size: 13px
+
+          - type: flex
+            background: "#f39c12"
+            padding: "16"
+            grow: 1
+            children:
+              - type: text
+                content: "Orange"
+                color: "#ffffff"
+                size: 13px
+
+          - type: flex
+            background: "#9b59b6"
+            padding: "16"
+            grow: 1
+            children:
+              - type: text
+                content: "Purple"
+                color: "#ffffff"
+                size: 13px

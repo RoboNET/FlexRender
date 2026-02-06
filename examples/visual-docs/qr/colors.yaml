@@ -1,0 +1,67 @@
+template:
+  name: "qr-colors"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    gap: 20
+    padding: "20"
+    justify: center
+    children:
+      - type: flex
+        direction: column
+        gap: 8
+        align: center
+        children:
+          - type: qr
+            data: "https://github.com/RoboNET/FlexRender"
+            size: 100
+            errorCorrection: M
+          - type: text
+            content: "Default"
+            size: 12px
+            color: "#666666"
+
+      - type: flex
+        direction: column
+        gap: 8
+        align: center
+        children:
+          - type: qr
+            data: "https://github.com/RoboNET/FlexRender"
+            size: 100
+            errorCorrection: M
+            foreground: "#3498db"
+          - type: text
+            content: "Custom Blue"
+            size: 12px
+            color: "#666666"
+
+      - type: flex
+        direction: column
+        gap: 8
+        align: center
+        children:
+          - type: flex
+            padding: "5"
+            background: "#1a1a2e"
+            children:
+              - type: qr
+                data: "https://github.com/RoboNET/FlexRender"
+                size: 100
+                errorCorrection: M
+                foreground: "#ffffff"
+                background: "#1a1a2e"
+          - type: text
+            content: "Inverted"
+            size: 12px
+            color: "#666666"

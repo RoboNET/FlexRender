@@ -30,6 +30,20 @@ public sealed class QrProvider : IContentProvider<QrElement>
     /// <exception cref="ArgumentException">Thrown when element data is empty or size is invalid.</exception>
     public SKBitmap Generate(QrElement element)
     {
+        return Generate(element, null, null);
+    }
+
+    /// <summary>
+    /// Generates a QR code bitmap with optional layout-computed dimensions.
+    /// </summary>
+    /// <param name="element">The QR code element configuration.</param>
+    /// <param name="layoutWidth">Optional layout-computed width. Takes precedence over element.Size.</param>
+    /// <param name="layoutHeight">Optional layout-computed height. Takes precedence over element.Size.</param>
+    /// <returns>A bitmap containing the rendered QR code.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when element is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when element data is empty or size is invalid.</exception>
+    public static SKBitmap Generate(QrElement element, int? layoutWidth, int? layoutHeight)
+    {
         ArgumentNullException.ThrowIfNull(element);
 
         if (string.IsNullOrEmpty(element.Data))
@@ -37,7 +51,10 @@ public sealed class QrProvider : IContentProvider<QrElement>
             throw new ArgumentException("QR code data cannot be empty.", nameof(element));
         }
 
-        if (element.Size <= 0)
+        // Priority order: layout dimensions > element.Size > default 100px
+        var targetSize = layoutWidth ?? element.Size ?? 100;
+
+        if (targetSize <= 0)
         {
             throw new ArgumentException("QR code size must be positive.", nameof(element));
         }
@@ -66,9 +83,9 @@ public sealed class QrProvider : IContentProvider<QrElement>
         using var qrCodeData = qrGenerator.CreateQrCode(element.Data, eccLevel);
 
         var moduleCount = qrCodeData.ModuleMatrix.Count;
-        var moduleSize = element.Size / (float)moduleCount;
+        var moduleSize = targetSize / (float)moduleCount;
 
-        var bitmap = new SKBitmap(element.Size, element.Size);
+        var bitmap = new SKBitmap(targetSize, targetSize);
         using var canvas = new SKCanvas(bitmap);
 
         var foreground = ColorParser.Parse(element.Foreground);

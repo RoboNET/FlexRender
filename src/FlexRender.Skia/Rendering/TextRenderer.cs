@@ -11,21 +11,22 @@ public sealed class TextRenderer
 {
     private const string Ellipsis = "...";
     private readonly FontManager _fontManager;
-    private readonly bool _deterministicRendering;
+    private readonly RenderOptions _defaultRenderOptions;
 
     /// <summary>
     /// Creates a new TextRenderer with the specified font manager.
     /// </summary>
     /// <param name="fontManager">The font manager to use for font loading.</param>
-    /// <param name="deterministicRendering">
-    /// When <c>true</c>, disables font hinting and subpixel rendering
-    /// to produce identical output across platforms.
+    /// <param name="defaultRenderOptions">
+    /// Default render options used for text measurement when no explicit options are provided.
+    /// When <c>null</c>, <see cref="RenderOptions.Default"/> is used.
     /// </param>
     /// <exception cref="ArgumentNullException">Thrown when fontManager is null.</exception>
-    public TextRenderer(FontManager fontManager, bool deterministicRendering = false)
+    public TextRenderer(FontManager fontManager, RenderOptions? defaultRenderOptions = null)
     {
-        _fontManager = fontManager ?? throw new ArgumentNullException(nameof(fontManager));
-        _deterministicRendering = deterministicRendering;
+        ArgumentNullException.ThrowIfNull(fontManager);
+        _fontManager = fontManager;
+        _defaultRenderOptions = defaultRenderOptions ?? RenderOptions.Default;
     }
 
     /// <summary>
@@ -40,7 +41,7 @@ public sealed class TextRenderer
         if (string.IsNullOrEmpty(element.Content))
             return new SKSize(0, 0);
 
-        using var font = CreateFont(element, baseFontSize);
+        using var font = CreateFont(element, baseFontSize, _defaultRenderOptions);
         var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
             ? float.MaxValue
             : maxWidth;
@@ -71,13 +72,15 @@ public sealed class TextRenderer
     /// <param name="element">The text element.</param>
     /// <param name="bounds">The bounding rectangle.</param>
     /// <param name="baseFontSize">Base font size for em calculations.</param>
-    public void DrawText(SKCanvas canvas, TextElement element, SKRect bounds, float baseFontSize)
+    /// <param name="renderOptions">Per-call rendering options controlling antialiasing, font hinting, and text rendering mode.</param>
+    public void DrawText(SKCanvas canvas, TextElement element, SKRect bounds, float baseFontSize, RenderOptions? renderOptions = null)
     {
         if (string.IsNullOrEmpty(element.Content))
             return;
 
-        using var font = CreateFont(element, baseFontSize);
-        using var paint = CreatePaint(element);
+        var effectiveOptions = renderOptions ?? RenderOptions.Default;
+        using var font = CreateFont(element, baseFontSize, effectiveOptions);
+        using var paint = CreatePaint(element, effectiveOptions.Antialiasing);
         var rotation = RotationHelper.ParseRotation(element.Rotate);
         var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
             ? float.MaxValue
@@ -129,47 +132,66 @@ public sealed class TextRenderer
 
     /// <summary>
     /// Creates an <see cref="SKFont"/> configured for the given text element.
-    /// When deterministic rendering is enabled, font hinting and subpixel positioning
-    /// are disabled to ensure identical output across macOS, Linux, and Windows.
-    /// Grayscale anti-aliasing is used instead of subpixel anti-aliasing because
-    /// LCD pixel layout varies across displays and platforms.
+    /// Font hinting, subpixel positioning, and edge rendering are controlled by
+    /// the per-call <see cref="RenderOptions"/>.
     /// </summary>
     /// <param name="element">The text element.</param>
     /// <param name="baseFontSize">Base font size for em calculations.</param>
+    /// <param name="renderOptions">Per-call rendering options.</param>
     /// <returns>A configured <see cref="SKFont"/> instance. Caller must dispose.</returns>
-    private SKFont CreateFont(TextElement element, float baseFontSize)
+    private SKFont CreateFont(TextElement element, float baseFontSize, RenderOptions renderOptions)
     {
         var typeface = _fontManager.GetTypeface(element.Font);
         var fontSize = FontSizeResolver.Resolve(element.Size, baseFontSize);
 
         var font = new SKFont(typeface, fontSize)
         {
-            Subpixel = !_deterministicRendering
+            Subpixel = renderOptions.SubpixelText,
+            Hinting = MapFontHinting(renderOptions.FontHinting),
+            Edging = MapTextRendering(renderOptions.TextRendering)
         };
-
-        if (_deterministicRendering)
-        {
-            font.Hinting = SKFontHinting.None;
-            font.Edging = SKFontEdging.Antialias;
-        }
 
         return font;
     }
+
+    /// <summary>
+    /// Maps the <see cref="FontHinting"/> enum to the SkiaSharp <see cref="SKFontHinting"/> enum.
+    /// </summary>
+    private static SKFontHinting MapFontHinting(FontHinting hinting) => hinting switch
+    {
+        FontHinting.None => SKFontHinting.None,
+        FontHinting.Slight => SKFontHinting.Slight,
+        FontHinting.Normal => SKFontHinting.Normal,
+        FontHinting.Full => SKFontHinting.Full,
+        _ => SKFontHinting.Normal
+    };
+
+    /// <summary>
+    /// Maps the <see cref="TextRendering"/> enum to the SkiaSharp <see cref="SKFontEdging"/> enum.
+    /// </summary>
+    private static SKFontEdging MapTextRendering(TextRendering rendering) => rendering switch
+    {
+        TextRendering.Aliased => SKFontEdging.Alias,
+        TextRendering.Grayscale => SKFontEdging.Antialias,
+        TextRendering.SubpixelLcd => SKFontEdging.SubpixelAntialias,
+        _ => SKFontEdging.SubpixelAntialias
+    };
 
     /// <summary>
     /// Creates an <see cref="SKPaint"/> configured for the given text element.
     /// The paint manages color, antialias, and other non-text visual properties.
     /// </summary>
     /// <param name="element">The text element.</param>
+    /// <param name="antialiasing">Whether to enable antialiasing.</param>
     /// <returns>A configured <see cref="SKPaint"/> instance. Caller must dispose.</returns>
-    private static SKPaint CreatePaint(TextElement element)
+    private static SKPaint CreatePaint(TextElement element, bool antialiasing)
     {
         var color = ColorParser.Parse(element.Color);
 
         return new SKPaint
         {
             Color = color,
-            IsAntialias = true
+            IsAntialias = antialiasing
         };
     }
 

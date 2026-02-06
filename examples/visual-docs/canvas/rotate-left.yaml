@@ -1,0 +1,64 @@
+template:
+  name: "canvas-rotate-left"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: both
+  width: 300
+  height: 200
+  background: "#f8f9fa"
+  rotate: left
+
+layout:
+  - type: flex
+    direction: column
+    padding: "20"
+    gap: 12
+    children:
+      - type: text
+        content: "TOP"
+        font: bold
+        size: 16px
+        color: "#1a1a2e"
+        align: center
+
+      - type: flex
+        direction: row
+        grow: 1
+        justify: space-between
+        align: center
+        children:
+          - type: text
+            content: "LEFT"
+            size: 14px
+            color: "#888888"
+
+          - type: flex
+            background: "#3498db"
+            width: "60"
+            height: "60"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: ">"
+                color: "#ffffff"
+                font: bold
+                size: 28px
+                align: center
+
+          - type: text
+            content: "RIGHT"
+            size: 14px
+            color: "#888888"
+
+      - type: text
+        content: "BOTTOM"
+        font: bold
+        size: 16px
+        color: "#cccccc"
+        align: center

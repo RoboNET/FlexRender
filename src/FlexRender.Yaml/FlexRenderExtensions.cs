@@ -171,4 +171,260 @@ public static class FlexRenderExtensions
         var template = await parser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
         await render.Render(output, template, data, format, cancellationToken).ConfigureAwait(false);
     }
+
+    // ========================================================================
+    // FORMAT-SPECIFIC YAML METHODS
+    // ========================================================================
+
+    /// <summary>
+    /// Renders a YAML template string to a PNG byte array.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="yaml">The YAML template content.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="options">PNG encoding options. Pass <c>null</c> for defaults.</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>The image bytes in PNG format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="yaml"/> is null.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the YAML content cannot be parsed.</exception>
+    public static async Task<byte[]> RenderYamlToPng(
+        this IFlexRender render,
+        string yaml,
+        ObjectValue? data = null,
+        PngOptions? options = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(yaml);
+
+        parser ??= new TemplateParser();
+        var template = parser.Parse(yaml);
+        return await render.RenderToPng(template, data, options, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders a YAML template string to a JPEG byte array.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="yaml">The YAML template content.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="options">JPEG encoding options. Pass <c>null</c> for defaults (quality 90).</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>The image bytes in JPEG format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="yaml"/> is null.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the YAML content cannot be parsed.</exception>
+    public static async Task<byte[]> RenderYamlToJpeg(
+        this IFlexRender render,
+        string yaml,
+        ObjectValue? data = null,
+        JpegOptions? options = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(yaml);
+
+        parser ??= new TemplateParser();
+        var template = parser.Parse(yaml);
+        return await render.RenderToJpeg(template, data, options, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders a YAML template string to a BMP byte array.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="yaml">The YAML template content.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="options">BMP encoding options. Pass <c>null</c> for defaults (Bgra32).</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>The image bytes in BMP format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="yaml"/> is null.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the YAML content cannot be parsed.</exception>
+    public static async Task<byte[]> RenderYamlToBmp(
+        this IFlexRender render,
+        string yaml,
+        ObjectValue? data = null,
+        BmpOptions? options = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(yaml);
+
+        parser ??= new TemplateParser();
+        var template = parser.Parse(yaml);
+        return await render.RenderToBmp(template, data, options, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders a YAML template string to raw BGRA8888 pixel data.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="yaml">The YAML template content.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>Raw pixel bytes in BGRA8888 format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="yaml"/> is null.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the YAML content cannot be parsed.</exception>
+    public static async Task<byte[]> RenderYamlToRaw(
+        this IFlexRender render,
+        string yaml,
+        ObjectValue? data = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(yaml);
+
+        parser ??= new TemplateParser();
+        var template = parser.Parse(yaml);
+        return await render.RenderToRaw(template, data, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    // ========================================================================
+    // FORMAT-SPECIFIC FILE METHODS
+    // ========================================================================
+
+    /// <summary>
+    /// Renders a YAML template file to a PNG byte array.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="path">The path to the YAML template file.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="options">PNG encoding options. Pass <c>null</c> for defaults.</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>The image bytes in PNG format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the template file does not exist.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the file content cannot be parsed or exceeds maximum size.</exception>
+    public static async Task<byte[]> RenderFileToPng(
+        this IFlexRender render,
+        string path,
+        ObjectValue? data = null,
+        PngOptions? options = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(path);
+
+        parser ??= new TemplateParser();
+        var template = await parser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
+        return await render.RenderToPng(template, data, options, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders a YAML template file to a JPEG byte array.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="path">The path to the YAML template file.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="options">JPEG encoding options. Pass <c>null</c> for defaults (quality 90).</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>The image bytes in JPEG format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the template file does not exist.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the file content cannot be parsed or exceeds maximum size.</exception>
+    public static async Task<byte[]> RenderFileToJpeg(
+        this IFlexRender render,
+        string path,
+        ObjectValue? data = null,
+        JpegOptions? options = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(path);
+
+        parser ??= new TemplateParser();
+        var template = await parser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
+        return await render.RenderToJpeg(template, data, options, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders a YAML template file to a BMP byte array.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="path">The path to the YAML template file.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="options">BMP encoding options. Pass <c>null</c> for defaults (Bgra32).</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>The image bytes in BMP format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the template file does not exist.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the file content cannot be parsed or exceeds maximum size.</exception>
+    public static async Task<byte[]> RenderFileToBmp(
+        this IFlexRender render,
+        string path,
+        ObjectValue? data = null,
+        BmpOptions? options = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(path);
+
+        parser ??= new TemplateParser();
+        var template = await parser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
+        return await render.RenderToBmp(template, data, options, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders a YAML template file to raw BGRA8888 pixel data.
+    /// </summary>
+    /// <param name="render">The render instance to use.</param>
+    /// <param name="path">The path to the YAML template file.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="parser">Optional template parser for reuse across multiple calls.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>Raw pixel bytes in BGRA8888 format.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="render"/> or <paramref name="path"/> is null.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the template file does not exist.</exception>
+    /// <exception cref="TemplateParseException">Thrown when the file content cannot be parsed or exceeds maximum size.</exception>
+    public static async Task<byte[]> RenderFileToRaw(
+        this IFlexRender render,
+        string path,
+        ObjectValue? data = null,
+        RenderOptions? renderOptions = null,
+        TemplateParser? parser = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(path);
+
+        parser ??= new TemplateParser();
+        var template = await parser.ParseFileAsync(path, cancellationToken).ConfigureAwait(false);
+        return await render.RenderToRaw(template, data, renderOptions, cancellationToken)
+            .ConfigureAwait(false);
+    }
 }

@@ -1,0 +1,35 @@
+template:
+  name: "image-cover"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 15
+    padding: "30"
+    children:
+      - type: text
+        content: "fit: cover (300x200 image fills 200x200 box, sides cropped)"
+        size: 14px
+        color: "#666666"
+
+      - type: flex
+        width: "200"
+        height: "200"
+        background: "#f0f0f0"
+        border: "2"
+        borderColor: "#cccccc"
+        children:
+          - type: image
+            src: "test-pattern.png"
+            width: "200"
+            height: "200"
+            fit: cover

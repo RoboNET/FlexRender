@@ -42,8 +42,9 @@ public sealed class QrElement : TemplateElement
 
     /// <summary>
     /// The size of the QR code in pixels (width and height are equal).
+    /// If not specified, inherits from container dimensions or flex Width/Height properties.
     /// </summary>
-    public int Size { get; set; } = 100;
+    public int? Size { get; set; }
 
     /// <summary>
     /// The error correction level for the QR code.

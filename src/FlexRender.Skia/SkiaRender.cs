@@ -35,12 +35,20 @@ public sealed class SkiaRender : IFlexRender
 {
     private readonly SkiaRenderer _renderer;
     private readonly IReadOnlyList<IResourceLoader> _resourceLoaders;
+    private readonly bool _legacyDeterministicRendering;
     private int _disposed;
 
     /// <summary>
-    /// Gets or sets the BMP color mode used when rendering to BMP format.
-    /// Defaults to <see cref="BmpColorMode.Bgra32"/>.
+    /// Gets or sets the BMP color mode used when rendering via the legacy
+    /// <see cref="Render(Template, ObjectValue?, ImageFormat, CancellationToken)"/> methods
+    /// with <see cref="ImageFormat.Bmp"/>.
     /// </summary>
+    /// <remarks>
+    /// This property exists for backward compatibility. Prefer using
+    /// <see cref="RenderToBmp(Template, ObjectValue?, BmpOptions?, RenderOptions?, CancellationToken)"/>
+    /// with <see cref="BmpOptions"/> instead.
+    /// </remarks>
+    [Obsolete("Use RenderToBmp() with BmpOptions instead. This property will be removed in a future version.")]
     public BmpColorMode BmpColorMode { get; set; } = BmpColorMode.Bgra32;
 
     /// <summary>
@@ -72,16 +80,24 @@ public sealed class SkiaRender : IFlexRender
         var qrProvider = skiaBuilder.QrProvider;
         var barcodeProvider = skiaBuilder.BarcodeProvider;
 
+#pragma warning disable CS0618 // Obsolete DeterministicRendering property - captured for legacy Render() backward compatibility
+        _legacyDeterministicRendering = options.DeterministicRendering;
+#pragma warning restore CS0618
+
         _renderer = new SkiaRenderer(
             limits,
             qrProvider,
             barcodeProvider,
             imageLoader,
-            options.DeterministicRendering,
+            _legacyDeterministicRendering,
             options);
 
         _renderer.BaseFontSize = options.BaseFontSize;
     }
+
+    // ========================================================================
+    // EXISTING METHODS (unchanged signatures, updated internals)
+    // ========================================================================
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">Thrown when the renderer has been disposed.</exception>
@@ -136,6 +152,9 @@ public sealed class SkiaRender : IFlexRender
 
     /// <summary>
     /// Renders the template to a stream in the specified format.
+    /// Delegates to format-specific methods for actual rendering.
+    /// Uses <see cref="RenderOptions.Deterministic"/> when the legacy
+    /// <c>FlexRenderOptions.DeterministicRendering</c> flag was set at build time.
     /// </summary>
     private async Task RenderToStream(
         Stream output,
@@ -144,25 +163,31 @@ public sealed class SkiaRender : IFlexRender
         ImageFormat format,
         CancellationToken cancellationToken)
     {
+        var legacyRenderOptions = _legacyDeterministicRendering
+            ? RenderOptions.Deterministic
+            : null;
+
         switch (format)
         {
             case ImageFormat.Png:
-                await _renderer.RenderToPng(output, layoutTemplate, data, cancellationToken)
+                await RenderToPng(output, layoutTemplate, data, null, legacyRenderOptions, cancellationToken)
                     .ConfigureAwait(false);
                 break;
 
             case ImageFormat.Jpeg:
-                await _renderer.RenderToJpeg(output, layoutTemplate, data, cancellationToken: cancellationToken)
+                await RenderToJpeg(output, layoutTemplate, data, null, legacyRenderOptions, cancellationToken)
                     .ConfigureAwait(false);
                 break;
 
+#pragma warning disable CS0618 // Obsolete BmpColorMode property
             case ImageFormat.Bmp:
-                await _renderer.RenderToBmp(output, layoutTemplate, data, BmpColorMode, cancellationToken)
+                await RenderToBmp(output, layoutTemplate, data, new BmpOptions { ColorMode = BmpColorMode }, legacyRenderOptions, cancellationToken)
                     .ConfigureAwait(false);
                 break;
+#pragma warning restore CS0618
 
             case ImageFormat.Raw:
-                await _renderer.RenderToRaw(output, layoutTemplate, data, cancellationToken)
+                await RenderToRaw(output, layoutTemplate, data, legacyRenderOptions, cancellationToken)
                     .ConfigureAwait(false);
                 break;
 
@@ -170,6 +195,246 @@ public sealed class SkiaRender : IFlexRender
                 throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image format.");
         }
     }
+
+    // ========================================================================
+    // FORMAT-SPECIFIC METHODS
+    // ========================================================================
+
+    // --- PNG ---
+
+    /// <inheritdoc />
+    public async Task<byte[]> RenderToPng(
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        PngOptions? options = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveOptions = options ?? PngOptions.Default;
+        ValidatePngOptions(effectiveOptions);
+
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        using var stream = new MemoryStream();
+        await _renderer.RenderToPng(
+            stream, layoutTemplate, effectiveData,
+            effectiveOptions.CompressionLevel,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+
+        return stream.ToArray();
+    }
+
+    /// <inheritdoc />
+    public async Task RenderToPng(
+        Stream output,
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        PngOptions? options = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveOptions = options ?? PngOptions.Default;
+        ValidatePngOptions(effectiveOptions);
+
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        await _renderer.RenderToPng(
+            output, layoutTemplate, effectiveData,
+            effectiveOptions.CompressionLevel,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    // --- JPEG ---
+
+    /// <inheritdoc />
+    public async Task<byte[]> RenderToJpeg(
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        JpegOptions? options = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveOptions = options ?? JpegOptions.Default;
+        ValidateJpegOptions(effectiveOptions);
+
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        using var stream = new MemoryStream();
+        await _renderer.RenderToJpeg(
+            stream, layoutTemplate, effectiveData,
+            effectiveOptions.Quality,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+
+        return stream.ToArray();
+    }
+
+    /// <inheritdoc />
+    public async Task RenderToJpeg(
+        Stream output,
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        JpegOptions? options = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveOptions = options ?? JpegOptions.Default;
+        ValidateJpegOptions(effectiveOptions);
+
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        await _renderer.RenderToJpeg(
+            output, layoutTemplate, effectiveData,
+            effectiveOptions.Quality,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    // --- BMP ---
+
+    /// <inheritdoc />
+    public async Task<byte[]> RenderToBmp(
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        BmpOptions? options = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveOptions = options ?? BmpOptions.Default;
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        using var stream = new MemoryStream();
+        await _renderer.RenderToBmp(
+            stream, layoutTemplate, effectiveData,
+            effectiveOptions.ColorMode,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+
+        return stream.ToArray();
+    }
+
+    /// <inheritdoc />
+    public async Task RenderToBmp(
+        Stream output,
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        BmpOptions? options = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveOptions = options ?? BmpOptions.Default;
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        await _renderer.RenderToBmp(
+            output, layoutTemplate, effectiveData,
+            effectiveOptions.ColorMode,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    // --- Raw ---
+
+    /// <inheritdoc />
+    public async Task<byte[]> RenderToRaw(
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        using var stream = new MemoryStream();
+        await _renderer.RenderToRaw(
+            stream, layoutTemplate, effectiveData,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+
+        return stream.ToArray();
+    }
+
+    /// <inheritdoc />
+    public async Task RenderToRaw(
+        Stream output,
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(layoutTemplate);
+
+        var effectiveData = data ?? new ObjectValue();
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+
+        await _renderer.RenderToRaw(
+            output, layoutTemplate, effectiveData,
+            effectiveRenderOptions,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    // ========================================================================
+    // VALIDATION
+    // ========================================================================
+
+    private static void ValidatePngOptions(PngOptions options)
+    {
+        if (options.CompressionLevel is < 0 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options),
+                options.CompressionLevel,
+                "PNG compression level must be between 0 and 100.");
+        }
+    }
+
+    private static void ValidateJpegOptions(JpegOptions options)
+    {
+        if (options.Quality is < 1 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options),
+                options.Quality,
+                "JPEG quality must be between 1 and 100.");
+        }
+    }
+
+    // ========================================================================
+    // DISPOSE
+    // ========================================================================
 
     /// <inheritdoc />
     public void Dispose()

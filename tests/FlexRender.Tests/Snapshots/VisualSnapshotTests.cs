@@ -401,6 +401,602 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     }
 
     /// <summary>
+    /// Tests <c>align: start</c> with boxes of different heights aligned to the top of the container.
+    /// </summary>
+    [Fact]
+    public void FlexAlignStart()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Align = AlignItems.Start,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "80",
+            Height = "40",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "40px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "80",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "60px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "80",
+            Height = "80",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "80px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_align_start", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>align: center</c> with boxes of different heights centered vertically in the container.
+    /// </summary>
+    [Fact]
+    public void FlexAlignCenter()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Align = AlignItems.Center,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "80",
+            Height = "40",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "40px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "80",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "60px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "80",
+            Height = "80",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "80px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_align_center", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>align: end</c> with boxes of different heights aligned to the bottom of the container.
+    /// </summary>
+    [Fact]
+    public void FlexAlignEnd()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Align = AlignItems.End,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "80",
+            Height = "40",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "40px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "80",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "60px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "80",
+            Height = "80",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "80px", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_align_end", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>align: stretch</c> with boxes stretching to fill the full container height.
+    /// Child boxes have no explicit height so they stretch to the container's 140px height.
+    /// </summary>
+    [Fact]
+    public void FlexAlignStretch()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Align = AlignItems.Stretch,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "80",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "Stretch", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "80",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "Stretch", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "80",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "Stretch", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_align_stretch", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>align: baseline</c> with text elements of different font sizes
+    /// aligned along their text baselines.
+    /// </summary>
+    [Fact]
+    public void FlexAlignBaseline()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Align = AlignItems.Baseline,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Padding = "8",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "Small", Size = "12", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Padding = "8",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "Medium", Size = "20", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Padding = "8",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "Large", Size = "32", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_align_baseline", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>justify: start</c> with boxes packed toward the start of the main axis.
+    /// </summary>
+    [Fact]
+    public void FlexJustifyStart()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Justify = JustifyContent.Start,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "A", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "B", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "C", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_justify_start", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>justify: center</c> with boxes centered along the main axis.
+    /// </summary>
+    [Fact]
+    public void FlexJustifyCenter()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Justify = JustifyContent.Center,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "A", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "B", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "C", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_justify_center", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>justify: end</c> with boxes packed toward the end of the main axis.
+    /// </summary>
+    [Fact]
+    public void FlexJustifyEnd()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Justify = JustifyContent.End,
+            Width = "380",
+            Height = "140",
+            Gap = "10",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "A", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "B", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "C", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_justify_end", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>justify: space-between</c> with even distribution of space between boxes.
+    /// First item at start, last item at end, remaining space distributed evenly.
+    /// </summary>
+    [Fact]
+    public void FlexJustifySpaceBetween()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Justify = JustifyContent.SpaceBetween,
+            Width = "380",
+            Height = "140",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "A", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "B", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "C", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_justify_space_between", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests <c>justify: space-evenly</c> with equal spacing around and between all boxes.
+    /// The space before the first item, between each item, and after the last item are all equal.
+    /// </summary>
+    [Fact]
+    public void FlexJustifySpaceEvenly()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 200);
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Justify = JustifyContent.SpaceEvenly,
+            Width = "380",
+            Height = "140",
+            Background = "#f0f0f0"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#3498db",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "A", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#e74c3c",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "B", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#2ecc71",
+            Width = "60",
+            Height = "60",
+            Children = new List<TemplateElement>
+            {
+                new TextElement { Content = "C", Size = "14", Color = "#ffffff" }
+            }
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("flex_justify_space_evenly", template, new ObjectValue());
+    }
+
+    /// <summary>
     /// Tests space-between justification with FlexElement children in a row.
     /// Verifies that FlexElement children use intrinsic sizing, leaving free
     /// space for justify-content to distribute.
