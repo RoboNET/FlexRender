@@ -138,3 +138,14 @@ public enum Overflow
     /// <summary>Content is clipped at bounds.</summary>
     Hidden = 1
 }
+
+/// <summary>
+/// Text/inline direction for layout and rendering.
+/// </summary>
+public enum TextDirection
+{
+    /// <summary>Left-to-right (default for Latin, Cyrillic, etc.).</summary>
+    Ltr = 0,
+    /// <summary>Right-to-left (for Arabic, Hebrew, etc.).</summary>
+    Rtl = 1
+}

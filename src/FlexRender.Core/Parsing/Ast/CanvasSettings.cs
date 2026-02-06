@@ -1,3 +1,5 @@
+using FlexRender.Layout;
+
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -70,4 +72,10 @@ public sealed class CanvasSettings
     /// </para>
     /// </remarks>
     public string Rotate { get; set; } = "none";
+
+    /// <summary>
+    /// Default text direction for the entire template.
+    /// Individual elements can override this.
+    /// </summary>
+    public TextDirection TextDirection { get; set; } = TextDirection.Ltr;
 }

@@ -519,7 +519,84 @@ Controls whether an element participates in layout:
 
 ## Order
 
-The `order` property exists on all elements but children are currently always laid out in document order.
+The `order` property controls the visual display order of flex items. Items are sorted by their `order` value before layout -- lower values appear first. Items with the same `order` value preserve their source (document) order (stable sort). The default is `0`. Negative values are supported.
+
+Absolute-positioned children are excluded from order sorting and always render after flow children.
+
+```yaml
+# Source order: A, B, C -- display order: B (0), C (1), A (2)
+- type: flex
+  direction: row
+  children:
+    - type: text
+      content: "A"
+      order: 2
+    - type: text
+      content: "B"
+      order: 0
+    - type: text
+      content: "C"
+      order: 1
+```
+
+```yaml
+# Negative order: B (-1) moves to front
+- type: flex
+  direction: row
+  children:
+    - type: text
+      content: "A"
+      order: 0
+    - type: text
+      content: "B"
+      order: -1
+    - type: text
+      content: "C"
+      order: 0
+```
+
+---
+
+## Borders
+
+All elements support CSS-like border properties. Borders consume space in the layout (they increase the element's total size alongside padding).
+
+**Shorthand format:** `"width style color"` (e.g., `"2 solid #333"`)
+
+```yaml
+# Uniform border on all sides
+- type: flex
+  border: "2 solid #333333"
+  padding: "16"
+  children:
+    - type: text
+      content: "Bordered container"
+
+# Per-side borders with different colors
+- type: flex
+  border-top: "3 solid #3498db"
+  border-right: "2 dashed #e74c3c"
+  border-bottom: "3 solid #2ecc71"
+  border-left: "2 dashed #f39c12"
+  padding: "16"
+  children:
+    - type: text
+      content: "Different sides"
+
+# Rounded corners
+- type: flex
+  border: "2 solid #3498db"
+  border-radius: "12"
+  padding: "16"
+  children:
+    - type: text
+      content: "Rounded"
+```
+
+**CSS cascade order:**
+1. `border` shorthand sets all four sides
+2. `border-width`, `border-color`, `border-style` override individual properties on all sides
+3. `border-top`, `border-right`, `border-bottom`, `border-left` override specific sides
 
 ---
 
@@ -537,15 +614,76 @@ The `order` property exists on all elements but children are currently always la
 | `Position` | `static`, `relative`, `absolute` |
 | `Overflow` | `visible`, `hidden` |
 
+## RTL (Right-to-Left) Support
+
+FlexRender supports RTL layout for Arabic, Hebrew, and other right-to-left scripts.
+
+### Canvas Direction
+
+Set `dir: rtl` on the canvas to make the entire template RTL:
+
+```yaml
+canvas:
+  width: 400
+  dir: rtl
+```
+
+### Per-Element Override
+
+Individual elements can override the inherited direction:
+
+```yaml
+canvas:
+  dir: rtl
+layout:
+  - type: flex
+    dir: ltr  # Override to LTR for this subtree
+    children: [...]
+```
+
+### How Direction Affects Layout
+
+| Layout | LTR | RTL |
+|--------|-----|-----|
+| `row` | Left to right | Right to left |
+| `row-reverse` | Right to left | Left to right |
+| `column` | No change | No change |
+| `column-reverse` | No change | No change |
+
+### Logical Text Alignment
+
+Use `start` and `end` for direction-aware alignment:
+
+| Value | LTR resolves to | RTL resolves to |
+|-------|-----------------|-----------------|
+| `start` | `left` | `right` |
+| `end` | `right` | `left` |
+| `left` | `left` | `left` |
+| `right` | `right` | `right` |
+
+### HarfBuzz Text Shaping
+
+For proper Arabic and Hebrew glyph shaping (ligatures, contextual forms), use the optional `FlexRender.HarfBuzz` package:
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithSkia(skia => skia.WithHarfBuzz())
+    .Build();
+```
+
+Without HarfBuzz, text renders left-to-right glyph-by-glyph. With HarfBuzz, text is shaped correctly with proper glyph substitution and positioning.
+
+---
+
 ## Known Differences from CSS/Yoga
 
 | Area | FlexRender | CSS/Yoga |
 |------|-----------|----------|
-| `order` | Property exists, not read by layout | Items sorted by `order` |
+| `order` | Items sorted by `order` (stable sort, absolute children excluded) | Items sorted by `order` |
 | `display` | Only `flex` and `none` | Full CSS display values |
 | `overflow` | Only `visible` and `hidden` | Also `scroll`, `auto` |
-| Borders | No border support | Borders affect sizing |
-| RTL / writing modes | LTR only | Full bidirectional support |
+| Borders | Shorthand and per-side borders with radius. Borders affect sizing. | Borders affect sizing |
+| RTL / writing modes | LTR and RTL via `dir` property | Full bidirectional support |
 | Containing block | Direct parent | Nearest positioned ancestor |
 | `min-content` / `max-content` | Not supported | Intrinsic sizing keywords |
 

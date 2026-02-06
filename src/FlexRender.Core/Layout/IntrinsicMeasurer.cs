@@ -97,7 +97,7 @@ internal sealed class IntrinsicMeasurer
 
         var intrinsic = new IntrinsicSize(contentWidth, contentWidth, contentHeight, contentHeight);
 
-        return ApplyPaddingAndMargin(intrinsic, text.Padding, text.Margin);
+        return ApplyPaddingBorderAndMargin(intrinsic, text);
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ internal sealed class IntrinsicMeasurer
         float size = qr.Size ?? 100f;
         var intrinsic = new IntrinsicSize(size, size, size, size);
 
-        return ApplyPaddingAndMargin(intrinsic, qr.Padding, qr.Margin);
+        return ApplyPaddingBorderAndMargin(intrinsic, qr);
     }
 
     /// <summary>
@@ -122,7 +122,7 @@ internal sealed class IntrinsicMeasurer
         float height = barcode.BarcodeHeight ?? 80f;
         var intrinsic = new IntrinsicSize(width, width, height, height);
 
-        return ApplyPaddingAndMargin(intrinsic, barcode.Padding, barcode.Margin);
+        return ApplyPaddingBorderAndMargin(intrinsic, barcode);
     }
 
     /// <summary>
@@ -134,7 +134,7 @@ internal sealed class IntrinsicMeasurer
         float height = image.ImageHeight ?? 0f;
         var intrinsic = new IntrinsicSize(width, width, height, height);
 
-        return ApplyPaddingAndMargin(intrinsic, image.Padding, image.Margin);
+        return ApplyPaddingBorderAndMargin(intrinsic, image);
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ internal sealed class IntrinsicMeasurer
             ? new IntrinsicSize(0f, 0f, separator.Thickness, separator.Thickness)
             : new IntrinsicSize(separator.Thickness, separator.Thickness, 0f, 0f);
 
-        return ApplyPaddingAndMargin(intrinsic, separator.Padding, separator.Margin);
+        return ApplyPaddingBorderAndMargin(intrinsic, separator);
     }
 
     /// <summary>
@@ -155,6 +155,12 @@ internal sealed class IntrinsicMeasurer
     private IntrinsicSize MeasureFlexIntrinsic(FlexElement flex, Dictionary<TemplateElement, IntrinsicSize> sizes)
     {
         var padding = PaddingParser.ParseAbsolute(flex.Padding).ClampNegatives();
+        var border = BorderParser.ResolveAbsolute(flex);
+        var effectivePadding = new PaddingValues(
+            padding.Top + border.Top.Width,
+            padding.Right + border.Right.Width,
+            padding.Bottom + border.Bottom.Width,
+            padding.Left + border.Left.Width);
         var margin = PaddingParser.ParseAbsolute(flex.Margin).ClampNegatives();
         var gap = ParseAbsolutePixelValue(flex.Gap, 0f);
 
@@ -163,7 +169,7 @@ internal sealed class IntrinsicMeasurer
         if (childCount == 0)
         {
             var empty = new IntrinsicSize();
-            empty = empty.WithPadding(padding);
+            empty = empty.WithPadding(effectivePadding);
             empty = empty.WithMargin(margin);
 
             if (!string.IsNullOrEmpty(flex.Width))
@@ -234,7 +240,7 @@ internal sealed class IntrinsicMeasurer
         }
 
         var result = new IntrinsicSize(minWidth, maxWidth, minHeight, maxHeight);
-        result = result.WithPadding(padding);
+        result = result.WithPadding(effectivePadding);
         result = result.WithMargin(margin);
 
         // Override with explicit dimensions
@@ -267,6 +273,7 @@ internal sealed class IntrinsicMeasurer
 
     /// <summary>
     /// Applies padding and margin to an intrinsic size measurement.
+    /// Does not handle borders; use <see cref="ApplyPaddingBorderAndMargin"/> for that.
     /// </summary>
     private static IntrinsicSize ApplyPaddingAndMargin(IntrinsicSize intrinsic, string? padding, string? margin)
     {
@@ -279,6 +286,25 @@ internal sealed class IntrinsicMeasurer
         if (m.Horizontal > 0f || m.Vertical > 0f)
         {
             intrinsic = intrinsic.WithMargin(m);
+        }
+        return intrinsic;
+    }
+
+    /// <summary>
+    /// Applies padding, border, and margin to an intrinsic size measurement.
+    /// Border width is added alongside padding (border-box model).
+    /// </summary>
+    private static IntrinsicSize ApplyPaddingBorderAndMargin(IntrinsicSize intrinsic, TemplateElement element)
+    {
+        intrinsic = ApplyPaddingAndMargin(intrinsic, element.Padding, element.Margin);
+        var border = BorderParser.ResolveAbsolute(element);
+        if (border.Horizontal > 0f || border.Vertical > 0f)
+        {
+            intrinsic = new IntrinsicSize(
+                intrinsic.MinWidth + border.Horizontal,
+                intrinsic.MaxWidth + border.Horizontal,
+                intrinsic.MinHeight + border.Vertical,
+                intrinsic.MaxHeight + border.Vertical);
         }
         return intrinsic;
     }

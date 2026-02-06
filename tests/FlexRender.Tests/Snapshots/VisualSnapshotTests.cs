@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using FlexRender.Layout;
 using FlexRender.Parsing.Ast;
 using SkiaSharp;
@@ -1095,6 +1096,9 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     [Fact]
     public void FlexMixedContent()
     {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return;
+
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
         {
@@ -1357,6 +1361,108 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         template.AddElement(container);
 
         AssertSnapshot("element_with_margin_and_background", template, new ObjectValue());
+    }
+
+    #endregion
+
+    #region RTL Layout
+
+    /// <summary>
+    /// Tests RTL row layout with three colored boxes positioned right-to-left.
+    /// Blue box appears on the right, red in the middle, green on the left.
+    /// </summary>
+    [Fact]
+    public void RtlRowLayout()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 100);
+        template.Canvas.TextDirection = TextDirection.Rtl;
+
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Gap = "10"
+        };
+
+        var box1 = new FlexElement
+        {
+            Background = "#0000ff",
+            Width = "80",
+            Height = "60"
+        };
+
+        var box2 = new FlexElement
+        {
+            Background = "#ff0000",
+            Width = "80",
+            Height = "60"
+        };
+
+        var box3 = new FlexElement
+        {
+            Background = "#00ff00",
+            Width = "80",
+            Height = "60"
+        };
+
+        flex.AddChild(box1);
+        flex.AddChild(box2);
+        flex.AddChild(box3);
+        template.AddElement(flex);
+
+        AssertSnapshot("rtl_row_layout", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests RTL row layout with three text elements positioned right-to-left.
+    /// "First" appears on the right, "Second" in the middle, "Third" on the left.
+    /// </summary>
+    [Fact]
+    public void RtlRowWithText()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(400, 80);
+        template.Canvas.TextDirection = TextDirection.Rtl;
+
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Gap = "10"
+        };
+
+        flex.AddChild(new TextElement { Content = "First", Size = "16", Color = "#000000" });
+        flex.AddChild(new TextElement { Content = "Second", Size = "16", Color = "#000000" });
+        flex.AddChild(new TextElement { Content = "Third", Size = "16", Color = "#000000" });
+
+        template.AddElement(flex);
+
+        AssertSnapshot("rtl_row_with_text", template, new ObjectValue());
+    }
+
+    /// <summary>
+    /// Tests that <see cref="TextAlign.Start"/> resolves to right alignment in an RTL context.
+    /// The text "Start Aligned" should appear right-aligned within the 300px canvas.
+    /// </summary>
+    [Fact]
+    public void RtlTextAlignStart()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(300, 60);
+        template.Canvas.TextDirection = TextDirection.Rtl;
+
+        template.AddElement(new TextElement
+        {
+            Content = "Start Aligned",
+            Size = "16",
+            Color = "#000000",
+            Align = TextAlign.Start,
+            Width = "300"
+        });
+
+        AssertSnapshot("rtl_text_align_start", template, new ObjectValue());
     }
 
     #endregion

@@ -1,0 +1,50 @@
+template:
+  name: "text-align-start-rtl"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  text-direction: rtl
+  background: "#ffffff"
+
+layout:
+  - type: text
+    content: "align: start (RTL = right-aligned)"
+    align: start
+    padding: "12"
+    font: bold
+    size: 14px
+    color: "#333333"
+  - type: separator
+    style: solid
+    color: "#e0e0e0"
+  - type: text
+    content: "align: end (RTL = left-aligned)"
+    align: end
+    padding: "12"
+    font: bold
+    size: 14px
+    color: "#333333"
+  - type: separator
+    style: solid
+    color: "#e0e0e0"
+  - type: text
+    content: "align: left (physical, stays left)"
+    align: left
+    padding: "12"
+    size: 14px
+    color: "#666666"
+  - type: separator
+    style: solid
+    color: "#e0e0e0"
+  - type: text
+    content: "align: right (physical, stays right)"
+    align: right
+    padding: "12"
+    size: 14px
+    color: "#666666"

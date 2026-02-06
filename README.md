@@ -11,8 +11,10 @@ A .NET library for rendering images from YAML templates with a full CSS flexbox 
 
 - **YAML Templates** -- define complex image layouts in readable YAML format
 - **Full CSS Flexbox** -- direction, wrapping, justify, align, grow/shrink/basis, min/max constraints, auto margins
+- **RTL Support** -- right-to-left layout with `text-direction: rtl`, logical alignment (`start`/`end`), row mirroring
 - **Template Engine** -- variables (`{{name}}`), loops (`type: each`), conditionals (`type: if` with 13 operators)
-- **Rich Content** -- text, images, QR codes, barcodes, separators
+- **Rich Content** -- text, images, QR codes (`FlexRender.QrCode`), barcodes (`FlexRender.Barcode`), separators
+- **HarfBuzz Shaping** -- optional `FlexRender.HarfBuzz` package for Arabic/Hebrew glyph shaping
 - **Multiple Formats** -- PNG, JPEG (quality 1-100), BMP (6 color modes), Raw pixels
 - **Per-Call Options** -- antialiasing, font hinting, text rendering mode per render call
 - **AOT Compatible** -- no reflection, works with Native AOT publishing

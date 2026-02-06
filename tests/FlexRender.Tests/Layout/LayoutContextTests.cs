@@ -85,4 +85,63 @@ public class LayoutContextTests
         Assert.True(context.IntrinsicSizes.ContainsKey(element));
         Assert.Equal(100f, context.IntrinsicSizes[element].MaxWidth);
     }
+
+    [Fact]
+    public void Constructor_Direction_DefaultsToLtr()
+    {
+        var context = new LayoutContext(300, 400, 16);
+        Assert.Equal(TextDirection.Ltr, context.Direction);
+    }
+
+    [Fact]
+    public void Constructor_WithDirection_SetsDirection()
+    {
+        var context = new LayoutContext(300, 400, 16, direction: TextDirection.Rtl);
+        Assert.Equal(TextDirection.Rtl, context.Direction);
+    }
+
+    [Fact]
+    public void WithDirection_ReturnsNewContextWithDirection()
+    {
+        var original = new LayoutContext(300, 400, 16);
+        var modified = original.WithDirection(TextDirection.Rtl);
+
+        Assert.Equal(TextDirection.Ltr, original.Direction);
+        Assert.Equal(TextDirection.Rtl, modified.Direction);
+        Assert.Equal(300f, modified.ContainerWidth);
+        Assert.Equal(400f, modified.ContainerHeight);
+        Assert.Equal(16f, modified.FontSize);
+    }
+
+    [Fact]
+    public void WithDirection_PreservesIntrinsicSizes()
+    {
+        var sizes = new Dictionary<TemplateElement, IntrinsicSize>(ReferenceEqualityComparer.Instance);
+        var element = new TextElement { Content = "test" };
+        sizes[element] = new IntrinsicSize(10, 100, 20, 200);
+
+        var context = new LayoutContext(300, 400, 16, sizes);
+        var modified = context.WithDirection(TextDirection.Rtl);
+
+        Assert.NotNull(modified.IntrinsicSizes);
+        Assert.True(modified.IntrinsicSizes!.ContainsKey(element));
+    }
+
+    [Fact]
+    public void WithSize_PreservesDirection()
+    {
+        var context = new LayoutContext(300, 400, 16, direction: TextDirection.Rtl);
+        var modified = context.WithSize(200, 300);
+
+        Assert.Equal(TextDirection.Rtl, modified.Direction);
+    }
+
+    [Fact]
+    public void WithFontSize_PreservesDirection()
+    {
+        var context = new LayoutContext(300, 400, 16, direction: TextDirection.Rtl);
+        var modified = context.WithFontSize(24);
+
+        Assert.Equal(TextDirection.Rtl, modified.Direction);
+    }
 }

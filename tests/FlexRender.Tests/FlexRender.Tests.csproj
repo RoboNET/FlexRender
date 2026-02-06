@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\src\FlexRender.QrCode\FlexRender.QrCode.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.Barcode\FlexRender.Barcode.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.DependencyInjection\FlexRender.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.HarfBuzz\FlexRender.HarfBuzz.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -49,7 +49,8 @@ internal sealed class TemplatePreprocessor
             Width = template.Canvas.Width,
             Height = template.Canvas.Height,
             Background = ProcessExpression(template.Canvas.Background, data),
-            Rotate = template.Canvas.Rotate
+            Rotate = template.Canvas.Rotate,
+            TextDirection = template.Canvas.TextDirection
         };
 
         var processed = new Template
@@ -144,6 +145,17 @@ internal sealed class TemplatePreprocessor
         // Other base properties
         target.Display = source.Display;
         target.AspectRatio = source.AspectRatio;
+
+        // Border properties
+        target.Border = source.Border;
+        target.BorderWidth = source.BorderWidth;
+        target.BorderColor = source.BorderColor;
+        target.BorderStyle = source.BorderStyle;
+        target.BorderTop = source.BorderTop;
+        target.BorderRight = source.BorderRight;
+        target.BorderBottom = source.BorderBottom;
+        target.BorderLeft = source.BorderLeft;
+        target.BorderRadius = source.BorderRadius;
     }
 
     /// <summary>
@@ -192,6 +204,7 @@ internal sealed class TemplatePreprocessor
         };
 
         CopyBaseProperties(text, clone);
+        ProcessBorderExpressions(clone, data);
         return clone;
     }
 
@@ -216,6 +229,7 @@ internal sealed class TemplatePreprocessor
         };
 
         CopyBaseProperties(qr, clone);
+        ProcessBorderExpressions(clone, data);
         return clone;
     }
 
@@ -242,6 +256,7 @@ internal sealed class TemplatePreprocessor
         };
 
         CopyBaseProperties(barcode, clone);
+        ProcessBorderExpressions(clone, data);
         return clone;
     }
 
@@ -266,6 +281,7 @@ internal sealed class TemplatePreprocessor
         };
 
         CopyBaseProperties(image, clone);
+        ProcessBorderExpressions(clone, data);
         return clone;
     }
 
@@ -294,6 +310,7 @@ internal sealed class TemplatePreprocessor
         };
 
         CopyBaseProperties(separator, clone);
+        ProcessBorderExpressions(clone, data);
         return clone;
     }
 
@@ -326,6 +343,7 @@ internal sealed class TemplatePreprocessor
         };
 
         CopyBaseProperties(flex, processed);
+        ProcessBorderExpressions(processed, data);
 
         foreach (var child in flex.Children)
         {
@@ -335,6 +353,25 @@ internal sealed class TemplatePreprocessor
         }
 
         return processed;
+    }
+
+    /// <summary>
+    /// Processes all border-related properties on an element through expression resolution.
+    /// Must be called after <see cref="CopyBaseProperties"/> which copies border values verbatim.
+    /// </summary>
+    /// <param name="element">The element whose border properties to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    private void ProcessBorderExpressions(TemplateElement element, ObjectValue data)
+    {
+        element.Border = ProcessExpression(element.Border, data);
+        element.BorderWidth = ProcessExpression(element.BorderWidth, data);
+        element.BorderColor = ProcessExpression(element.BorderColor, data);
+        element.BorderStyle = ProcessExpression(element.BorderStyle, data);
+        element.BorderTop = ProcessExpression(element.BorderTop, data);
+        element.BorderRight = ProcessExpression(element.BorderRight, data);
+        element.BorderBottom = ProcessExpression(element.BorderBottom, data);
+        element.BorderLeft = ProcessExpression(element.BorderLeft, data);
+        element.BorderRadius = ProcessExpression(element.BorderRadius, data);
     }
 
     /// <summary>

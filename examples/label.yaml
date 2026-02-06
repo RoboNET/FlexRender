@@ -39,3 +39,4 @@ layout:
     width: 180
     height: 40
     showText: true
+    margin: "0 auto"

@@ -67,4 +67,21 @@ public class LayoutNodeTests
         Assert.Equal(100f, bounds.Width);
         Assert.Equal(50f, bounds.Height);
     }
+
+    [Fact]
+    public void LayoutNode_Direction_DefaultsToLtr()
+    {
+        var element = new TextElement { Content = "test" };
+        var node = new LayoutNode(element, 0, 0, 100, 30);
+        Assert.Equal(TextDirection.Ltr, node.Direction);
+    }
+
+    [Fact]
+    public void LayoutNode_Direction_CanBeSet()
+    {
+        var element = new TextElement { Content = "test" };
+        var node = new LayoutNode(element, 0, 0, 100, 30);
+        node.Direction = TextDirection.Rtl;
+        Assert.Equal(TextDirection.Rtl, node.Direction);
+    }
 }

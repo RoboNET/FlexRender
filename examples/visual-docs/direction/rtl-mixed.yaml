@@ -1,0 +1,70 @@
+template:
+  name: "direction-rtl-mixed"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+  arabic: "../../assets/fonts/NotoSansArabic-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  text-direction: rtl
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "20"
+    gap: 16
+    children:
+      - type: text
+        font: arabic
+        size: 18px
+        color: "#1a1a2e"
+        align: right
+        content: "\u0645\u0631\u062D\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645"
+
+      - type: separator
+        style: dashed
+        thickness: 1
+        color: "#cccccc"
+
+      - type: flex
+        text-direction: ltr
+        background: "#f0f7ff"
+        border: "1 solid #3498db"
+        border-radius: "6"
+        padding: "16"
+        gap: 8
+        children:
+          - type: text
+            content: "LTR Section"
+            font: bold
+            size: 14px
+            color: "#3498db"
+          - type: text
+            content: "This nested container uses text-direction: ltr, so text and layout flow left-to-right."
+            size: 13px
+            color: "#555555"
+            wrap: true
+            lineHeight: "1.5"
+
+      - type: flex
+        background: "#fff5f5"
+        border: "1 solid #e74c3c"
+        border-radius: "6"
+        padding: "16"
+        gap: 8
+        children:
+          - type: text
+            font: arabic
+            size: 15px
+            color: "#e74c3c"
+            align: right
+            content: "\u0647\u0630\u0627 \u0645\u062B\u0627\u0644"
+          - type: text
+            content: "RTL context inherited from canvas"
+            size: 12px
+            color: "#888888"
+            align: right

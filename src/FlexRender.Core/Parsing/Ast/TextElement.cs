@@ -18,7 +18,17 @@ public enum TextAlign
     /// <summary>
     /// Align text to the right.
     /// </summary>
-    Right
+    Right,
+
+    /// <summary>
+    /// Align to the start edge (left in LTR, right in RTL).
+    /// </summary>
+    Start,
+
+    /// <summary>
+    /// Align to the end edge (right in LTR, left in RTL).
+    /// </summary>
+    End
 }
 
 /// <summary>

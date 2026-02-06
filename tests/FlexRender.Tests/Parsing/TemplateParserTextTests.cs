@@ -358,4 +358,46 @@ public class TemplateParserTextTests
         var text = Assert.IsType<TextElement>(template.Elements[0]);
         Assert.Equal("", text.LineHeight);
     }
+
+    /// <summary>
+    /// Verifies that text align "start" is parsed as TextAlign.Start.
+    /// </summary>
+    [Fact]
+    public void Parse_TextAlignStart_ParsesCorrectly()
+    {
+        const string yaml = """
+            canvas:
+              width: 400
+            layout:
+              - type: text
+                content: "Hello"
+                align: start
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        var text = Assert.IsType<TextElement>(template.Elements[0]);
+        Assert.Equal(TextAlign.Start, text.Align);
+    }
+
+    /// <summary>
+    /// Verifies that text align "end" is parsed as TextAlign.End.
+    /// </summary>
+    [Fact]
+    public void Parse_TextAlignEnd_ParsesCorrectly()
+    {
+        const string yaml = """
+            canvas:
+              width: 400
+            layout:
+              - type: text
+                content: "Hello"
+                align: end
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        var text = Assert.IsType<TextElement>(template.Elements[0]);
+        Assert.Equal(TextAlign.End, text.Align);
+    }
 }

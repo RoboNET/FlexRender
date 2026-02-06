@@ -6,6 +6,7 @@
     <Project Path="src/FlexRender.Skia/FlexRender.Skia.csproj" />
     <Project Path="src/FlexRender.QrCode/FlexRender.QrCode.csproj" />
     <Project Path="src/FlexRender.Barcode/FlexRender.Barcode.csproj" />
+    <Project Path="src/FlexRender.HarfBuzz/FlexRender.HarfBuzz.csproj" />
     <Project Path="src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj" />
     <Project Path="src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj" />
     <Project Path="src/FlexRender.Cli/FlexRender.Cli.csproj" />

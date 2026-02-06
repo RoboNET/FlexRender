@@ -7,26 +7,30 @@ This directory contains visual examples for the FlexRender wiki documentation. E
 ```
 visual-docs/
 ├── README.md           # This file
-├── output/             # All generated PNG files (42 files)
+├── output/             # All generated PNG files (63 files)
 │   ├── align-*.png     # Alignment examples (5)
 │   ├── barcode-*.png   # Barcode examples (2)
+│   ├── border-*.png    # Border examples (4)
 │   ├── canvas-*.png    # Canvas property examples (9)
-│   ├── direction-*.png # Direction examples (4)
+│   ├── direction-*.png # Direction examples (9)
 │   ├── image-*.png     # Image fit mode examples (4)
 │   ├── justify-*.png   # Justify content examples (6)
+│   ├── order-*.png     # Order examples (2)
 │   ├── qr-*.png        # QR code examples (2)
 │   ├── separator-*.png # Separator examples (3)
-│   ├── text-*.png      # Text examples (4)
+│   ├── text-*.png      # Text examples (5)
 │   └── wrap-*.png      # Wrap examples (3)
 ├── align/              # Cross-axis alignment (5 YAML)
 ├── barcode/            # Barcode demonstrations (2 YAML)
+├── border/             # Border styling (4 YAML)
 ├── canvas/             # Canvas settings (9 YAML)
-├── direction/          # Flex direction (4 YAML)
+├── direction/          # Flex direction and RTL (9 YAML)
 ├── image/              # Image fit modes (4 YAML + test-pattern.png symlink)
 ├── justify/            # Main-axis alignment (6 YAML)
+├── order/              # Flex item ordering (2 YAML)
 ├── qr/                 # QR code demonstrations (2 YAML)
 ├── separator/          # Separator styling (3 YAML)
-├── text/               # Text formatting (4 YAML)
+├── text/               # Text formatting (5 YAML)
 └── wrap/               # Flex wrapping (3 YAML)
 ```
 
@@ -213,9 +217,9 @@ After making changes to visual docs:
 
 ## Current Statistics
 
-- **Total YAML templates:** 51
-- **Total PNG outputs:** 51 (1:1 mapping)
-- **Categories:** 11 (align, barcode, canvas, direction, image, justify, position, qr, separator, text, wrap)
+- **Total YAML templates:** 63
+- **Total PNG outputs:** 63 (1:1 mapping)
+- **Categories:** 13 (align, barcode, border, canvas, direction, image, justify, order, position, qr, separator, text, wrap)
 - **Wiki pages:** 1 (Visual-Reference.md — consolidated)
 
 Last updated: February 2026

@@ -1,0 +1,74 @@
+template:
+  name: "direction-rtl-row"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  text-direction: rtl
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "20"
+    gap: 12
+    children:
+      - type: text
+        content: "text-direction: rtl -- items flow right to left"
+        size: 13px
+        color: "#888888"
+
+      - type: flex
+        direction: row
+        background: "#f5f5f5"
+        padding: "16"
+        gap: 10
+        children:
+          - type: flex
+            width: "90"
+            height: "60"
+            background: "#3498db"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "First"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center
+
+          - type: flex
+            width: "90"
+            height: "60"
+            background: "#e74c3c"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Second"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center
+
+          - type: flex
+            width: "90"
+            height: "60"
+            background: "#2ecc71"
+            padding: "8"
+            align: center
+            justify: center
+            children:
+              - type: text
+                content: "Third"
+                color: "#ffffff"
+                font: bold
+                size: 14px
+                align: center
