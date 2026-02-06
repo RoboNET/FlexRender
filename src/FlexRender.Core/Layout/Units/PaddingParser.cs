@@ -95,4 +95,71 @@ public static class PaddingParser
         var left = ResolveToken(tokens[3], parentSize, fontSize);
         return new PaddingValues(top, right, bottom, left);
     }
+
+    // ============================================
+    // Margin parsing (with auto support)
+    // ============================================
+
+    /// <summary>
+    /// Parses a margin string that may contain "auto" tokens.
+    /// Follows CSS shorthand rules (1-4 values) with auto support.
+    /// Auto margins consume free space during flexbox layout.
+    /// </summary>
+    /// <param name="value">The margin string (e.g., "0 auto", "auto 0 0 0", "10px auto").</param>
+    /// <param name="parentSize">Parent container size for percentage resolution.</param>
+    /// <param name="fontSize">Font size for em resolution.</param>
+    /// <returns>Resolved margin values with auto support.</returns>
+    public static MarginValues ParseMargin(string? value, float parentSize, float fontSize)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return MarginValues.Zero;
+
+        var tokens = SplitTokens(value);
+        return tokens.Length switch
+        {
+            1 => ParseMarginUniform(tokens[0], parentSize, fontSize),
+            2 => ParseMarginTwoValue(tokens, parentSize, fontSize),
+            3 => ParseMarginThreeValue(tokens, parentSize, fontSize),
+            _ => ParseMarginFourValue(tokens, parentSize, fontSize)
+        };
+    }
+
+    private static MarginValue ResolveMarginToken(string token, float parentSize, float fontSize)
+    {
+        if (string.Equals(token, "auto", StringComparison.OrdinalIgnoreCase))
+            return MarginValue.Auto;
+
+        var unit = UnitParser.Parse(token);
+        return MarginValue.Fixed(unit.Resolve(parentSize, fontSize) ?? 0f);
+    }
+
+    private static MarginValues ParseMarginUniform(string token, float parentSize, float fontSize)
+    {
+        var v = ResolveMarginToken(token, parentSize, fontSize);
+        return new MarginValues(v, v, v, v);
+    }
+
+    private static MarginValues ParseMarginTwoValue(string[] tokens, float parentSize, float fontSize)
+    {
+        var vertical = ResolveMarginToken(tokens[0], parentSize, fontSize);
+        var horizontal = ResolveMarginToken(tokens[1], parentSize, fontSize);
+        return new MarginValues(vertical, horizontal, vertical, horizontal);
+    }
+
+    private static MarginValues ParseMarginThreeValue(string[] tokens, float parentSize, float fontSize)
+    {
+        var top = ResolveMarginToken(tokens[0], parentSize, fontSize);
+        var horizontal = ResolveMarginToken(tokens[1], parentSize, fontSize);
+        var bottom = ResolveMarginToken(tokens[2], parentSize, fontSize);
+        return new MarginValues(top, horizontal, bottom, horizontal);
+    }
+
+    private static MarginValues ParseMarginFourValue(string[] tokens, float parentSize, float fontSize)
+    {
+        var top = ResolveMarginToken(tokens[0], parentSize, fontSize);
+        var right = ResolveMarginToken(tokens[1], parentSize, fontSize);
+        var bottom = ResolveMarginToken(tokens[2], parentSize, fontSize);
+        var left = ResolveMarginToken(tokens[3], parentSize, fontSize);
+        return new MarginValues(top, right, bottom, left);
+    }
 }

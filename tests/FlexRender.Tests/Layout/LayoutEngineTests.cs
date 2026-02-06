@@ -1912,4 +1912,92 @@ public class LayoutEngineTests
         var totalHeight = flex.Children[0].Height + flex.Children[1].Height;
         Assert.True(Math.Abs(totalHeight - 100) < 1, $"Children should fit in 100px: total={totalHeight}");
     }
+
+    // ============================================
+    // Justify-Content Overflow Fallback Tests
+    // ============================================
+
+    [Fact]
+    public void ComputeLayout_SpaceBetween_NegativeFreeSpace_FallbackToStart()
+    {
+        // Arrange: row flex width=200, justify=SpaceBetween, children total width > 200
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Width = "200",
+            Justify = JustifyContent.SpaceBetween
+        };
+        flex.AddChild(new TextElement { Content = "A", Width = "120", Height = "30", Shrink = 0 });
+        flex.AddChild(new TextElement { Content = "B", Width = "120", Height = "30", Shrink = 0 });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        var engine = new LayoutEngine();
+        var root = engine.ComputeLayout(template);
+        var flexNode = root.Children[0];
+
+        // Assert: should fallback to Start (items start at X=0)
+        Assert.Equal(0f, flexNode.Children[0].X, 0.1f);
+        Assert.Equal(120f, flexNode.Children[1].X, 0.1f);
+    }
+
+    [Fact]
+    public void ComputeLayout_SpaceAround_NegativeFreeSpace_FallbackToStart()
+    {
+        // Arrange: same pattern but with SpaceAround
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Width = "200",
+            Justify = JustifyContent.SpaceAround
+        };
+        flex.AddChild(new TextElement { Content = "A", Width = "120", Height = "30", Shrink = 0 });
+        flex.AddChild(new TextElement { Content = "B", Width = "120", Height = "30", Shrink = 0 });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        var engine = new LayoutEngine();
+        var root = engine.ComputeLayout(template);
+        var flexNode = root.Children[0];
+
+        // Assert: should fallback to Start
+        Assert.Equal(0f, flexNode.Children[0].X, 0.1f);
+        Assert.Equal(120f, flexNode.Children[1].X, 0.1f);
+    }
+
+    [Fact]
+    public void ComputeLayout_SpaceEvenly_NegativeFreeSpace_FallbackToStart()
+    {
+        // Arrange: same pattern but with SpaceEvenly
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Row,
+            Width = "200",
+            Justify = JustifyContent.SpaceEvenly
+        };
+        flex.AddChild(new TextElement { Content = "A", Width = "120", Height = "30", Shrink = 0 });
+        flex.AddChild(new TextElement { Content = "B", Width = "120", Height = "30", Shrink = 0 });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 400 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        var engine = new LayoutEngine();
+        var root = engine.ComputeLayout(template);
+        var flexNode = root.Children[0];
+
+        // Assert: should fallback to Start
+        Assert.Equal(0f, flexNode.Children[0].X, 0.1f);
+        Assert.Equal(120f, flexNode.Children[1].X, 0.1f);
+    }
 }

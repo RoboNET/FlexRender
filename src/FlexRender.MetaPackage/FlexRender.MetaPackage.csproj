@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>FlexRender</PackageId>
-    <Description>All-in-one FlexRender package.</Description>
+    <Description>All-in-one FlexRender package. Linux/Docker: add SkiaSharp.NativeAssets.Linux to your project.</Description>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <IncludeSymbols>false</IncludeSymbols>
     <SuppressPackageTargetFrameworkCompatibilityWarnings>true</SuppressPackageTargetFrameworkCompatibilityWarnings>

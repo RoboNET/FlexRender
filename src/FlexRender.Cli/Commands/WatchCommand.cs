@@ -1,6 +1,7 @@
 using System.CommandLine;
 using FlexRender.Abstractions;
 using FlexRender.Parsing;
+using FlexRender.Skia;
 using FlexRender.Yaml;
 
 namespace FlexRender.Cli.Commands;
@@ -42,13 +43,20 @@ public static class WatchCommand
             Description = "Open the output file in the default viewer after initial render"
         };
 
+        var bmpColorOption = new Option<BmpColorMode>("--bmp-color")
+        {
+            Description = "BMP color mode: Bgra32, Rgb24, Rgb565, Grayscale8, Grayscale4, Monochrome1 (only applies to BMP output)",
+            DefaultValueFactory = _ => BmpColorMode.Bgra32
+        };
+
         var command = new Command("watch", "Watch files and re-render on changes")
         {
             templateArg,
             dataOption,
             outputOption,
             qualityOption,
-            openOption
+            openOption,
+            bmpColorOption
         };
 
         command.SetAction(async (parseResult) =>
@@ -58,10 +66,11 @@ public static class WatchCommand
             var outputFile = parseResult.GetValue(outputOption);
             var quality = parseResult.GetValue(qualityOption);
             var open = parseResult.GetValue(openOption);
+            var bmpColor = parseResult.GetValue(bmpColorOption);
             var verbose = parseResult.GetValue(GlobalOptions.Verbose);
             var basePath = parseResult.GetValue(GlobalOptions.BasePath);
 
-            return await Execute(templateFile!, dataFile, outputFile, quality, open, verbose, basePath);
+            return await Execute(templateFile!, dataFile, outputFile, quality, open, bmpColor, verbose, basePath);
         });
 
         return command;
@@ -73,6 +82,7 @@ public static class WatchCommand
         FileInfo? outputFile,
         int quality,
         bool open,
+        BmpColorMode bmpColor,
         bool verbose,
         DirectoryInfo? basePath)
     {
@@ -119,6 +129,10 @@ public static class WatchCommand
         // Create renderer with base path
         var effectiveBasePath = basePath?.FullName ?? templateFile.DirectoryName!;
         using var renderer = Program.CreateRenderBuilder(effectiveBasePath).Build();
+
+        // Set BMP color mode if applicable
+        if (renderer is SkiaRender skiaRender)
+            skiaRender.BmpColorMode = bmpColor;
 
         Console.WriteLine("Starting watch mode...");
         Console.WriteLine($"  Template: {templateFile.FullName}");

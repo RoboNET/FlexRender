@@ -25,7 +25,7 @@ public class FlexElementTests
         Assert.Equal("0", flex.Padding);
         Assert.Equal(JustifyContent.Start, flex.Justify);
         Assert.Equal(AlignItems.Stretch, flex.Align);
-        Assert.Equal(AlignContent.Stretch, flex.AlignContent);
+        Assert.Equal(AlignContent.Start, flex.AlignContent);
         Assert.Empty(flex.Children);
     }
 

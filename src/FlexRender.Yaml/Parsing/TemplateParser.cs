@@ -323,23 +323,27 @@ public sealed class TemplateParser : ITemplateParser
 
     /// <summary>
     /// Applies common flex-item properties (Width, Height, Grow, Shrink, Basis, Order, AlignSelf)
-    /// to a parsed element. Because these properties are declared separately on each element class
-    /// rather than on the base <see cref="TemplateElement"/>, a pattern match dispatches to the
-    /// correct concrete type.
+    /// to a parsed element. These properties are now on the base <see cref="TemplateElement"/> class.
     /// </summary>
     /// <param name="node">The YAML mapping node containing the property values.</param>
     /// <param name="element">The element to apply flex-item properties to.</param>
     private static void ApplyFlexItemProperties(YamlMappingNode node, TemplateElement element)
     {
-        var width = GetStringValue(node, "width");
-        var height = GetStringValue(node, "height");
-        var grow = GetFloatValue(node, "grow", 0f);
-        var shrink = GetFloatValue(node, "shrink", 1f);
-        var basis = GetStringValue(node, "basis", "auto");
-        var order = GetIntValue(node, "order", 0);
+        element.Grow = GetFloatValue(node, "grow", 0f);
+        element.Shrink = GetFloatValue(node, "shrink", 1f);
+        element.Basis = GetStringValue(node, "basis", "auto");
+        element.Order = GetIntValue(node, "order", 0);
+
+        var displayStr = GetStringValue(node, "display", "flex");
+        element.Display = displayStr.ToLowerInvariant() switch
+        {
+            "flex" => Display.Flex,
+            "none" => Display.None,
+            _ => Display.Flex
+        };
 
         var alignSelfStr = GetStringValue(node, "alignSelf", "auto");
-        var alignSelf = alignSelfStr.ToLowerInvariant() switch
+        element.AlignSelf = alignSelfStr.ToLowerInvariant() switch
         {
             "auto" => AlignSelf.Auto,
             "start" => AlignSelf.Start,
@@ -350,61 +354,45 @@ public sealed class TemplateParser : ITemplateParser
             _ => AlignSelf.Auto
         };
 
+        // Width/Height: Barcode and Image YAML width/height map to content-specific properties
+        // (BarcodeWidth/BarcodeHeight, ImageWidth/ImageHeight), NOT to the base flex Width/Height.
+        // This preserves backward compatibility.
         switch (element)
         {
-            case FlexElement flex:
-                flex.Width = width;
-                flex.Height = height;
-                flex.Grow = grow;
-                flex.Shrink = shrink;
-                flex.Basis = basis;
-                flex.Order = order;
-                flex.AlignSelf = alignSelf;
+            case BarcodeElement:
+            case ImageElement:
+                // width/height already parsed in element-specific parsers
                 break;
-            case TextElement text:
-                text.Width = width;
-                text.Height = height;
-                text.Grow = grow;
-                text.Shrink = shrink;
-                text.Basis = basis;
-                text.Order = order;
-                text.AlignSelf = alignSelf;
-                break;
-            case QrElement qr:
-                qr.Width = width;
-                qr.Height = height;
-                qr.Grow = grow;
-                qr.Shrink = shrink;
-                qr.Basis = basis;
-                qr.Order = order;
-                qr.AlignSelf = alignSelf;
-                break;
-            case BarcodeElement barcode:
-                barcode.Grow = grow;
-                barcode.Shrink = shrink;
-                barcode.Basis = basis;
-                barcode.Order = order;
-                barcode.AlignSelf = alignSelf;
-                // NOTE: Width/Height not set because YAML width/height map to BarcodeWidth/BarcodeHeight
-                break;
-            case ImageElement image:
-                image.Grow = grow;
-                image.Shrink = shrink;
-                image.Basis = basis;
-                image.Order = order;
-                image.AlignSelf = alignSelf;
-                // NOTE: Width/Height not set because YAML width/height map to ImageWidth/ImageHeight
-                break;
-            case SeparatorElement separator:
-                separator.Width = width;
-                separator.Height = height;
-                separator.Grow = grow;
-                separator.Shrink = shrink;
-                separator.Basis = basis;
-                separator.Order = order;
-                separator.AlignSelf = alignSelf;
+            default:
+                element.Width = GetStringValue(node, "width");
+                element.Height = GetStringValue(node, "height");
                 break;
         }
+
+        // Min/Max constraints: support both camelCase and kebab-case
+        element.MinWidth = GetStringValue(node, "min-width") ?? GetStringValue(node, "minWidth");
+        element.MaxWidth = GetStringValue(node, "max-width") ?? GetStringValue(node, "maxWidth");
+        element.MinHeight = GetStringValue(node, "min-height") ?? GetStringValue(node, "minHeight");
+        element.MaxHeight = GetStringValue(node, "max-height") ?? GetStringValue(node, "maxHeight");
+
+        // Position properties
+        var positionStr = GetStringValue(node, "position", "static");
+        element.Position = positionStr.ToLowerInvariant() switch
+        {
+            "static" => Position.Static,
+            "relative" => Position.Relative,
+            "absolute" => Position.Absolute,
+            _ => Position.Static
+        };
+
+        element.Top = GetStringValue(node, "top");
+        element.Right = GetStringValue(node, "right");
+        element.Bottom = GetStringValue(node, "bottom");
+        element.Left = GetStringValue(node, "left");
+
+        // Aspect ratio
+        element.AspectRatio = GetNullableFloatValue(node, "aspectRatio")
+                              ?? GetNullableFloatValue(node, "aspect-ratio");
     }
 
     /// <summary>
@@ -472,6 +460,8 @@ public sealed class TemplateParser : ITemplateParser
         {
             "row" => FlexDirection.Row,
             "column" => FlexDirection.Column,
+            "row-reverse" => FlexDirection.RowReverse,
+            "column-reverse" => FlexDirection.ColumnReverse,
             _ => FlexDirection.Column
         };
 
@@ -505,6 +495,33 @@ public sealed class TemplateParser : ITemplateParser
             "stretch" => AlignItems.Stretch,
             "baseline" => AlignItems.Baseline,
             _ => AlignItems.Stretch
+        };
+
+        var alignContentStr = GetStringValue(node, "align-content") ?? GetStringValue(node, "alignContent");
+        if (alignContentStr != null)
+        {
+            flex.AlignContent = alignContentStr.ToLowerInvariant() switch
+            {
+                "start" => AlignContent.Start,
+                "center" => AlignContent.Center,
+                "end" => AlignContent.End,
+                "stretch" => AlignContent.Stretch,
+                "space-between" => AlignContent.SpaceBetween,
+                "space-around" => AlignContent.SpaceAround,
+                "space-evenly" => AlignContent.SpaceEvenly,
+                _ => AlignContent.Stretch
+            };
+        }
+
+        flex.RowGap = GetStringValue(node, "row-gap") ?? GetStringValue(node, "rowGap");
+        flex.ColumnGap = GetStringValue(node, "column-gap") ?? GetStringValue(node, "columnGap");
+
+        var overflowStr = GetStringValue(node, "overflow", "visible");
+        flex.Overflow = overflowStr.ToLowerInvariant() switch
+        {
+            "visible" => Overflow.Visible,
+            "hidden" => Overflow.Hidden,
+            _ => Overflow.Visible
         };
 
         // Parse children
@@ -1002,6 +1019,23 @@ public sealed class TemplateParser : ITemplateParser
         if (strValue != null && bool.TryParse(strValue, out var boolValue))
         {
             return boolValue;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets a nullable float value from a mapping node by key.
+    /// </summary>
+    /// <param name="node">The mapping node to search.</param>
+    /// <param name="key">The key to look up.</param>
+    /// <returns>The float value if found and valid; otherwise, null.</returns>
+    private static float? GetNullableFloatValue(YamlMappingNode node, string key)
+    {
+        var strValue = GetStringValue(node, key);
+        if (strValue != null && float.TryParse(strValue, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var floatValue))
+        {
+            return floatValue;
         }
         return null;
     }

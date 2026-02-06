@@ -11,8 +11,6 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
     FlexEnums.cs                # FlexDirection, FlexWrap, JustifyContent, AlignItems, AlignContent, AlignSelf
-    FlexContainerProperties.cs  # Flex container property model
-    FlexItemProperties.cs       # Flex item property model
     FontSizeResolver.cs         # Resolve fontSize string to pixels
     LayoutEngine.cs             # Main layout calculator
     LayoutNode.cs               # Computed layout tree node
@@ -86,6 +84,8 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia   (YamlDotNet)  (SkiaSharp)
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |
+
+**Linux/Docker:** SkiaSharp requires native libraries on Linux. Add `SkiaSharp.NativeAssets.Linux` (or `SkiaSharp.NativeAssets.Linux.NoDependencies` for minimal containers without fontconfig/freetype) to your executable project to avoid `DllNotFoundException: libSkiaSharp` at runtime.
 
 ## Rendering Pipeline
 
@@ -172,9 +172,20 @@ All elements inherit from `TemplateElement`:
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | padding | string | "0" | Inner spacing (px, %, em). Supports non-uniform CSS shorthand |
-| margin | string | "0" | Outer spacing (px, %, em). Supports non-uniform CSS shorthand |
+| margin | string | "0" | Outer spacing (px, %, em). Supports non-uniform CSS shorthand and `auto` |
 | background | string? | null | Background color in hex (null = transparent) |
 | rotate | string | "none" | Element rotation (none/left/right/flip/degrees) |
+| position | Position | Static | Positioning mode: `static`, `relative`, `absolute` |
+| top | string? | null | Top inset for positioned elements (px, %, em) |
+| right | string? | null | Right inset for positioned elements (px, %, em) |
+| bottom | string? | null | Bottom inset for positioned elements (px, %, em) |
+| left | string? | null | Left inset for positioned elements (px, %, em) |
+| aspectRatio | float? | null | Width/height ratio. When one dimension is known, the other is computed |
+| minWidth | string? | null | Minimum width constraint (px, %, em) |
+| maxWidth | string? | null | Maximum width constraint (px, %, em) |
+| minHeight | string? | null | Minimum height constraint (px, %, em) |
+| maxHeight | string? | null | Maximum height constraint (px, %, em) |
+| display | Display | Flex | Display mode: `flex` (default), `none` (removes from layout flow) |
 
 ## Non-Uniform Padding and Margin
 
@@ -190,6 +201,95 @@ Both `padding` and `margin` accept CSS-like shorthand with 1 to 4 space-separate
 Each value can include a unit suffix: `"10px 5% 2em 20"`. Parsed by `PaddingParser` into `PaddingValues` (a `readonly record struct` with Top, Right, Bottom, Left, Horizontal, Vertical).
 
 During intrinsic measurement (Pass 1), percentage values resolve against 0 and em values against 16px default. During layout (Pass 2), percentage resolves against parent size and em against element font size.
+
+## Positioning
+
+Elements support CSS-like positioning via the `position` property:
+
+| Value | Behavior |
+|-------|----------|
+| `static` | Normal flow (default). Inset properties are ignored |
+| `relative` | Offset from its normal flow position. Still occupies space in the flow |
+| `absolute` | Removed from normal flow. Positioned relative to nearest flex container |
+
+Inset properties (`top`, `right`, `bottom`, `left`) accept px, %, or em values.
+
+```yaml
+# Badge overlay in top-right corner
+- type: flex
+  width: 300
+  height: 200
+  children:
+    - type: text
+      content: "Background content"
+    - type: text
+      content: "Badge"
+      position: absolute
+      top: 5
+      right: 5
+      background: "#ff0000"
+      color: "#ffffff"
+      padding: "2 8"
+```
+
+## Aspect Ratio
+
+The `aspectRatio` property enforces a width-to-height ratio. When one dimension is specified, the other is computed automatically:
+
+```yaml
+# 16:9 aspect ratio image container
+- type: flex
+  width: 320
+  aspectRatio: 1.7778
+  background: "#000000"
+```
+
+## Auto Margins
+
+Margins support `auto` values for centering elements within flex containers:
+
+```yaml
+# Horizontal centering with auto margins
+- type: flex
+  direction: row
+  width: 300
+  children:
+    - type: text
+      content: "Centered"
+      width: 100
+      margin: "0 auto"
+
+# Push element to the right
+- type: flex
+  direction: row
+  width: 300
+  children:
+    - type: text
+      content: "Right-aligned"
+      margin: "0 0 0 auto"
+```
+
+Auto margins on the main axis consume free space before `justify-content` is applied. Auto margins on the cross axis override `align-items`/`align-self`.
+
+## Overflow
+
+FlexElement containers support content clipping via the `overflow` property:
+
+| Value | Behavior |
+|-------|----------|
+| `visible` | Content renders outside container bounds (default) |
+| `hidden` | Content is clipped at container bounds |
+
+```yaml
+# Clipped container
+- type: flex
+  width: 200
+  height: 100
+  overflow: hidden
+  children:
+    - type: text
+      content: "This text will be clipped if it exceeds the container bounds"
+```
 
 ## Flex-Item Properties
 
@@ -236,12 +336,15 @@ Resolved by `LineHeightResolver.Resolve(lineHeight, fontSize, defaultLineHeight)
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| direction | FlexDirection | Column | Main axis direction: `row`, `column` |
+| direction | FlexDirection | Column | Main axis direction: `row`, `column`, `row-reverse`, `column-reverse` |
 | wrap | FlexWrap | NoWrap | Wrapping behavior: `nowrap`, `wrap`, `wrap-reverse` |
-| gap | string | "0" | Gap between items (px, %, em) |
+| gap | string | "0" | Gap between items (px, %, em). Shorthand for both row-gap and column-gap |
+| rowGap | string? | null | Gap between wrapped lines. Overrides gap for the row direction |
+| columnGap | string? | null | Gap between columns. Overrides gap for the column direction |
 | justify | JustifyContent | Start | Main axis alignment: `start`, `center`, `end`, `space-between`, `space-around`, `space-evenly` |
 | align | AlignItems | Stretch | Cross axis alignment: `start`, `center`, `end`, `stretch`, `baseline` |
-| alignContent | AlignContent | Stretch | Wrapped lines alignment: `start`, `center`, `end`, `stretch`, `space-between`, `space-around` |
+| alignContent | AlignContent | Start | Wrapped lines alignment: `start`, `center`, `end`, `stretch`, `space-between`, `space-around`, `space-evenly` |
+| overflow | Overflow | Visible | Content clipping: `visible`, `hidden` |
 | children | TemplateElement[] | [] | Child elements |
 
 ## Element Type: image (ImageElement)
@@ -632,6 +735,7 @@ The `ResourceLimits` class centralizes all security limits. All properties valid
 | MaxTemplateNestingDepth | int | 100 | Maximum nesting depth for template engine control flow |
 | MaxRenderDepth | int | 100 | Maximum recursion depth when rendering layout tree |
 | MaxImageSize | int | 10,485,760 (10 MB) | Maximum allowed image size in bytes |
+| MaxFlexLines | int | 1,000 | Maximum flex lines when wrapping |
 
 ### Direct Usage
 
@@ -808,7 +912,7 @@ Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x
 - **`GeneratedRegex`** -- source-generated regex for AOT compatibility
 - **`sealed` classes** -- all leaf/value/concrete classes must be `sealed`
 - **`sealed record`** -- for token types and small immutable data
-- **`readonly record struct`** -- for small value types (`IntrinsicSize`, `LayoutRect`, `FlexItemProperties`, `PaddingValues`)
+- **`readonly record struct`** -- for small value types (`IntrinsicSize`, `LayoutRect`, `PaddingValues`)
 - **File-scoped namespaces** -- `namespace Foo.Bar;`
 - **XML documentation** -- `<summary>`, `<param>`, `<returns>`, `<exception>` on all public APIs
 - **Guard clauses** -- `ArgumentNullException.ThrowIfNull()`, `ArgumentException.ThrowIfNullOrWhiteSpace()`, `ObjectDisposedException.ThrowIf()`

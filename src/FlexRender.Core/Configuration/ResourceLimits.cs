@@ -11,6 +11,7 @@ public sealed class ResourceLimits
     private int _maxTemplateNestingDepth = 100;
     private int _maxRenderDepth = 100;
     private int _maxImageSize = 10 * 1024 * 1024;
+    private int _maxFlexLines = 1000;
     /// <summary>
     /// Maximum allowed YAML template file size in bytes.
     /// </summary>
@@ -69,6 +70,21 @@ public sealed class ResourceLimits
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxRenderDepth = value;
+        }
+    }
+
+    /// <summary>
+    /// Maximum number of flex lines when wrapping. Prevents resource exhaustion from templates with thousands of tiny wrapped items.
+    /// </summary>
+    /// <value>Default: 1000.</value>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is zero or negative.</exception>
+    public int MaxFlexLines
+    {
+        get => _maxFlexLines;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            _maxFlexLines = value;
         }
     }
 

@@ -20,8 +20,14 @@ public sealed class FlexElement : TemplateElement
     /// <summary>Whether items wrap.</summary>
     public FlexWrap Wrap { get; set; } = FlexWrap.NoWrap;
 
-    /// <summary>Gap between items (px, %, em).</summary>
+    /// <summary>Gap between items (px, %, em). Shorthand sets both row-gap and column-gap.</summary>
     public string Gap { get; set; } = "0";
+
+    /// <summary>Gap between items along the main axis (for row: between columns, for column: between rows).</summary>
+    public string? ColumnGap { get; set; }
+
+    /// <summary>Gap between wrapped lines (for row: between rows, for column: between columns).</summary>
+    public string? RowGap { get; set; }
 
     /// <summary>Main axis alignment.</summary>
     public JustifyContent Justify { get; set; } = JustifyContent.Start;
@@ -30,30 +36,10 @@ public sealed class FlexElement : TemplateElement
     public AlignItems Align { get; set; } = AlignItems.Stretch;
 
     /// <summary>Alignment of wrapped lines.</summary>
-    public AlignContent AlignContent { get; set; } = AlignContent.Stretch;
+    public AlignContent AlignContent { get; set; } = AlignContent.Start;
 
-    // Item properties (when this flex is inside another flex)
-
-    /// <summary>Flex grow factor.</summary>
-    public float Grow { get; set; }
-
-    /// <summary>Flex shrink factor.</summary>
-    public float Shrink { get; set; } = 1f;
-
-    /// <summary>Flex basis (px, %, em, auto).</summary>
-    public string Basis { get; set; } = "auto";
-
-    /// <summary>Self alignment override.</summary>
-    public AlignSelf AlignSelf { get; set; } = AlignSelf.Auto;
-
-    /// <summary>Display order.</summary>
-    public int Order { get; set; }
-
-    /// <summary>Width (px, %, em, auto).</summary>
-    public string? Width { get; set; }
-
-    /// <summary>Height (px, %, em, auto).</summary>
-    public string? Height { get; set; }
+    /// <summary>Overflow behavior for content exceeding container bounds.</summary>
+    public Overflow Overflow { get; set; } = Overflow.Visible;
 
     /// <summary>
     /// Gets or sets the child elements.
