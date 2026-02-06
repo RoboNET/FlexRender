@@ -75,6 +75,7 @@ public sealed class FlexRenderOptions
     /// Useful for snapshot testing. Slightly reduces text rendering quality.
     /// </remarks>
     /// <value>The default value is <c>false</c>.</value>
+    [Obsolete("Use RenderOptions.Deterministic or set SubpixelText, FontHinting, and TextRendering on RenderOptions instead.")]
     public bool DeterministicRendering { get; set; }
 
     /// <summary>

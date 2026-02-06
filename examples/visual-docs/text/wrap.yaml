@@ -1,0 +1,39 @@
+template:
+  name: "text-wrap"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 500
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    gap: 20
+    padding: "20"
+    children:
+      - type: flex
+        width: "200"
+        children:
+          - type: text
+            content: "This is a very long text that will wrap across multiple lines when wrap is enabled because it exceeds the container width"
+            wrap: true
+            size: 14px
+            color: "#1a1a2e"
+            background: "#e8f4f8"
+            padding: "10"
+
+      - type: flex
+        width: "200"
+        children:
+          - type: text
+            content: "This is a very long text that will NOT wrap and will overflow the container when wrap is disabled"
+            wrap: false
+            size: 14px
+            color: "#1a1a2e"
+            background: "#ffe8e8"
+            padding: "10"

@@ -73,6 +73,21 @@ public sealed class BarcodeProvider : IContentProvider<BarcodeElement>
     /// <exception cref="NotSupportedException">Thrown when the barcode format is not supported.</exception>
     public SKBitmap Generate(BarcodeElement element)
     {
+        return Generate(element, null, null);
+    }
+
+    /// <summary>
+    /// Generates a barcode bitmap with optional layout-computed dimensions.
+    /// </summary>
+    /// <param name="element">The barcode element configuration.</param>
+    /// <param name="layoutWidth">Optional layout-computed width. Takes precedence over element.BarcodeWidth.</param>
+    /// <param name="layoutHeight">Optional layout-computed height. Takes precedence over element.BarcodeHeight.</param>
+    /// <returns>A bitmap containing the rendered barcode.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when element is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when element data is empty or dimensions are invalid.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the barcode format is not supported.</exception>
+    public static SKBitmap Generate(BarcodeElement element, int? layoutWidth, int? layoutHeight)
+    {
         ArgumentNullException.ThrowIfNull(element);
 
         if (string.IsNullOrEmpty(element.Data))
@@ -80,14 +95,18 @@ public sealed class BarcodeProvider : IContentProvider<BarcodeElement>
             throw new ArgumentException("Barcode data cannot be empty.", nameof(element));
         }
 
-        if (element.BarcodeWidth <= 0 || element.BarcodeHeight <= 0)
+        // Priority order: layout dimensions > element dimensions > defaults (200×80)
+        var targetWidth = layoutWidth ?? element.BarcodeWidth ?? 200;
+        var targetHeight = layoutHeight ?? element.BarcodeHeight ?? 80;
+
+        if (targetWidth <= 0 || targetHeight <= 0)
         {
             throw new ArgumentException("Barcode dimensions must be positive.", nameof(element));
         }
 
         return element.Format switch
         {
-            BarcodeFormat.Code128 => GenerateCode128(element),
+            BarcodeFormat.Code128 => GenerateCode128(element, targetWidth, targetHeight),
             _ => throw new NotSupportedException($"Barcode format '{element.Format}' is not yet supported.")
         };
     }
@@ -96,8 +115,10 @@ public sealed class BarcodeProvider : IContentProvider<BarcodeElement>
     /// Generates a Code 128 barcode.
     /// </summary>
     /// <param name="element">The barcode element configuration.</param>
+    /// <param name="targetWidth">The target width for the barcode.</param>
+    /// <param name="targetHeight">The target height for the barcode.</param>
     /// <returns>A bitmap containing the rendered Code 128 barcode.</returns>
-    private static SKBitmap GenerateCode128(BarcodeElement element)
+    private static SKBitmap GenerateCode128(BarcodeElement element, int targetWidth, int targetHeight)
     {
         // Validate that all characters are supported
         foreach (var c in element.Data)
@@ -138,12 +159,12 @@ public sealed class BarcodeProvider : IContentProvider<BarcodeElement>
 
         // Calculate bar dimensions
         var totalUnits = pattern.Length;
-        var barWidth = element.BarcodeWidth / (float)totalUnits;
+        var barWidth = targetWidth / (float)totalUnits;
         var barcodeHeight = element.ShowText
-            ? element.BarcodeHeight - TextHeight - TextPadding
-            : element.BarcodeHeight;
+            ? targetHeight - TextHeight - TextPadding
+            : targetHeight;
 
-        var bitmap = new SKBitmap(element.BarcodeWidth, element.BarcodeHeight);
+        var bitmap = new SKBitmap(targetWidth, targetHeight);
         using var canvas = new SKCanvas(bitmap);
 
         var foreground = ColorParser.Parse(element.Foreground);
@@ -187,7 +208,7 @@ public sealed class BarcodeProvider : IContentProvider<BarcodeElement>
             };
 
             var textY = barcodeHeight + TextPadding + TextHeight - 2;
-            canvas.DrawText(element.Data, element.BarcodeWidth / 2f, textY, SKTextAlign.Center, textFont, textPaint);
+            canvas.DrawText(element.Data, targetWidth / 2f, textY, SKTextAlign.Center, textFont, textPaint);
         }
 
         return bitmap;

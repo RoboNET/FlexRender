@@ -1,0 +1,61 @@
+template:
+  name: "canvas-fixed-height"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: height
+  height: 300
+  background: "#f8f9fa"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 12
+    padding: "20"
+    children:
+      - type: text
+        content: "fixed: height"
+        font: bold
+        size: 18px
+        color: "#1a1a2e"
+
+      - type: text
+        content: "Height is locked at 300px. Width adjusts to fit the widest content."
+        size: 13px
+        color: "#555555"
+        wrap: true
+
+      - type: flex
+        direction: row
+        gap: 8
+        children:
+          - type: flex
+            background: "#3498db"
+            padding: "12"
+            children:
+              - type: text
+                content: "A"
+                color: "#ffffff"
+                size: 14px
+
+          - type: flex
+            background: "#2ecc71"
+            padding: "12"
+            children:
+              - type: text
+                content: "B"
+                color: "#ffffff"
+                size: 14px
+
+          - type: flex
+            background: "#e74c3c"
+            padding: "12"
+            children:
+              - type: text
+                content: "Wide content stretches canvas width"
+                color: "#ffffff"
+                size: 14px

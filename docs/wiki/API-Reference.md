@@ -1,0 +1,418 @@
+# API Reference
+
+Complete API documentation for FlexRender. For render options and format-specific settings, see [[Render-Options]].
+
+## IFlexRender
+
+The core interface for rendering templates to images. Defined in `FlexRender.Core`.
+
+```csharp
+public interface IFlexRender : IDisposable
+{
+    // --- Generic methods (backward compatible) ---
+    Task<byte[]> Render(Template layoutTemplate, ObjectValue? data = null,
+        ImageFormat format = ImageFormat.Png, CancellationToken cancellationToken = default);
+    Task Render(Stream output, Template layoutTemplate, ObjectValue? data = null,
+        ImageFormat format = ImageFormat.Png, CancellationToken cancellationToken = default);
+
+    // --- PNG ---
+    Task<byte[]> RenderToPng(Template layoutTemplate, ObjectValue? data = null,
+        PngOptions? options = null, RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default);
+    Task RenderToPng(Stream output, Template layoutTemplate, ObjectValue? data = null,
+        PngOptions? options = null, RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default);
+
+    // --- JPEG ---
+    Task<byte[]> RenderToJpeg(Template layoutTemplate, ObjectValue? data = null,
+        JpegOptions? options = null, RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default);
+    Task RenderToJpeg(Stream output, Template layoutTemplate, ObjectValue? data = null,
+        JpegOptions? options = null, RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default);
+
+    // --- BMP ---
+    Task<byte[]> RenderToBmp(Template layoutTemplate, ObjectValue? data = null,
+        BmpOptions? options = null, RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default);
+    Task RenderToBmp(Stream output, Template layoutTemplate, ObjectValue? data = null,
+        BmpOptions? options = null, RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default);
+
+    // --- Raw ---
+    Task<byte[]> RenderToRaw(Template layoutTemplate, ObjectValue? data = null,
+        RenderOptions? renderOptions = null, CancellationToken cancellationToken = default);
+    Task RenderToRaw(Stream output, Template layoutTemplate, ObjectValue? data = null,
+        RenderOptions? renderOptions = null, CancellationToken cancellationToken = default);
+}
+```
+
+### Parameter Convention
+
+All format-specific methods follow the same parameter order:
+
+```
+(Template, data?, formatOptions?, renderOptions?, cancellationToken)
+```
+
+For stream overloads, `Stream output` comes first (before Template).
+
+Pass `null` for any options parameter to use defaults.
+
+---
+
+## FlexRenderBuilder
+
+Builder for configuring and creating `IFlexRender` instances. Defined in `FlexRender.Core`.
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `WithSkia(Action<SkiaBuilder>?)` | Configure Skia renderer (required) |
+| `WithBasePath(string)` | Base path for resolving relative file paths |
+| `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
+| `WithEmbeddedLoader(Assembly)` | Add embedded resource loader for `embedded://` URIs |
+| `WithoutDefaultLoaders()` | Remove default File and Base64 loaders (sandboxed mode) |
+| `Build()` | Create the configured `IFlexRender` instance |
+
+### Usage
+
+```csharp
+// Minimal
+var render = new FlexRenderBuilder()
+    .WithSkia()
+    .Build();
+
+// Full configuration
+var render = new FlexRenderBuilder()
+    .WithHttpLoader(configure: opts => {
+        opts.Timeout = TimeSpan.FromSeconds(60);
+        opts.MaxResourceSize = 20 * 1024 * 1024;
+    })
+    .WithEmbeddedLoader(typeof(Program).Assembly)
+    .WithBasePath("./templates")
+    .WithLimits(limits => limits.MaxRenderDepth = 200)
+    .WithSkia(skia => skia
+        .WithQr()
+        .WithBarcode())
+    .Build();
+
+// Sandboxed (no file system access)
+var render = new FlexRenderBuilder()
+    .WithoutDefaultLoaders()
+    .WithEmbeddedLoader(typeof(Program).Assembly)
+    .WithSkia()
+    .Build();
+```
+
+The builder can only be built once. Creating a second instance requires a new `FlexRenderBuilder`.
+
+---
+
+## SkiaBuilder
+
+Configures Skia-specific rendering options and content providers.
+
+| Method | Description | Package |
+|--------|-------------|---------|
+| `WithQr()` | Enable QR code support | FlexRender.QrCode |
+| `WithBarcode()` | Enable barcode support | FlexRender.Barcode |
+
+```csharp
+builder.WithSkia(skia => skia
+    .WithQr()
+    .WithBarcode());
+```
+
+If a QR code or barcode element is encountered in a template and the corresponding provider is not configured, an `InvalidOperationException` is thrown at render time.
+
+---
+
+## Dependency Injection
+
+Extension methods for `IServiceCollection`. Defined in `FlexRender.DependencyInjection`.
+
+### AddFlexRender (simple)
+
+```csharp
+services.AddFlexRender(builder => builder
+    .WithBasePath("./templates")
+    .WithSkia(skia => skia.WithQr().WithBarcode()));
+```
+
+### AddFlexRender (with service provider)
+
+```csharp
+services.AddFlexRender((sp, builder) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    builder
+        .WithBasePath(config["FlexRender:BasePath"] ?? "./templates")
+        .WithLimits(limits => limits.MaxRenderDepth = 200)
+        .WithSkia(skia => skia.WithQr().WithBarcode());
+});
+```
+
+Both overloads register `IFlexRender` as a **singleton**. The instance is created lazily when first resolved.
+
+### Usage in services
+
+```csharp
+public class ReceiptService(IFlexRender render)
+{
+    public async Task<byte[]> Generate(ReceiptData data)
+    {
+        var values = MapToObjectValue(data);
+        return await render.RenderFile("receipt.yaml", values);
+    }
+}
+```
+
+---
+
+## Extension Methods (FlexRender.Yaml)
+
+Convenience methods that handle YAML parsing internally. Defined in `FlexRender.Yaml`.
+
+### Existing methods
+
+| Method | Description |
+|--------|-------------|
+| `RenderYaml(yaml, data?, format?, parser?, ct)` | Render from YAML string to `byte[]` |
+| `RenderYaml(output, yaml, data?, format?, parser?, ct)` | Render from YAML string to `Stream` |
+| `RenderFile(path, data?, format?, parser?, ct)` | Render from YAML file to `byte[]` |
+| `RenderFile(output, path, data?, format?, parser?, ct)` | Render from YAML file to `Stream` |
+
+### Format-specific file methods
+
+| Method | Description |
+|--------|-------------|
+| `RenderFileToPng(path, data?, options?, renderOptions?, parser?, ct)` | File to PNG `byte[]` |
+| `RenderFileToJpeg(path, data?, options?, renderOptions?, parser?, ct)` | File to JPEG `byte[]` |
+| `RenderFileToBmp(path, data?, options?, renderOptions?, parser?, ct)` | File to BMP `byte[]` |
+| `RenderFileToRaw(path, data?, renderOptions?, parser?, ct)` | File to Raw `byte[]` |
+
+### Format-specific YAML string methods
+
+| Method | Description |
+|--------|-------------|
+| `RenderYamlToPng(yaml, data?, options?, renderOptions?, parser?, ct)` | YAML string to PNG `byte[]` |
+| `RenderYamlToJpeg(yaml, data?, options?, renderOptions?, parser?, ct)` | YAML string to JPEG `byte[]` |
+| `RenderYamlToBmp(yaml, data?, options?, renderOptions?, parser?, ct)` | YAML string to BMP `byte[]` |
+| `RenderYamlToRaw(yaml, data?, renderOptions?, parser?, ct)` | YAML string to Raw `byte[]` |
+
+All methods accept an optional `TemplateParser` parameter for parser reuse across multiple calls.
+
+---
+
+## FlexRenderOptions
+
+Engine-level configuration. Configured via the builder.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `Limits` | ResourceLimits | `new()` | Resource limits (read-only, configure via `WithLimits`) |
+| `BasePath` | string? | `null` | Base path for resolving relative file paths |
+| `DefaultFontFamily` | string | `"Arial"` | Default font family when none specified |
+| `BaseFontSize` | float | `12` | Base font size in points |
+| `MaxImageSize` | int | 10 MB | Delegates to `Limits.MaxImageSize` |
+| `EnableCaching` | bool | `true` | Resource caching toggle |
+| `DeterministicRendering` | bool | `false` | **Deprecated.** Use `RenderOptions.Deterministic` instead |
+| `EmbeddedResourceAssemblies` | List\<Assembly\> | `[]` | Assemblies for `embedded://` resource loading |
+
+---
+
+## ResourceLimits
+
+Security limits for the rendering pipeline. All defaults are safe-by-default values.
+
+| Property | Type | Default | Purpose |
+|----------|------|---------|---------|
+| `MaxTemplateFileSize` | long | 1 MB | Maximum YAML template file size |
+| `MaxDataFileSize` | long | 10 MB | Maximum JSON data file size |
+| `MaxTemplateNestingDepth` | int | 100 | Maximum nesting depth for control flow |
+| `MaxRenderDepth` | int | 100 | Maximum recursion depth for render tree |
+| `MaxImageSize` | int | 10 MB | Maximum image loading size |
+| `MaxFlexLines` | int | 1000 | Maximum flex lines when wrapping |
+
+All properties validate that values are positive and throw `ArgumentOutOfRangeException` on invalid input.
+
+```csharp
+builder.WithLimits(limits =>
+{
+    limits.MaxRenderDepth = 200;
+    limits.MaxTemplateFileSize = 2 * 1024 * 1024;
+    limits.MaxFlexLines = 2000;
+});
+```
+
+---
+
+## ImageFormat
+
+```csharp
+public enum ImageFormat
+{
+    Png,   // Lossless, supports transparency
+    Jpeg,  // Lossy compression
+    Bmp,   // Uncompressed bitmap
+    Raw    // Raw BGRA8888 pixel data (4 bytes/pixel)
+}
+```
+
+Used with the legacy `Render()` methods. For format-specific options, use the dedicated `RenderToPng`/`RenderToJpeg`/`RenderToBmp`/`RenderToRaw` methods.
+
+---
+
+## RenderOptions, PngOptions, JpegOptions, BmpOptions
+
+See [[Render-Options]] for detailed documentation of all per-call option types.
+
+**Quick reference:**
+
+| Type | Key Property | Default |
+|------|-------------|---------|
+| `RenderOptions` | `Antialiasing`, `SubpixelText`, `FontHinting`, `TextRendering` | All enabled, Normal hinting, SubpixelLcd |
+| `RenderOptions.Deterministic` | Preset for snapshot tests | SubpixelText=false, Hinting=None, Grayscale |
+| `PngOptions` | `CompressionLevel` | 100 (validated: 0-100 on init) |
+| `JpegOptions` | `Quality` | 90 (validated: 1-100 on init) |
+| `BmpOptions` | `ColorMode` | Bgra32 |
+
+---
+
+## BmpColorMode
+
+```csharp
+public enum BmpColorMode
+{
+    Bgra32 = 0,       // 32-bit with alpha (default)
+    Rgb24 = 1,        // 24-bit without alpha (25% smaller)
+    Rgb565 = 2,       // 16-bit (50% smaller)
+    Grayscale8 = 3,   // 8-bit grayscale (75% smaller)
+    Grayscale4 = 4,   // 4-bit grayscale (87% smaller)
+    Monochrome1 = 5   // 1-bit black/white (96% smaller)
+}
+```
+
+---
+
+## FontHinting
+
+```csharp
+public enum FontHinting
+{
+    None = 0,    // No hinting -- platform-consistent
+    Slight = 1,  // Minimal grid-fitting
+    Normal = 2,  // Default platform behavior
+    Full = 3     // Maximum grid-fitting
+}
+```
+
+---
+
+## TextRendering
+
+```csharp
+public enum TextRendering
+{
+    Aliased = 0,      // No antialiasing
+    Grayscale = 1,    // Grayscale AA -- platform-independent
+    SubpixelLcd = 2   // Subpixel LCD AA -- sharpest, platform-dependent
+}
+```
+
+---
+
+## TemplateValue Hierarchy
+
+AOT-compatible data types for template variables. All are sealed classes with implicit conversions.
+
+```csharp
+// String
+TemplateValue str = "hello";                    // implicit from string
+TemplateValue str = new StringValue("hello");
+
+// Number
+TemplateValue num = 42;                         // implicit from int
+TemplateValue num = 3.14;                       // implicit from double
+
+// Boolean
+TemplateValue flag = true;                      // implicit from bool
+
+// Null
+TemplateValue nil = NullValue.Instance;
+
+// Array
+var array = new ArrayValue("a", "b", "c");
+int count = array.Count;
+TemplateValue first = array[0];
+
+// Object
+var obj = new ObjectValue
+{
+    ["name"] = "John",
+    ["age"] = 30,
+    ["active"] = true,
+    ["tags"] = new ArrayValue("admin", "user"),
+    ["address"] = new ObjectValue
+    {
+        ["city"] = "Moscow",
+        ["zip"] = "123456"
+    }
+};
+```
+
+| Type | C# Class | Description |
+|------|----------|-------------|
+| String | `StringValue` | String value, implicit from `string` |
+| Number | `NumberValue` | Numeric value, implicit from `int`, `double` |
+| Boolean | `BoolValue` | Boolean value, implicit from `bool` |
+| Null | `NullValue` | Null sentinel (`NullValue.Instance`) |
+| Array | `ArrayValue` | Implements `IReadOnlyList<TemplateValue>` |
+| Object | `ObjectValue` | Dictionary-like, `StringComparer.OrdinalIgnoreCase` |
+
+---
+
+## Template Caching Pattern
+
+Parse templates once at startup, render many times per request:
+
+```csharp
+// At startup
+var parser = new TemplateParser();
+var templates = new Dictionary<string, Template>();
+templates["receipt"] = await parser.ParseFileAsync("receipt.yaml");
+templates["label"] = await parser.ParseFileAsync("label.yaml");
+
+// Per request
+var data = new ObjectValue { ["name"] = "Customer" };
+byte[] receipt = await render.Render(templates["receipt"], data);
+
+// With format-specific methods
+byte[] label = await render.RenderToPng(templates["label"], data,
+    renderOptions: RenderOptions.Deterministic);
+```
+
+Caching works because `type: each` and `type: if` elements are expanded at render time (by `TemplateExpander`), not at parse time. The same parsed template can be rendered with different data.
+
+---
+
+## Resource Loading
+
+Resources (images, fonts) are loaded through `IResourceLoader` implementations using chain of responsibility:
+
+| Loader | URI Scheme | Priority | Description |
+|--------|------------|----------|-------------|
+| `Base64ResourceLoader` | `data:` | High (0-99) | Base64-encoded data |
+| `EmbeddedResourceLoader` | `embedded://` | High (0-99) | Assembly embedded resources |
+| `FileResourceLoader` | File paths | Normal (100-199) | Local file system |
+| `HttpResourceLoader` | `http://`, `https://` | Low (200+) | Remote resources |
+
+File and Base64 loaders are included by default. Use `WithoutDefaultLoaders()` for sandboxed operation. HTTP loader requires `WithHttpLoader()`.
+
+## See Also
+
+- [[Render-Options]] -- detailed per-call options documentation
+- [[Getting-Started]] -- setup and first template
+- [[Contributing]] -- architecture and project structure

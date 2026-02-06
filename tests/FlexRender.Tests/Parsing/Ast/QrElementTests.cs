@@ -18,7 +18,7 @@ public class QrElementTests
         var qr = new QrElement();
 
         Assert.Equal("", qr.Data);
-        Assert.Equal(100, qr.Size);
+        Assert.Null(qr.Size); // Changed: Size is now nullable, defaults to null (will inherit from container)
         Assert.Equal(ErrorCorrectionLevel.M, qr.ErrorCorrection);
         Assert.Equal("#000000", qr.Foreground);
         Assert.Null(qr.Background);

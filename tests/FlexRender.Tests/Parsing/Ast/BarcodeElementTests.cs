@@ -19,8 +19,8 @@ public class BarcodeElementTests
 
         Assert.Equal("", barcode.Data);
         Assert.Equal(BarcodeFormat.Code128, barcode.Format);
-        Assert.Equal(200, barcode.BarcodeWidth);
-        Assert.Equal(80, barcode.BarcodeHeight);
+        Assert.Null(barcode.BarcodeWidth); // Changed: BarcodeWidth is now nullable, defaults to null (will inherit from container)
+        Assert.Null(barcode.BarcodeHeight); // Changed: BarcodeHeight is now nullable, defaults to null (will inherit from container)
         Assert.True(barcode.ShowText);
         Assert.Equal("#000000", barcode.Foreground);
         Assert.Null(barcode.Background);

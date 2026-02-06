@@ -36,12 +36,21 @@ public sealed class ImageProvider
     /// Optional pre-loaded image cache. When provided, the cache is checked before falling back to inline loading.
     /// This parameter is passed per-call to ensure thread safety when the renderer is shared across concurrent renders.
     /// </param>
+    /// <param name="antialiasing">Whether to enable antialiasing for image scaling.</param>
+    /// <param name="layoutWidth">
+    /// Optional width computed by the layout engine. Used as fallback when ImageWidth is not specified.
+    /// Priority: layoutWidth > ImageWidth > intrinsic width.
+    /// </param>
+    /// <param name="layoutHeight">
+    /// Optional height computed by the layout engine. Used as fallback when ImageHeight is not specified.
+    /// Priority: layoutHeight > ImageHeight > intrinsic height.
+    /// </param>
     /// <returns>A bitmap containing the loaded and processed image.</returns>
     /// <exception cref="ArgumentNullException">Thrown when element is null.</exception>
     /// <exception cref="ArgumentException">Thrown when element source is empty.</exception>
     /// <exception cref="FileNotFoundException">Thrown when the source file does not exist.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the image cannot be decoded.</exception>
-    public static SKBitmap Generate(ImageElement element, IReadOnlyDictionary<string, SKBitmap>? imageCache)
+    public static SKBitmap Generate(ImageElement element, IReadOnlyDictionary<string, SKBitmap>? imageCache, bool antialiasing = true, int? layoutWidth = null, int? layoutHeight = null)
     {
         ArgumentNullException.ThrowIfNull(element);
 
@@ -57,7 +66,7 @@ public sealed class ImageProvider
             var clone = cached.Copy();
             try
             {
-                return ProcessImage(clone, element);
+                return ProcessImage(clone, element, antialiasing, layoutWidth, layoutHeight);
             }
             finally
             {
@@ -69,7 +78,7 @@ public sealed class ImageProvider
 
         try
         {
-            return ProcessImage(sourceBitmap, element);
+            return ProcessImage(sourceBitmap, element, antialiasing, layoutWidth, layoutHeight);
         }
         finally
         {
@@ -177,11 +186,14 @@ public sealed class ImageProvider
     /// </summary>
     /// <param name="source">The source bitmap.</param>
     /// <param name="element">The image element configuration.</param>
+    /// <param name="antialiasing">Whether to enable antialiasing for image scaling.</param>
+    /// <param name="layoutWidth">Optional width from layout engine.</param>
+    /// <param name="layoutHeight">Optional height from layout engine.</param>
     /// <returns>The processed bitmap.</returns>
-    private static SKBitmap ProcessImage(SKBitmap source, ImageElement element)
+    private static SKBitmap ProcessImage(SKBitmap source, ImageElement element, bool antialiasing, int? layoutWidth = null, int? layoutHeight = null)
     {
-        var targetWidth = element.ImageWidth ?? source.Width;
-        var targetHeight = element.ImageHeight ?? source.Height;
+        var targetWidth = layoutWidth ?? element.ImageWidth ?? source.Width;
+        var targetHeight = layoutHeight ?? element.ImageHeight ?? source.Height;
 
         if (element.Fit == ImageFit.None)
         {
@@ -197,7 +209,7 @@ public sealed class ImageProvider
 
         using var paint = new SKPaint
         {
-            IsAntialias = true
+            IsAntialias = antialiasing
         };
 
         using var image = SKImage.FromBitmap(source);

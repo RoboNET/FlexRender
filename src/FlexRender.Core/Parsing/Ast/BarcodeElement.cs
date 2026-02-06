@@ -51,13 +51,15 @@ public sealed class BarcodeElement : TemplateElement
 
     /// <summary>
     /// The width of the barcode in pixels.
+    /// If not specified, inherits from container width or flex Width property.
     /// </summary>
-    public int BarcodeWidth { get; set; } = 200;
+    public int? BarcodeWidth { get; set; }
 
     /// <summary>
     /// The height of the barcode in pixels.
+    /// If not specified, inherits from container height or flex Height property.
     /// </summary>
-    public int BarcodeHeight { get; set; } = 80;
+    public int? BarcodeHeight { get; set; }
 
     /// <summary>
     /// Whether to display the encoded text below the barcode.

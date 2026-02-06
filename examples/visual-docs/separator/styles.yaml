@@ -1,0 +1,56 @@
+template:
+  name: "separator-styles"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 30
+    padding: "40"
+    children:
+      - type: flex
+        direction: column
+        gap: 10
+        children:
+          - type: text
+            content: "Solid separator"
+            size: 14px
+            color: "#666666"
+          - type: separator
+            style: solid
+            thickness: 2
+            color: "#1a1a2e"
+
+      - type: flex
+        direction: column
+        gap: 10
+        children:
+          - type: text
+            content: "Dashed separator"
+            size: 14px
+            color: "#666666"
+          - type: separator
+            style: dashed
+            thickness: 2
+            color: "#1a1a2e"
+
+      - type: flex
+        direction: column
+        gap: 10
+        children:
+          - type: text
+            content: "Dotted separator"
+            size: 14px
+            color: "#666666"
+          - type: separator
+            style: dotted
+            thickness: 2
+            color: "#1a1a2e"

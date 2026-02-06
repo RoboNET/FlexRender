@@ -1,0 +1,74 @@
+template:
+  name: "barcode-colors"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 600
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 25
+    padding: "30"
+    children:
+      - type: flex
+        direction: column
+        gap: 10
+        align: center
+        children:
+          - type: text
+            content: "Default black on white"
+            size: 14px
+            color: "#666666"
+          - type: barcode
+            data: "FLEXRENDER-2026"
+            format: code128
+            width: 250
+            height: 60
+            showText: true
+
+      - type: flex
+        direction: column
+        gap: 10
+        align: center
+        children:
+          - type: text
+            content: "Custom dark blue foreground"
+            size: 14px
+            color: "#666666"
+          - type: barcode
+            data: "FLEXRENDER-2026"
+            format: code128
+            width: 250
+            height: 60
+            showText: true
+            foreground: "#1a1a2e"
+
+      - type: flex
+        direction: column
+        gap: 10
+        align: center
+        children:
+          - type: text
+            content: "Inverted (white on dark background)"
+            size: 14px
+            color: "#666666"
+          - type: flex
+            padding: "10"
+            background: "#1a1a2e"
+            align: center
+            justify: center
+            children:
+              - type: barcode
+                data: "FLEXRENDER-2026"
+                format: code128
+                width: 250
+                height: 60
+                showText: true
+                foreground: "#ffffff"
+                background: "#1a1a2e"

@@ -1,0 +1,42 @@
+template:
+  name: "align-baseline"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+  bold: "../../assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    align: baseline
+    background: "#f5f5f5"
+    padding: "20"
+    gap: 16
+    children:
+      - type: text
+        content: "Small"
+        color: "#3498db"
+        font: bold
+        size: 14px
+        background: "#e3f2fd"
+        padding: "4 8"
+      - type: text
+        content: "Large"
+        color: "#e74c3c"
+        font: bold
+        size: 28px
+        background: "#ffebee"
+        padding: "4 8"
+      - type: text
+        content: "Medium"
+        color: "#2ecc71"
+        font: bold
+        size: 18px
+        background: "#e8f5e9"
+        padding: "4 8"

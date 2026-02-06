@@ -1,0 +1,64 @@
+template:
+  name: "separator-orientation"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    gap: 30
+    padding: "30"
+    children:
+      - type: flex
+        direction: column
+        gap: 10
+        children:
+          - type: text
+            content: "Horizontal separator"
+            size: 14px
+            color: "#666666"
+          - type: separator
+            orientation: horizontal
+            style: solid
+            thickness: 2
+            color: "#3498db"
+
+      - type: flex
+        direction: row
+        gap: 15
+        align: stretch
+        children:
+          - type: flex
+            width: "140"
+            height: "80"
+            background: "#e8f4f8"
+            padding: "10"
+            children:
+              - type: text
+                content: "Left box"
+                size: 14px
+                color: "#1a1a2e"
+
+          - type: separator
+            orientation: vertical
+            style: solid
+            thickness: 2
+            color: "#3498db"
+
+          - type: flex
+            width: "140"
+            height: "80"
+            background: "#e8f4f8"
+            padding: "10"
+            children:
+              - type: text
+                content: "Right box"
+                size: 14px
+                color: "#1a1a2e"

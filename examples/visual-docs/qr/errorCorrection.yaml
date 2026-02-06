@@ -1,0 +1,74 @@
+template:
+  name: "qr-errorCorrection"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  fixed: width
+  width: 500
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    gap: 15
+    padding: "20"
+    justify: center
+    children:
+      - type: flex
+        direction: column
+        gap: 8
+        align: center
+        children:
+          - type: qr
+            data: "https://github.com/RoboNET/FlexRender"
+            size: 100
+            errorCorrection: L
+          - type: text
+            content: "L (Low)"
+            size: 12px
+            color: "#666666"
+
+      - type: flex
+        direction: column
+        gap: 8
+        align: center
+        children:
+          - type: qr
+            data: "https://github.com/RoboNET/FlexRender"
+            size: 100
+            errorCorrection: M
+          - type: text
+            content: "M (Medium)"
+            size: 12px
+            color: "#666666"
+
+      - type: flex
+        direction: column
+        gap: 8
+        align: center
+        children:
+          - type: qr
+            data: "https://github.com/RoboNET/FlexRender"
+            size: 100
+            errorCorrection: Q
+          - type: text
+            content: "Q (Quartile)"
+            size: 12px
+            color: "#666666"
+
+      - type: flex
+        direction: column
+        gap: 8
+        align: center
+        children:
+          - type: qr
+            data: "https://github.com/RoboNET/FlexRender"
+            size: 100
+            errorCorrection: H
+          - type: text
+            content: "H (High)"
+            size: 12px
+            color: "#666666"

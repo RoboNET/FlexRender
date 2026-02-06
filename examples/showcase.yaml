@@ -1,29 +1,20 @@
 # FlexRender Feature Showcase Template
 # Demonstrates ALL available features in a single, visually organized layout.
-# Render with: dotnet run --project ../src/FlexRender.Cli -- render showcase.yaml -d showcase-data.json -o output/showcase.png
-
+# Render: dotnet run --project ../src/FlexRender.Cli -- render showcase.yaml -d showcase-data.json -o output/showcase.png
+# 14 sections: layout, positioning, text, separators, images, QR, barcodes, expressions, loops, conditionals.
 template:
   name: "feature-showcase"
   version: 1
-
-# Font loading from local assets
 fonts:
   default: "assets/fonts/Inter-Regular.ttf"
   bold: "assets/fonts/Inter-Bold.ttf"
   semibold: "assets/fonts/Inter-SemiBold.ttf"
-
-# Fixed-width canvas, height adjusts to content
 canvas:
   fixed: width
   width: 800
   background: "#ffffff"
-
 layout:
-  # ============================================================
-  # SECTION 1: Header with title, subtitle, and background color
-  # Demonstrates: background, non-uniform padding ("30 40"),
-  #   text align center, em units, template expressions {{var}}
-  # ============================================================
+  # === SECTION 1: Header [background, padding, expressions, em units, text align center] ===
   - type: flex
     background: "#1a1a2e"
     padding: "30 40"
@@ -35,35 +26,38 @@ layout:
         size: 2em
         color: "#ffffff"
         align: center
-
       - type: text
         content: "{{subtitle}}"
         size: 1.1em
         color: "#8888aa"
         align: center
-
       - type: text
         content: "Version {{version}} -- Built {{buildDate}}"
         size: 0.8em
         color: "#555577"
         align: center
 
-  # ============================================================
-  # SECTION 2: Separator styles showcase
-  # Demonstrates: all three separator styles (solid, dashed, dotted),
-  #   separator colors, thickness, vertical separators
-  # ============================================================
+  # -- separator: solid --
+  - type: separator
+    style: solid
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 2: Separator Styles [solid, dashed, dotted, vertical, color, thickness] ===
   - type: flex
     padding: "20 40"
-    gap: 12
+    gap: 10
     children:
       - type: text
         content: "Separator Styles"
         font: bold
         size: 14px
         color: "#1a1a2e"
-
-      # Solid separator
+      - type: text
+        content: "Horizontal styles: solid, dashed, dotted with custom colors and thickness"
+        size: 11px
+        color: "#888888"
+      # Solid
       - type: flex
         gap: 4
         children:
@@ -75,8 +69,7 @@ layout:
             style: solid
             color: "#1a1a2e"
             thickness: 2
-
-      # Dashed separator
+      # Dashed
       - type: flex
         gap: 4
         children:
@@ -88,8 +81,7 @@ layout:
             style: dashed
             color: "#e74c3c"
             thickness: 2
-
-      # Dotted separator
+      # Dotted
       - type: flex
         gap: 4
         children:
@@ -101,16 +93,14 @@ layout:
             style: dotted
             color: "#2ecc71"
             thickness: 2
-
       # Vertical separators in a row
       - type: text
         content: "Vertical separators:"
         size: 11px
         color: "#888888"
-
       - type: flex
         direction: row
-        height: 50
+        height: "50"
         background: "#f5f5fa"
         padding: "10 20"
         gap: 0
@@ -121,59 +111,169 @@ layout:
             content: "Column A"
             size: 12px
             align: center
-
           - type: separator
             orientation: vertical
             style: solid
             color: "#1a1a2e"
             thickness: 1
             height: 30px
-
           - type: text
             content: "Column B"
             size: 12px
             align: center
-
           - type: separator
             orientation: vertical
             style: dashed
             color: "#e74c3c"
             thickness: 1
             height: 30px
-
           - type: text
             content: "Column C"
             size: 12px
             align: center
 
-  # Full-width dotted separator between major sections
+  # -- separator: dashed --
+  - type: separator
+    style: dashed
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 3: Text Features [align left/center/right, fonts, wrap, maxLines, overflow, lineHeight] ===
+  - type: flex
+    padding: "20 40"
+    gap: 12
+    children:
+      - type: text
+        content: "Text Features"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "Alignment, font variants, text wrapping, truncation, and line height"
+        size: 11px
+        color: "#888888"
+      # Three-column text alignment
+      - type: flex
+        direction: row
+        gap: 10
+        children:
+          - type: flex
+            width: "234"
+            background: "#f8f8fc"
+            padding: 10
+            gap: 4
+            children:
+              - type: text
+                content: "Left Aligned"
+                font: semibold
+                size: 12px
+                align: left
+              - type: text
+                content: "Default alignment for body text and paragraphs."
+                size: 10px
+                color: "#555555"
+                align: left
+                wrap: true
+          - type: flex
+            width: "234"
+            background: "#f8f8fc"
+            padding: 10
+            gap: 4
+            children:
+              - type: text
+                content: "Center Aligned"
+                font: semibold
+                size: 12px
+                align: center
+              - type: text
+                content: "Useful for headings, labels, and callouts."
+                size: 10px
+                color: "#555555"
+                align: center
+                wrap: true
+          - type: flex
+            width: "232"
+            background: "#f8f8fc"
+            padding: 10
+            gap: 4
+            children:
+              - type: text
+                content: "Right Aligned"
+                font: semibold
+                size: 12px
+                align: right
+              - type: text
+                content: "Works well for numeric values and prices."
+                size: 10px
+                color: "#555555"
+                align: right
+                wrap: true
+      # maxLines + overflow and lineHeight
+      - type: flex
+        direction: row
+        gap: 10
+        children:
+          - type: flex
+            width: "355"
+            background: "#fff3e0"
+            padding: 10
+            gap: 4
+            children:
+              - type: text
+                content: "maxLines: 2, overflow: ellipsis"
+                font: semibold
+                size: 10px
+                color: "#e65100"
+              - type: text
+                content: "This is a long paragraph of text that will be truncated after exactly two lines. The overflow mode is set to ellipsis so you will see three dots at the end of the second line indicating there is more content."
+                size: 10px
+                color: "#555555"
+                wrap: true
+                maxLines: 2
+                overflow: ellipsis
+          - type: flex
+            width: "355"
+            background: "#e8f5e9"
+            padding: 10
+            gap: 4
+            children:
+              - type: text
+                content: "lineHeight: 2.0"
+                font: semibold
+                size: 10px
+                color: "#1b5e20"
+              - type: text
+                content: "Double line height for improved readability in long text passages."
+                size: 10px
+                color: "#555555"
+                wrap: true
+                lineHeight: "2.0"
+
+  # -- separator: dotted --
   - type: separator
     style: dotted
     color: "#dddddd"
     thickness: 1
 
-  # ============================================================
-  # SECTION 3: Flex layout demos
-  # Demonstrates: row/column directions, justify (center,
-  #   space-between, space-around), align (stretch, center, end),
-  #   grow, px units, background on children
-  # ============================================================
+  # === SECTION 4: Flex Basics [direction row, justify space-between, align center, grow] ===
   - type: flex
     padding: "20 40"
-    gap: 16
+    gap: 12
     children:
       - type: text
-        content: "Flex Layout Demonstrations"
+        content: "Flex Basics -- Justify, Align, Grow"
         font: bold
         size: 14px
         color: "#1a1a2e"
-
-      # --- justify: space-between ---
       - type: text
-        content: "Row direction, justify: space-between"
+        content: "Row direction with justify and align properties, plus flex grow distribution"
         size: 11px
         color: "#888888"
-
+      # justify: space-between
+      - type: text
+        content: "justify: space-between"
+        size: 11px
+        color: "#888888"
       - type: flex
         direction: row
         justify: space-between
@@ -204,94 +304,15 @@ layout:
                 content: "End"
                 size: 12px
                 color: "#ffffff"
-
-      # --- justify: space-around ---
+      # align: center with grow
       - type: text
-        content: "Row direction, justify: space-around"
+        content: "align: center, grow: 1 / 2 / 1"
         size: 11px
         color: "#888888"
-
       - type: flex
         direction: row
-        justify: space-around
-        background: "#f0f0f5"
-        padding: 10
-        children:
-          - type: flex
-            background: "#e74c3c"
-            padding: "8 16"
-            children:
-              - type: text
-                content: "A"
-                size: 12px
-                color: "#ffffff"
-          - type: flex
-            background: "#3498db"
-            padding: "8 16"
-            children:
-              - type: text
-                content: "B"
-                size: 12px
-                color: "#ffffff"
-          - type: flex
-            background: "#2ecc71"
-            padding: "8 16"
-            children:
-              - type: text
-                content: "C"
-                size: 12px
-                color: "#ffffff"
-
-      # --- justify: center with align: center ---
-      - type: text
-        content: "Row direction, justify: center, align: center"
-        size: 11px
-        color: "#888888"
-
-      - type: flex
-        direction: row
-        justify: center
         align: center
-        height: 70
-        background: "#f0f0f5"
-        padding: 10
-        gap: 16
-        children:
-          - type: flex
-            background: "#9b59b6"
-            padding: "4 12"
-            children:
-              - type: text
-                content: "Small"
-                size: 10px
-                color: "#ffffff"
-          - type: flex
-            background: "#8e44ad"
-            padding: "12 16"
-            children:
-              - type: text
-                content: "Medium"
-                size: 14px
-                color: "#ffffff"
-          - type: flex
-            background: "#6c3483"
-            padding: "4 12"
-            children:
-              - type: text
-                content: "Small"
-                size: 10px
-                color: "#ffffff"
-
-      # --- align: end with grow ---
-      - type: text
-        content: "Row direction, align: end, with flex grow"
-        size: 11px
-        color: "#888888"
-
-      - type: flex
-        direction: row
-        align: end
-        height: 50
+        height: "50"
         background: "#f0f0f5"
         padding: 8
         gap: 8
@@ -327,266 +348,1213 @@ layout:
                 color: "#ffffff"
                 align: center
 
-  # Full-width dashed separator
+  # -- separator: solid --
   - type: separator
-    style: dashed
+    style: solid
     color: "#dddddd"
     thickness: 1
 
-  # ============================================================
-  # SECTION 4: Text features
-  # Demonstrates: wrap, maxLines, overflow ellipsis, lineHeight,
-  #   text align (left, center, right), different font sizes
-  # ============================================================
+  # === SECTION 5: Flex Sizing [shrink, basis, minWidth, maxWidth, minHeight, maxHeight] ===
   - type: flex
     padding: "20 40"
     gap: 12
     children:
       - type: text
-        content: "Text Features"
+        content: "Flex Sizing -- Shrink, Basis, Min/Max Constraints"
         font: bold
         size: 14px
         color: "#1a1a2e"
-
-      # Three-column text alignment demo (fixed widths for reliability)
-      - type: flex
-        direction: row
-        gap: 10
-        children:
-          - type: flex
-            width: 234
-            background: "#f8f8fc"
-            padding: 10
-            gap: 4
-            children:
-              - type: text
-                content: "Left Aligned"
-                font: semibold
-                size: 12px
-                align: left
-              - type: text
-                content: "Default alignment for body text and paragraphs."
-                size: 10px
-                color: "#555555"
-                align: left
-                wrap: true
-
-          - type: flex
-            width: 234
-            background: "#f8f8fc"
-            padding: 10
-            gap: 4
-            children:
-              - type: text
-                content: "Center Aligned"
-                font: semibold
-                size: 12px
-                align: center
-              - type: text
-                content: "Useful for headings, labels, and callouts."
-                size: 10px
-                color: "#555555"
-                align: center
-                wrap: true
-
-          - type: flex
-            width: 232
-            background: "#f8f8fc"
-            padding: 10
-            gap: 4
-            children:
-              - type: text
-                content: "Right Aligned"
-                font: semibold
-                size: 12px
-                align: right
-              - type: text
-                content: "Works well for numeric values and prices."
-                size: 10px
-                color: "#555555"
-                align: right
-                wrap: true
-
-      # maxLines + overflow and lineHeight demonstrations
-      - type: flex
-        direction: row
-        gap: 10
-        children:
-          - type: flex
-            width: 355
-            background: "#fff3e0"
-            padding: 10
-            gap: 4
-            children:
-              - type: text
-                content: "maxLines: 2, overflow: ellipsis"
-                font: semibold
-                size: 10px
-                color: "#e65100"
-              - type: text
-                content: "This is a long paragraph of text that will be truncated after exactly two lines. The overflow mode is set to ellipsis so you will see three dots at the end of the second line indicating there is more content."
-                size: 10px
-                color: "#555555"
-                wrap: true
-                maxLines: 2
-                overflow: ellipsis
-
-          - type: flex
-            width: 355
-            background: "#e8f5e9"
-            padding: 10
-            gap: 4
-            children:
-              - type: text
-                content: "lineHeight: 2.0"
-                font: semibold
-                size: 10px
-                color: "#1b5e20"
-              - type: text
-                content: "Double line height for improved readability in long text passages."
-                size: 10px
-                color: "#555555"
-                wrap: true
-                lineHeight: "2.0"
-
-  # Full-width solid separator
-  - type: separator
-    style: solid
-    color: "#dddddd"
-    thickness: 2
-
-  # ============================================================
-  # SECTION 5: Data-driven section with type: each
-  # Demonstrates: template iteration, dynamic content generation
-  # ============================================================
-  - type: flex
-    padding: "20 40"
-    gap: 10
-    children:
       - type: text
-        content: "Feature List (template loop)"
-        font: bold
-        size: 14px
-        color: "#1a1a2e"
-
-      - type: each
-        array: features
-        as: feature
+        content: "How flex items shrink proportionally and respect min/max size constraints"
+        size: 11px
+        color: "#888888"
+      # Shrink + Basis demo
+      - type: text
+        content: "Shrink + Basis: items with basis 300 each (900 total > 720 available)"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        background: "#f0f0f5"
+        padding: 8
+        gap: 8
         children:
           - type: flex
-            direction: row
-            background: "#f5f5fa"
-            padding: "10 16"
-            gap: 16
-            align: center
+            shrink: 0
+            basis: "300"
+            background: "#1a1a2e"
+            padding: "10 12"
             children:
-              # Feature name badge
-              - type: flex
-                width: 220
-                background: "#1a1a2e"
-                padding: "6 12"
-                children:
-                  - type: text
-                    content: "{{feature.name}}"
-                    font: semibold
-                    size: 11px
-                    color: "#ffffff"
-
-              # Feature description
               - type: text
-                content: "{{feature.description}}"
-                size: 11px
+                content: "shrink: 0, basis: 300"
+                size: 10px
+                color: "#ffffff"
+                wrap: true
+              - type: text
+                content: "Will not shrink"
+                size: 9px
+                color: "#8888aa"
+          - type: flex
+            shrink: 1
+            basis: "300"
+            background: "#16213e"
+            padding: "10 12"
+            children:
+              - type: text
+                content: "shrink: 1, basis: 300"
+                size: 10px
+                color: "#ffffff"
+                wrap: true
+              - type: text
+                content: "Shrinks proportionally"
+                size: 9px
+                color: "#8888aa"
+          - type: flex
+            shrink: 2
+            basis: "300"
+            background: "#0f3460"
+            padding: "10 12"
+            children:
+              - type: text
+                content: "shrink: 2, basis: 300"
+                size: 10px
+                color: "#ffffff"
+                wrap: true
+              - type: text
+                content: "Shrinks more"
+                size: 9px
+                color: "#8888aa"
+      # Min/Max Constraints demo
+      - type: text
+        content: "Min/Max constraints: all items grow: 1 with different constraints"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        background: "#f0f0f5"
+        padding: 8
+        gap: 8
+        children:
+          - type: flex
+            grow: 1
+            maxWidth: "120"
+            background: "#f0f0f5"
+            padding: "10 12"
+            children:
+              - type: text
+                content: "maxWidth: 120"
+                size: 10px
                 color: "#555555"
                 wrap: true
+              - type: text
+                content: "Stops growing early"
+                size: 9px
+                color: "#888888"
+          - type: flex
+            grow: 1
+            background: "#e8f0ff"
+            padding: "10 12"
+            children:
+              - type: text
+                content: "No constraints"
+                size: 10px
+                color: "#555555"
+              - type: text
+                content: "Fills remaining space"
+                size: 9px
+                color: "#888888"
+          - type: flex
+            grow: 1
+            minWidth: "250"
+            background: "#fff0e8"
+            padding: "10 12"
+            children:
+              - type: text
+                content: "minWidth: 250"
+                size: 10px
+                color: "#555555"
+              - type: text
+                content: "Refuses to shrink below 250px"
+                size: 9px
+                color: "#888888"
 
-  # Dashed separator
+  # -- separator: dashed --
   - type: separator
     style: dashed
     color: "#dddddd"
     thickness: 1
 
-  # ============================================================
-  # SECTION 6: Conditional section with type: if
-  # Demonstrates: conditional rendering, QR code with expression
-  #   data, barcode (code128), vertical separator, errorCorrection
-  # ============================================================
-  - type: if
-    condition: showBarcodeSection
-    then:
+  # === SECTION 6: Flex Wrapping + AlignContent [wrap, alignContent, gap, row-gap, column-gap] ===
+  - type: flex
+    padding: "20 40"
+    gap: 12
+    children:
+      - type: text
+        content: "Flex Wrapping + AlignContent"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "Multi-line flex behavior with wrap, gap, and cross-axis line alignment"
+        size: 11px
+        color: "#888888"
+      # Wrap demo: items flow and wrap
+      - type: text
+        content: "wrap: wrap, gap: 8 (items flow and wrap to next line)"
+        size: 11px
+        color: "#888888"
       - type: flex
-        padding: "20 40"
-        gap: 16
+        direction: row
+        wrap: wrap
+        height: "160"
+        gap: 8
+        background: "#f5f5fa"
+        padding: 8
         children:
-          - type: text
-            content: "QR Code and Barcode (conditional section)"
-            font: bold
-            size: 14px
-            color: "#1a1a2e"
-
           - type: flex
-            direction: row
-            gap: 20
+            width: "160"
+            height: "40"
+            background: "#1a1a2e"
+            padding: "8 16"
+            justify: center
             children:
-              # QR code with expression data
-              - type: flex
-                width: 200
-                gap: 6
+              - type: text
+                content: "Tag 1"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#e74c3c"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 2"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#3498db"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 3"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#2ecc71"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 4"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#9b59b6"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 5"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#e67e22"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 6"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#0f3460"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 7"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#16213e"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 8"
+                size: 11px
+                color: "#ffffff"
+      # AlignContent demo: wrapped lines spread apart
+      - type: text
+        content: "alignContent: space-between (wrapped lines spread apart vertically)"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        wrap: wrap
+        height: "200"
+        gap: 8
+        alignContent: space-between
+        background: "#f5f5fa"
+        padding: 8
+        children:
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#1a1a2e"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 1"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#e74c3c"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 2"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#3498db"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 3"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#2ecc71"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 4"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#9b59b6"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 5"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#e67e22"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 6"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#0f3460"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 7"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            width: "160"
+            height: "40"
+            background: "#16213e"
+            padding: "8 16"
+            justify: center
+            children:
+              - type: text
+                content: "Tag 8"
+                size: 11px
+                color: "#ffffff"
+
+  # -- separator: dotted --
+  - type: separator
+    style: dotted
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 7: AlignSelf + Auto Margins [alignSelf, margin auto, display none] ===
+  - type: flex
+    padding: "20 40"
+    gap: 12
+    children:
+      - type: text
+        content: "AlignSelf + Auto Margins"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "Per-item cross-axis alignment overrides and auto-margin push patterns"
+        size: 11px
+        color: "#888888"
+      # AlignSelf demo
+      - type: text
+        content: "alignSelf values in a row with align: stretch and height: 100"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        align: stretch
+        height: "100"
+        background: "#f0f0f5"
+        padding: 8
+        gap: 6
+        children:
+          - type: flex
+            alignSelf: auto
+            background: "#1a1a2e"
+            padding: "6 10"
+            children:
+              - type: text
+                content: "auto (stretches)"
+                size: 10px
+                color: "#ffffff"
                 align: center
-                children:
-                  - type: qr
-                    data: "{{websiteUrl}}"
-                    size: 140
-                    errorCorrection: H
-                    foreground: "#1a1a2e"
-
-                  - type: text
-                    content: "QR: {{websiteUrl}}"
-                    size: 8px
-                    color: "#888888"
-                    align: center
-                    wrap: true
-
-              # Vertical separator between QR and barcode
-              - type: separator
-                orientation: vertical
-                style: dotted
-                color: "#cccccc"
-                thickness: 1
-                height: 180px
-
-              # Barcode section
-              - type: flex
-                width: 480
-                gap: 8
+          - type: flex
+            alignSelf: start
+            background: "#e74c3c"
+            padding: "6 10"
+            children:
+              - type: text
+                content: "start (top)"
+                size: 10px
+                color: "#ffffff"
                 align: center
-                justify: center
-                children:
-                  - type: barcode
-                    data: "SKIA-2026-SHOWCASE"
-                    format: code128
-                    width: 400
-                    height: 60
-                    showText: true
+          - type: flex
+            alignSelf: center
+            background: "#3498db"
+            padding: "6 10"
+            children:
+              - type: text
+                content: "center (middle)"
+                size: 10px
+                color: "#ffffff"
+                align: center
+          - type: flex
+            alignSelf: end
+            background: "#2ecc71"
+            padding: "6 10"
+            children:
+              - type: text
+                content: "end (bottom)"
+                size: 10px
+                color: "#ffffff"
+                align: center
+          - type: flex
+            alignSelf: stretch
+            background: "#9b59b6"
+            padding: "6 10"
+            children:
+              - type: text
+                content: "stretch (full)"
+                size: 10px
+                color: "#ffffff"
+                align: center
+      # Auto Margins + Display None demo
+      - type: text
+        content: "Auto margins: margin-left auto pushes items right; display: none hides an item"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        background: "#f0f0f5"
+        padding: 8
+        gap: 8
+        align: center
+        children:
+          - type: flex
+            background: "#1a1a2e"
+            padding: "8 16"
+            children:
+              - type: text
+                content: "Item A"
+                size: 11px
+                color: "#ffffff"
+          # Hidden item: display none removes from layout entirely
+          - type: flex
+            display: none
+            background: "#ff0000"
+            padding: "8 16"
+            children:
+              - type: text
+                content: "[hidden]"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            margin: "0 0 0 auto"
+            background: "#e67e22"
+            padding: "8 16"
+            children:
+              - type: text
+                content: "Pushed Right"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            background: "#0f3460"
+            padding: "8 16"
+            children:
+              - type: text
+                content: "Item C"
+                size: 11px
+                color: "#ffffff"
+      - type: text
+        content: "A hidden item (display: none) sits between A and Pushed Right but takes no space"
+        size: 9px
+        color: "#888888"
 
-                  - type: text
-                    content: "Code128 barcode with showText enabled"
-                    size: 9px
-                    color: "#888888"
-                    align: center
-
-  # Solid separator
+  # -- separator: solid --
   - type: separator
     style: solid
     color: "#dddddd"
     thickness: 1
 
-  # ============================================================
-  # SECTION 7: Image features + rotation demo
-  # Demonstrates: HTTP images, fit modes (contain, cover),
-  #   rotation on element
-  # Images are loaded via IImageLoader which supports HTTP, file,
-  # base64, and embedded resource URIs.
-  # ============================================================
+  # === SECTION 8: Positioning [position relative, position absolute, top/right/bottom/left, overflow hidden] ===
+  - type: flex
+    padding: "20 40"
+    gap: 12
+    children:
+      - type: text
+        content: "Positioning -- Relative + Absolute"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "CSS-style positioning with offsets and overflow clipping"
+        size: 11px
+        color: "#888888"
+      # Relative positioning demo
+      - type: text
+        content: "Relative positioning: middle box shifted with top: -8, left: 12"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        background: "#f0f0f5"
+        padding: 12
+        gap: 16
+        align: center
+        children:
+          - type: flex
+            background: "#1a1a2e"
+            padding: "10 16"
+            children:
+              - type: text
+                content: "static"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            position: relative
+            top: "-8"
+            left: "12"
+            background: "#e74c3c"
+            padding: "10 16"
+            children:
+              - type: text
+                content: "relative (top: -8, left: 12)"
+                size: 11px
+                color: "#ffffff"
+          - type: flex
+            background: "#1a1a2e"
+            padding: "10 16"
+            children:
+              - type: text
+                content: "static"
+                size: 11px
+                color: "#ffffff"
+      # Absolute positioning + overflow hidden
+      - type: text
+        content: "Absolute positioning with overflow: hidden"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        height: "120"
+        background: "#f5f5fa"
+        padding: "16"
+        overflow: hidden
+        children:
+          - type: text
+            content: "Main Content (normal flow)"
+            size: 12px
+            color: "#555555"
+          - type: text
+            content: "Absolute children are pinned to parent edges"
+            size: 10px
+            color: "#888888"
+          # Top-right badge
+          - type: flex
+            position: absolute
+            top: "8"
+            right: "8"
+            background: "#e74c3c"
+            padding: "4 10"
+            children:
+              - type: text
+                content: "NEW"
+                font: bold
+                size: 9px
+                color: "#ffffff"
+          # Bottom-left badge
+          - type: flex
+            position: absolute
+            bottom: "8"
+            left: "8"
+            background: "#1a1a2e"
+            padding: "4 10"
+            children:
+              - type: text
+                content: "v1.0"
+                font: bold
+                size: 9px
+                color: "#ffffff"
+          # Overflows right edge -- clipped by overflow: hidden
+          - type: flex
+            position: absolute
+            top: "40"
+            right: "-30"
+            background: "#3498db"
+            padding: "6 20"
+            children:
+              - type: text
+                content: "Clipped by overflow"
+                size: 9px
+                color: "#ffffff"
+
+  # -- separator: dashed --
+  - type: separator
+    style: dashed
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 9: Dashboard Card Grid [wrap, aspectRatio, minWidth, maxWidth, gap, grow, expressions] ===
+  - type: flex
+    padding: "20 40"
+    gap: 12
+    children:
+      - type: text
+        content: "Dashboard Card Grid"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "Practical demo: wrap + aspect-ratio + min/max width + grow + template expressions"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        wrap: wrap
+        gap: 12
+        children:
+          # Card: Revenue
+          - type: flex
+            minWidth: "220"
+            maxWidth: "240"
+            grow: 1
+            aspectRatio: 1.4
+            background: "#eef2ff"
+            padding: "16"
+            gap: 4
+            children:
+              - type: text
+                content: "Revenue"
+                font: bold
+                size: 12px
+                color: "#1a1a2e"
+              - type: text
+                content: "{{dashboard.revenue}}"
+                font: bold
+                size: 24px
+                color: "#0f3460"
+              - type: text
+                content: "{{dashboardTrends.revenue}}"
+                size: 11px
+                color: "#2ecc71"
+          # Card: Users
+          - type: flex
+            minWidth: "220"
+            maxWidth: "240"
+            grow: 1
+            aspectRatio: 1.4
+            background: "#f0faf0"
+            padding: "16"
+            gap: 4
+            children:
+              - type: text
+                content: "Users"
+                font: bold
+                size: 12px
+                color: "#1a1a2e"
+              - type: text
+                content: "{{dashboard.users}}"
+                font: bold
+                size: 24px
+                color: "#0f3460"
+              - type: text
+                content: "{{dashboardTrends.users}}"
+                size: 11px
+                color: "#2ecc71"
+          # Card: Orders
+          - type: flex
+            minWidth: "220"
+            maxWidth: "240"
+            grow: 1
+            aspectRatio: 1.4
+            background: "#fff8f0"
+            padding: "16"
+            gap: 4
+            children:
+              - type: text
+                content: "Orders"
+                font: bold
+                size: 12px
+                color: "#1a1a2e"
+              - type: text
+                content: "{{dashboard.orders}}"
+                font: bold
+                size: 24px
+                color: "#0f3460"
+              - type: text
+                content: "{{dashboardTrends.orders}}"
+                size: 11px
+                color: "#e74c3c"
+          # Card: Uptime
+          - type: flex
+            minWidth: "220"
+            maxWidth: "240"
+            grow: 1
+            aspectRatio: 1.4
+            background: "#f0f0ff"
+            padding: "16"
+            gap: 4
+            children:
+              - type: text
+                content: "Uptime"
+                font: bold
+                size: 12px
+                color: "#1a1a2e"
+              - type: text
+                content: "{{dashboard.uptime}}"
+                font: bold
+                size: 24px
+                color: "#0f3460"
+              - type: text
+                content: "{{dashboardTrends.uptime}}"
+                size: 11px
+                color: "#2ecc71"
+          # Card: Latency
+          - type: flex
+            minWidth: "220"
+            maxWidth: "240"
+            grow: 1
+            aspectRatio: 1.4
+            background: "#fff0f8"
+            padding: "16"
+            gap: 4
+            children:
+              - type: text
+                content: "Latency"
+                font: bold
+                size: 12px
+                color: "#1a1a2e"
+              - type: text
+                content: "{{dashboard.latency}}"
+                font: bold
+                size: 24px
+                color: "#0f3460"
+              - type: text
+                content: "{{dashboardTrends.latency}}"
+                size: 11px
+                color: "#2ecc71"
+          # Card: Errors
+          - type: flex
+            minWidth: "220"
+            maxWidth: "240"
+            grow: 1
+            aspectRatio: 1.4
+            background: "#fff0f0"
+            padding: "16"
+            gap: 4
+            children:
+              - type: text
+                content: "Errors"
+                font: bold
+                size: 12px
+                color: "#1a1a2e"
+              - type: text
+                content: "{{dashboard.errors}}"
+                font: bold
+                size: 24px
+                color: "#e74c3c"
+              - type: text
+                content: "{{dashboardTrends.errors}}"
+                size: 11px
+                color: "#2ecc71"
+
+  # -- separator: dotted --
+  - type: separator
+    style: dotted
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 10: Loop Metadata [type each, @index, @first, @last, expressions, if inside each] ===
+  - type: flex
+    padding: "20 40"
+    gap: 10
+    children:
+      - type: text
+        content: "Loop Metadata -- @index, @first, @last"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "Numbered feature list with first/last item highlighting via loop metadata variables"
+        size: 11px
+        color: "#888888"
+      - type: each
+        array: features
+        as: feature
+        children:
+          # First item: blue highlight
+          - type: if
+            condition: "@first"
+            then:
+              - type: flex
+                direction: row
+                background: "#e0ecff"
+                padding: "8 12"
+                gap: 12
+                align: center
+                children:
+                  - type: flex
+                    width: "28"
+                    height: "28"
+                    background: "#3498db"
+                    padding: 4
+                    justify: center
+                    children:
+                      - type: text
+                        content: "{{@index}}"
+                        font: bold
+                        size: 11px
+                        color: "#ffffff"
+                        align: center
+                  - type: text
+                    content: "{{feature.name}}"
+                    font: semibold
+                    size: 11px
+                    color: "#1a1a2e"
+                  - type: text
+                    content: "{{feature.description}}"
+                    size: 10px
+                    color: "#555555"
+                    grow: 1
+                  - type: text
+                    content: "(first)"
+                    size: 9px
+                    color: "#3498db"
+          # Last item: green highlight
+          - type: if
+            condition: "@last"
+            then:
+              - type: flex
+                direction: row
+                background: "#e0ffe0"
+                padding: "8 12"
+                gap: 12
+                align: center
+                children:
+                  - type: flex
+                    width: "28"
+                    height: "28"
+                    background: "#2ecc71"
+                    padding: 4
+                    justify: center
+                    children:
+                      - type: text
+                        content: "{{@index}}"
+                        font: bold
+                        size: 11px
+                        color: "#ffffff"
+                        align: center
+                  - type: text
+                    content: "{{feature.name}}"
+                    font: semibold
+                    size: 11px
+                    color: "#1a1a2e"
+                  - type: text
+                    content: "{{feature.description}}"
+                    size: 10px
+                    color: "#555555"
+                    grow: 1
+                  - type: text
+                    content: "(last)"
+                    size: 9px
+                    color: "#2ecc71"
+          # Middle items: neutral background
+          - type: if
+            condition: "@first"
+            equals: false
+            then:
+              - type: if
+                condition: "@last"
+                equals: false
+                then:
+                  - type: flex
+                    direction: row
+                    background: "#f5f5fa"
+                    padding: "8 12"
+                    gap: 12
+                    align: center
+                    children:
+                      - type: flex
+                        width: "28"
+                        height: "28"
+                        background: "#888888"
+                        padding: 4
+                        justify: center
+                        children:
+                          - type: text
+                            content: "{{@index}}"
+                            font: bold
+                            size: 11px
+                            color: "#ffffff"
+                            align: center
+                      - type: text
+                        content: "{{feature.name}}"
+                        font: semibold
+                        size: 11px
+                        color: "#1a1a2e"
+                      - type: text
+                        content: "{{feature.description}}"
+                        size: 10px
+                        color: "#555555"
+                        grow: 1
+
+  # -- separator: solid --
+  - type: separator
+    style: solid
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 11: Conditional Chains [type if, elseIf, else, equals operator] ===
+  - type: flex
+    padding: "20 40"
+    gap: 12
+    children:
+      - type: text
+        content: "Conditional Chains -- if / else-if / else"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "Multi-branch conditional rendering based on data values"
+        size: 11px
+        color: "#888888"
+      # Live conditional
+      - type: text
+        content: "Live output (status = {{status}}):"
+        size: 11px
+        color: "#888888"
+      - type: if
+        condition: status
+        equals: "active"
+        then:
+          - type: flex
+            direction: row
+            gap: 8
+            align: center
+            children:
+              - type: flex
+                background: "#2ecc71"
+                padding: "6 16"
+                children:
+                  - type: text
+                    content: "Active"
+                    font: bold
+                    size: 12px
+                    color: "#ffffff"
+              - type: text
+                content: "System is running normally"
+                size: 11px
+                color: "#555555"
+        elseIf:
+          condition: status
+          equals: "pending"
+          then:
+            - type: flex
+              direction: row
+              gap: 8
+              align: center
+              children:
+                - type: flex
+                  background: "#f39c12"
+                  padding: "6 16"
+                  children:
+                    - type: text
+                      content: "Pending"
+                      font: bold
+                      size: 12px
+                      color: "#ffffff"
+                - type: text
+                  content: "Awaiting activation"
+                  size: 11px
+                  color: "#555555"
+        else:
+          - type: flex
+            direction: row
+            gap: 8
+            align: center
+            children:
+              - type: flex
+                background: "#888888"
+                padding: "6 16"
+                children:
+                  - type: text
+                    content: "Unknown"
+                    font: bold
+                    size: 12px
+                    color: "#ffffff"
+              - type: text
+                content: "Status not recognized"
+                size: 11px
+                color: "#555555"
+      # Static preview of all branches
+      - type: text
+        content: "All possible branches:"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        gap: 10
+        children:
+          - type: flex
+            grow: 1
+            background: "#e8f5e9"
+            padding: "8 12"
+            gap: 4
+            children:
+              - type: text
+                content: "If branch"
+                size: 9px
+                color: "#888888"
+              - type: flex
+                background: "#2ecc71"
+                padding: "4 12"
+                children:
+                  - type: text
+                    content: "Active"
+                    font: bold
+                    size: 11px
+                    color: "#ffffff"
+          - type: flex
+            grow: 1
+            background: "#fff8e1"
+            padding: "8 12"
+            gap: 4
+            children:
+              - type: text
+                content: "Else-if branch"
+                size: 9px
+                color: "#888888"
+              - type: flex
+                background: "#f39c12"
+                padding: "4 12"
+                children:
+                  - type: text
+                    content: "Pending"
+                    font: bold
+                    size: 11px
+                    color: "#ffffff"
+          - type: flex
+            grow: 1
+            background: "#f5f5f5"
+            padding: "8 12"
+            gap: 4
+            children:
+              - type: text
+                content: "Else branch"
+                size: 9px
+                color: "#888888"
+              - type: flex
+                background: "#888888"
+                padding: "4 12"
+                children:
+                  - type: text
+                    content: "Unknown"
+                    font: bold
+                    size: 11px
+                    color: "#ffffff"
+
+  # -- separator: dashed --
+  - type: separator
+    style: dashed
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 12: QR Code + Barcodes [qr, errorCorrection, code128, showText, foreground, vertical separator] ===
+  - type: flex
+    padding: "20 40"
+    gap: 12
+    children:
+      - type: text
+        content: "QR Code + Barcode Formats"
+        font: bold
+        size: 14px
+        color: "#1a1a2e"
+      - type: text
+        content: "Machine-readable codes: QR with error correction and multiple barcode formats"
+        size: 11px
+        color: "#888888"
+      # Top row: QR code + Code128 barcode
+      - type: flex
+        direction: row
+        gap: 20
+        children:
+          - type: flex
+            width: "200"
+            gap: 6
+            align: center
+            children:
+              - type: qr
+                data: "{{websiteUrl}}"
+                size: 140
+                errorCorrection: H
+                foreground: "#1a1a2e"
+              - type: text
+                content: "QR: {{websiteUrl}}"
+                size: 8px
+                color: "#888888"
+                align: center
+                wrap: true
+          - type: separator
+            orientation: vertical
+            style: dotted
+            color: "#cccccc"
+            thickness: 1
+            height: 180px
+          - type: flex
+            width: "480"
+            gap: 8
+            align: center
+            justify: center
+            children:
+              - type: barcode
+                data: "SKIA-2026-SHOWCASE"
+                format: code128
+                width: 400
+                height: 60
+                showText: true
+              - type: text
+                content: "Code128 barcode with showText enabled"
+                size: 9px
+                color: "#888888"
+                align: center
+      # Bottom row: additional Code128 barcode styles
+      - type: text
+        content: "Code128 barcode variations:"
+        size: 11px
+        color: "#888888"
+      - type: flex
+        direction: row
+        gap: 16
+        children:
+          - type: flex
+            grow: 1
+            gap: 6
+            align: center
+            background: "#f8f8fc"
+            padding: 10
+            children:
+              - type: barcode
+                data: "ITEM-2026-001"
+                format: code128
+                width: 180
+                height: 50
+                showText: true
+              - type: text
+                content: "With text label"
+                size: 9px
+                color: "#888888"
+                align: center
+          - type: flex
+            grow: 1
+            gap: 6
+            align: center
+            background: "#f8f8fc"
+            padding: 10
+            children:
+              - type: barcode
+                data: "FLEX-RENDER"
+                format: code128
+                width: 180
+                height: 50
+                showText: false
+              - type: text
+                content: "Without text label"
+                size: 9px
+                color: "#888888"
+                align: center
+          - type: flex
+            grow: 1
+            gap: 6
+            align: center
+            background: "#1a1a2e"
+            padding: 10
+            children:
+              - type: barcode
+                data: "DARK-MODE"
+                format: code128
+                width: 180
+                height: 50
+                showText: true
+                foreground: "#ffffff"
+              - type: text
+                content: "Custom colors"
+                size: 9px
+                color: "#8888aa"
+                align: center
+
+  # -- separator: dotted --
+  - type: separator
+    style: dotted
+    color: "#dddddd"
+    thickness: 1
+
+  # === SECTION 13: Images and Rotation [image HTTP src, fit contain, fit cover, rotation] ===
   - type: flex
     padding: "20 40"
     gap: 12
@@ -596,14 +1564,16 @@ layout:
         font: bold
         size: 14px
         color: "#1a1a2e"
-
+      - type: text
+        content: "HTTP images with fit modes (contain, cover) and element rotation"
+        size: 11px
+        color: "#888888"
       - type: flex
         direction: row
         gap: 10
         children:
-          # Local image with fit: contain
           - type: flex
-            width: 236
+            width: "236"
             gap: 6
             background: "#f0f0f5"
             padding: 10
@@ -619,10 +1589,8 @@ layout:
                 width: 200
                 height: 60
                 fit: contain
-
-          # Image with fit: cover
           - type: flex
-            width: 236
+            width: "236"
             gap: 6
             background: "#f0f0f5"
             padding: 10
@@ -638,10 +1606,8 @@ layout:
                 width: 200
                 height: 80
                 fit: cover
-
-          # Rotated element demo
           - type: flex
-            width: 218
+            width: "218"
             gap: 6
             background: "#f0f0f5"
             padding: "10 10 40 10"
@@ -660,16 +1626,11 @@ layout:
                 rotate: "15"
                 align: center
 
-  # ============================================================
-  # SECTION 8: Footer with non-uniform padding
-  # Demonstrates: 4-value padding ("10 40 30 40"), mixed em/px
-  #   units, background, lineHeight, space-between justify
-  # ============================================================
+  # === SECTION 14: Footer [background, non-uniform padding, justify space-between, lineHeight, separator] ===
   - type: separator
     style: solid
     color: "#1a1a2e"
     thickness: 3
-
   - type: flex
     background: "#1a1a2e"
     padding: "10 40 30 40"
@@ -685,19 +1646,16 @@ layout:
             font: bold
             size: 1em
             color: "#ffffff"
-
           - type: text
             content: "v{{version}}"
             size: 0.85em
             color: "#8888aa"
-
       - type: separator
         style: dotted
         color: "#333355"
         thickness: 1
-
       - type: text
-        content: "YAML templates rendered to pixel-perfect images with SkiaSharp. Supports flexbox layout, template expressions, QR codes, barcodes, separators, images (local and HTTP), rotation, and more."
+        content: "YAML templates rendered to pixel-perfect images with SkiaSharp. Supports flexbox layout with wrap, positioning, sizing constraints, template expressions with loops and conditionals, QR codes, multiple barcode formats, images, separators, and more."
         size: 0.75em
         color: "#666688"
         align: center
