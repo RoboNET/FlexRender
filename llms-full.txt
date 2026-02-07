@@ -90,7 +90,7 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia   (YamlDotNet)  (SkiaSharp)
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |
 
-**Linux/Docker:** SkiaSharp requires native libraries on Linux. Add `SkiaSharp.NativeAssets.Linux` (or `SkiaSharp.NativeAssets.Linux.NoDependencies` for minimal containers without fontconfig/freetype) to your executable project to avoid `DllNotFoundException: libSkiaSharp` at runtime.
+**Linux/Docker:** SkiaSharp requires native libraries on Linux. Add `SkiaSharp.NativeAssets.Linux` (or `SkiaSharp.NativeAssets.Linux.NoDependencies` for minimal containers without fontconfig/freetype) to your executable project to avoid `DllNotFoundException: libSkiaSharp` at runtime. When using `FlexRender.HarfBuzz`, also add `HarfBuzzSharp.NativeAssets.Linux` to avoid `DllNotFoundException: libHarfBuzzSharp`.
 
 ## Rendering Pipeline
 

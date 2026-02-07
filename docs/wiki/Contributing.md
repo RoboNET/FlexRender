@@ -209,16 +209,17 @@ When reviewing code changes, verify:
 
 ---
 
-## SkiaSharp on Linux
+## Native Assets on Linux
 
-SkiaSharp requires native `libSkiaSharp.so` on Linux. Add to executable projects (not libraries):
+SkiaSharp and HarfBuzzSharp require native libraries on Linux. Add to executable projects (not libraries):
 
 | Package | Use Case |
 |---------|----------|
 | `SkiaSharp.NativeAssets.Linux` | Standard Linux with fontconfig/freetype |
 | `SkiaSharp.NativeAssets.Linux.NoDependencies` | Minimal/Docker containers |
+| `HarfBuzzSharp.NativeAssets.Linux` | Required when using `FlexRender.HarfBuzz` |
 
-If `DllNotFoundException: libSkiaSharp` occurs, verify with `ldd /path/to/libSkiaSharp.so`.
+If `DllNotFoundException: libSkiaSharp` or `libHarfBuzzSharp` occurs, verify with `ldd /path/to/lib*.so`.
 
 ## See Also
 

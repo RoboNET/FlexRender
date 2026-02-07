@@ -388,4 +388,4 @@ Note: The `--scale` option uses invariant culture -- always use `.` as the decim
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |
 
-**Linux/Docker:** SkiaSharp requires native libraries. Add `SkiaSharp.NativeAssets.Linux` (or `.NoDependencies` for minimal containers) to your executable project to avoid `DllNotFoundException: libSkiaSharp`.
+**Linux/Docker:** SkiaSharp requires native libraries. Add `SkiaSharp.NativeAssets.Linux` (or `.NoDependencies` for minimal containers) to your executable project to avoid `DllNotFoundException: libSkiaSharp`. When using `FlexRender.HarfBuzz`, also add `HarfBuzzSharp.NativeAssets.Linux` to avoid `DllNotFoundException: libHarfBuzzSharp`.

@@ -43,7 +43,7 @@ dotnet add package FlexRender
 dotnet tool install -g flexrender-cli
 ```
 
-> **Linux / Docker:** Add `SkiaSharp.NativeAssets.Linux` to avoid `DllNotFoundException: libSkiaSharp`.
+> **Linux / Docker:** Add `SkiaSharp.NativeAssets.Linux` to avoid `DllNotFoundException: libSkiaSharp`. For HarfBuzz text shaping, also add `HarfBuzzSharp.NativeAssets.Linux`.
 
 ## Quick Start
 
