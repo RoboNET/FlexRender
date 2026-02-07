@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.Svg.Render</PackageId>
+    <Description>SVG vector output renderer for FlexRender. Generates scalable SVG from the same layout tree.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlexRender.Tests" />
+    <InternalsVisibleTo Include="FlexRender.Skia.Render" />
+    <InternalsVisibleTo Include="FlexRender.QrCode.Svg.Render" />
+    <InternalsVisibleTo Include="FlexRender.Barcode.Svg.Render" />
+    <InternalsVisibleTo Include="FlexRender.SvgElement.Svg.Render" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+  </ItemGroup>
+
+</Project>

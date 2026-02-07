@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.Barcode.ImageSharp.Render</PackageId>
+    <Description>Barcode generation for FlexRender (ImageSharp renderer).</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\FlexRender.ImageSharp.Render\FlexRender.ImageSharp.Render.csproj" />
+  </ItemGroup>
+
+</Project>

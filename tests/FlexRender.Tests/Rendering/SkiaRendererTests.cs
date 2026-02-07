@@ -491,4 +491,122 @@ public class SkiaRendererTests : IDisposable
         // After expression processing, color should be red
         Assert.True(pixel.Red > 200, $"Expected red channel > 200, got {pixel.Red}");
     }
+
+    /// <summary>
+    /// Verifies that templates with text elements but no fonts section render
+    /// without throwing NullReferenceException. The renderer should fall back
+    /// to a system default font.
+    /// </summary>
+    [Fact]
+    public void Render_TextWithNoFontsSection_UsesDefaultFallback()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 200, Height = 100, Background = "#ffffff" },
+            Elements = new List<TemplateElement>
+            {
+                new TextElement
+                {
+                    Content = "Hello",
+                    Size = "16",
+                    Color = "#000000"
+                }
+            }
+        };
+        var data = new ObjectValue();
+
+        using var bitmap = new SKBitmap(200, 100);
+
+        // Should not throw NullReferenceException even though no fonts are configured
+        var exception = Record.Exception(() =>
+            _renderer.Render(bitmap, template, data));
+
+        Assert.Null(exception);
+    }
+
+    /// <summary>
+    /// Verifies that the async RenderToPng path works without fonts configured.
+    /// </summary>
+    [Fact]
+    public async Task RenderToPng_NoFontsSection_DoesNotThrow()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 200, Height = 100, Background = "#ffffff" },
+            Elements = new List<TemplateElement>
+            {
+                new TextElement
+                {
+                    Content = "Hello World",
+                    Size = "16",
+                    Color = "#000000"
+                }
+            }
+        };
+        var data = new ObjectValue();
+
+        using var stream = new MemoryStream();
+
+        var exception = await Record.ExceptionAsync(() =>
+            _renderer.RenderToPng(stream, template, data));
+
+        Assert.Null(exception);
+        Assert.True(stream.Length > 0);
+    }
+
+    /// <summary>
+    /// Verifies that parsed YAML with text but no fonts section renders correctly.
+    /// </summary>
+    [Fact]
+    public void Render_ParsedYamlNoFonts_RendersCorrectly()
+    {
+        const string yaml = """
+            canvas:
+              width: 200
+              height: 100
+              background: "#ffffff"
+            layout:
+              - type: text
+                content: "Hello"
+                size: 16
+                color: "#000000"
+            """;
+
+        var template = _parser.Parse(yaml);
+        var data = new ObjectValue();
+
+        using var bitmap = new SKBitmap(200, 100);
+
+        var exception = Record.Exception(() =>
+            _renderer.Render(bitmap, template, data));
+
+        Assert.Null(exception);
+    }
+
+    /// <summary>
+    /// Verifies that multiple text elements with different sizes render without
+    /// NRE when no fonts section is present.
+    /// </summary>
+    [Fact]
+    public void Render_MultipleTextNoFonts_DoesNotThrow()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300, Height = 200, Background = "#ffffff" },
+            Elements = new List<TemplateElement>
+            {
+                new TextElement { Content = "Small text", Size = "12", Color = "#333333" },
+                new TextElement { Content = "Medium text", Size = "24", Color = "#666666" },
+                new TextElement { Content = "Large text", Size = "48", Color = "#000000" }
+            }
+        };
+        var data = new ObjectValue();
+
+        using var bitmap = new SKBitmap(300, 200);
+
+        var exception = Record.Exception(() =>
+            _renderer.Render(bitmap, template, data));
+
+        Assert.Null(exception);
+    }
 }

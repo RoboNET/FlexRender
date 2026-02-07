@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.QrCode.ImageSharp.Render</PackageId>
+    <Description>QR code generation for FlexRender (ImageSharp renderer).</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.ImageSharp.Render\FlexRender.ImageSharp.Render.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+
+</Project>

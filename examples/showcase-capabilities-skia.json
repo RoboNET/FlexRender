@@ -1,0 +1,16 @@
+{
+  "renderer": "skia",
+  "rendererName": "Skia (Native SkiaSharp)",
+  "rendererDescription": "Full-featured rendering with native graphics",
+  "showGradients": true,
+  "showSvgElements": true,
+  "qrUrl": "https://github.com/RoboNET/FlexRender",
+  "items": [
+    {"name": "Flexbox Layout", "desc": "Row/column, wrap, gap, justify, align"},
+    {"name": "Text Features", "desc": "Alignment, wrapping, truncation, lineHeight"},
+    {"name": "QR + Barcodes", "desc": "QR codes with ECC, Code128 barcodes"},
+    {"name": "Gradients", "desc": "Linear gradients with angle and stops"},
+    {"name": "Box Shadow", "desc": "Drop shadows with blur and color"},
+    {"name": "SVG Elements", "desc": "Inline SVG content rendering"}
+  ]
+}

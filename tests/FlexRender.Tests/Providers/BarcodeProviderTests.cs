@@ -17,7 +17,7 @@ public class BarcodeProviderTests
     /// Verifies barcode generation with default settings.
     /// </summary>
     [Fact]
-    public void Generate_Code128_DefaultSettings_CreatesBitmap()
+    public void Generate_Code128_DefaultSettings_CreatesResult()
     {
         var element = new BarcodeElement
         {
@@ -25,11 +25,11 @@ public class BarcodeProviderTests
             Format = BarcodeFormat.Code128
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 200, 80);
 
-        Assert.NotNull(bitmap);
-        Assert.Equal(200, bitmap.Width);
-        Assert.Equal(80, bitmap.Height);
+        Assert.True(result.PngBytes.Length > 0);
+        Assert.Equal(200, result.Width);
+        Assert.Equal(80, result.Height);
     }
 
     /// <summary>
@@ -46,17 +46,17 @@ public class BarcodeProviderTests
             BarcodeHeight = 100
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 300, 100);
 
-        Assert.Equal(300, bitmap.Width);
-        Assert.Equal(100, bitmap.Height);
+        Assert.Equal(300, result.Width);
+        Assert.Equal(100, result.Height);
     }
 
     /// <summary>
-    /// Verifies barcode uses specified foreground color.
+    /// Verifies barcode uses specified foreground color via ISkiaNativeProvider.
     /// </summary>
     [Fact]
-    public void Generate_CustomForeground_UsesForegroundColor()
+    public void GenerateBitmap_CustomForeground_UsesForegroundColor()
     {
         var element = new BarcodeElement
         {
@@ -65,7 +65,8 @@ public class BarcodeProviderTests
             Foreground = "#0000ff"
         };
 
-        using var bitmap = _provider.Generate(element);
+        ISkiaNativeProvider<BarcodeElement> nativeProvider = _provider;
+        using var bitmap = nativeProvider.GenerateBitmap(element, 200, 80);
 
         // Check that blue pixels exist (bars)
         var hasBluePixels = false;
@@ -85,10 +86,10 @@ public class BarcodeProviderTests
     }
 
     /// <summary>
-    /// Verifies barcode uses specified background color.
+    /// Verifies barcode uses specified background color via ISkiaNativeProvider.
     /// </summary>
     [Fact]
-    public void Generate_CustomBackground_UsesBackgroundColor()
+    public void GenerateBitmap_CustomBackground_UsesBackgroundColor()
     {
         var element = new BarcodeElement
         {
@@ -97,7 +98,8 @@ public class BarcodeProviderTests
             Background = "#ffff00"
         };
 
-        using var bitmap = _provider.Generate(element);
+        ISkiaNativeProvider<BarcodeElement> nativeProvider = _provider;
+        using var bitmap = nativeProvider.GenerateBitmap(element, 200, 80);
 
         // Check that yellow pixels exist (background)
         var hasYellowPixels = false;
@@ -117,10 +119,10 @@ public class BarcodeProviderTests
     }
 
     /// <summary>
-    /// Verifies barcode generation without text.
+    /// Verifies barcode generation without text via ISkiaNativeProvider.
     /// </summary>
     [Fact]
-    public void Generate_ShowTextFalse_CreatesShorterBars()
+    public void GenerateBitmap_ShowTextFalse_CreatesShorterBars()
     {
         var element = new BarcodeElement
         {
@@ -130,7 +132,8 @@ public class BarcodeProviderTests
             BarcodeHeight = 80
         };
 
-        using var bitmap = _provider.Generate(element);
+        ISkiaNativeProvider<BarcodeElement> nativeProvider = _provider;
+        using var bitmap = nativeProvider.GenerateBitmap(element, 200, 80);
 
         // The bars should extend to the full height when text is hidden
         // Check for foreground pixels near the bottom
@@ -155,7 +158,7 @@ public class BarcodeProviderTests
     [InlineData("Hello World")]
     [InlineData("test-data")]
     [InlineData("UPPER_lower")]
-    public void Generate_Code128_AlphanumericData_CreatesBitmap(string data)
+    public void Generate_Code128_AlphanumericData_CreatesResult(string data)
     {
         var element = new BarcodeElement
         {
@@ -163,9 +166,9 @@ public class BarcodeProviderTests
             Format = BarcodeFormat.Code128
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 200, 80);
 
-        Assert.NotNull(bitmap);
+        Assert.True(result.PngBytes.Length > 0);
     }
 
     /// <summary>
@@ -174,7 +177,7 @@ public class BarcodeProviderTests
     [Fact]
     public void Generate_NullElement_ThrowsArgumentNullException()
     {
-        Assert.Throws<ArgumentNullException>(() => _provider.Generate(null!));
+        Assert.Throws<ArgumentNullException>(() => _provider.Generate(null!, 200, 80));
     }
 
     /// <summary>
@@ -185,7 +188,7 @@ public class BarcodeProviderTests
     {
         var element = new BarcodeElement { Data = "" };
 
-        Assert.Throws<ArgumentException>(() => _provider.Generate(element));
+        Assert.Throws<ArgumentException>(() => _provider.Generate(element, 200, 80));
     }
 
     /// <summary>
@@ -205,7 +208,7 @@ public class BarcodeProviderTests
             BarcodeHeight = height
         };
 
-        Assert.Throws<ArgumentException>(() => _provider.Generate(element));
+        Assert.Throws<ArgumentException>(() => _provider.Generate(element, width, height));
     }
 
     /// <summary>
@@ -224,7 +227,7 @@ public class BarcodeProviderTests
             Format = format
         };
 
-        Assert.Throws<NotSupportedException>(() => _provider.Generate(element));
+        Assert.Throws<NotSupportedException>(() => _provider.Generate(element, 200, 80));
     }
 
     /// <summary>
@@ -239,6 +242,6 @@ public class BarcodeProviderTests
             Format = BarcodeFormat.Code128
         };
 
-        Assert.Throws<ArgumentException>(() => _provider.Generate(element));
+        Assert.Throws<ArgumentException>(() => _provider.Generate(element, 200, 80));
     }
 }

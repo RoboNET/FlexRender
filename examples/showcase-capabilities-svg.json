@@ -1,0 +1,16 @@
+{
+  "renderer": "svg",
+  "rendererName": "SVG (Vector Output)",
+  "rendererDescription": "Scalable vector graphics, smallest file size",
+  "showGradients": false,
+  "showSvgElements": true,
+  "qrUrl": "https://github.com/RoboNET/FlexRender",
+  "items": [
+    {"name": "Flexbox Layout", "desc": "Row/column, wrap, gap, justify, align"},
+    {"name": "Text Features", "desc": "Alignment, wrapping, truncation, lineHeight"},
+    {"name": "Vector QR", "desc": "QR codes as native SVG path elements"},
+    {"name": "Vector Barcodes", "desc": "Barcodes as native SVG paths"},
+    {"name": "SVG Elements", "desc": "Inline SVG content embedding"},
+    {"name": "Embedded Fonts", "desc": "Base64-encoded @font-face declarations"}
+  ]
+}

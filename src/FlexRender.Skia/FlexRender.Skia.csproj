@@ -2,27 +2,15 @@
 
   <PropertyGroup>
     <PackageId>FlexRender.Skia</PackageId>
-    <Description>SkiaSharp rendering for FlexRender. Linux/Docker: add SkiaSharp.NativeAssets.Linux to your executable project.</Description>
+    <Description>Skia backend meta-package for FlexRender (renderer + providers).</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="FlexRender.Tests" />
-    <InternalsVisibleTo Include="FlexRender.DependencyInjection" />
-    <InternalsVisibleTo Include="FlexRender.Barcode" />
-    <InternalsVisibleTo Include="FlexRender.QrCode" />
-    <InternalsVisibleTo Include="FlexRender.HarfBuzz" />
-    <InternalsVisibleTo Include="FlexRender.Svg" />
-    <InternalsVisibleTo Include="FlexRender.SvgElement" />
-    <InternalsVisibleTo Include="flexrender-cli" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="SkiaSharp" />
+    <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode.Skia.Render\FlexRender.QrCode.Skia.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode.Skia.Render\FlexRender.Barcode.Skia.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.SvgElement.Skia.Render\FlexRender.SvgElement.Skia.Render.csproj" />
   </ItemGroup>
 
 </Project>

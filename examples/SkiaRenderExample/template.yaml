@@ -1,0 +1,113 @@
+template:
+  name: "receipt"
+  version: 1
+
+canvas:
+  fixed: width
+  width: 380
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    padding: 20
+    gap: 8
+    children:
+      # Shop name
+      - type: text
+        content: "{{shop}}"
+        size: 1.5em
+        align: center
+        color: "#1a1a1a"
+        bold: true
+
+      # Separator
+      - type: separator
+        color: "#cccccc"
+        thickness: 1
+
+      # Items header
+      - type: flex
+        direction: row
+        justify: space-between
+        children:
+          - type: text
+            content: "Item"
+            size: 0.85em
+            color: "#666666"
+            bold: true
+          - type: text
+            content: "Price"
+            size: 0.85em
+            color: "#666666"
+            bold: true
+
+      # Item rows
+      - type: each
+        array: items
+        children:
+          - type: flex
+            direction: row
+            justify: space-between
+            padding: "2 0"
+            children:
+              - type: text
+                content: "{{name}}"
+                size: 0.9em
+                color: "#333333"
+              - type: text
+                content: "{{price}}"
+                size: 0.9em
+                color: "#333333"
+
+      # Separator before total
+      - type: separator
+        color: "#999999"
+        thickness: 2
+
+      # Total
+      - type: flex
+        direction: row
+        justify: space-between
+        padding: "4 0"
+        children:
+          - type: text
+            content: "Total"
+            size: 1.1em
+            color: "#000000"
+            bold: true
+          - type: text
+            content: "{{total}}"
+            size: 1.1em
+            color: "#000000"
+            bold: true
+
+      # Spacer
+      - type: flex
+        height: 10
+
+      # QR code
+      - type: flex
+        direction: column
+        align: center
+        gap: 4
+        children:
+          - type: qr
+            data: "{{qrUrl}}"
+            size: 120
+            foreground: "#000000"
+            background: "#ffffff"
+          - type: text
+            content: "Scan for digital receipt"
+            size: 0.7em
+            color: "#999999"
+            align: center
+
+      # Barcode
+      - type: barcode
+        data: "{{barcode}}"
+        width: 340
+        height: 60
+        showText: true
+        foreground: "#000000"
+        background: "#ffffff"

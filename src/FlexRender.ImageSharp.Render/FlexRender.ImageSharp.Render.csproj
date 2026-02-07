@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.ImageSharp.Render</PackageId>
+    <Description>ImageSharp rendering for FlexRender. Pure .NET, zero native dependencies.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlexRender.Tests" />
+    <InternalsVisibleTo Include="FlexRender.ImageSharp.Tests" />
+    <InternalsVisibleTo Include="FlexRender.QrCode.ImageSharp.Render" />
+    <InternalsVisibleTo Include="FlexRender.Barcode.ImageSharp.Render" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" />
+    <PackageReference Include="SixLabors.Fonts" />
+  </ItemGroup>
+
+</Project>

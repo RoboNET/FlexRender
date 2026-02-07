@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Yaml\FlexRender.Yaml.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Svg\FlexRender.Svg.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="template.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -495,6 +495,34 @@ For AND/OR logic, nest `if` elements:
           content: "Premium + large order discount!"
 ```
 
+### Filters in Conditions
+
+The `condition` field supports inline expressions with filters. This enables case-insensitive comparisons, formatting before comparison, and other transformations:
+
+**Case-insensitive comparison:**
+
+```yaml
+- type: if
+  condition: "{{ status | lower }}"
+  equals: "active"
+  then:
+    - type: text
+      content: "Active"
+```
+
+**Works with any filter:**
+
+```yaml
+- type: if
+  condition: "{{ name | trim }}"
+  notEquals: ""
+  then:
+    - type: text
+      content: "Hello, {{name}}!"
+```
+
+> **Note:** When using inline expressions in `condition`, wrap the expression in quotes and double curly braces: `"{{ path | filter }}"`. Without `{{ }}`, the value is resolved as a plain dot-path without filter support.
+
 ---
 
 ## Processing Order

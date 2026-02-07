@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.QrCode.Skia.Render</PackageId>
+    <Description>QR code generation for FlexRender (Skia renderer).</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+
+</Project>

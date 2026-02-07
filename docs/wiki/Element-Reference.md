@@ -12,7 +12,7 @@ For rendering options (antialiasing, format settings), see [[Render-Options]].
 
 ## Common Properties (TemplateElement)
 
-All 9 element types (`flex`, `text`, `image`, `qr`, `barcode`, `separator`, `table`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
+All 10 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `table`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
 
 ### Size Properties
 
@@ -983,7 +983,7 @@ Renders an image from a local file, HTTP URL, embedded resource, or base64 data 
 
 ## qr
 
-Renders a QR code image from string data. Requires the `FlexRender.QrCode` NuGet package and `.WithQr()` on the builder configuration.
+Renders a QR code image from string data. Requires `FlexRender.QrCode.Skia.Render` (or `FlexRender.QrCode`) and `.WithQr()` for Skia, or `FlexRender.QrCode.ImageSharp.Render` for ImageSharp.
 
 ### Minimal Example
 
@@ -1065,7 +1065,7 @@ Renders a QR code image from string data. Requires the `FlexRender.QrCode` NuGet
 
 ## barcode
 
-Renders a 1D barcode image. Requires the `FlexRender.Barcode` NuGet package and `.WithBarcode()` on the builder configuration.
+Renders a 1D barcode image. Requires `FlexRender.Barcode.Skia.Render` (or `FlexRender.Barcode`) and `.WithBarcode()` for Skia, or `FlexRender.Barcode.ImageSharp.Render` for ImageSharp.
 
 ### Minimal Example
 
@@ -1578,7 +1578,7 @@ Conditionally renders elements based on data values. Supports 13 comparison oper
 
 | Property | YAML Name | Type | Default | Valid Values | Required | Description |
 |----------|-----------|------|---------|--------------|----------|-------------|
-| ConditionPath | `condition` | string | `""` | Dot-notation path to value in data | **Yes** | Path to the value to test. |
+| ConditionPath | `condition` | string | `""` | Dot-notation path or inline expression | **Yes** | Path to the value to test. Supports inline expressions with filters: `"{{ status | lower }}"`. |
 | Operator | _(see table below)_ | ConditionOperator? | `null` (truthy) | One operator key per element | No | Comparison operator. Omit for truthy check. |
 | ThenBranch | `then` | element[] | `[]` | Array of template elements | **Yes** | Elements rendered when condition is true. |
 | ElseBranch | `else` | element[] | `[]` | Array of template elements | No | Elements rendered when all conditions are false. |
@@ -1765,6 +1765,20 @@ Conditionally renders elements based on data values. Supports 13 comparison oper
       font: bold
 ```
 
+### Using Filters in Conditions
+
+```yaml
+# Case-insensitive comparison using the lower filter
+- type: if
+  condition: "{{ status | lower }}"
+  equals: "active"
+  then:
+    - type: text
+      content: "Active"
+```
+
+When `condition` uses an inline expression (`{{ }}`), all registered filters are available. Without braces, the condition is treated as a plain data path.
+
 ### Else-If Chain Example
 
 Chain multiple conditions for status-dependent rendering:
@@ -1831,6 +1845,119 @@ Nest `if` elements for AND logic:
           content: "Premium member discount: 20% off!"
           color: "#22c55e"
           font: bold
+```
+
+---
+
+## svg
+
+Renders SVG vector graphics from an external file or inline markup string. Uses the same resource loader infrastructure as `image` (file, HTTP, embedded). Requires `FlexRender.SvgElement.Skia.Render` (or `FlexRender.SvgElement`) and `.WithSkia(skia => skia.WithSvgElement())` on the builder configuration.
+
+### Minimal Example
+
+```yaml
+- type: svg
+  src: "icons/logo.svg"
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Description |
+|----------|-----------|------|---------|--------------|-------------|
+| Src | `src` | string? | `null` | file path | Path to SVG file. Loaded via resource loaders (file, HTTP, embedded). Mutually exclusive with `content`. |
+| Content | `content` | string? | `null` | SVG markup | Inline SVG markup string. Mutually exclusive with `src`. |
+| SvgWidth | `width` | int? | `null` | positive integer | Target render width in pixels. `null` = use SVG intrinsic width or container. |
+| SvgHeight | `height` | int? | `null` | positive integer | Target render height in pixels. `null` = use SVG intrinsic height or container. |
+| Fit | `fit` | ImageFit | `contain` | fill, contain, cover, none | How the SVG fits within its bounds. Same as image `fit`. |
+
+**Important:** Must specify exactly one of `src` or `content` (not both, not neither). The parser validates this and will produce an error if violated.
+
+**Important:** Like `image`, the `width` and `height` YAML keys on an `svg` element map to `SvgWidth`/`SvgHeight` (SVG container size), not to the base `Width`/`Height` flex layout properties.
+
+**SVG fit modes:**
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `contain` | Scale to fit within bounds, preserving aspect ratio. May leave empty space. | Default. Icons, logos where full visibility matters. |
+| `cover` | Scale to cover bounds, preserving aspect ratio. May crop edges. | Decorative backgrounds. |
+| `fill` | Stretch to fill bounds exactly. May distort the SVG. | When exact dimensions are required. |
+| `none` | Use the SVG's intrinsic size. No scaling. | When the SVG is already the correct size. |
+
+```yaml
+# SVG from file with explicit dimensions
+- type: svg
+  src: "assets/icons/logo.svg"
+  width: 200
+  height: 60
+
+# SVG from HTTP source
+- type: svg
+  src: "https://example.com/icons/badge.svg"
+  width: 32
+  height: 32
+  fit: contain
+
+# Inline SVG markup
+- type: svg
+  content: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#4CAF50"/></svg>'
+  width: 48
+  height: 48
+
+# SVG with cover fit (fills container, may crop)
+- type: svg
+  src: "assets/decorations/pattern.svg"
+  width: 300
+  height: 100
+  fit: cover
+
+# SVG with no explicit size (uses intrinsic SVG dimensions)
+- type: svg
+  src: "assets/icons/small-icon.svg"
+```
+
+### Complete Example: Icon Row with Inline SVGs
+
+```yaml
+- type: flex
+  direction: row
+  gap: 16
+  align: center
+  padding: "12"
+  children:
+    - type: svg
+      content: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#FFD700"/></svg>'
+      width: 24
+      height: 24
+    - type: text
+      content: "Featured Product"
+      font: bold
+      size: 1.1em
+    - type: svg
+      src: "assets/icons/verified.svg"
+      width: 20
+      height: 20
+```
+
+### Complete Example: Logo Header with File-based SVG
+
+```yaml
+- type: flex
+  direction: row
+  justify: space-between
+  align: center
+  padding: "16 24"
+  background: "#1a1a2e"
+  children:
+    - type: svg
+      src: "assets/branding/logo.svg"
+      width: 120
+      height: 40
+      fit: contain
+    - type: text
+      content: "Dashboard"
+      color: "#ffffff"
+      font: bold
+      size: 1.2em
 ```
 
 ---

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.Skia.Render</PackageId>
+    <Description>SkiaSharp rendering for FlexRender. Linux/Docker: add SkiaSharp.NativeAssets.Linux to your executable project.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlexRender.Tests" />
+    <InternalsVisibleTo Include="FlexRender.DependencyInjection" />
+    <InternalsVisibleTo Include="FlexRender.Barcode.Skia.Render" />
+    <InternalsVisibleTo Include="FlexRender.QrCode.Skia.Render" />
+    <InternalsVisibleTo Include="FlexRender.HarfBuzz" />
+    <InternalsVisibleTo Include="FlexRender.Svg.Render" />
+    <InternalsVisibleTo Include="FlexRender.SvgElement.Skia.Render" />
+    <InternalsVisibleTo Include="flexrender-cli" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+
+</Project>

@@ -88,13 +88,23 @@ public sealed class FlexRenderBuilder
     /// A function that receives this builder and returns an <see cref="IFlexRender"/> instance.
     /// </param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="factory"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when a rendering backend is already configured. Only one of <c>WithSkia()</c>,
+    /// <c>WithImageSharp()</c>, or <c>WithSvg()</c> may be called per builder instance.
+    /// </exception>
     /// <remarks>
     /// This method is intended for use by renderer extension methods like <c>WithSkia()</c>.
-    /// Multiple calls will replace the previous factory.
+    /// A rendering backend can only be configured once per builder instance.
     /// </remarks>
     internal void SetRendererFactory(Func<FlexRenderBuilder, IFlexRender> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
+        if (_rendererFactory is not null)
+        {
+            throw new InvalidOperationException(
+                "A rendering backend is already configured. Call WithSkia(), WithImageSharp(), or WithSvg() only once.");
+        }
+
         _rendererFactory = factory;
     }
 

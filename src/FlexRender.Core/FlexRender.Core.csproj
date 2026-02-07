@@ -9,8 +9,9 @@
   <ItemGroup>
     <InternalsVisibleTo Include="FlexRender.Tests" />
     <InternalsVisibleTo Include="FlexRender.Http" />
-    <InternalsVisibleTo Include="FlexRender.Skia" />
-    <InternalsVisibleTo Include="FlexRender.Svg" />
+    <InternalsVisibleTo Include="FlexRender.Skia.Render" />
+    <InternalsVisibleTo Include="FlexRender.Svg.Render" />
+    <InternalsVisibleTo Include="FlexRender.ImageSharp.Render" />
   </ItemGroup>
 
 </Project>

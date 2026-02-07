@@ -48,7 +48,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderYamlToPng_ValidYaml_ProducesPng()
     {
-        var result = await _render.RenderYamlToPng(SimpleYaml);
+        var result = await _render.RenderYamlToPng(SimpleYaml, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
@@ -61,14 +61,14 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
         IFlexRender nullRender = null!;
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => nullRender.RenderYamlToPng("yaml"));
+            () => nullRender.RenderYamlToPng("yaml", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task RenderYamlToPng_NullYaml_ThrowsArgumentNullException()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => _render.RenderYamlToPng(null!));
+            () => _render.RenderYamlToPng(null!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     // --- RenderYamlToJpeg ---
@@ -76,7 +76,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderYamlToJpeg_ValidYaml_ProducesJpeg()
     {
-        var result = await _render.RenderYamlToJpeg(SimpleYaml);
+        var result = await _render.RenderYamlToJpeg(SimpleYaml, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
@@ -86,8 +86,8 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderYamlToJpeg_WithQuality_UsesQuality()
     {
-        var lowQ = await _render.RenderYamlToJpeg(SimpleYaml, options: new JpegOptions { Quality = 1 });
-        var highQ = await _render.RenderYamlToJpeg(SimpleYaml, options: new JpegOptions { Quality = 100 });
+        var lowQ = await _render.RenderYamlToJpeg(SimpleYaml, options: new JpegOptions { Quality = 1 }, cancellationToken: TestContext.Current.CancellationToken);
+        var highQ = await _render.RenderYamlToJpeg(SimpleYaml, options: new JpegOptions { Quality = 100 }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(highQ.Length > lowQ.Length);
     }
@@ -97,7 +97,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderYamlToBmp_ValidYaml_ProducesBmp()
     {
-        var result = await _render.RenderYamlToBmp(SimpleYaml);
+        var result = await _render.RenderYamlToBmp(SimpleYaml, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
@@ -109,7 +109,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderYamlToRaw_ValidYaml_ProducesRaw()
     {
-        var result = await _render.RenderYamlToRaw(SimpleYaml);
+        var result = await _render.RenderYamlToRaw(SimpleYaml, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(100 * 50 * 4, result.Length);
@@ -120,7 +120,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderFileToPng_ValidPath_ProducesPng()
     {
-        var result = await _render.RenderFileToPng(_templatePath);
+        var result = await _render.RenderFileToPng(_templatePath, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
@@ -133,14 +133,14 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
         IFlexRender nullRender = null!;
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => nullRender.RenderFileToPng(_templatePath));
+            () => nullRender.RenderFileToPng(_templatePath, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task RenderFileToPng_NullPath_ThrowsArgumentNullException()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => _render.RenderFileToPng(null!));
+            () => _render.RenderFileToPng(null!, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     // --- RenderFileToJpeg ---
@@ -148,7 +148,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderFileToJpeg_ValidPath_ProducesJpeg()
     {
-        var result = await _render.RenderFileToJpeg(_templatePath);
+        var result = await _render.RenderFileToJpeg(_templatePath, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
@@ -158,8 +158,8 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderFileToJpeg_WithQuality_UsesQuality()
     {
-        var lowQ = await _render.RenderFileToJpeg(_templatePath, options: new JpegOptions { Quality = 1 });
-        var highQ = await _render.RenderFileToJpeg(_templatePath, options: new JpegOptions { Quality = 100 });
+        var lowQ = await _render.RenderFileToJpeg(_templatePath, options: new JpegOptions { Quality = 1 }, cancellationToken: TestContext.Current.CancellationToken);
+        var highQ = await _render.RenderFileToJpeg(_templatePath, options: new JpegOptions { Quality = 100 }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(highQ.Length > lowQ.Length);
     }
@@ -169,7 +169,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderFileToBmp_ValidPath_ProducesBmp()
     {
-        var result = await _render.RenderFileToBmp(_templatePath);
+        var result = await _render.RenderFileToBmp(_templatePath, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
@@ -179,8 +179,8 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderFileToBmp_WithColorMode_UsesColorMode()
     {
-        var full = await _render.RenderFileToBmp(_templatePath, options: new BmpOptions { ColorMode = BmpColorMode.Bgra32 });
-        var mono = await _render.RenderFileToBmp(_templatePath, options: new BmpOptions { ColorMode = BmpColorMode.Monochrome1 });
+        var full = await _render.RenderFileToBmp(_templatePath, options: new BmpOptions { ColorMode = BmpColorMode.Bgra32 }, cancellationToken: TestContext.Current.CancellationToken);
+        var mono = await _render.RenderFileToBmp(_templatePath, options: new BmpOptions { ColorMode = BmpColorMode.Monochrome1 }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(mono.Length < full.Length);
     }
@@ -190,7 +190,7 @@ public sealed class FlexRenderExtensionsFormatTests : IDisposable
     [Fact]
     public async Task RenderFileToRaw_ValidPath_ProducesRaw()
     {
-        var result = await _render.RenderFileToRaw(_templatePath);
+        var result = await _render.RenderFileToRaw(_templatePath, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(100 * 50 * 4, result.Length);

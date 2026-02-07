@@ -14,7 +14,7 @@ A modular .NET library for rendering images from YAML templates with a full CSS 
 - **RTL Support** -- right-to-left layout with `text-direction: rtl`, logical alignment (`start`/`end`), HarfBuzz text shaping for Arabic/Hebrew
 - **Template engine** -- variables (`{{name}}`), inline expressions (`{{price * qty | currency}}`), loops (`type: each`), conditionals (`type: if` with 13 operators)
 - **Inline expressions** -- arithmetic (`+`, `-`, `*`, `/`), null coalescing (`??`), 8 built-in filters (`currency`, `currencySymbol`, `number`, `upper`, `lower`, `trim`, `truncate`, `format`)
-- **Rich content types** -- text, images, QR codes, barcodes, separators, tables
+- **Rich content types** -- text, images, SVG, QR codes, barcodes, separators, tables
 - **Visual effects** -- opacity, box-shadow, linear and radial gradient backgrounds
 - **Multiple output formats** -- PNG, JPEG, BMP (6 color modes), Raw pixels, with per-call format options
 - **AOT-ready** -- no reflection, no `dynamic`, works with Native AOT publishing
@@ -37,6 +37,7 @@ A modular .NET library for rendering images from YAML templates with a full CSS 
 | Image loading | File, HTTP, Base64, embedded resources |
 | Output formats | PNG, JPEG (quality 1-100), BMP (6 color modes), Raw BGRA |
 | Render options | Per-call antialiasing, font hinting, text rendering mode |
+| ImageSharp backend | Pure .NET renderer via `FlexRender.ImageSharp` (meta) or `FlexRender.ImageSharp.Render`, zero native dependencies |
 | Template caching | Parse once, render many times with different data |
 | CLI tool | render, validate, info, watch, debug-layout commands |
 
@@ -90,8 +91,8 @@ byte[] png = await render.RenderFile("template.yaml", data);
 | Page | Description |
 |------|-------------|
 | [[Getting-Started]] | Installation, first template, rendering approaches |
-| [[Template-Syntax]] | Canvas, all 9 element types, common properties, units |
-| [[Element-Reference]] | Complete property reference for all 9 element types with examples |
+| [[Template-Syntax]] | Canvas, all 10 element types, common properties, units |
+| [[Element-Reference]] | Complete property reference for all 10 element types with examples |
 | [[Visual-Reference]] | Interactive visual examples for all properties and elements |
 | [[Template-Expressions]] | Variables, loops, conditionals with 13 operators |
 | [[Flexbox-Layout]] | Direction, justify, align, wrapping, grow/shrink, positioning |
@@ -104,21 +105,25 @@ byte[] png = await render.RenderFile("template.yaml", data);
 
 This project includes optimized documentation for AI coding assistants:
 
-- [`llms.txt`](https://github.com/RoboNET/FlexRender/blob/main/llms.txt) -- concise project overview (~200 lines)
-- [`llms-full.txt`](https://github.com/RoboNET/FlexRender/blob/main/llms-full.txt) -- comprehensive reference (~600 lines)
+- [`llms.txt`](https://github.com/RoboNET/FlexRender/blob/main/llms.txt) -- concise project overview (~450 lines)
+- [`llms-full.txt`](https://github.com/RoboNET/FlexRender/blob/main/llms-full.txt) -- comprehensive reference (~1250 lines)
 - [`AGENTS.md`](https://github.com/RoboNET/FlexRender/blob/main/AGENTS.md) -- build commands, coding conventions, contributor guidelines
 
 ## Package Structure
 
 ```
 FlexRender.Core          (0 external deps)
-  ^          ^        ^
-  |          |        |
-FlexRender.Yaml  FlexRender.Http  FlexRender.Skia
-                                    ^        ^
-                                    |        |
-                           FlexRender.QrCode  FlexRender.Barcode
-                                    |        |
+  ^          ^        ^        ^
+  |          |        |        |
+FlexRender.Yaml  FlexRender.Http  FlexRender.Skia.Render  FlexRender.ImageSharp.Render  FlexRender.Svg.Render
+                                    ^           ^                     ^                     ^
+                                    |           |                     |                     |
+                      Qr/Bar/SvgElement providers per renderer (Skia/Svg/ImageSharp)
+                                    |           |                     |
+                     FlexRender.QrCode / FlexRender.Barcode / FlexRender.SvgElement (meta)
+                                    |           |
+                     FlexRender.Skia / FlexRender.ImageSharp / FlexRender.Svg (backend meta)
+                                    |
                FlexRender.DependencyInjection
                                     |
                            FlexRender (meta-package)

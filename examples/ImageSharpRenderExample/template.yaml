@@ -1,0 +1,71 @@
+# Product label template rendered with ImageSharp backend
+# Demonstrates text, layout, separator, and QR code elements
+
+template:
+  name: "product-label"
+  version: 1
+
+canvas:
+  fixed: both
+  width: 400
+  height: 300
+  background: "#f8f9fa"
+
+layout:
+  - type: flex
+    direction: column
+    padding: 20
+    gap: 10
+    children:
+      # Company name
+      - type: text
+        content: "{{company}}"
+        size: 0.75em
+        color: "#6c757d"
+        align: center
+
+      # Product name
+      - type: text
+        content: "{{product}}"
+        size: 1.5em
+        color: "#212529"
+        align: center
+        bold: true
+
+      # Separator
+      - type: separator
+        color: "#dee2e6"
+        thickness: 1
+
+      # Description and price
+      - type: flex
+        direction: row
+        justify: space-between
+        gap: 15
+        children:
+          - type: flex
+            direction: column
+            gap: 6
+            grow: 1
+            children:
+              - type: text
+                content: "{{description}}"
+                size: 0.8em
+                color: "#495057"
+                wrap: true
+              - type: text
+                content: "SKU: {{sku}}"
+                size: 0.7em
+                color: "#adb5bd"
+              - type: text
+                content: "{{price}}"
+                size: 1.3em
+                color: "#198754"
+                bold: true
+
+          # QR code
+          - type: qr
+            data: "{{qrUrl}}"
+            size: 100
+            foreground: "#000000"
+            background: "#f8f9fa"

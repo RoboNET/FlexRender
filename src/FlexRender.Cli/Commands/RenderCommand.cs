@@ -69,8 +69,10 @@ public static class RenderCommand
             var bmpColor = parseResult.GetValue(bmpColorOption);
             var verbose = parseResult.GetValue(GlobalOptions.Verbose);
             var basePath = parseResult.GetValue(GlobalOptions.BasePath);
+            var backend = parseResult.GetValue(GlobalOptions.Backend);
+            var rasterBackend = parseResult.GetValue(GlobalOptions.RasterBackend);
 
-            return await Execute(templateFile!, dataFile, outputFile, quality, open, bmpColor, verbose, basePath);
+            return await Execute(templateFile!, dataFile, outputFile, quality, open, bmpColor, verbose, basePath, backend!, rasterBackend!);
         });
 
         return command;
@@ -84,7 +86,9 @@ public static class RenderCommand
         bool open,
         BmpColorMode bmpColor,
         bool verbose,
-        DirectoryInfo? basePath)
+        DirectoryInfo? basePath,
+        string backend,
+        string rasterBackend)
     {
         // Validate output file is specified
         if (outputFile is null)
@@ -112,6 +116,14 @@ public static class RenderCommand
             return 1;
         }
 
+        // Validate backend/format compatibility
+        var backendError = Program.ValidateBackendFormat(format, backend);
+        if (backendError is not null)
+        {
+            Console.Error.WriteLine(backendError);
+            return 1;
+        }
+
         // Validate quality range
         if (quality < 0 || quality > 100)
         {
@@ -130,9 +142,9 @@ public static class RenderCommand
         {
             // Create renderer with base path
             var effectiveBasePath = basePath?.FullName ?? templateFile.DirectoryName!;
-            using var renderer = Program.CreateRenderBuilder(effectiveBasePath).Build();
+            using var renderer = Program.CreateRenderBuilder(effectiveBasePath, backend, rasterBackend).Build();
 
-            // Set BMP color mode if applicable
+            // Set BMP color mode if applicable (only for direct Skia renderer)
 #pragma warning disable CS0618 // Obsolete BmpColorMode property - CLI still supports legacy option
             if (renderer is SkiaRender skiaRender)
                 skiaRender.BmpColorMode = bmpColor;
@@ -149,12 +161,13 @@ public static class RenderCommand
                 }
             }
 
-            // Parse template for verbose info only
+            // Parse template for verbose info and SVG rendering
+            var parser = new TemplateParser();
+            var yaml = await File.ReadAllTextAsync(templateFile.FullName);
+            var template = parser.Parse(yaml);
+
             if (verbose)
             {
-                var parser = new TemplateParser();
-                var yaml = await File.ReadAllTextAsync(templateFile.FullName);
-                var template = parser.Parse(yaml);
                 Console.WriteLine($"Template: {template.Name ?? templateFile.Name}");
                 Console.WriteLine($"Canvas: {template.Canvas.Width}x{template.Canvas.Height}px ({template.Canvas.Fixed})");
                 Console.WriteLine($"Output format: {format}");
@@ -171,18 +184,26 @@ public static class RenderCommand
             // Ensure output directory exists
             FileOpener.EnsureDirectoryExists(outputFile.FullName);
 
-            // Map output format to ImageFormat
-            var imageFormat = format switch
+            if (format == OutputFormat.Svg)
             {
-                OutputFormat.Png => ImageFormat.Png,
-                OutputFormat.Jpeg => ImageFormat.Jpeg,
-                OutputFormat.Bmp => ImageFormat.Bmp,
-                _ => ImageFormat.Png
-            };
+                // SVG output path
+                await using var outputStream = File.Create(outputFile.FullName);
+                await renderer.RenderToSvg(outputStream, template, data);
+            }
+            else
+            {
+                // Raster output path
+                var imageFormat = format switch
+                {
+                    OutputFormat.Png => ImageFormat.Png,
+                    OutputFormat.Jpeg => ImageFormat.Jpeg,
+                    OutputFormat.Bmp => ImageFormat.Bmp,
+                    _ => ImageFormat.Png
+                };
 
-            // Render directly to file
-            await using var outputStream = File.Create(outputFile.FullName);
-            await renderer.RenderFile(outputStream, templateFile.FullName, data, imageFormat);
+                await using var outputStream = File.Create(outputFile.FullName);
+                await renderer.RenderFile(outputStream, templateFile.FullName, data, imageFormat);
+            }
 
             Console.WriteLine($"Rendered: {outputFile.FullName}");
             if (open)

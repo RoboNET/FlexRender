@@ -206,6 +206,216 @@ public sealed class IntegrationTests : IDisposable
     }
 
     /// <summary>
+    /// Verifies that rendering to SVG format succeeds and produces valid SVG output
+    /// when the svg backend is explicitly selected.
+    /// </summary>
+    [Fact]
+    public async Task RenderToSvg_Succeeds()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "valid-template.yaml");
+        var outputPath = Path.Combine(_tempDir, "output.svg");
+
+        // Act
+        var result = await RunCli("render", templatePath, "-o", outputPath, "--backend", "svg");
+
+        // Assert
+        Assert.True(result.ExitCode == 0,
+            $"CLI failed with exit code {result.ExitCode}. stderr: {result.Stderr}");
+        Assert.True(File.Exists(outputPath),
+            $"SVG output file was not created at {outputPath}. stderr: {result.Stderr}");
+
+        var fileInfo = new FileInfo(outputPath);
+        Assert.True(fileInfo.Length > 0,
+            $"SVG output file exists but is empty (0 bytes). stderr: {result.Stderr}");
+
+        // Verify it contains SVG content
+        var content = await File.ReadAllTextAsync(outputPath);
+        Assert.Contains("<svg", content);
+    }
+
+    /// <summary>
+    /// Verifies that rendering to SVG with data succeeds using the svg backend.
+    /// </summary>
+    [Fact]
+    public async Task RenderToSvg_WithData_Succeeds()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "template-with-variables.yaml");
+        var dataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "sample-data.json");
+        var outputPath = Path.Combine(_tempDir, "output-with-data.svg");
+
+        // Act
+        var result = await RunCli("render", templatePath, "-d", dataPath, "-o", outputPath, "--backend", "svg");
+
+        // Assert
+        Assert.True(result.ExitCode == 0,
+            $"CLI failed with exit code {result.ExitCode}. stderr: {result.Stderr}");
+        Assert.True(File.Exists(outputPath),
+            $"SVG output file was not created at {outputPath}. stderr: {result.Stderr}");
+
+        var content = await File.ReadAllTextAsync(outputPath);
+        Assert.Contains("<svg", content);
+    }
+
+    /// <summary>
+    /// Verifies that rendering with the ImageSharp backend produces a valid PNG file.
+    /// </summary>
+    [Fact]
+    public async Task Render_WithImageSharpBackend_ProducesPng()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "valid-template.yaml");
+        var outputPath = Path.Combine(_tempDir, "output-imagesharp.png");
+
+        // Act
+        var result = await RunCli("render", templatePath, "-o", outputPath, "--backend", "imagesharp");
+
+        // Assert
+        Assert.True(result.ExitCode == 0,
+            $"CLI failed with exit code {result.ExitCode}. stderr: {result.Stderr}");
+        Assert.True(File.Exists(outputPath),
+            $"Output file was not created at {outputPath}. stderr: {result.Stderr}");
+
+        var fileInfo = new FileInfo(outputPath);
+        Assert.True(fileInfo.Length > 0,
+            $"Output file exists but is empty (0 bytes). stderr: {result.Stderr}");
+
+        // Verify PNG magic byte
+        var bytes = await File.ReadAllBytesAsync(outputPath);
+        Assert.Equal(0x89, bytes[0]);
+    }
+
+    /// <summary>
+    /// Verifies that SVG output with ImageSharp raster backend produces valid SVG.
+    /// </summary>
+    [Fact]
+    public async Task Render_WithSvgBackend_ImageSharpRaster_ProducesSvg()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "valid-template.yaml");
+        var outputPath = Path.Combine(_tempDir, "output-svg-imagesharp.svg");
+
+        // Act
+        var result = await RunCli("render", templatePath, "-o", outputPath,
+            "--backend", "svg", "--raster-backend", "imagesharp");
+
+        // Assert
+        Assert.True(result.ExitCode == 0,
+            $"CLI failed with exit code {result.ExitCode}. stderr: {result.Stderr}");
+        Assert.True(File.Exists(outputPath),
+            $"SVG output file was not created at {outputPath}. stderr: {result.Stderr}");
+
+        var content = await File.ReadAllTextAsync(outputPath);
+        Assert.Contains("<svg", content);
+    }
+
+    /// <summary>
+    /// Verifies that SVG output with default skia backend fails with a clear error message.
+    /// </summary>
+    [Fact]
+    public async Task Render_SvgOutput_WithSkiaBackend_ReturnsError()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "valid-template.yaml");
+        var outputPath = Path.Combine(_tempDir, "output-should-fail.svg");
+
+        // Act
+        var result = await RunCli("render", templatePath, "-o", outputPath);
+
+        // Assert
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("SVG output requires --backend svg", result.Stderr);
+    }
+
+    /// <summary>
+    /// Verifies that PNG output with the svg backend fails with a clear error message.
+    /// </summary>
+    [Fact]
+    public async Task Render_PngOutput_WithSvgBackend_ReturnsError()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "valid-template.yaml");
+        var outputPath = Path.Combine(_tempDir, "output-should-fail.png");
+
+        // Act
+        var result = await RunCli("render", templatePath, "-o", outputPath, "--backend", "svg");
+
+        // Assert
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("svg backend produces SVG output only", result.Stderr);
+    }
+
+    /// <summary>
+    /// Verifies that SVG output with the imagesharp backend fails with a clear error message.
+    /// </summary>
+    [Fact]
+    public async Task Render_SvgOutput_WithImageSharpBackend_ReturnsError()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "valid-template.yaml");
+        var outputPath = Path.Combine(_tempDir, "output-should-fail.svg");
+
+        // Act
+        var result = await RunCli("render", templatePath, "-o", outputPath, "--backend", "imagesharp");
+
+        // Assert
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("SVG output requires --backend svg", result.Stderr);
+    }
+
+    /// <summary>
+    /// Verifies that the --raster-backend option is silently ignored when backend is not svg.
+    /// </summary>
+    [Fact]
+    public async Task Render_RasterBackendOption_IgnoredForSkiaBackend()
+    {
+        // Arrange
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "TestData", "valid-template.yaml");
+        var outputPath = Path.Combine(_tempDir, "output-raster-ignored.png");
+
+        // Act - skia backend with --raster-backend imagesharp should work fine (option is ignored)
+        var result = await RunCli("render", templatePath, "-o", outputPath,
+            "--backend", "skia", "--raster-backend", "imagesharp");
+
+        // Assert
+        Assert.True(result.ExitCode == 0,
+            $"CLI failed with exit code {result.ExitCode}. stderr: {result.Stderr}");
+        Assert.True(File.Exists(outputPath),
+            $"Output file was not created at {outputPath}. stderr: {result.Stderr}");
+    }
+
+    /// <summary>
+    /// Verifies that the help output shows the --backend option.
+    /// </summary>
+    [Fact]
+    public async Task HelpCommand_ShowsBackendOption()
+    {
+        // Act
+        var result = await RunCli("--help");
+
+        // Assert
+        Assert.True(result.ExitCode == 0,
+            $"CLI failed with exit code {result.ExitCode}. stderr: {result.Stderr}");
+        Assert.Contains("--backend", result.Stdout);
+    }
+
+    /// <summary>
+    /// Verifies that the help output shows the --raster-backend option.
+    /// </summary>
+    [Fact]
+    public async Task HelpCommand_ShowsRasterBackendOption()
+    {
+        // Act
+        var result = await RunCli("--help");
+
+        // Assert
+        Assert.True(result.ExitCode == 0,
+            $"CLI failed with exit code {result.ExitCode}. stderr: {result.Stderr}");
+        Assert.Contains("--raster-backend", result.Stdout);
+    }
+
+    /// <summary>
     /// Verifies that rendering to a nested directory creates the directory.
     /// </summary>
     [Fact]

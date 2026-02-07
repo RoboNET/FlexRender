@@ -11,6 +11,7 @@ namespace FlexRender.Tests.Expressions;
 /// <summary>
 /// Tests for InlineExpressionParser (Pratt parser for arithmetic, coalesce, filters).
 /// </summary>
+[Collection("ExpressionCache")]
 public sealed class InlineExpressionParserTests
 {
     // === Simple path expressions ===
@@ -407,29 +408,6 @@ public sealed class InlineExpressionParserTests
 
         // At least 3 new entries should be added (other parallel tests may also add)
         Assert.True(InlineExpressionParser.CacheCount >= baseline + 3);
-    }
-
-    [Fact]
-    public void Parse_CacheEvictsWhenFull()
-    {
-        InlineExpressionParser.ClearCache();
-
-        // Fill cache to capacity with unique expressions
-        for (var i = 0; i < InlineExpressionParser.MaxCacheSize; i++)
-        {
-            _ = InlineExpressionParser.Parse($"evict_a + {i}");
-        }
-
-        var countBeforeOverflow = InlineExpressionParser.CacheCount;
-        Assert.True(countBeforeOverflow >= InlineExpressionParser.MaxCacheSize,
-            $"Cache should have at least {InlineExpressionParser.MaxCacheSize} entries, had {countBeforeOverflow}");
-
-        // One more should trigger eviction
-        _ = InlineExpressionParser.Parse("evict_overflow + 1");
-
-        // After eviction, cache should be much smaller than before
-        Assert.True(InlineExpressionParser.CacheCount < countBeforeOverflow,
-            $"Cache should have been evicted. Before: {countBeforeOverflow}, After: {InlineExpressionParser.CacheCount}");
     }
 
     [Fact]

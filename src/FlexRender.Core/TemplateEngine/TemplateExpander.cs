@@ -443,66 +443,6 @@ public sealed class TemplateExpander
         return -1;
     }
 
-    /// <summary>
-    /// Copies all base flex-item and positioning properties from source to target element.
-    /// This avoids duplication across all Clone methods.
-    /// Properties that require per-element transformation (Background via SubstituteVariables,
-    /// Rotate, Padding, Margin) are intentionally excluded and must be set in each caller.
-    /// </summary>
-    /// <param name="source">The source element to copy properties from.</param>
-    /// <param name="target">The target element to copy properties to.</param>
-    private static void CopyBaseProperties(TemplateElement source, TemplateElement target)
-    {
-        // ⚠ SYNC WARNING: This method is duplicated in 3 locations that MUST stay in sync:
-        //   1. TemplateExpander.CopyBaseProperties       (FlexRender.Core)
-        //   2. TemplatePreprocessor.CopyBaseProperties    (FlexRender.Skia)
-        //   3. SvgPreprocessor.CopyBaseProperties         (FlexRender.Svg)
-        // When adding a new property to TemplateElement, you MUST add it to ALL THREE methods.
-        // Failure to do so causes properties to silently disappear during preprocessing.
-
-        // Flex-item properties
-        target.Grow = source.Grow;
-        target.Shrink = source.Shrink;
-        target.Basis = source.Basis;
-        target.AlignSelf = source.AlignSelf;
-        target.Order = source.Order;
-        target.Width = source.Width;
-        target.Height = source.Height;
-        target.MinWidth = source.MinWidth;
-        target.MaxWidth = source.MaxWidth;
-        target.MinHeight = source.MinHeight;
-        target.MaxHeight = source.MaxHeight;
-
-        // Position properties
-        target.Position = source.Position;
-        target.Top = source.Top;
-        target.Right = source.Right;
-        target.Bottom = source.Bottom;
-        target.Left = source.Left;
-
-        // Other base properties
-        target.Display = source.Display;
-        target.AspectRatio = source.AspectRatio;
-
-        // Border properties
-        target.Border = source.Border;
-        target.BorderWidth = source.BorderWidth;
-        target.BorderColor = source.BorderColor;
-        target.BorderStyle = source.BorderStyle;
-        target.BorderTop = source.BorderTop;
-        target.BorderRight = source.BorderRight;
-        target.BorderBottom = source.BorderBottom;
-        target.BorderLeft = source.BorderLeft;
-        target.BorderRadius = source.BorderRadius;
-
-        // Text direction
-        target.TextDirection = source.TextDirection;
-
-        // Visual effects
-        target.Opacity = source.Opacity;
-        target.BoxShadow = source.BoxShadow;
-    }
-
     private FlexElement ExpandTable(TableElement table, TemplateContext context, int depth)
     {
         var childDepth = depth + 1;
@@ -526,7 +466,7 @@ public sealed class TemplateExpander
             outerFlex.Gap = table.RowGap;
         }
 
-        CopyBaseProperties(table, outerFlex);
+        TemplateElement.CopyBaseProperties(table, outerFlex);
 
         // Build header row if any column has a label
         var hasHeaders = false;
@@ -761,7 +701,7 @@ public sealed class TemplateExpander
             Children = expandedChildren
         };
 
-        CopyBaseProperties(flex, clone);
+        TemplateElement.CopyBaseProperties(flex, clone);
         return clone;
     }
 
@@ -880,7 +820,7 @@ public sealed class TemplateExpander
             Margin = text.Margin
         };
 
-        CopyBaseProperties(text, clone);
+        TemplateElement.CopyBaseProperties(text, clone);
         return clone;
     }
 
@@ -898,7 +838,7 @@ public sealed class TemplateExpander
             Margin = image.Margin
         };
 
-        CopyBaseProperties(image, clone);
+        TemplateElement.CopyBaseProperties(image, clone);
         return clone;
     }
 
@@ -917,7 +857,7 @@ public sealed class TemplateExpander
             Margin = svg.Margin
         };
 
-        CopyBaseProperties(svg, clone);
+        TemplateElement.CopyBaseProperties(svg, clone);
         return clone;
     }
 
@@ -935,7 +875,7 @@ public sealed class TemplateExpander
             Margin = qr.Margin
         };
 
-        CopyBaseProperties(qr, clone);
+        TemplateElement.CopyBaseProperties(qr, clone);
         return clone;
     }
 
@@ -955,7 +895,7 @@ public sealed class TemplateExpander
             Margin = barcode.Margin
         };
 
-        CopyBaseProperties(barcode, clone);
+        TemplateElement.CopyBaseProperties(barcode, clone);
         return clone;
     }
 
@@ -973,7 +913,7 @@ public sealed class TemplateExpander
             Margin = sep.Margin
         };
 
-        CopyBaseProperties(sep, clone);
+        TemplateElement.CopyBaseProperties(sep, clone);
         return clone;
     }
 }

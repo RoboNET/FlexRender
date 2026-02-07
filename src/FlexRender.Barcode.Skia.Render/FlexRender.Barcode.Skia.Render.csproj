@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.Barcode.Skia.Render</PackageId>
+    <Description>Barcode generation for FlexRender (Skia renderer).</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
+  </ItemGroup>
+
+</Project>

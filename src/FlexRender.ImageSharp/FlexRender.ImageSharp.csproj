@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.ImageSharp</PackageId>
+    <Description>ImageSharp backend meta-package for FlexRender (renderer + providers).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.ImageSharp.Render\FlexRender.ImageSharp.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode.ImageSharp.Render\FlexRender.QrCode.ImageSharp.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode.ImageSharp.Render\FlexRender.Barcode.ImageSharp.Render.csproj" />
+  </ItemGroup>
+
+</Project>

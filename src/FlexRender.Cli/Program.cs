@@ -1,16 +1,21 @@
 using System.CommandLine;
 using FlexRender.Barcode;
+using FlexRender.Barcode.ImageSharp;
 using FlexRender.Cli.Commands;
 using FlexRender.Configuration;
 using FlexRender.Http;
+using FlexRender.ImageSharp;
 using FlexRender.QrCode;
+using FlexRender.QrCode.ImageSharp;
+using FlexRender.Svg;
+using FlexRender.SvgElement;
 
 namespace FlexRender.Cli;
 
 /// <summary>
 /// Entry point for the FlexRender CLI application.
 /// </summary>
-public class Program
+public sealed class Program
 {
     /// <summary>
     /// Main entry point for the CLI application.
@@ -24,18 +29,84 @@ public class Program
     }
 
     /// <summary>
-    /// Creates a configured FlexRender builder with all features enabled.
+    /// Validates that the output format is compatible with the selected backend.
+    /// Returns null if valid, or an error message string if invalid.
+    /// </summary>
+    /// <param name="format">The output format to validate.</param>
+    /// <param name="backend">The rendering backend name.</param>
+    /// <returns>Null if the combination is valid; otherwise, an error message describing the incompatibility.</returns>
+    internal static string? ValidateBackendFormat(OutputFormat format, string backend)
+    {
+        if (format == OutputFormat.Svg &&
+            !string.Equals(backend, "svg", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Error: SVG output requires --backend svg. " +
+                   "The skia and imagesharp backends produce raster output only.";
+        }
+
+        if (format != OutputFormat.Svg &&
+            string.Equals(backend, "svg", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"Error: The svg backend produces SVG output only. " +
+                   $"Use --backend skia or --backend imagesharp for {format} output.";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Creates a configured FlexRender builder with the specified rendering backend.
     /// </summary>
     /// <param name="basePath">Optional base path for resolving relative file references.</param>
+    /// <param name="backend">
+    /// Primary rendering backend: "skia" (default, direct raster), "imagesharp" (pure .NET raster),
+    /// or "svg" (vector output with embedded raster support).
+    /// </param>
+    /// <param name="rasterBackend">
+    /// Raster backend used for embedded rasterization when <paramref name="backend"/> is "svg".
+    /// Accepts "skia" (default) or "imagesharp". Ignored when the primary backend is not "svg".
+    /// </param>
     /// <returns>A configured <see cref="FlexRenderBuilder"/> instance.</returns>
-    public static FlexRenderBuilder CreateRenderBuilder(string? basePath = null)
+    public static FlexRenderBuilder CreateRenderBuilder(
+        string? basePath = null,
+        string backend = "skia",
+        string rasterBackend = "skia")
     {
         var builder = new FlexRenderBuilder()
             .WithFilters()
-            .WithHttpLoader()
-            .WithSkia(skia => skia
-                .WithQr()
-                .WithBarcode());
+            .WithHttpLoader();
+
+        switch (backend)
+        {
+            case "imagesharp":
+                builder.WithImageSharp(imageSharp => imageSharp
+                    .WithQr()
+                    .WithBarcode());
+                break;
+
+            case "svg":
+                if (string.Equals(rasterBackend, "imagesharp", StringComparison.OrdinalIgnoreCase))
+                {
+                    builder.WithSvg(svg => svg.WithRasterBackend(
+                        ImageSharpFlexRenderBuilderExtensions.CreateRendererFactory(
+                            imageSharp => imageSharp.WithQr().WithBarcode())));
+                }
+                else
+                {
+                    builder.WithSvg(svg => svg.WithSkia(skia => skia
+                        .WithQr()
+                        .WithBarcode()
+                        .WithSvgElement()));
+                }
+                break;
+
+            default: // "skia"
+                builder.WithSkia(skia => skia
+                    .WithQr()
+                    .WithBarcode()
+                    .WithSvgElement());
+                break;
+        }
 
         if (basePath is not null)
         {
@@ -57,6 +128,8 @@ public class Program
         rootCommand.Add(GlobalOptions.Fonts);
         rootCommand.Add(GlobalOptions.Scale);
         rootCommand.Add(GlobalOptions.BasePath);
+        rootCommand.Add(GlobalOptions.Backend);
+        rootCommand.Add(GlobalOptions.RasterBackend);
 
         rootCommand.Add(RenderCommand.Create());
         rootCommand.Add(ValidateCommand.Create());

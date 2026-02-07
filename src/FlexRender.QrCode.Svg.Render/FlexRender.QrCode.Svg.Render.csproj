@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.QrCode.Svg.Render</PackageId>
+    <Description>SVG-native QR code provider for FlexRender SVG rendering without the Skia raster backend.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+
+</Project>

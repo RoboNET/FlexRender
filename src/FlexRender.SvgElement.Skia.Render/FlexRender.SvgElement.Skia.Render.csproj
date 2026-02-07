@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.SvgElement.Skia.Render</PackageId>
+    <Description>SVG element rendering for FlexRender using Svg.Skia (Skia renderer).</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlexRender.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Svg.Skia" />
+  </ItemGroup>
+
+</Project>

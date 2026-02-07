@@ -1,3 +1,5 @@
+#pragma warning disable CS0618 // Testing deprecated TextMeasurer backward compatibility
+
 using FlexRender.Layout;
 using FlexRender.Parsing.Ast;
 using Xunit;

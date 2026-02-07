@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
   </ItemGroup>
 
   <ItemGroup>
