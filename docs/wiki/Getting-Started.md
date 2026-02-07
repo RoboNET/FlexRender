@@ -17,6 +17,8 @@ dotnet add package FlexRender
 > dotnet add package SkiaSharp.NativeAssets.Linux
 > # For minimal containers without fontconfig/freetype:
 > dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
+> # For HarfBuzz text shaping (Arabic, Hebrew):
+> dotnet add package HarfBuzzSharp.NativeAssets.Linux
 > ```
 
 ### Individual packages

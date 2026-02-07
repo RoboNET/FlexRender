@@ -80,7 +80,9 @@ SkiaSharp is a managed C# binding over the native Skia engine. On Linux (includi
 
 The native assets package is added only to **executable projects** (CLI, tests, examples) -- not to library projects like `FlexRender.Skia`. Library consumers bring their own native assets for their target platform.
 
-**Diagnostics:** if `DllNotFoundException: libSkiaSharp` occurs, verify the native library and its dependencies with `ldd /path/to/libSkiaSharp.so`.
+Similarly, `FlexRender.HarfBuzz` requires `HarfBuzzSharp.NativeAssets.Linux` on Linux. Add it to executable projects that use HarfBuzz text shaping.
+
+**Diagnostics:** if `DllNotFoundException: libSkiaSharp` or `DllNotFoundException: libHarfBuzzSharp` occurs, verify the native library and its dependencies with `ldd /path/to/lib*.so`.
 
 ## Architecture
 

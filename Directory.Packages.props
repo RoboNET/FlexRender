@@ -9,7 +9,7 @@
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.macOS" Version="3.119.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Win32" Version="3.119.1" />
-    <PackageVersion Include="HarfBuzzSharp" Version="7.3.0.3" />
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.2" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="3.119.1" />
     <PackageVersion Include="QRCoder" Version="1.7.0" />
     <!-- Microsoft.Extensions: version 10.x for net10.0, version 8.x for net8.0 -->
