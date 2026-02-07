@@ -124,7 +124,14 @@ public sealed class ExpressionLexer
             return new EachEndToken();
         }
 
-        // Default: variable substitution
+        // Check if the expression needs full parsing (contains operators/filters)
+        if (InlineExpressionParser.NeedsFullParsing(content))
+        {
+            var parsed = InlineExpressionParser.Parse(content);
+            return new InlineExpressionToken(parsed, content);
+        }
+
+        // Default: simple variable substitution
         return new VariableToken(content);
     }
 }

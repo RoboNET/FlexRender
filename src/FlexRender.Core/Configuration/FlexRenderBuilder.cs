@@ -1,6 +1,7 @@
 using System.Reflection;
 using FlexRender.Abstractions;
 using FlexRender.Loaders;
+using FlexRender.TemplateEngine;
 
 namespace FlexRender.Configuration;
 
@@ -49,6 +50,8 @@ public sealed class FlexRenderBuilder
     private Func<FlexRenderBuilder, IFlexRender>? _rendererFactory;
     private bool _defaultLoadersAdded;
     private bool _built;
+    private FilterRegistry? _filterRegistry;
+    private bool _useDefaultFilters = true;
 
     /// <summary>
     /// Gets the resource limits configuration.
@@ -72,6 +75,11 @@ public sealed class FlexRenderBuilder
     /// they receive the fully configured <see cref="Options"/> instance.
     /// </remarks>
     internal List<IResourceLoader> ResourceLoaders { get; } = [];
+
+    /// <summary>
+    /// Gets the configured filter registry, or <c>null</c> if no filters have been registered.
+    /// </summary>
+    internal FilterRegistry? FilterRegistry => _filterRegistry;
 
     /// <summary>
     /// Sets the renderer factory function that creates the <see cref="IFlexRender"/> implementation.
@@ -157,6 +165,80 @@ public sealed class FlexRenderBuilder
     }
 
     /// <summary>
+    /// Registers a custom template filter for use in filter pipe expressions.
+    /// </summary>
+    /// <param name="filter">The filter to register.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="filter"/> is null.</exception>
+    /// <remarks>
+    /// Built-in filters are registered automatically. Use this method to add custom filters.
+    /// If a filter with the same name already exists, it is replaced.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// builder.WithFilter(new MyCustomFilter());
+    /// </code>
+    /// </example>
+    public FlexRenderBuilder WithFilter(ITemplateFilter filter)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        _filterRegistry ??= _useDefaultFilters
+            ? FilterRegistry.CreateDefault()
+            : new FilterRegistry();
+        _filterRegistry.Register(filter);
+        return this;
+    }
+
+    /// <summary>
+    /// Enables the built-in filter system with default filters.
+    /// </summary>
+    /// <returns>This builder instance for method chaining.</returns>
+    /// <remarks>
+    /// This is called automatically when <see cref="WithFilter"/> is used.
+    /// Call it explicitly to enable the 8 built-in filters (currency, currencySymbol, number, upper, lower, trim, truncate, format)
+    /// without adding custom filters.
+    /// </remarks>
+    public FlexRenderBuilder WithFilters()
+    {
+        _filterRegistry ??= _useDefaultFilters
+            ? FilterRegistry.CreateDefault()
+            : new FilterRegistry();
+        return this;
+    }
+
+    /// <summary>
+    /// Clears all built-in filters, allowing only explicitly registered custom filters.
+    /// </summary>
+    /// <returns>This builder instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// By default, the 8 built-in filters (currency, currencySymbol, number, upper, lower, trim, truncate, format)
+    /// are automatically registered. Call this method before <see cref="WithFilter"/> to start
+    /// with an empty registry and only use custom filters.
+    /// </para>
+    /// <para>
+    /// If called after <see cref="WithFilter"/> or <see cref="WithFilters"/>, the existing
+    /// registry is cleared and only subsequently registered filters will be available.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Only custom filters, no built-ins:
+    /// var render = new FlexRenderBuilder()
+    ///     .WithoutDefaultFilters()
+    ///     .WithFilter(new MyCustomFilter())
+    ///     .WithSkia()
+    ///     .Build();
+    /// </code>
+    /// </example>
+    public FlexRenderBuilder WithoutDefaultFilters()
+    {
+        _useDefaultFilters = false;
+        _filterRegistry = new FilterRegistry();
+        return this;
+    }
+
+    /// <summary>
     /// Clears all default resource loaders, enabling sandboxed operation.
     /// </summary>
     /// <returns>This builder instance for method chaining.</returns>
@@ -171,16 +253,6 @@ public sealed class FlexRenderBuilder
     /// like <see cref="WithEmbeddedLoader"/> or extension methods like <c>WithHttpLoader()</c>.
     /// </para>
     /// </remarks>
-    /// <example>
-    /// <code>
-    /// // Sandboxed: only embedded resources allowed
-    /// var render = new FlexRenderBuilder()
-    ///     .WithoutDefaultLoaders()
-    ///     .WithEmbeddedLoader(typeof(Program).Assembly)
-    ///     .WithSkia()
-    ///     .Build();
-    /// </code>
-    /// </example>
     public FlexRenderBuilder WithoutDefaultLoaders()
     {
         ResourceLoaders.Clear();

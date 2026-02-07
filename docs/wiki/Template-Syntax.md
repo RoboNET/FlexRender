@@ -1,6 +1,6 @@
 # Template Syntax
 
-FlexRender templates are YAML files that define image layouts using a tree of typed elements. This page covers the template structure, all 8 element types, common properties, and supported units.
+FlexRender templates are YAML files that define image layouts using a tree of typed elements. This page covers the template structure, all 9 element types, common properties, and supported units.
 
 For template expressions (variables, loops, conditionals), see [[Template-Expressions]].
 For flexbox layout properties, see [[Flexbox-Layout]].
@@ -13,6 +13,7 @@ For visual examples with rendered images, see [[Visual-Reference]].
 template:                     # Required: metadata
   name: "my-template"         # Template name (string)
   version: 1                  # Template version (int)
+  culture: "ru-RU"            # Culture for number/date formatting (optional)
 
 fonts:                        # Optional: font definitions
   default: "assets/fonts/Inter-Regular.ttf"
@@ -22,12 +23,20 @@ canvas:                       # Required: canvas configuration
   fixed: width                # Which dimension is fixed
   width: 300                  # Canvas width in pixels
   background: "#ffffff"       # Background color
-  dir: ltr                    # Text direction: ltr (default), rtl
+  text-direction: ltr         # Text direction: ltr (default), rtl
 
 layout:                       # Required: array of elements
   - type: text
     content: "Hello!"
 ```
+
+## Template Metadata
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `name` | string | `""` | Template name for identification |
+| `version` | int | `1` | Template version number |
+| `culture` | string? | `null` | Culture for number/date formatting (e.g., `"ru-RU"`, `"en-US"`). When set, built-in filters use this culture instead of InvariantCulture. Priority: `RenderOptions.Culture` > `template.culture` > InvariantCulture |
 
 ## Canvas Settings
 
@@ -38,7 +47,7 @@ layout:                       # Required: array of elements
 | `height` | int | `0` | Canvas height (0 = auto when not fixed) |
 | `background` | string | `"#ffffff"` | Background color in hex |
 | `rotate` | string | `"none"` | Post-render rotation |
-| `dir` | TextDirection | `ltr` | Text direction: `ltr`, `rtl` |
+| `text-direction` | TextDirection | `ltr` | Text direction: `ltr`, `rtl` |
 
 ### Fixed Dimension
 
@@ -286,6 +295,61 @@ Horizontal separators stretch to full width and use thickness as height. Vertica
 
 ---
 
+### table
+
+Renders tabular data with configurable columns, optional headers, and support for both dynamic (data-driven) and static rows. The table element is expanded into a flex-based layout during template expansion -- no changes to the layout or rendering engines are needed.
+
+```yaml
+# Dynamic table from data array
+- type: table
+  array: items
+  as: item
+  columns:
+    - key: name
+      label: "Product"
+      grow: 1
+    - key: price
+      label: "Price"
+      width: "80"
+      align: right
+```
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `array` | string | `""` | Path to data array for dynamic rows |
+| `as` | string? | `null` | Variable name for current item |
+| `columns` | column[] | required | Column definitions |
+| `rows` | row[] | `[]` | Static rows (alternative to `array`) |
+| `headerFont` | string? | `null` | Font for header row |
+| `headerColor` | string? | `null` | Text color for header row |
+| `headerSize` | string? | `null` | Font size for header row |
+| `headerBackground` | string? | `null` | Background color for header row |
+
+**Column properties:**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `key` | string | required | Data field name for this column |
+| `label` | string? | `null` | Header text (null = no header for this column) |
+| `width` | string? | `null` | Explicit column width (px, %, em) |
+| `grow` | float | `0` | Flex grow factor |
+| `align` | TextAlign | `left` | Text alignment: `left`, `center`, `right` |
+| `font` | string? | `null` | Font override for cells in this column |
+| `color` | string? | `null` | Text color override |
+| `size` | string? | `null` | Font size override |
+| `format` | string? | `null` | Format string for cell values |
+
+**Static row properties:**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `values` | map | required | Column key to value mapping |
+| `font` | string? | `null` | Font override for this row |
+| `color` | string? | `null` | Text color override |
+| `size` | string? | `null` | Font size override |
+
+---
+
 ### each
 
 Iterates over an array in the data, creating child elements for each item. See [[Template-Expressions]] for details.
@@ -339,7 +403,9 @@ All elements inherit these properties from `TemplateElement`:
 |----------|------|---------|-------------|
 | `padding` | string | `"0"` | Inner spacing (px, %, em, CSS shorthand) |
 | `margin` | string | `"0"` | Outer spacing (px, %, em, auto, CSS shorthand) |
-| `background` | string? | `null` | Background color in hex (null = transparent) |
+| `background` | string? | `null` | Background color in hex or gradient (null = transparent) |
+| `opacity` | float | `1.0` | Element opacity from 0.0 (fully transparent) to 1.0 (fully opaque) |
+| `box-shadow` | string? | `null` | Box shadow: `"offsetX offsetY blurRadius color"` (e.g., `"4 4 8 #00000040"`) |
 | `rotate` | string | `"none"` | Element rotation (none/left/right/flip/degrees) |
 | `display` | Display | `flex` | Display mode: `flex`, `none` |
 | `grow` | float | `0` | Flex grow factor |
@@ -359,7 +425,7 @@ All elements inherit these properties from `TemplateElement`:
 | `bottom` | string? | `null` | Bottom inset for positioned elements |
 | `left` | string? | `null` | Left inset for positioned elements |
 | `aspectRatio` | float? | `null` | Width/height ratio constraint |
-| `dir` | TextDirection? | `null` | Text direction override: `ltr`, `rtl` (null = inherit from parent/canvas) |
+| `text-direction` | TextDirection? | `null` | Text direction override: `ltr`, `rtl` (null = inherit from parent/canvas) |
 
 ## Units
 

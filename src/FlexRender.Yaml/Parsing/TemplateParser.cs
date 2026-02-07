@@ -61,7 +61,9 @@ public sealed class TemplateParser : ITemplateParser
             ["image"] = ElementParsers.ParseImageElement,
             ["separator"] = ElementParsers.ParseSeparatorElement,
             ["each"] = _parsers.ParseEachElement,
-            ["if"] = _parsers.ParseIfElement
+            ["if"] = _parsers.ParseIfElement,
+            ["table"] = ElementParsers.ParseTableElement,
+            ["svg"] = ElementParsers.ParseSvgElement
         };
     }
 
@@ -116,6 +118,7 @@ public sealed class TemplateParser : ITemplateParser
         {
             template.Name = GetStringValue(templateNode, "name");
             template.Version = GetIntValue(templateNode, "version", 1);
+            template.Culture = GetStringValue(templateNode, "culture");
         }
 
         // Parse fonts section (optional)

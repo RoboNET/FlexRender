@@ -31,6 +31,7 @@ public class Program
     public static FlexRenderBuilder CreateRenderBuilder(string? basePath = null)
     {
         var builder = new FlexRenderBuilder()
+            .WithFilters()
             .WithHttpLoader()
             .WithSkia(skia => skia
                 .WithQr()

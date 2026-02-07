@@ -1,0 +1,15 @@
+{
+  "companyName": "Acme Solutions Ltd.",
+  "invoiceNumber": "INV-2026-0042",
+  "date": "February 7, 2026",
+  "items": [
+    { "description": "Web Development", "qty": "40h", "price": "$75", "total": "$3,000" },
+    { "description": "UI/UX Design", "qty": "16h", "price": "$90", "total": "$1,440" },
+    { "description": "QA Testing", "qty": "8h", "price": "$60", "total": "$480" },
+    { "description": "Deployment", "qty": "4h", "price": "$100", "total": "$400" }
+  ],
+  "subtotal": "$5,320.00",
+  "taxRate": "10%",
+  "tax": "$532.00",
+  "total": "$5,852.00"
+}

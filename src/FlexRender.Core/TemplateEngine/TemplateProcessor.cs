@@ -19,6 +19,7 @@ public sealed class TemplateProcessor
     public const int MaxNestingDepth = 100;
 
     private readonly ResourceLimits _limits;
+    private readonly InlineExpressionEvaluator _expressionEvaluator;
 
     /// <summary>
     /// Reusable list for tokenization to reduce GC pressure.
@@ -41,6 +42,34 @@ public sealed class TemplateProcessor
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
+        _expressionEvaluator = new InlineExpressionEvaluator();
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TemplateProcessor"/> class with custom resource limits and filter registry.
+    /// </summary>
+    /// <param name="limits">The resource limits to apply.</param>
+    /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="limits"/> or <paramref name="filterRegistry"/> is null.</exception>
+    public TemplateProcessor(ResourceLimits limits, FilterRegistry filterRegistry)
+        : this(limits, filterRegistry, CultureInfo.InvariantCulture)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TemplateProcessor"/> class with custom resource limits, filter registry, and culture.
+    /// </summary>
+    /// <param name="limits">The resource limits to apply.</param>
+    /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
+    /// <param name="culture">The culture to use for culture-aware filter formatting.</param>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    public TemplateProcessor(ResourceLimits limits, FilterRegistry filterRegistry, CultureInfo culture)
+    {
+        ArgumentNullException.ThrowIfNull(limits);
+        ArgumentNullException.ThrowIfNull(filterRegistry);
+        ArgumentNullException.ThrowIfNull(culture);
+        _limits = limits;
+        _expressionEvaluator = new InlineExpressionEvaluator(filterRegistry, culture);
     }
 
     /// <summary>
@@ -81,6 +110,12 @@ public sealed class TemplateProcessor
                 case VariableToken variable:
                     var value = ExpressionEvaluator.Resolve(variable.Path, context);
                     result.Append(ValueToString(value));
+                    index++;
+                    break;
+
+                case InlineExpressionToken inlineExpr:
+                    var exprValue = _expressionEvaluator.Evaluate(inlineExpr.Expression, context);
+                    result.Append(ValueToString(exprValue));
                     index++;
                     break;
 

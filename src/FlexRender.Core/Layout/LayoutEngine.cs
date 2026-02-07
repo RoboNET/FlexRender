@@ -11,7 +11,6 @@ public sealed class LayoutEngine
 {
     private const float DefaultFontSize = 16f;
     private const float DefaultTextHeight = 20f;
-    private const float LineHeightMultiplier = 1.4f;
 
     private readonly ResourceLimits _limits;
     private readonly IntrinsicMeasurer _intrinsicMeasurer;
@@ -193,6 +192,7 @@ public sealed class LayoutEngine
             QrElement qr => LayoutQrElement(qr, context),
             BarcodeElement barcode => LayoutBarcodeElement(barcode, context),
             ImageElement image => LayoutImageElement(image, context),
+            SvgElement svg => LayoutSvgElement(svg, context),
             SeparatorElement separator => LayoutSeparatorElement(separator, context),
             _ => new LayoutNode(element, 0, 0, context.ContainerWidth, DefaultTextHeight)
         };
@@ -463,20 +463,21 @@ public sealed class LayoutEngine
         {
             contentHeight = context.ResolveHeight(text.Height) ?? DefaultTextHeight;
         }
-        else if (TextMeasurer != null && !string.IsNullOrEmpty(text.Content)
-            && MayWrapOrContainsNewlines(text, contentWidth, context))
+        else if (TextMeasurer != null && !string.IsNullOrEmpty(text.Content))
         {
-            // Re-measure with real container width to account for text wrapping
+            // Use TextMeasurer for accurate height based on real font metrics
             var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
-            var measureWidth = Math.Min(contentWidth, context.ContainerWidth);
+            var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
+                ? Math.Min(contentWidth, context.ContainerWidth)
+                : float.MaxValue;
             var measured = TextMeasurer(text, fontSize, measureWidth);
             contentHeight = measured.Height;
         }
         else
         {
-            // Fallback: single line height
+            // Fallback when no TextMeasurer available: estimate using multiplier
             var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
-            contentHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightMultiplier);
+            contentHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
         }
 
         // Total size includes padding and border (margin is applied in flex layout pass)
@@ -571,6 +572,24 @@ public sealed class LayoutEngine
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         return new LayoutNode(image, 0, 0, totalWidth, totalHeight);
+    }
+
+    /// <summary>
+    /// Lays out an SVG element. Similar to image layout but uses SVG-specific dimensions.
+    /// </summary>
+    private static LayoutNode LayoutSvgElement(SvgElement svg, LayoutContext context)
+    {
+        var padding = PaddingParser.Parse(svg.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(svg, context.ContainerWidth, context.FontSize);
+
+        // Priority: flex Width/Height > SvgWidth/SvgHeight > default 100px
+        var contentWidth = context.ResolveWidth(svg.Width) ?? svg.SvgWidth ?? 100f;
+        var contentHeight = context.ResolveHeight(svg.Height) ?? svg.SvgHeight ?? 100f;
+
+        var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
+        var totalHeight = contentHeight + padding.Vertical + border.Vertical;
+
+        return new LayoutNode(svg, 0, 0, totalWidth, totalHeight);
     }
 
     /// <summary>

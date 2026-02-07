@@ -73,7 +73,9 @@ Builder for configuring and creating `IFlexRender` instances. Defined in `FlexRe
 | `WithBasePath(string)` | Base path for resolving relative file paths |
 | `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
 | `WithEmbeddedLoader(Assembly)` | Add embedded resource loader for `embedded://` URIs |
+| `WithFilter(string, ITemplateFilter)` | Register a custom template filter for inline expressions |
 | `WithoutDefaultLoaders()` | Remove default File and Base64 loaders (sandboxed mode) |
+| `WithoutDefaultFilters()` | Remove all 8 built-in filters, leaving only custom-registered filters |
 | `Build()` | Create the configured `IFlexRender` instance |
 
 ### Usage
@@ -118,6 +120,7 @@ Configures Skia-specific rendering options and content providers.
 |--------|-------------|---------|
 | `WithQr()` | Enable QR code support | FlexRender.QrCode |
 | `WithBarcode()` | Enable barcode support | FlexRender.Barcode |
+| `WithHarfBuzz()` | Enable HarfBuzz text shaping for Arabic/Hebrew | FlexRender.HarfBuzz |
 
 ```csharp
 builder.WithSkia(skia => skia
@@ -273,7 +276,21 @@ See [[Render-Options]] for detailed documentation of all per-call option types.
 
 | Type | Key Property | Default |
 |------|-------------|---------|
-| `RenderOptions` | `Antialiasing`, `SubpixelText`, `FontHinting`, `TextRendering` | All enabled, Normal hinting, SubpixelLcd |
+| `RenderOptions` | `Antialiasing`, `SubpixelText`, `FontHinting`, `TextRendering`, `Culture` | All enabled, Normal hinting, SubpixelLcd, null |
+
+### RenderOptions.Culture
+
+Controls the `CultureInfo` used by built-in filters (`currency`, `currencySymbol`, `number`, `format`) for number and date formatting. When `null` (default), the culture resolution order is:
+
+1. `RenderOptions.Culture` (highest priority -- per-call override)
+2. `template.culture` from YAML (template-level default)
+3. `CultureInfo.InvariantCulture` (fallback)
+
+```csharp
+// Per-call culture override
+byte[] png = await render.RenderToPng(template, data,
+    renderOptions: new RenderOptions { Culture = new CultureInfo("ru-RU") });
+```
 | `RenderOptions.Deterministic` | Preset for snapshot tests | SubpixelText=false, Hinting=None, Grayscale |
 | `PngOptions` | `CompressionLevel` | 100 (validated: 0-100 on init) |
 | `JpegOptions` | `Quality` | 90 (validated: 1-100 on init) |

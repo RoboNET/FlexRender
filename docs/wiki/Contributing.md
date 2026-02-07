@@ -225,4 +225,4 @@ If `DllNotFoundException: libSkiaSharp` or `libHarfBuzzSharp` occurs, verify wit
 
 - [[API-Reference]] -- full API documentation
 - [[Template-Syntax]] -- YAML template reference
-- [AGENTS.md](../../AGENTS.md) -- additional contributor guidelines
+- [AGENTS.md](https://github.com/RoboNET/FlexRender/blob/main/AGENTS.md) -- additional contributor guidelines

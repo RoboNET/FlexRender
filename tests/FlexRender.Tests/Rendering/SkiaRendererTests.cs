@@ -326,8 +326,8 @@ public class SkiaRendererTests : IDisposable
 
         _renderer.Render(bitmap, template, data);
 
-        // Check that green background was drawn in text area (upper left region of text element)
-        var pixel = bitmap.GetPixel(10, 10);
+        // Check that green background was drawn in text area (bottom-left region below text line)
+        var pixel = bitmap.GetPixel(10, 40);
         Assert.True(pixel.Green >= 200, $"Expected green background, got R={pixel.Red} G={pixel.Green} B={pixel.Blue}");
     }
 

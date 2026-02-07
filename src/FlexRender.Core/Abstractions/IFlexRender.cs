@@ -215,4 +215,46 @@ public interface IFlexRender : IDisposable
         ObjectValue? data = null,
         RenderOptions? renderOptions = null,
         CancellationToken cancellationToken = default);
+
+    // --- SVG ---
+
+    /// <summary>
+    /// Renders a template to an SVG string.
+    /// </summary>
+    /// <param name="layoutTemplate">The template AST to render.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>The SVG markup as a string.</returns>
+    /// <exception cref="NotSupportedException">Thrown when the renderer does not support SVG output.</exception>
+    Task<string> RenderToSvg(
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "SVG output is not supported by this renderer. Use WithSvg() to enable SVG rendering.");
+    }
+
+    /// <summary>
+    /// Renders a template to SVG written to a stream.
+    /// </summary>
+    /// <param name="output">The output stream to write SVG data to.</param>
+    /// <param name="layoutTemplate">The template AST to render.</param>
+    /// <param name="data">Optional data for template variable substitution.</param>
+    /// <param name="renderOptions">Per-call rendering options. Pass <c>null</c> for defaults.</param>
+    /// <param name="cancellationToken">Token to cancel the rendering operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="NotSupportedException">Thrown when the renderer does not support SVG output.</exception>
+    Task RenderToSvg(
+        Stream output,
+        Template layoutTemplate,
+        ObjectValue? data = null,
+        RenderOptions? renderOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "SVG output is not supported by this renderer. Use WithSvg() to enable SVG rendering.");
+    }
 }

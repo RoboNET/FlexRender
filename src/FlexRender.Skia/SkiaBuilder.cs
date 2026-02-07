@@ -87,6 +87,31 @@ public sealed class SkiaBuilder
     }
 
     /// <summary>
+    /// Gets the configured SVG content provider, if any.
+    /// </summary>
+    /// <remarks>
+    /// This provider is set by calling the <c>WithSvg()</c> extension method
+    /// from the FlexRender.SvgElement package.
+    /// </remarks>
+    internal IContentProvider<SvgElement>? SvgProvider { get; private set; }
+
+    /// <summary>
+    /// Sets the SVG content provider.
+    /// </summary>
+    /// <param name="provider">The SVG provider to use.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="provider"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when an SVG provider is already configured.</exception>
+    internal void SetSvgProvider(IContentProvider<SvgElement> provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        if (SvgProvider != null)
+        {
+            throw new InvalidOperationException("SVG provider is already configured. WithSvg() can only be called once.");
+        }
+        SvgProvider = provider;
+    }
+
+    /// <summary>
     /// Gets the configured shaped text measurer delegate, if any.
     /// When set, text measurement uses HarfBuzz shaping for accurate width calculation
     /// of complex scripts (Arabic, Hebrew, etc.).

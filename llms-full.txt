@@ -20,8 +20,9 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
     LineHeightResolver.cs       # Resolve lineHeight string to pixels
   Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/
-    Ast/                        # AST models: Template, CanvasSettings, TemplateElement, TextElement, FlexElement, QrElement, BarcodeElement, ImageElement, SeparatorElement
-  TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator, TemplateContext
+    Ast/                        # AST models: Template, CanvasSettings, TemplateElement, TextElement, FlexElement, QrElement, BarcodeElement, ImageElement, SeparatorElement, TableElement, TableColumn, TableRow
+  TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator, TemplateContext, InlineExpressionParser, InlineExpressionEvaluator, FilterRegistry, ITemplateFilter
+    Filters/                    # Built-in filters: CurrencyFilter, CurrencySymbolFilter, NumberFilter, UpperFilter, LowerFilter, TrimFilter, TruncateFilter, FormatFilter
   Values/                       # TemplateValue (abstract), StringValue, NumberValue, BoolValue, NullValue, ArrayValue, ObjectValue
 
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
@@ -34,7 +35,7 @@ src/FlexRender.Http/            # HTTP resource loader (-> Core)
 
 src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
-  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
+  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder, BoxShadowParser, GradientParser
   Loaders/                      # FontLoader, ImageLoader
   Providers/                    # IContentProvider<T,O>, ImageProvider
 
@@ -131,6 +132,7 @@ var bytes = await render.Render(template, data);  // Expander called internally
 template:                     # Required: template metadata
   name: "my-template"         # Template name (string)
   version: 1                  # Template version (int)
+  # culture: "ru-RU"          # Optional: culture for number/date formatting
 
 fonts:                                        # Optional: font definitions (key = reference name, value = path)
   default: "assets/fonts/Inter-Regular.ttf"   # File path, base64, embedded://, or http://
@@ -179,7 +181,9 @@ All elements inherit from `TemplateElement`:
 |----------|------|---------|-------------|
 | padding | string | "0" | Inner spacing (px, %, em). Supports non-uniform CSS shorthand |
 | margin | string | "0" | Outer spacing (px, %, em). Supports non-uniform CSS shorthand and `auto` |
-| background | string? | null | Background color in hex (null = transparent) |
+| background | string? | null | Background color in hex, or CSS gradient (null = transparent) |
+| opacity | float | 1.0 | Element opacity (0.0-1.0). Applied via SaveLayer, affects element and all children |
+| box-shadow | string? | null | Box shadow: `"offsetX offsetY blurRadius color"` (e.g., `"4 4 8 #00000040"`) |
 | rotate | string | "none" | Element rotation (none/left/right/flip/degrees). Rendered for: text, image, qr, barcode. Rotation is around the element's center point |
 | position | Position | Static | Positioning mode: `static`, `relative`, `absolute` |
 | top | string? | null | Top inset for positioned elements (px, %, em) |
@@ -483,6 +487,77 @@ Resolved by `LineHeightResolver.Resolve(lineHeight, fontSize, defaultLineHeight)
 | `ean8` | 8 digits, compact retail |
 | `upc` | 12 digits, North American retail (UPC-A) |
 
+## Element Type: table (TableElement)
+
+Tabular data with configurable columns, optional header, and support for dynamic (array-based) and static rows. During template expansion, the `table` element is expanded into a tree of `flex` and `text` elements.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| array | string | "" | Path to data array for dynamic rows |
+| as | string? | null | Variable name for current item |
+| columns | TableColumn[] | -- | Column definitions (required, at least one) |
+| rows | TableRow[] | [] | Static rows (alternative to array) |
+| headerFont | string? | null | Font for header row |
+| headerColor | string? | null | Text color for header row |
+| headerSize | string? | null | Font size for header row |
+| headerBackground | string? | null | Background color for header row |
+
+### TableColumn Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| key | string | -- | Data field name (required) |
+| label | string? | null | Header text |
+| width | string? | null | Explicit column width (px, %, em) |
+| grow | float | 0 | Flex grow factor |
+| align | TextAlign | Left | Text alignment: left, center, right |
+| font | string? | null | Font override for cells |
+| color | string? | null | Text color override for cells |
+| size | string? | null | Font size override for cells |
+| format | string? | null | Format string for cell values |
+
+### TableRow Properties (Static Rows)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| values | Dictionary<string,string> | -- | Column key to value mapping (required, case-insensitive) |
+| font | string? | null | Font override for this row |
+| color | string? | null | Text color override |
+| size | string? | null | Font size override |
+
+```yaml
+# Dynamic table with header
+- type: table
+  array: items
+  as: item
+  headerFont: bold
+  headerBackground: "#333333"
+  headerColor: "#ffffff"
+  columns:
+    - key: name
+      label: "Product"
+      grow: 1
+    - key: price
+      label: "Price"
+      width: "80"
+      align: right
+
+# Static summary table
+- type: table
+  columns:
+    - key: label
+      grow: 1
+      font: bold
+    - key: value
+      width: "80"
+      align: right
+  rows:
+    - values: { label: "Subtotal", value: "85.00 $" }
+    - values: { label: "Tax", value: "8.50 $" }
+    - values: { label: "Total", value: "93.50 $" }
+      font: bold
+```
+
 ## Element Type: separator (SeparatorElement)
 
 | Property | Type | Default | Description |
@@ -524,6 +599,46 @@ Parsed by `UnitParser.Parse(string?)` which returns a `Unit` value. Plain number
 - `{{user.name}}` -- dot notation path traversal
 - `{{items[0]}}` -- array index access
 - `{{items[0].name}}` -- combined path and index
+
+### Inline Expressions
+
+Expressions within `{{ }}` support arithmetic, null coalescing, and filters:
+
+- `{{price * quantity}}` -- arithmetic (`+`, `-`, `*`, `/`, unary `-`)
+- `{{nickname ?? name ?? 'Guest'}}` -- null coalescing chain
+- `{{price | currency}}` -- filter pipe
+- `{{total * 1.1 | currency}}` -- combined
+- `{{date | format:"dd.MM.yyyy"}}` -- filter with argument
+
+**Precedence** (highest to lowest): unary minus, `*`/`/`, `+`/`-`, `??`, `|`
+
+**Built-in filters:** `currency` (2dp), `currencySymbol` (ISO 4217 code to symbol, e.g., USD -> $, RUB -> ruble sign), `number:N` (N decimal places, 0-20), `upper`, `lower`, `trim`, `truncate:N` (default 50, max 10000), `format:str` (number/date formatting via .NET format strings)
+
+**Limits:** Max expression length = 2000 chars, max depth = 50
+
+### Visual Effects Properties
+
+- `opacity`: float (0.0-1.0, default 1.0) -- element transparency via `canvas.SaveLayer()`, affects entire subtree
+- `box-shadow`: `"offsetX offsetY blurRadius color"` -- rendered via `SKMaskFilter.CreateBlur()` before element content
+- `background` accepts CSS gradients in addition to hex colors:
+  - `linear-gradient(to right, #ff0000, #0000ff)` -- direction keywords or angle in degrees
+  - `linear-gradient(45deg, #ff0000, #00ff00 50%, #0000ff)` -- with color stop positions
+  - `radial-gradient(#ffffff, #000000)` -- radial from center outward
+  - Direction keywords: `to top`, `to right`, `to bottom`, `to left`, `to top right`, etc.
+  - Color stops: optional percentage positions, evenly distributed if omitted
+
+### Culture Support
+
+- `template.culture`: optional culture string in YAML (e.g., `"ru-RU"`, `"en-US"`)
+- `RenderOptions.Culture`: per-call `CultureInfo` override in C# code
+- Priority: `RenderOptions.Culture` > `template.culture` > `CultureInfo.InvariantCulture`
+- Affects built-in filters: `currency`, `currencySymbol`, `number`, `format`
+
+```csharp
+// Per-call culture override
+byte[] png = await render.RenderToPng(template, data,
+    renderOptions: new RenderOptions { Culture = new CultureInfo("ru-RU") });
+```
 
 ## Control Flow Elements (AST-Level)
 
@@ -761,7 +876,9 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
 | `WithEmbeddedLoader(Assembly)` | Add embedded resource loader |
 | `WithHttpLoader(HttpClient?)` | Add HTTP resource loader |
+| `WithFilter(string, ITemplateFilter)` | Register a custom template filter for inline expressions |
 | `WithoutDefaultLoaders()` | Remove File and Base64 loaders |
+| `WithoutDefaultFilters()` | Remove all 8 built-in filters, leaving only custom-registered filters |
 
 ### SkiaBuilder Methods
 

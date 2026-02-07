@@ -620,12 +620,12 @@ FlexRender supports RTL layout for Arabic, Hebrew, and other right-to-left scrip
 
 ### Canvas Direction
 
-Set `dir: rtl` on the canvas to make the entire template RTL:
+Set `text-direction: rtl` on the canvas to make the entire template RTL:
 
 ```yaml
 canvas:
   width: 400
-  dir: rtl
+  text-direction: rtl
 ```
 
 ### Per-Element Override
@@ -634,10 +634,10 @@ Individual elements can override the inherited direction:
 
 ```yaml
 canvas:
-  dir: rtl
+  text-direction: rtl
 layout:
   - type: flex
-    dir: ltr  # Override to LTR for this subtree
+    text-direction: ltr  # Override to LTR for this subtree
     children: [...]
 ```
 
@@ -683,7 +683,7 @@ Without HarfBuzz, text renders left-to-right glyph-by-glyph. With HarfBuzz, text
 | `display` | Only `flex` and `none` | Full CSS display values |
 | `overflow` | Only `visible` and `hidden` | Also `scroll`, `auto` |
 | Borders | Shorthand and per-side borders with radius. Borders affect sizing. | Borders affect sizing |
-| RTL / writing modes | LTR and RTL via `dir` property | Full bidirectional support |
+| RTL / writing modes | LTR and RTL via `text-direction` property | Full bidirectional support |
 | Containing block | Direct parent | Nearest positioned ancestor |
 | `min-content` / `max-content` | Not supported | Intrinsic sizing keywords |
 

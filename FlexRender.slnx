@@ -4,6 +4,7 @@
     <Project Path="src/FlexRender.Yaml/FlexRender.Yaml.csproj" />
     <Project Path="src/FlexRender.Http/FlexRender.Http.csproj" />
     <Project Path="src/FlexRender.Skia/FlexRender.Skia.csproj" />
+    <Project Path="src/FlexRender.Svg/FlexRender.Svg.csproj" />
     <Project Path="src/FlexRender.QrCode/FlexRender.QrCode.csproj" />
     <Project Path="src/FlexRender.Barcode/FlexRender.Barcode.csproj" />
     <Project Path="src/FlexRender.HarfBuzz/FlexRender.HarfBuzz.csproj" />

@@ -1,0 +1,200 @@
+# Visual Effects Demo
+# Demonstrates: opacity, box-shadow, linear-gradient, radial-gradient backgrounds
+
+template:
+  name: "visual-effects"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+  semibold: "assets/fonts/Inter-SemiBold.ttf"
+
+canvas:
+  fixed: width
+  width: 380
+  background: "#f0f2f5"
+
+layout:
+  - type: flex
+    padding: "20"
+    gap: 16
+
+    children:
+      # Title
+      - type: text
+        content: "Visual Effects"
+        font: bold
+        size: 1.3em
+        color: "#1a1a1a"
+        align: center
+
+      # Card with box-shadow
+      - type: flex
+        padding: "16"
+        background: "#ffffff"
+        border-radius: "8"
+        box-shadow: "0 2 8 rgba(0,0,0,0.15)"
+        gap: 8
+        children:
+          - type: text
+            content: "Box Shadow"
+            font: semibold
+            size: 1em
+            color: "#333333"
+          - type: text
+            content: "This card has a subtle drop shadow using box-shadow: 0 2 8 rgba(0,0,0,0.15)"
+            size: 0.8em
+            color: "#666666"
+
+      # Card with deeper shadow
+      - type: flex
+        padding: "16"
+        background: "#ffffff"
+        border-radius: "8"
+        box-shadow: "4 4 16 rgba(0,0,0,0.25)"
+        gap: 8
+        children:
+          - type: text
+            content: "Deeper Shadow"
+            font: semibold
+            size: 1em
+            color: "#333333"
+          - type: text
+            content: "A more pronounced shadow with larger offset and blur radius."
+            size: 0.8em
+            color: "#666666"
+
+      # Linear gradient header
+      - type: flex
+        padding: "20 16"
+        background: "linear-gradient(to right, #667eea, #764ba2)"
+        border-radius: "8"
+        gap: 4
+        children:
+          - type: text
+            content: "Linear Gradient"
+            font: bold
+            size: 1.1em
+            color: "#ffffff"
+          - type: text
+            content: "Background uses linear-gradient(to right, #667eea, #764ba2)"
+            size: 0.75em
+            color: "#e0e0ff"
+
+      # Radial gradient
+      - type: flex
+        padding: "20 16"
+        background: "radial-gradient(#ffecd2, #fcb69f)"
+        border-radius: "8"
+        gap: 4
+        children:
+          - type: text
+            content: "Radial Gradient"
+            font: bold
+            size: 1.1em
+            color: "#7c3aed"
+          - type: text
+            content: "Warm radial gradient from center outward."
+            size: 0.75em
+            color: "#9b5de5"
+
+      # Opacity demonstration
+      - type: flex
+        gap: 8
+        children:
+          - type: text
+            content: "Opacity Levels"
+            font: semibold
+            size: 0.95em
+            color: "#333333"
+
+          - type: flex
+            direction: row
+            gap: 8
+            children:
+              - type: flex
+                grow: 1
+                padding: "12 8"
+                background: "#3498db"
+                border-radius: "6"
+                opacity: 1.0
+                align: center
+                children:
+                  - type: text
+                    content: "100%"
+                    size: 0.8em
+                    color: "#ffffff"
+                    font: semibold
+                    align: center
+
+              - type: flex
+                grow: 1
+                padding: "12 8"
+                background: "#3498db"
+                border-radius: "6"
+                opacity: 0.7
+                align: center
+                children:
+                  - type: text
+                    content: "70%"
+                    size: 0.8em
+                    color: "#ffffff"
+                    font: semibold
+                    align: center
+
+              - type: flex
+                grow: 1
+                padding: "12 8"
+                background: "#3498db"
+                border-radius: "6"
+                opacity: 0.4
+                align: center
+                children:
+                  - type: text
+                    content: "40%"
+                    size: 0.8em
+                    color: "#ffffff"
+                    font: semibold
+                    align: center
+
+              - type: flex
+                grow: 1
+                padding: "12 8"
+                background: "#3498db"
+                border-radius: "6"
+                opacity: 0.15
+                align: center
+                children:
+                  - type: text
+                    content: "15%"
+                    size: 0.8em
+                    color: "#ffffff"
+                    font: semibold
+                    align: center
+
+      # Combined: gradient + shadow + opacity
+      - type: flex
+        padding: "16"
+        background: "linear-gradient(135deg, #f093fb, #f5576c)"
+        border-radius: "10"
+        box-shadow: "2 4 12 rgba(240,93,251,0.4)"
+        opacity: 0.9
+        gap: 6
+        children:
+          - type: text
+            content: "Combined Effects"
+            font: bold
+            size: 1em
+            color: "#ffffff"
+          - type: text
+            content: "Gradient + shadow + opacity applied together."
+            size: 0.75em
+            color: "#ffffffcc"
+
+      # Footer
+      - type: text
+        content: "FlexRender Visual Effects Demo"
+        size: 0.7em
+        align: center
+        color: "#adb5bd"

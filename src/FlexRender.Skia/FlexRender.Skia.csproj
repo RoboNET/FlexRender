@@ -12,6 +12,8 @@
     <InternalsVisibleTo Include="FlexRender.Barcode" />
     <InternalsVisibleTo Include="FlexRender.QrCode" />
     <InternalsVisibleTo Include="FlexRender.HarfBuzz" />
+    <InternalsVisibleTo Include="FlexRender.Svg" />
+    <InternalsVisibleTo Include="FlexRender.SvgElement" />
     <InternalsVisibleTo Include="flexrender-cli" />
   </ItemGroup>
 

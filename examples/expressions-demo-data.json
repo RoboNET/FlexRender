@@ -1,0 +1,11 @@
+{
+  "price": 49.99,
+  "tax": 5.00,
+  "quantity": 3,
+  "total": 149.97,
+  "discount": 15.00,
+  "fullName": "Jane Doe",
+  "nickname": null,
+  "notes": null,
+  "defaultNote": "No notes provided"
+}
