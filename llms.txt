@@ -20,21 +20,36 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/                      # TemplateParser
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
-src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
+src/FlexRender.Skia.Render/     # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
   Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
   Loaders/                      # FontLoader, ImageLoader
   Providers/                    # IContentProvider<T,O>, ImageProvider
-src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
-src/FlexRender.Barcode/         # Barcode provider (-> Skia)
+src/FlexRender.Skia/            # Skia backend meta-package (renderer + providers)
+src/FlexRender.QrCode.Skia.Render/     # QR provider for Skia (-> Skia + QRCoder)
+src/FlexRender.QrCode.Svg.Render/      # QR provider for SVG (-> Svg)
+src/FlexRender.QrCode.ImageSharp.Render/ # QR provider for ImageSharp (-> ImageSharp + QRCoder)
+src/FlexRender.QrCode/          # QR meta-package (references all renderers)
+src/FlexRender.Barcode.Skia.Render/    # Barcode provider for Skia
+src/FlexRender.Barcode.Svg.Render/     # Barcode provider for SVG
+src/FlexRender.Barcode.ImageSharp.Render/ # Barcode provider for ImageSharp
+src/FlexRender.Barcode/         # Barcode meta-package (references all renderers)
+src/FlexRender.SvgElement.Skia.Render/ # SvgElement provider for Skia (-> Svg.Skia)
+src/FlexRender.SvgElement.Svg.Render/  # SvgElement provider for SVG (native)
+src/FlexRender.SvgElement/      # SvgElement meta-package (references all renderers)
 src/FlexRender.HarfBuzz/        # HarfBuzz text shaping (-> Skia + SkiaSharp.HarfBuzz)
+src/FlexRender.ImageSharp.Render/ # ImageSharp renderer (-> Core + SixLabors.ImageSharp)
+  Rendering/                    # ImageSharpRenderingEngine, ImageSharpTextRenderer, ImageSharpFontManager
+src/FlexRender.ImageSharp/      # ImageSharp backend meta-package (renderer + providers)
+src/FlexRender.Svg.Render/      # SVG output renderer (-> Core)
+src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers)
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
-src/FlexRender.MetaPackage/     # Meta-package (references all sub-packages)
+src/FlexRender.MetaPackage/     # Meta-package (core + all backends + DI)
 
 src/FlexRender.Cli/             # CLI tool (System.CommandLine, uses all packages)
 tests/FlexRender.Tests/         # Unit + snapshot tests
 tests/FlexRender.Cli.Tests/     # CLI integration tests
-examples/                       # Example YAML templates
+examples/                       # Example YAML templates (see "Example Templates" section below)
 ```
 
 ## Rendering Pipeline
@@ -46,21 +61,23 @@ YAML Template
   -> TemplateProcessor        (resolve {{variable}} expressions in element properties)
   -> LayoutEngine             (two-pass: MeasureAllIntrinsics -> ComputeLayout -> LayoutNode tree)
   -> SkiaRenderer             (traverse LayoutNode tree -> draw to SKBitmap via SkiaSharp)
+     OR ImageSharpRenderer    (traverse LayoutNode tree -> draw via SixLabors.ImageSharp)
 ```
 
 Templates can be parsed once and cached for reuse with different data.
 
 ## Element Types
 
-Nine element types, each a sealed class extending `TemplateElement`:
+Ten element types, each a sealed class extending `TemplateElement`:
 
 | Type | Key Properties |
 |------|---------------|
 | **text** | content, font, size, color, align (left/center/right/start/end), wrap, overflow (ellipsis/clip/visible), maxLines, lineHeight |
 | **flex** | direction (row/column), wrap, gap, rowGap, columnGap, justify, align, alignContent, overflow, children |
 | **image** | src, width, height, fit (fill/contain/cover/none) |
-| **qr** | data, size, errorCorrection (L/M/Q/H), foreground -- requires `FlexRender.QrCode` package |
-| **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground -- requires `FlexRender.Barcode` package |
+| **qr** | data, size, errorCorrection (L/M/Q/H), foreground -- requires `FlexRender.QrCode.*` (Skia/Svg/ImageSharp) |
+| **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground -- requires `FlexRender.Barcode.*` (Skia/Svg/ImageSharp) |
+| **svg** | src, content, width, height, fit (fill/contain/cover/none) -- requires `FlexRender.SvgElement.*` (Skia/Svg) |
 | **separator** | orientation (horizontal/vertical), style (dotted/dashed/solid), thickness, color |
 | **table** | array, as, columns (key/label/width/grow/align/format), rows, headerFont/headerColor/headerSize/headerBackground -- expands to flex tree |
 | **each** | array, as, children -- iteration over data arrays |
@@ -281,7 +298,7 @@ Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 2
 
 ## Builder API
 
-### Without DI
+### Without DI (Skia)
 
 ```csharp
 var render = new FlexRenderBuilder()
@@ -298,6 +315,28 @@ var render = new FlexRenderBuilder()
     .Build();
 
 byte[] png = await render.RenderFile("receipt.yaml", data);
+```
+
+### Without DI (ImageSharp -- pure .NET, no native deps)
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithBasePath("./templates")
+    .WithImageSharp(imageSharp => imageSharp.WithQr().WithBarcode())
+    .Build();
+
+byte[] png = await render.RenderFile("receipt.yaml", data);
+```
+
+> **Note:** ImageSharp now supports QR codes and barcodes via `FlexRender.QrCode.ImageSharp.Render` and `FlexRender.Barcode.ImageSharp.Render`. SVG elements are not supported in ImageSharp. It is NOT AOT-compatible.
+
+### SVG Output with ImageSharp Raster Backend
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithSvg(svg => svg.WithRasterBackend(
+        ImageSharpFlexRenderBuilderExtensions.CreateRendererFactory()))
+    .Build();
 ```
 
 ### With DI
@@ -371,9 +410,59 @@ Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x
 dotnet run --project src/FlexRender.Cli -- render template.yaml -d data.json -o output.png
 ```
 
-Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`
+Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`, `--backend <skia|imagesharp>`
+
+The `--backend` option selects the rendering backend: `skia` (default, full features) or `imagesharp` (pure .NET, no native deps, QR/barcode support with `FlexRender.QrCode.ImageSharp.Render` and `FlexRender.Barcode.ImageSharp.Render`, no SVG elements).
 
 Note: The `--scale` option uses invariant culture -- always use `.` as the decimal separator (e.g., `--scale 2.0`).
+
+## Example Templates
+
+Reference these YAML files for real-world template patterns. Each file is a complete, working template.
+
+### Complete Templates (examples/)
+
+| File | Description | Key Features |
+|------|-------------|-------------|
+| `examples/receipt.yaml` | Thermal receipt | Basic text, separator, flex row, data binding |
+| `examples/receipt-dynamic.yaml` | Receipt with loops | `type: each` iteration, `@index`/`@last` variables |
+| `examples/ticket.yaml` | Event ticket | Horizontal layout, QR code, background colors |
+| `examples/label.yaml` | Product label | Compact layout, barcode, border-radius |
+| `examples/table-invoice.yaml` | Invoice with table | `type: table` element, columns, header styling |
+| `examples/expressions-demo.yaml` | Expression showcase | Arithmetic, filters, null coalescing, formatting |
+| `examples/visual-effects.yaml` | Visual effects | Gradients, box-shadow, opacity, border-radius |
+| `examples/svg-icons.yaml` | SVG icons | Inline SVG elements, vector shapes |
+| `examples/showcase.yaml` | Full feature showcase | All element types, 14 sections, HTTP images |
+| `examples/showcase-capabilities.yaml` | Renderer comparison | Conditional rendering per backend (`type: if` with `renderer`) |
+| `examples/showcase-all-features.yaml` | All features showcase | Every supported feature in one template |
+
+### Per-Feature Examples (examples/visual-docs/)
+
+Minimal, focused templates -- one feature per file:
+
+| Category | Files | What They Show |
+|----------|-------|----------------|
+| `text/` | align, wrap, maxLines, lineHeight | Text alignment, wrapping, truncation |
+| `justify/` | start, end, center, space-between, space-around, space-evenly | Flex justify-content modes |
+| `align/` | start, end, center, stretch, baseline | Flex align-items modes |
+| `direction/` | row, column, row-reverse, column-reverse, rtl-* | Flex direction + RTL |
+| `wrap/` | wrap, nowrap, wrap-reverse | Flex wrapping behavior |
+| `image/` | contain, cover, fill, none | Image fit modes |
+| `position/` | absolute-*, relative-offset, overlay, badge, floating-label | CSS-style positioning |
+| `border/` | solid, styles, per-side, radius | Border rendering |
+| `separator/` | styles, thickness, orientation | Separator element options |
+| `canvas/` | fixed-*, background, rotate-* | Canvas settings |
+| `qr/` | colors, errorCorrection | QR code options |
+| `barcode/` | colors, showText | Barcode options |
+| `order/` | basic, negative | Flex item ordering |
+
+### Renderer-Specific Projects (examples/*RenderExample/)
+
+| Project | Backend | Shows |
+|---------|---------|-------|
+| `examples/SkiaRenderExample/` | Skia | Receipt with QR + barcode, `FlexRenderBuilder` setup |
+| `examples/ImageSharpRenderExample/` | ImageSharp | Product label, pure .NET rendering |
+| `examples/SvgRenderExample/` | SVG | Business card, vector output |
 
 ## Coding Conventions
 
@@ -401,10 +490,24 @@ Note: The `--scale` option uses invariant culture -- always use `.` as the decim
 | FlexRender.Core | -- | (none) |
 | FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
 | FlexRender.Http | Core | (none) |
-| FlexRender.Skia | Core | SkiaSharp 3.119.1 |
-| FlexRender.QrCode | Skia | QRCoder 1.7.0 |
-| FlexRender.Barcode | Skia | (none) |
-| FlexRender.HarfBuzz | Skia | SkiaSharp.HarfBuzz 3.119.1, HarfBuzzSharp 8.3.1.2 |
+| FlexRender.Skia.Render | Core | SkiaSharp 3.119.2 |
+| FlexRender.Skia | Skia.Render + providers | SkiaSharp 3.119.2 |
+| FlexRender.QrCode.Skia.Render | Skia.Render | QRCoder 1.7.0 |
+| FlexRender.QrCode.Svg.Render | Svg.Render | QRCoder 1.7.0 |
+| FlexRender.QrCode.ImageSharp.Render | ImageSharp.Render | QRCoder 1.7.0 |
+| FlexRender.QrCode | All renderers | -- |
+| FlexRender.Barcode.Skia.Render | Skia.Render | (none) |
+| FlexRender.Barcode.Svg.Render | Svg.Render | (none) |
+| FlexRender.Barcode.ImageSharp.Render | ImageSharp.Render | (none) |
+| FlexRender.Barcode | All renderers | -- |
+| FlexRender.HarfBuzz | Skia.Render | SkiaSharp.HarfBuzz 3.119.2, HarfBuzzSharp 8.3.1.3 |
+| FlexRender.ImageSharp.Render | Core | SixLabors.ImageSharp, SixLabors.ImageSharp.Drawing, SixLabors.Fonts |
+| FlexRender.ImageSharp | ImageSharp.Render + providers | SixLabors.ImageSharp, SixLabors.ImageSharp.Drawing, SixLabors.Fonts |
+| FlexRender.SvgElement.Skia.Render | Skia.Render | Svg.Skia |
+| FlexRender.SvgElement.Svg.Render | Svg.Render | (none) |
+| FlexRender.SvgElement | All renderers | -- |
+| FlexRender.Svg.Render | Core | (none) |
+| FlexRender.Svg | Svg.Render + providers | (none) |
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |

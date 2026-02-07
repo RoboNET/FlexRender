@@ -29,6 +29,7 @@ A comprehensive visual guide with rendered examples for all FlexRender propertie
   - [image](#image)
   - [qr](#qr)
   - [barcode](#barcode)
+  - [svg](#svg)
 - [See Also](#see-also)
 
 ---
@@ -589,6 +590,61 @@ Barcodes support custom foreground and background colors.
 | `showText` | boolean | Display human-readable text below barcode | `true` |
 | `foreground` | color | Barcode line color | `#000000` |
 | `background` | color | Barcode background color | `#ffffff` |
+
+### svg
+
+SVG elements render vector graphics in templates. Requires `FlexRender.SvgElement.Skia.Render` (or `FlexRender.SvgElement`) package.
+
+#### From file
+
+```yaml
+- type: svg
+  src: "assets/icons/logo.svg"
+  width: 100
+  height: 100
+  fit: contain
+```
+
+#### Inline SVG
+
+```yaml
+- type: svg
+  content: |
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="40" fill="#4CAF50"/>
+      <text x="50" y="55" text-anchor="middle" fill="white" font-size="20">SVG</text>
+    </svg>
+  width: 80
+  height: 80
+```
+
+#### Fit modes
+
+Same as `image` fit: `fill` (stretch), `contain` (fit within bounds), `cover` (fill bounds, may crop), `none` (original size).
+
+#### All SVG Properties
+
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| `src` | string | Path to SVG file (mutually exclusive with `content`) | (optional) |
+| `content` | string | Inline SVG markup (mutually exclusive with `src`) | (optional) |
+| `width` | number | Target render width in pixels | (auto) |
+| `height` | number | Target render height in pixels | (auto) |
+| `fit` | enum | Fit mode: `fill`, `contain`, `cover`, `none` | `contain` |
+
+---
+
+## Renderer Backend Comparison
+
+FlexRender supports three rendering backends. The same template produces visually similar output across all backends, with some backend-specific features:
+
+| Backend | Strengths | Limitations |
+|---------|-----------|-------------|
+| **Skia** | Gradients, box-shadow, opacity, SVG elements, HarfBuzz shaping | Requires native SkiaSharp libraries |
+| **ImageSharp** | Zero native dependencies, cross-platform | No gradients, no box-shadow, no SVG elements, no text rotation |
+| **SVG** | Vector output, scalable, smallest file size | No raster output without Skia fallback |
+
+See the [showcase-capabilities template](../../examples/showcase-capabilities.yaml) with per-renderer data files for a live comparison.
 
 ---
 

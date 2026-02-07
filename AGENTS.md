@@ -4,8 +4,8 @@ A modular .NET library for rendering images from YAML templates with flexbox lay
 
 ## LLM Documentation
 
-- `llms.txt` -- concise project overview for LLM context windows (~200 lines)
-- `llms-full.txt` -- comprehensive reference with all YAML properties, API details, and conventions (~580 lines)
+- `llms.txt` -- concise project overview for LLM context windows (~450 lines)
+- `llms-full.txt` -- comprehensive reference with all YAML properties, API details, and conventions (~1250 lines)
 
 ## Build & Test
 
@@ -34,21 +34,37 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/                      # TemplateParser
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
-src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
+src/FlexRender.Skia.Render/     # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
   Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder, BoxShadowParser, GradientParser
   Loaders/                      # FontLoader, ImageLoader
   Providers/                    # IContentProvider<T,O>, ImageProvider
-src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
-src/FlexRender.Barcode/         # Barcode provider (-> Skia)
+src/FlexRender.Skia/            # Skia backend meta-package (renderer + providers)
+src/FlexRender.QrCode.Skia.Render/     # QR provider for Skia (-> Skia + QRCoder)
+src/FlexRender.QrCode.Svg.Render/      # QR provider for SVG (-> Svg)
+src/FlexRender.QrCode.ImageSharp.Render/ # QR provider for ImageSharp (-> ImageSharp + QRCoder)
+src/FlexRender.QrCode/          # QR meta-package (references all renderers)
+src/FlexRender.Barcode.Skia.Render/    # Barcode provider for Skia
+src/FlexRender.Barcode.Svg.Render/     # Barcode provider for SVG
+src/FlexRender.Barcode.ImageSharp.Render/ # Barcode provider for ImageSharp
+src/FlexRender.Barcode/         # Barcode meta-package (references all renderers)
+src/FlexRender.SvgElement.Skia.Render/ # SvgElement provider for Skia (-> Svg.Skia)
+src/FlexRender.SvgElement.Svg.Render/  # SvgElement provider for SVG (native)
+src/FlexRender.SvgElement/      # SvgElement meta-package (references all renderers)
+src/FlexRender.ImageSharp.Render/ # ImageSharp renderer (-> Core + SixLabors.ImageSharp)
+  Rendering/                    # ImageSharpRenderingEngine, ImageSharpTextRenderer, ImageSharpFontManager
+src/FlexRender.ImageSharp/      # ImageSharp backend meta-package (renderer + providers)
+src/FlexRender.Svg.Render/      # SVG output renderer (-> Core)
+src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers)
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
-src/FlexRender.MetaPackage/     # Meta-package (references all sub-packages)
+src/FlexRender.MetaPackage/     # Meta-package (core + all backends + DI)
 
 src/FlexRender.Cli/             # CLI tool (System.CommandLine, uses all packages)
   Commands/                     # render, validate, info, watch, debug-layout
 
 tests/FlexRender.Tests/         # Unit + snapshot tests
 tests/FlexRender.Cli.Tests/     # CLI integration tests
+tests/FlexRender.ImageSharp.Tests/ # ImageSharp visual snapshot tests
 examples/                       # Example YAML templates
 ```
 
@@ -56,13 +72,17 @@ examples/                       # Example YAML templates
 
 ```
 FlexRender.Core          (0 external deps)
-  ^          ^        ^
-  |          |        |
-FlexRender.Yaml  FlexRender.Http  FlexRender.Skia   (YamlDotNet)  (SkiaSharp)
-                                    ^        ^
-                                    |        |
-                           FlexRender.QrCode  FlexRender.Barcode   (QRCoder)
-                                    |        |
+  ^          ^        ^        ^
+  |          |        |        |
+FlexRender.Yaml  FlexRender.Http  FlexRender.Skia.Render  FlexRender.ImageSharp.Render  FlexRender.Svg.Render
+                                    ^           ^                     ^                     ^
+                                    |           |                     |                     |
+                      Qr/Bar/SvgElement providers per renderer (Skia/Svg/ImageSharp)
+                                    |           |                     |
+                     FlexRender.QrCode / FlexRender.Barcode / FlexRender.SvgElement (meta)
+                                    |           |
+                     FlexRender.Skia / FlexRender.ImageSharp / FlexRender.Svg (backend meta)
+                                    |
                FlexRender.DependencyInjection  (Microsoft.Extensions.DI)
                                     |
                            FlexRender.MetaPackage  (references all)
@@ -79,7 +99,7 @@ SkiaSharp is a managed C# binding over the native Skia engine. On Linux (includi
 | `SkiaSharp.NativeAssets.Linux` | Standard Linux environments with system libs (fontconfig, freetype) |
 | `SkiaSharp.NativeAssets.Linux.NoDependencies` | Minimal/Docker containers without system libs |
 
-The native assets package is added only to **executable projects** (CLI, tests, examples) -- not to library projects like `FlexRender.Skia`. Library consumers bring their own native assets for their target platform.
+The native assets package is added only to **executable projects** (CLI, tests, examples) -- not to library projects like `FlexRender.Skia.Render`. Library consumers bring their own native assets for their target platform.
 
 Similarly, `FlexRender.HarfBuzz` requires `HarfBuzzSharp.NativeAssets.Linux` on Linux. Add it to executable projects that use HarfBuzz text shaping.
 
@@ -96,6 +116,7 @@ YAML Template
   -> TemplateProcessor        (resolve {{variable}} expressions in element properties)
   -> LayoutEngine             (two-pass: MeasureAllIntrinsics -> ComputeLayout -> LayoutNode tree)
   -> SkiaRenderer             (traverse LayoutNode tree -> draw to SKBitmap via SkiaSharp)
+     OR ImageSharpRenderer    (traverse LayoutNode tree -> draw via SixLabors.ImageSharp)
 ```
 
 ### FlexRenderBuilder API
@@ -149,7 +170,8 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `TableElement`, `TableColumn`, `TableRow`, `EachElement`, `IfElement` |
 | Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext`, `InlineExpressionParser`, `InlineExpressionEvaluator`, `FilterRegistry`, `ITemplateFilter` |
 | Layout | `LayoutEngine`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize`, `Unit`, `UnitParser`, `MarginValue`, `MarginValues`, `PaddingParser.ParseMargin` |
-| Rendering | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder`, `BoxShadowParser`, `GradientParser` |
+| Rendering (Skia) | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder`, `BoxShadowParser`, `GradientParser` |
+| Rendering (ImageSharp) | `ImageSharpRender` (IFlexRender impl), `ImageSharpRenderingEngine`, `ImageSharpTextRenderer`, `ImageSharpFontManager` |
 | Providers | `IContentProvider<T,O>`, `QrProvider`, `BarcodeProvider`, `ImageProvider` |
 | Loaders | `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader` |
 | DI | `ServiceCollectionExtensions.AddFlexRender()` |
@@ -205,7 +227,7 @@ These limits exist to prevent abuse and resource exhaustion. Never remove or wea
 
 ## Test Conventions
 
-- **Total tests**: 1204 (unit + snapshot + integration)
+- **Total tests**: 1264+ (unit + snapshot + integration, including ImageSharp snapshot tests)
 - **Framework**: xUnit with `[Fact]` and `[Theory]`/`[InlineData]`
 - **Assertions**: `Assert.*` from xUnit; `FluentAssertions` in some tests
 - **Naming**: `MethodUnderTest_Scenario_ExpectedResult` (e.g., `Parse_SimpleTextElement_ParsesCorrectly`)
@@ -290,7 +312,9 @@ dotnet run --project src/FlexRender.Cli -- watch template.yaml -d data.json -o p
 dotnet run --project src/FlexRender.Cli -- debug-layout template.yaml -d data.json
 ```
 
-Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`
+Global options: `-v`/`--verbose`, `--fonts <dir>`, `--scale <float>`, `-b`/`--backend <skia|imagesharp>`
+
+The `--backend` option selects the rendering backend: `skia` (default, full features) or `imagesharp` (pure .NET, no native deps, no QR/barcode/SVG element support).
 
 **Working directory matters:** CLI resolves all relative paths (template, data, fonts, image `src`) from the current working directory. When running examples, `cd` into `examples/` first, otherwise assets like `assets/fonts/Inter-Regular.ttf` won't be found.
 
@@ -365,10 +389,7 @@ var sb = new StringBuilder(estimatedCapacity);
 
 1. Add property to `TemplateElement` in `Parsing/Ast/TemplateElement.cs`
 2. Parse the property in `ElementParsers.cs`
-3. **CRITICAL**: Copy the property in ALL THREE `CopyBaseProperties()` methods:
-   - `TemplateExpander.CopyBaseProperties()` (FlexRender.Core)
-   - `TemplatePreprocessor.CopyBaseProperties()` (FlexRender.Skia)
-   - `SvgPreprocessor.CopyBaseProperties()` (FlexRender.Svg)
+3. Add the property to `TemplateElement.CopyBaseProperties()` (single source of truth in `Parsing/Ast/TemplateElement.cs`)
 4. If the property contains expressions (e.g., `{{variable}}`), also add `ProcessExpression()` calls in the preprocessors
 5. Write tests to verify the property survives the full rendering pipeline
 

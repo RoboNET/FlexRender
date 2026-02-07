@@ -2,12 +2,14 @@
 
   <PropertyGroup>
     <PackageId>FlexRender.Barcode</PackageId>
-    <Description>Barcode generation for FlexRender.</Description>
+    <Description>Barcode support for FlexRender (meta-package).</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode.Skia.Render\FlexRender.Barcode.Skia.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode.Svg.Render\FlexRender.Barcode.Svg.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode.ImageSharp.Render\FlexRender.Barcode.ImageSharp.Render.csproj" />
   </ItemGroup>
 
 </Project>

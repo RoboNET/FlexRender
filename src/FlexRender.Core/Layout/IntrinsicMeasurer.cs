@@ -76,7 +76,19 @@ internal sealed class IntrinsicMeasurer
         float contentWidth;
         float contentHeight;
 
-        if (_engine.TextMeasurer != null && !string.IsNullOrEmpty(text.Content))
+        if (_engine.TextShaper != null && !string.IsNullOrEmpty(text.Content))
+        {
+            // TextShaper takes precedence: get accurate metrics
+            var shaped = _engine.TextShaper.ShapeText(text, fontSize, float.MaxValue);
+            contentWidth = !string.IsNullOrEmpty(text.Width)
+                ? ParseAbsolutePixelValue(text.Width, shaped.TotalSize.Width)
+                : shaped.TotalSize.Width;
+            contentHeight = !string.IsNullOrEmpty(text.Height)
+                ? ParseAbsolutePixelValue(text.Height, shaped.TotalSize.Height)
+                : shaped.TotalSize.Height;
+        }
+#pragma warning disable CS0618 // TextMeasurer is obsolete but still supported for backward compatibility
+        else if (_engine.TextMeasurer != null && !string.IsNullOrEmpty(text.Content))
         {
             var measured = _engine.TextMeasurer(text, fontSize, float.MaxValue);
             contentWidth = !string.IsNullOrEmpty(text.Width)
@@ -86,6 +98,7 @@ internal sealed class IntrinsicMeasurer
                 ? ParseAbsolutePixelValue(text.Height, measured.Height)
                 : measured.Height;
         }
+#pragma warning restore CS0618
         else
         {
             contentWidth = ParseAbsolutePixelValue(text.Width, 0f);

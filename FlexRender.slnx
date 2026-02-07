@@ -1,23 +1,52 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/FlexRender.Core/FlexRender.Core.csproj" />
-    <Project Path="src/FlexRender.Yaml/FlexRender.Yaml.csproj" />
-    <Project Path="src/FlexRender.Http/FlexRender.Http.csproj" />
-    <Project Path="src/FlexRender.Skia/FlexRender.Skia.csproj" />
-    <Project Path="src/FlexRender.Svg/FlexRender.Svg.csproj" />
-    <Project Path="src/FlexRender.QrCode/FlexRender.QrCode.csproj" />
-    <Project Path="src/FlexRender.Barcode/FlexRender.Barcode.csproj" />
-    <Project Path="src/FlexRender.HarfBuzz/FlexRender.HarfBuzz.csproj" />
     <Project Path="src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj" />
     <Project Path="src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj" />
     <Project Path="src/FlexRender.Cli/FlexRender.Cli.csproj" />
   </Folder>
+  <Folder Name="/src/Barcode/">
+    <Project Path="src/FlexRender.Barcode.Svg.Render/FlexRender.Barcode.Svg.Render.csproj" />
+    <Project Path="src/FlexRender.Barcode.Skia.Render/FlexRender.Barcode.Skia.Render.csproj" />
+    <Project Path="src/FlexRender.Barcode.ImageSharp.Render/FlexRender.Barcode.ImageSharp.Render.csproj" />
+    <Project Path="src/FlexRender.Barcode/FlexRender.Barcode.csproj" />
+  </Folder>
+  <Folder Name="/src/Parsers/">
+    <Project Path="src/FlexRender.Yaml/FlexRender.Yaml.csproj" />
+  </Folder>
+  <Folder Name="/src/QR/">
+    <Project Path="src/FlexRender.QrCode.Svg.Render/FlexRender.QrCode.Svg.Render.csproj" />
+    <Project Path="src/FlexRender.QrCode.Skia.Render/FlexRender.QrCode.Skia.Render.csproj" />
+    <Project Path="src/FlexRender.QrCode.ImageSharp.Render/FlexRender.QrCode.ImageSharp.Render.csproj" />
+    <Project Path="src/FlexRender.QrCode/FlexRender.QrCode.csproj" />
+  </Folder>
+  <Folder Name="/src/Renderers/">
+    <Project Path="src/FlexRender.HarfBuzz/FlexRender.HarfBuzz.csproj" />
+    <Project Path="src/FlexRender.ImageSharp/FlexRender.ImageSharp.csproj" />
+    <Project Path="src/FlexRender.ImageSharp.Render/FlexRender.ImageSharp.Render.csproj" />
+    <Project Path="src/FlexRender.Skia/FlexRender.Skia.csproj" />
+    <Project Path="src/FlexRender.Skia.Render/FlexRender.Skia.Render.csproj" />
+    <Project Path="src/FlexRender.Svg/FlexRender.Svg.csproj" />
+    <Project Path="src/FlexRender.Svg.Render/FlexRender.Svg.Render.csproj" />
+  </Folder>
+  <Folder Name="/src/ResourceLoaders/">
+    <Project Path="src/FlexRender.Http/FlexRender.Http.csproj" />
+  </Folder>
+  <Folder Name="/src/SvgElement/">
+    <Project Path="src/FlexRender.SvgElement.Skia.Render/FlexRender.SvgElement.Skia.Render.csproj" />
+    <Project Path="src/FlexRender.SvgElement/FlexRender.SvgElement.csproj" />
+    <Project Path="src/FlexRender.SvgElement.Svg.Render/FlexRender.SvgElement.Svg.Render.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/FlexRender.Tests/FlexRender.Tests.csproj" />
     <Project Path="tests/FlexRender.Cli.Tests/FlexRender.Cli.Tests.csproj" />
+    <Project Path="tests/FlexRender.ImageSharp.Tests/FlexRender.ImageSharp.Tests.csproj" />
   </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/YamlRenderExample/YamlRenderExample.csproj" />
     <Project Path="examples/AstRenderExample/AstRenderExample.csproj" />
+    <Project Path="examples/SkiaRenderExample/SkiaRenderExample.csproj" />
+    <Project Path="examples/ImageSharpRenderExample/ImageSharpRenderExample.csproj" />
+    <Project Path="examples/SvgRenderExample/SvgRenderExample.csproj" />
   </Folder>
 </Solution>

@@ -2,16 +2,14 @@
 
   <PropertyGroup>
     <PackageId>FlexRender.QrCode</PackageId>
-    <Description>QR code generation for FlexRender.</Description>
+    <Description>QR code support for FlexRender (meta-package).</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="QRCoder" />
+    <ProjectReference Include="..\FlexRender.QrCode.Skia.Render\FlexRender.QrCode.Skia.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode.Svg.Render\FlexRender.QrCode.Svg.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode.ImageSharp.Render\FlexRender.QrCode.ImageSharp.Render.csproj" />
   </ItemGroup>
 
 </Project>

@@ -42,6 +42,9 @@ packages/
 # Private templates (local only)
 examples/private/
 
+# Snapshot test output (actual/diff files from failed comparisons)
+**/Snapshots/output/
+
 # Private golden snapshot images
 **/golden/wb_receipt.png
 

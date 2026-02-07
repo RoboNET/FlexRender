@@ -32,17 +32,33 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/                      # TemplateParser facade, ElementParsers, YamlPropertyHelpers
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
-src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
+src/FlexRender.Skia.Render/     # SkiaSharp renderer (-> Core + SkiaSharp)
   Rendering/                    # SkiaRenderer facade, RenderingEngine, TemplatePreprocessor, TextRenderer, FontManager, BmpEncoder
   Providers/                    # ImageProvider, IContentProvider<T>
-src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
-src/FlexRender.Barcode/         # Barcode provider (-> Skia)
+src/FlexRender.Skia/            # Skia backend meta-package (renderer + providers)
+src/FlexRender.QrCode.Skia.Render/     # QR provider for Skia (-> Skia + QRCoder)
+src/FlexRender.QrCode.Svg.Render/      # QR provider for SVG (-> Svg)
+src/FlexRender.QrCode.ImageSharp.Render/ # QR provider for ImageSharp (-> ImageSharp + QRCoder)
+src/FlexRender.QrCode/          # QR meta-package (references all renderers)
+src/FlexRender.Barcode.Skia.Render/    # Barcode provider for Skia
+src/FlexRender.Barcode.Svg.Render/     # Barcode provider for SVG
+src/FlexRender.Barcode.ImageSharp.Render/ # Barcode provider for ImageSharp
+src/FlexRender.Barcode/         # Barcode meta-package (references all renderers)
+src/FlexRender.SvgElement.Skia.Render/ # SvgElement provider for Skia (-> Svg.Skia)
+src/FlexRender.SvgElement.Svg.Render/  # SvgElement provider for SVG (native)
+src/FlexRender.SvgElement/      # SvgElement meta-package (references all renderers)
+src/FlexRender.ImageSharp.Render/ # ImageSharp renderer (-> Core + SixLabors.ImageSharp)
+  Rendering/                    # ImageSharpRenderingEngine, ImageSharpTextRenderer, ImageSharpFontManager
+src/FlexRender.ImageSharp/      # ImageSharp backend meta-package (renderer + providers)
+src/FlexRender.Svg.Render/      # SVG output renderer (-> Core)
+src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers)
 src/FlexRender.DependencyInjection/  # Microsoft DI integration
-src/FlexRender.MetaPackage/     # Meta-package (references all)
+src/FlexRender.MetaPackage/     # Meta-package (core + all backends + DI)
 src/FlexRender.Cli/             # CLI tool (System.CommandLine)
 
 tests/FlexRender.Tests/         # Unit + snapshot tests
 tests/FlexRender.Cli.Tests/     # CLI integration tests
+tests/FlexRender.ImageSharp.Tests/ # ImageSharp visual snapshot tests
 examples/                       # Example YAML templates
 ```
 
@@ -68,8 +84,9 @@ YAML Template
 | Parsing | `TemplateParser` (facade), `ElementParsers`, `YamlPropertyHelpers`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `EachElement`, `IfElement` |
 | Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator` |
 | Layout | `LayoutEngine` (facade), `IntrinsicMeasurer`, `ColumnFlexLayoutStrategy`, `RowFlexLayoutStrategy`, `WrappedFlexLayoutStrategy`, `LayoutHelpers`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize` |
-| Rendering | `SkiaRender` (IFlexRender impl), `SkiaRenderer` (facade), `RenderingEngine`, `TemplatePreprocessor`, `TextRenderer`, `FontManager`, `BmpEncoder` |
-| Providers | `IContentProvider<T>`, `QrProvider`, `BarcodeProvider`, `ImageProvider` |
+| Rendering (Skia) | `SkiaRender` (IFlexRender impl), `SkiaRenderer` (facade), `RenderingEngine`, `TemplatePreprocessor`, `TextRenderer`, `FontManager`, `BmpEncoder` |
+| Rendering (ImageSharp) | `ImageSharpRender` (IFlexRender impl), `ImageSharpRenderingEngine`, `ImageSharpTextRenderer`, `ImageSharpFontManager` |
+| Providers | `IContentProvider<T>`, `ISvgContentProvider<T>`, `IImageSharpContentProvider<T>`, `QrProvider`, `BarcodeProvider`, `ImageProvider` |
 | Values | `TemplateValue`, `StringValue`, `NumberValue`, `BoolValue`, `NullValue`, `ArrayValue`, `ObjectValue` |
 
 ### Important Patterns
@@ -127,7 +144,7 @@ All security limits are in `ResourceLimits`. Never remove or weaken them without
 
 ### Snapshot Testing
 
-`SnapshotTestBase` with golden images in `golden/`. Pixel-by-pixel comparison with configurable `colorThreshold` and `maxDifferencePercent`.
+`SnapshotTestBase` with golden images in `golden/`. Pixel-by-pixel comparison with configurable `colorThreshold` and `maxDifferencePercent`. ImageSharp snapshot tests use `ImageSharpSnapshotTestBase` and `ImageSharpSnapshotComparer` with golden images prefixed `is_` (macOS-only due to platform rendering differences).
 
 ```bash
 # Regenerate golden snapshot images

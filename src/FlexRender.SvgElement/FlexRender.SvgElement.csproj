@@ -2,16 +2,13 @@
 
   <PropertyGroup>
     <PackageId>FlexRender.SvgElement</PackageId>
-    <Description>SVG element rendering for FlexRender using Svg.Skia.</Description>
+    <Description>SVG element support for FlexRender (meta-package).</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Svg.Skia" />
+    <ProjectReference Include="..\FlexRender.SvgElement.Skia.Render\FlexRender.SvgElement.Skia.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.SvgElement.Svg.Render\FlexRender.SvgElement.Svg.Render.csproj" />
   </ItemGroup>
 
 </Project>

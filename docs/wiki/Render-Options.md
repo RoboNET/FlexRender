@@ -21,6 +21,20 @@ FlexRender separates configuration into two levels:
 
 ---
 
+## Backend Compatibility
+
+`RenderOptions` apply to both the Skia and ImageSharp backends. However, the ImageSharp backend ignores Skia-specific options that have no equivalent in the SixLabors rendering pipeline:
+
+| Property | Skia | ImageSharp |
+|----------|------|------------|
+| `Antialiasing` | Supported | Supported |
+| `SubpixelText` | Supported | Ignored |
+| `FontHinting` | Supported | Ignored |
+| `TextRendering` | Supported | Ignored |
+| `Culture` | Supported | Supported |
+
+---
+
 ## RenderOptions
 
 Per-call rendering options that apply to all output formats. Defined in `FlexRender.Core`.

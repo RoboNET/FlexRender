@@ -12,7 +12,10 @@ public enum OutputFormat
     Jpeg,
 
     /// <summary>BMP format (uncompressed).</summary>
-    Bmp
+    Bmp,
+
+    /// <summary>SVG format (scalable vector graphics).</summary>
+    Svg
 }
 
 /// <summary>
@@ -34,8 +37,9 @@ public static class OutputFormatExtensions
             ".png" => OutputFormat.Png,
             ".jpg" or ".jpeg" => OutputFormat.Jpeg,
             ".bmp" => OutputFormat.Bmp,
+            ".svg" => OutputFormat.Svg,
             _ => throw new ArgumentException(
-                $"Unsupported output format: '{extension}'. Supported formats: .png, .jpg, .jpeg, .bmp",
+                $"Unsupported output format: '{extension}'. Supported formats: .png, .jpg, .jpeg, .bmp, .svg",
                 nameof(path))
         };
     }
@@ -52,6 +56,7 @@ public static class OutputFormatExtensions
             OutputFormat.Png => ".png",
             OutputFormat.Jpeg => ".jpg",
             OutputFormat.Bmp => ".bmp",
+            OutputFormat.Svg => ".svg",
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
@@ -68,6 +73,7 @@ public static class OutputFormatExtensions
             OutputFormat.Png => "image/png",
             OutputFormat.Jpeg => "image/jpeg",
             OutputFormat.Bmp => "image/bmp",
+            OutputFormat.Svg => "image/svg+xml",
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }

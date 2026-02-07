@@ -4,35 +4,38 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CA1707;CA1816;CA1852;CA1859;CA1861</NoWarn>
+    <NoWarn>$(NoWarn);CA1707;CA1816;CA1852;CA1859;CA1861;xUnit1051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="coverlet.collector">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="FluentAssertions" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FlexRender.Core\FlexRender.Core.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.Yaml\FlexRender.Yaml.csproj" />
-    <ProjectReference Include="..\..\src\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.Http\FlexRender.Http.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.QrCode\FlexRender.QrCode.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.Barcode\FlexRender.Barcode.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.DependencyInjection\FlexRender.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.HarfBuzz\FlexRender.HarfBuzz.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.SvgElement\FlexRender.SvgElement.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.QrCode.ImageSharp.Render\FlexRender.QrCode.ImageSharp.Render.csproj" />
   </ItemGroup>
 
   <ItemGroup>

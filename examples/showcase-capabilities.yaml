@@ -1,0 +1,432 @@
+# Unified Showcase: FlexRender Capabilities
+# Render with -d showcase-capabilities-skia.json (or -imagesharp, -svg)
+
+template:
+  name: "showcase-capabilities"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+  semibold: "assets/fonts/Inter-SemiBold.ttf"
+
+canvas:
+  fixed: width
+  width: 500
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "24 20"
+    gap: 16
+    children:
+      # --- Header (renderer-specific styling) ---
+      - type: if
+        condition: renderer
+        equals: "skia"
+        then:
+          - type: flex
+            padding: "20 16"
+            background: "linear-gradient(135deg, #667eea, #764ba2)"
+            border-radius: "12"
+            box-shadow: "0 4 12 rgba(102,126,234,0.4)"
+            gap: 4
+            align: center
+            children:
+              - type: text
+                content: "{{rendererName}}"
+                font: bold
+                size: 1.4em
+                color: "#ffffff"
+                align: center
+              - type: text
+                content: "{{rendererDescription}}"
+                size: 0.8em
+                color: "#e0e0ff"
+                align: center
+        elseIf:
+          condition: renderer
+          equals: "imagesharp"
+          then:
+            - type: flex
+              padding: "20 16"
+              background: "#667eea"
+              border-radius: "12"
+              gap: 4
+              align: center
+              children:
+                - type: text
+                  content: "{{rendererName}}"
+                  font: bold
+                  size: 1.4em
+                  color: "#ffffff"
+                  align: center
+                - type: text
+                  content: "{{rendererDescription}}"
+                  size: 0.8em
+                  color: "#e0e0ff"
+                  align: center
+          else:
+            - type: flex
+              padding: "20 16"
+              background: "#2d8659"
+              border-radius: "12"
+              gap: 4
+              align: center
+              children:
+                - type: text
+                  content: "{{rendererName}}"
+                  font: bold
+                  size: 1.4em
+                  color: "#ffffff"
+                  align: center
+                - type: text
+                  content: "{{rendererDescription}}"
+                  size: 0.8em
+                  color: "#d0f0e0"
+                  align: center
+
+      # --- Common Features (all renderers) ---
+      - type: flex
+        padding: "14"
+        background: "#f8f9fa"
+        border-radius: "8"
+        border: "1 solid #e9ecef"
+        gap: 10
+        children:
+          - type: text
+            content: "Common Features"
+            font: semibold
+            size: 1em
+            color: "#495057"
+          - type: flex
+            direction: row
+            gap: 8
+            children:
+              - type: flex
+                grow: 1
+                padding: "8"
+                background: "#ffffff"
+                border-radius: "4"
+                children:
+                  - type: text
+                    content: "Left"
+                    size: 0.8em
+                    color: "#495057"
+              - type: flex
+                grow: 1
+                padding: "8"
+                background: "#ffffff"
+                border-radius: "4"
+                children:
+                  - type: text
+                    content: "Center"
+                    size: 0.8em
+                    color: "#495057"
+                    align: center
+              - type: flex
+                grow: 1
+                padding: "8"
+                background: "#ffffff"
+                border-radius: "4"
+                children:
+                  - type: text
+                    content: "Right"
+                    size: 0.8em
+                    color: "#495057"
+                    align: right
+          - type: separator
+            style: solid
+            color: "#dee2e6"
+          - type: separator
+            style: dashed
+            color: "#dee2e6"
+          - type: separator
+            style: dotted
+            color: "#dee2e6"
+          - type: text
+            content: "Rendered by: {{rendererName}}"
+            size: 0.75em
+            color: "#868e96"
+            align: center
+
+      # --- QR Code + Barcode (all renderers) ---
+      - type: flex
+        padding: "14"
+        background: "#f8f9fa"
+        border-radius: "8"
+        border: "1 solid #e9ecef"
+        gap: 10
+        children:
+          - type: text
+            content: "QR Code + Barcode"
+            font: semibold
+            size: 1em
+            color: "#495057"
+          - type: flex
+            direction: row
+            gap: 16
+            justify: center
+            align: start
+            children:
+              - type: flex
+                align: center
+                gap: 6
+                children:
+                  - type: qr
+                    data: "{{qrUrl}}"
+                    size: 120
+                    foreground: "#1a1a2e"
+                  - type: text
+                    content: "QR Code"
+                    size: 0.7em
+                    color: "#868e96"
+              - type: flex
+                align: center
+                gap: 6
+                children:
+                  - type: barcode
+                    data: "FLEX-2026"
+                    format: code128
+                    width: 200
+                    height: 50
+                    showText: true
+                  - type: text
+                    content: "Code128 Barcode"
+                    size: 0.7em
+                    color: "#868e96"
+
+      # --- Visual Effects (Skia only) ---
+      - type: if
+        condition: showGradients
+        then:
+          - type: flex
+            padding: "14"
+            background: "#f8f9fa"
+            border-radius: "8"
+            border: "1 solid #e9ecef"
+            gap: 10
+            children:
+              - type: text
+                content: "Visual Effects (Skia exclusive)"
+                font: semibold
+                size: 1em
+                color: "#495057"
+              - type: flex
+                direction: row
+                gap: 8
+                children:
+                  - type: flex
+                    grow: 1
+                    padding: "14 10"
+                    background: "linear-gradient(to right, #667eea, #764ba2)"
+                    border-radius: "8"
+                    box-shadow: "0 2 8 rgba(102,126,234,0.3)"
+                    children:
+                      - type: text
+                        content: "Gradient"
+                        font: semibold
+                        size: 0.8em
+                        color: "#ffffff"
+                        align: center
+                  - type: flex
+                    grow: 1
+                    padding: "14 10"
+                    background: "linear-gradient(135deg, #f093fb, #f5576c)"
+                    border-radius: "8"
+                    box-shadow: "2 4 12 rgba(240,93,251,0.3)"
+                    children:
+                      - type: text
+                        content: "Shadow"
+                        font: semibold
+                        size: 0.8em
+                        color: "#ffffff"
+                        align: center
+                  - type: flex
+                    grow: 1
+                    padding: "14 10"
+                    background: "radial-gradient(#ffecd2, #fcb69f)"
+                    border-radius: "8"
+                    children:
+                      - type: text
+                        content: "Radial"
+                        font: semibold
+                        size: 0.8em
+                        color: "#7c3aed"
+                        align: center
+              - type: flex
+                direction: row
+                gap: 6
+                children:
+                  - type: flex
+                    grow: 1
+                    padding: "10 6"
+                    background: "#3498db"
+                    border-radius: "6"
+                    opacity: 1.0
+                    children:
+                      - type: text
+                        content: "100%"
+                        size: 0.75em
+                        color: "#ffffff"
+                        align: center
+                  - type: flex
+                    grow: 1
+                    padding: "10 6"
+                    background: "#3498db"
+                    border-radius: "6"
+                    opacity: 0.7
+                    children:
+                      - type: text
+                        content: "70%"
+                        size: 0.75em
+                        color: "#ffffff"
+                        align: center
+                  - type: flex
+                    grow: 1
+                    padding: "10 6"
+                    background: "#3498db"
+                    border-radius: "6"
+                    opacity: 0.4
+                    children:
+                      - type: text
+                        content: "40%"
+                        size: 0.75em
+                        color: "#ffffff"
+                        align: center
+
+      # --- SVG Element Rendering (Skia only) ---
+      - type: if
+        condition: showSvgElements
+        then:
+          - type: flex
+            padding: "16 20"
+            gap: 10
+            children:
+              - type: text
+                content: "SVG Element Rendering"
+                font: bold
+                size: 14
+                color: "#1a1a2e"
+              - type: text
+                content: "Inline SVG content rendered natively (Skia exclusive)"
+                size: 10
+                color: "#888888"
+              - type: flex
+                direction: row
+                gap: 12
+                children:
+                  - type: flex
+                    grow: 1
+                    background: "#f8f8fc"
+                    padding: 12
+                    gap: 6
+                    align: center
+                    border-radius: "6"
+                    children:
+                      - type: svg
+                        content: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3498db"/><path d="M8 12l3 3 5-6" stroke="white" stroke-width="2" fill="none"/></svg>'
+                        width: 48
+                        height: 48
+                      - type: text
+                        content: "Inline SVG"
+                        size: 10
+                        color: "#555555"
+                        align: center
+                  - type: flex
+                    grow: 1
+                    background: "#f8f8fc"
+                    padding: 12
+                    gap: 6
+                    align: center
+                    border-radius: "6"
+                    children:
+                      - type: svg
+                        content: '<svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="4" fill="#e74c3c"/><path d="M7 12h10M12 7v10" stroke="white" stroke-width="2"/></svg>'
+                        width: 48
+                        height: 48
+                      - type: text
+                        content: "SVG Icons"
+                        size: 10
+                        color: "#555555"
+                        align: center
+                  - type: flex
+                    grow: 1
+                    background: "#f8f8fc"
+                    padding: 12
+                    gap: 6
+                    align: center
+                    border-radius: "6"
+                    children:
+                      - type: svg
+                        content: '<svg viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9" fill="#f1c40f"/></svg>'
+                        width: 48
+                        height: 48
+                      - type: text
+                        content: "Vector Shapes"
+                        size: 10
+                        color: "#555555"
+                        align: center
+
+      # --- Feature List (dynamic loop, all renderers) ---
+      - type: flex
+        padding: "14"
+        background: "#f8f9fa"
+        border-radius: "8"
+        border: "1 solid #e9ecef"
+        gap: 8
+        children:
+          - type: text
+            content: "Feature List (dynamic loop)"
+            font: semibold
+            size: 1em
+            color: "#495057"
+          - type: each
+            array: items
+            as: item
+            children:
+              - type: flex
+                direction: row
+                gap: 8
+                align: center
+                padding: "6 8"
+                background: "#ffffff"
+                border-radius: "4"
+                children:
+                  - type: flex
+                    width: "22"
+                    height: "22"
+                    background: "#667eea"
+                    border-radius: "11"
+                    align: center
+                    justify: center
+                    children:
+                      - type: text
+                        content: "{{@index + 1}}"
+                        size: 0.65em
+                        color: "#ffffff"
+                        font: semibold
+                        align: center
+                  - type: flex
+                    grow: 1
+                    gap: 1
+                    children:
+                      - type: text
+                        content: "{{item.name}}"
+                        font: semibold
+                        size: 0.85em
+                        color: "#212529"
+                      - type: text
+                        content: "{{item.desc}}"
+                        size: 0.7em
+                        color: "#868e96"
+
+      # --- Footer ---
+      - type: separator
+        style: solid
+        color: "#e9ecef"
+      - type: text
+        content: "FlexRender Capabilities Showcase"
+        size: 0.7em
+        align: center
+        color: "#adb5bd"

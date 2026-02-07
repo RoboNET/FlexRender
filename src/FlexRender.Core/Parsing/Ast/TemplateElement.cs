@@ -60,8 +60,7 @@ public enum ElementType
 
 /// <summary>
 /// Base class for all template elements.
-/// IMPORTANT: When adding new properties, update CopyBaseProperties() in ALL locations:
-/// TemplateExpander (Core), TemplatePreprocessor (Skia), SvgPreprocessor (Svg).
+/// When adding new properties, update <see cref="CopyBaseProperties"/> below.
 /// </summary>
 public abstract class TemplateElement
 {
@@ -195,4 +194,59 @@ public abstract class TemplateElement
     /// Null means no shadow.
     /// </summary>
     public string? BoxShadow { get; set; }
+
+    /// <summary>
+    /// Copies all base flex-item and positioning properties from source to target element.
+    /// Properties that require per-element transformation (Background, Rotate, Padding, Margin)
+    /// are intentionally excluded and must be set by each caller.
+    /// </summary>
+    /// <param name="source">The source element to copy properties from.</param>
+    /// <param name="target">The target element to copy properties to.</param>
+    public static void CopyBaseProperties(TemplateElement source, TemplateElement target)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+
+        // Flex-item properties
+        target.Grow = source.Grow;
+        target.Shrink = source.Shrink;
+        target.Basis = source.Basis;
+        target.AlignSelf = source.AlignSelf;
+        target.Order = source.Order;
+        target.Width = source.Width;
+        target.Height = source.Height;
+        target.MinWidth = source.MinWidth;
+        target.MaxWidth = source.MaxWidth;
+        target.MinHeight = source.MinHeight;
+        target.MaxHeight = source.MaxHeight;
+
+        // Position properties
+        target.Position = source.Position;
+        target.Top = source.Top;
+        target.Right = source.Right;
+        target.Bottom = source.Bottom;
+        target.Left = source.Left;
+
+        // Other base properties
+        target.Display = source.Display;
+        target.AspectRatio = source.AspectRatio;
+
+        // Border properties
+        target.Border = source.Border;
+        target.BorderWidth = source.BorderWidth;
+        target.BorderColor = source.BorderColor;
+        target.BorderStyle = source.BorderStyle;
+        target.BorderTop = source.BorderTop;
+        target.BorderRight = source.BorderRight;
+        target.BorderBottom = source.BorderBottom;
+        target.BorderLeft = source.BorderLeft;
+        target.BorderRadius = source.BorderRadius;
+
+        // Text direction
+        target.TextDirection = source.TextDirection;
+
+        // Visual effects
+        target.Opacity = source.Opacity;
+        target.BoxShadow = source.BoxShadow;
+    }
 }

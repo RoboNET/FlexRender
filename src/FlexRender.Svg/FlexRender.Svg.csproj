@@ -2,17 +2,15 @@
 
   <PropertyGroup>
     <PackageId>FlexRender.Svg</PackageId>
-    <Description>SVG vector output renderer for FlexRender. Generates scalable SVG from the same layout tree.</Description>
+    <Description>SVG backend meta-package for FlexRender (renderer + providers).</Description>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="FlexRender.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
-    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode.Svg.Render\FlexRender.QrCode.Svg.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.Barcode.Svg.Render\FlexRender.Barcode.Svg.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.SvgElement.Svg.Render\FlexRender.SvgElement.Svg.Render.csproj" />
   </ItemGroup>
 
 </Project>

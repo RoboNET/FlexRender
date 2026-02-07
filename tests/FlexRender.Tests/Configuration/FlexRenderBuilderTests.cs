@@ -5,6 +5,7 @@ using FlexRender.Barcode;
 using FlexRender.Configuration;
 using FlexRender.Parsing.Ast;
 using FlexRender.QrCode;
+using FlexRender.Skia;
 using FlexRender.TemplateEngine;
 using Xunit;
 
@@ -432,7 +433,7 @@ public sealed class SkiaBuilderTests
             }
         };
 
-        var bytes = await render.Render(template);
+        var bytes = await render.Render(template, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(bytes);
         Assert.NotEmpty(bytes);
@@ -463,7 +464,7 @@ public sealed class SkiaBuilderTests
             }
         };
 
-        var bytes = await render.Render(template);
+        var bytes = await render.Render(template, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(bytes);
         Assert.NotEmpty(bytes);
@@ -502,7 +503,7 @@ public sealed class SkiaBuilderTests
             }
         };
 
-        var bytes = await render.Render(template);
+        var bytes = await render.Render(template, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(bytes);
         Assert.NotEmpty(bytes);
@@ -534,7 +535,7 @@ public sealed class SkiaBuilderTests
         };
 
         // Renders without QR (element is skipped)
-        var bytes = await render.Render(template);
+        var bytes = await render.Render(template, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotEmpty(bytes);
     }
 
@@ -565,7 +566,7 @@ public sealed class SkiaBuilderTests
         };
 
         // Renders without barcode (element is skipped)
-        var bytes = await render.Render(template);
+        var bytes = await render.Render(template, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotEmpty(bytes);
     }
 
@@ -631,7 +632,7 @@ public sealed class FlexRenderBuilderIntegrationTests : IDisposable
             }
         };
 
-        var bytes = await _render.Render(template);
+        var bytes = await _render.Render(template, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(bytes);
         Assert.True(bytes.Length > 0);
@@ -658,7 +659,7 @@ public sealed class FlexRenderBuilderIntegrationTests : IDisposable
         };
         var data = new ObjectValue { ["name"] = "FlexRender" };
 
-        var bytes = await _render.Render(template, data);
+        var bytes = await _render.Render(template, data, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(bytes);
         Assert.True(bytes.Length > 0);
@@ -679,7 +680,7 @@ public sealed class FlexRenderBuilderIntegrationTests : IDisposable
             }
         };
 
-        var bytes = await _render.Render(template, format: ImageFormat.Jpeg);
+        var bytes = await _render.Render(template, format: ImageFormat.Jpeg, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(bytes);
         Assert.True(bytes.Length > 0);
@@ -703,7 +704,7 @@ public sealed class FlexRenderBuilderIntegrationTests : IDisposable
             }
         };
 
-        var bytes = await _render.Render(template, format: ImageFormat.Bmp);
+        var bytes = await _render.Render(template, format: ImageFormat.Bmp, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(bytes);
         Assert.True(bytes.Length > 0);
@@ -728,7 +729,7 @@ public sealed class FlexRenderBuilderIntegrationTests : IDisposable
         };
 
         using var stream = new MemoryStream();
-        await _render.Render(stream, template);
+        await _render.Render(stream, template, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(stream.Length > 0);
         stream.Position = 0;

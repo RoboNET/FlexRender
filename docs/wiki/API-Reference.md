@@ -69,7 +69,9 @@ Builder for configuring and creating `IFlexRender` instances. Defined in `FlexRe
 
 | Method | Description |
 |--------|-------------|
-| `WithSkia(Action<SkiaBuilder>?)` | Configure Skia renderer (required) |
+| `WithSkia(Action<SkiaBuilder>?)` | Configure Skia renderer |
+| `WithImageSharp(Action<ImageSharpBuilder>?)` | Configure ImageSharp renderer (pure .NET, no native deps) |
+| `WithSvg(Action<SvgBuilder>?)` | Configure SVG output renderer |
 | `WithBasePath(string)` | Base path for resolving relative file paths |
 | `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
 | `WithEmbeddedLoader(Assembly)` | Add embedded resource loader for `embedded://` URIs |
@@ -118,17 +120,138 @@ Configures Skia-specific rendering options and content providers.
 
 | Method | Description | Package |
 |--------|-------------|---------|
-| `WithQr()` | Enable QR code support | FlexRender.QrCode |
-| `WithBarcode()` | Enable barcode support | FlexRender.Barcode |
+| `WithQr()` | Enable QR code support | FlexRender.QrCode.Skia.Render or FlexRender.QrCode |
+| `WithBarcode()` | Enable barcode support | FlexRender.Barcode.Skia.Render or FlexRender.Barcode |
+| `WithSvgElement()` | Enable inline SVG element support | FlexRender.SvgElement.Skia.Render or FlexRender.SvgElement |
 | `WithHarfBuzz()` | Enable HarfBuzz text shaping for Arabic/Hebrew | FlexRender.HarfBuzz |
 
 ```csharp
 builder.WithSkia(skia => skia
     .WithQr()
-    .WithBarcode());
+    .WithBarcode()
+    .WithSvgElement());
 ```
 
 If a QR code or barcode element is encountered in a template and the corresponding provider is not configured, an `InvalidOperationException` is thrown at render time.
+
+---
+
+## ImageSharpBuilder
+
+Configures ImageSharp-specific rendering options and content providers. Pure .NET, no native dependencies.
+
+| Method | Description | Package |
+|--------|-------------|---------|
+| `WithQr()` | Enable QR code support | FlexRender.QrCode.ImageSharp.Render or FlexRender.QrCode |
+| `WithBarcode()` | Enable barcode support | FlexRender.Barcode.ImageSharp.Render or FlexRender.Barcode |
+
+```csharp
+builder.WithImageSharp(imageSharp => imageSharp
+    .WithQr()
+    .WithBarcode());
+```
+
+> **Note:** ImageSharp does not support SVG elements or HarfBuzz text shaping.
+
+---
+
+## SvgElement (in templates)
+
+The `FlexRender.SvgElement.Skia.Render` or `FlexRender.SvgElement` package adds `type: svg` support to templates for Skia rendering.
+
+### Registration
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithSkia(skia => skia.WithSvgElement().WithQr().WithBarcode())
+    .Build();
+```
+
+---
+
+## SVG Output Renderer
+
+The `FlexRender.Svg.Render` package provides the SVG renderer. The `FlexRender.Svg` meta-package includes the renderer plus SVG-specific providers.
+
+### Registration
+
+```csharp
+// SVG output only
+var render = new FlexRenderBuilder()
+    .WithSvg()
+    .Build();
+
+// SVG + raster output
+var render = new FlexRenderBuilder()
+    .WithSvg(svg => svg
+        .WithSkia(skia => skia.WithQr().WithBarcode())
+        .WithSvgElementSvg()
+        .WithQrSvg()
+        .WithBarcodeSvg())
+    .Build();
+```
+
+### Usage
+
+```csharp
+// Render to SVG string
+string svg = await render.RenderSvgAsync("template.yaml", data);
+
+// Render SVG to file
+await render.RenderSvgToFileAsync("template.yaml", data, "output.svg");
+```
+
+### SvgBuilder Methods
+
+| Method | Description |
+|--------|-------------|
+| `WithSkia(Action<SkiaBuilder>?)` | Use Skia as raster fallback for SVG output |
+| `WithRasterBackend(Func<FlexRenderBuilder, IFlexRender>)` | Use any `IFlexRender` implementation as raster fallback |
+| `WithQrSvg()` | Enable SVG-native QR codes (FlexRender.QrCode.Svg.Render) |
+| `WithBarcodeSvg()` | Enable SVG-native barcodes (FlexRender.Barcode.Svg.Render) |
+| `WithSvgElementSvg()` | Enable SVG-native SVG elements (FlexRender.SvgElement.Svg.Render) |
+
+If both `WithSkia` and `WithRasterBackend` are called, Skia takes precedence.
+
+```csharp
+// SVG output with ImageSharp as raster backend (no native dependencies)
+var render = new FlexRenderBuilder()
+    .WithSvg(svg => svg.WithRasterBackend(
+        ImageSharpFlexRenderBuilderExtensions.CreateRendererFactory()))
+    .Build();
+```
+
+---
+
+## ImageSharp Backend
+
+The `FlexRender.ImageSharp.Render` package provides a pure .NET rendering backend with zero native dependencies. The `FlexRender.ImageSharp` meta-package includes the renderer plus QR/barcode providers. Uses SixLabors.ImageSharp, SixLabors.ImageSharp.Drawing, and SixLabors.Fonts.
+
+### Registration
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithImageSharp(imageSharp => imageSharp.WithQr().WithBarcode())
+    .Build();
+
+// Or with configuration callback (reserved for future options)
+var render = new FlexRenderBuilder()
+    .WithImageSharp(imageSharp => { /* config */ })
+    .Build();
+```
+
+### Limitations
+
+- QR/barcode support requires `FlexRender.QrCode.ImageSharp.Render` and `FlexRender.Barcode.ImageSharp.Render` (or meta packages)
+- Does **not** support SVG elements
+- **Not** AOT-compatible (SixLabors.ImageSharp uses reflection internally)
+- Ignores Skia-specific render options (`FontHinting`, `SubpixelText`, `TextRendering`)
+
+### When to Use
+
+- Environments where native SkiaSharp dependencies are problematic (e.g., certain cloud functions, ARM platforms)
+- Projects that need pure managed .NET without P/Invoke
+- Templates that only use text, images, flex layout, separators, and tables
 
 ---
 

@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsAotCompatible>true</IsAotCompatible>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <NoWarn>$(NoWarn);IL2104;IL3053</NoWarn>
     <AssemblyName>flexrender-cli</AssemblyName>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>flexrender</ToolCommandName>
@@ -15,10 +17,13 @@
   <ItemGroup>
     <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
     <ProjectReference Include="..\FlexRender.Yaml\FlexRender.Yaml.csproj" />
-    <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
     <ProjectReference Include="..\FlexRender.Http\FlexRender.Http.csproj" />
     <ProjectReference Include="..\FlexRender.QrCode\FlexRender.QrCode.csproj" />
     <ProjectReference Include="..\FlexRender.Barcode\FlexRender.Barcode.csproj" />
+    <ProjectReference Include="..\FlexRender.SvgElement\FlexRender.SvgElement.csproj" />
+    <ProjectReference Include="..\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
+    <ProjectReference Include="..\FlexRender.ImageSharp.Render\FlexRender.ImageSharp.Render.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">

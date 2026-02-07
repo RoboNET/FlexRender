@@ -142,4 +142,22 @@ public class FontManagerTests : IDisposable
 
         Assert.Equal(48f, size);
     }
+
+    [Fact]
+    public void GetTypeface_MainFont_WithNoRegisteredFonts_ReturnsNonNull()
+    {
+        // "main" is the default font name used by TextElement.
+        // When no fonts are registered, it should still return a valid typeface.
+        var typeface = _fontManager.GetTypeface("main");
+
+        Assert.NotNull(typeface);
+    }
+
+    [Fact]
+    public void GetTypeface_EmptyString_ReturnsNonNull()
+    {
+        var typeface = _fontManager.GetTypeface("");
+
+        Assert.NotNull(typeface);
+    }
 }

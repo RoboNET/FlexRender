@@ -4,7 +4,6 @@ using FlexRender.Parsing.Ast;
 using FlexRender.Rendering;
 using SkiaSharp;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace FlexRender.Tests.Integration;
 
@@ -144,7 +143,7 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
 
         var sw = Stopwatch.StartNew();
         using var stream = new MemoryStream();
-        await _renderer.RenderToPng(stream, template, data);
+        await _renderer.RenderToPng(stream, template, data, cancellationToken: TestContext.Current.CancellationToken);
         sw.Stop();
 
         _output.WriteLine($"Render time: {sw.ElapsedMilliseconds} ms");
@@ -168,7 +167,7 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         var data = CreateTestData(hasDiscount: true, subtotal: 250);
 
         using var stream = new MemoryStream();
-        await _renderer.RenderToPng(stream, template, data);
+        await _renderer.RenderToPng(stream, template, data, cancellationToken: TestContext.Current.CancellationToken);
 
         var bytes = stream.ToArray();
         Assert.True(bytes.Length > 0);
@@ -185,7 +184,7 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         var data = CreateTestData(hasDiscount: false, subtotal: 50);
 
         using var stream = new MemoryStream();
-        await _renderer.RenderToPng(stream, template, data);
+        await _renderer.RenderToPng(stream, template, data, cancellationToken: TestContext.Current.CancellationToken);
 
         var bytes = stream.ToArray();
         Assert.True(bytes.Length > 0);
@@ -207,7 +206,7 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         };
 
         using var stream = new MemoryStream();
-        await _renderer.RenderToPng(stream, template, data);
+        await _renderer.RenderToPng(stream, template, data, cancellationToken: TestContext.Current.CancellationToken);
 
         var bytes = stream.ToArray();
         Assert.True(bytes.Length > 0);
@@ -226,14 +225,14 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         byte[] firstRender;
         using (var stream = new MemoryStream())
         {
-            await _renderer.RenderToPng(stream, template, data);
+            await _renderer.RenderToPng(stream, template, data, cancellationToken: TestContext.Current.CancellationToken);
             firstRender = stream.ToArray();
         }
 
         byte[] secondRender;
         using (var stream = new MemoryStream())
         {
-            await _renderer.RenderToPng(stream, template, data);
+            await _renderer.RenderToPng(stream, template, data, cancellationToken: TestContext.Current.CancellationToken);
             secondRender = stream.ToArray();
         }
 
@@ -247,7 +246,7 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         var data = CreateTestData(hasDiscount: true, subtotal: 200);
 
         using var stream = new MemoryStream();
-        await _renderer.RenderToJpeg(stream, template, data);
+        await _renderer.RenderToJpeg(stream, template, data, cancellationToken: TestContext.Current.CancellationToken);
 
         var bytes = stream.ToArray();
         Assert.True(bytes.Length > 0, "JPEG output should not be empty");
@@ -258,12 +257,12 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
     }
 
     [Fact]
-    public void AllFeatures_MeasureLayout_ReturnsReasonableSize()
+    public async Task AllFeatures_MeasureLayout_ReturnsReasonableSize()
     {
         var template = _parser.Parse(AllFeaturesYaml);
         var data = CreateTestData(hasDiscount: false, subtotal: 150);
 
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.Measure(template, data, TestContext.Current.CancellationToken);
 
         Assert.Equal(400f, size.Width);
         Assert.True(size.Height > 100, "Layout height should be substantial for a multi-section template");
@@ -342,14 +341,14 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         byte[] opaqueBytes;
         using (var stream = new MemoryStream())
         {
-            await _renderer.RenderToPng(stream, opaqueTemplate, data);
+            await _renderer.RenderToPng(stream, opaqueTemplate, data, cancellationToken: TestContext.Current.CancellationToken);
             opaqueBytes = stream.ToArray();
         }
 
         byte[] transparentBytes;
         using (var stream = new MemoryStream())
         {
-            await _renderer.RenderToPng(stream, transparentTemplate, data);
+            await _renderer.RenderToPng(stream, transparentTemplate, data, cancellationToken: TestContext.Current.CancellationToken);
             transparentBytes = stream.ToArray();
         }
 
@@ -410,14 +409,14 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         byte[] noShadowBytes;
         using (var stream = new MemoryStream())
         {
-            await _renderer.RenderToPng(stream, noShadowTemplate, data);
+            await _renderer.RenderToPng(stream, noShadowTemplate, data, cancellationToken: TestContext.Current.CancellationToken);
             noShadowBytes = stream.ToArray();
         }
 
         byte[] shadowBytes;
         using (var stream = new MemoryStream())
         {
-            await _renderer.RenderToPng(stream, shadowTemplate, data);
+            await _renderer.RenderToPng(stream, shadowTemplate, data, cancellationToken: TestContext.Current.CancellationToken);
             shadowBytes = stream.ToArray();
         }
 

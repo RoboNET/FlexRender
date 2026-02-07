@@ -17,7 +17,7 @@ public class QrProviderTests
     /// Verifies QR code generation with default settings.
     /// </summary>
     [Fact]
-    public void Generate_DefaultSettings_CreatesBitmap()
+    public void Generate_DefaultSettings_CreatesResult()
     {
         var element = new QrElement
         {
@@ -25,11 +25,11 @@ public class QrProviderTests
             Size = 100
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 100, 100);
 
-        Assert.NotNull(bitmap);
-        Assert.Equal(100, bitmap.Width);
-        Assert.Equal(100, bitmap.Height);
+        Assert.True(result.PngBytes.Length > 0);
+        Assert.Equal(100, result.Width);
+        Assert.Equal(100, result.Height);
     }
 
     /// <summary>
@@ -44,17 +44,17 @@ public class QrProviderTests
             Size = 200
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 200, 200);
 
-        Assert.Equal(200, bitmap.Width);
-        Assert.Equal(200, bitmap.Height);
+        Assert.Equal(200, result.Width);
+        Assert.Equal(200, result.Height);
     }
 
     /// <summary>
-    /// Verifies QR code uses specified foreground color.
+    /// Verifies QR code uses specified foreground color via ISkiaNativeProvider.
     /// </summary>
     [Fact]
-    public void Generate_CustomForeground_UsesForegroundColor()
+    public void GenerateBitmap_CustomForeground_UsesForegroundColor()
     {
         var element = new QrElement
         {
@@ -63,7 +63,8 @@ public class QrProviderTests
             Foreground = "#ff0000"
         };
 
-        using var bitmap = _provider.Generate(element);
+        ISkiaNativeProvider<QrElement> nativeProvider = _provider;
+        using var bitmap = nativeProvider.GenerateBitmap(element, 100, 100);
 
         // Check that red pixels exist (QR modules)
         var hasRedPixels = false;
@@ -83,10 +84,10 @@ public class QrProviderTests
     }
 
     /// <summary>
-    /// Verifies QR code uses specified background color.
+    /// Verifies QR code uses specified background color via ISkiaNativeProvider.
     /// </summary>
     [Fact]
-    public void Generate_CustomBackground_UsesBackgroundColor()
+    public void GenerateBitmap_CustomBackground_UsesBackgroundColor()
     {
         var element = new QrElement
         {
@@ -95,7 +96,8 @@ public class QrProviderTests
             Background = "#00ff00"
         };
 
-        using var bitmap = _provider.Generate(element);
+        ISkiaNativeProvider<QrElement> nativeProvider = _provider;
+        using var bitmap = nativeProvider.GenerateBitmap(element, 100, 100);
 
         // Check that green pixels exist (background)
         var hasGreenPixels = false;
@@ -122,7 +124,7 @@ public class QrProviderTests
     [InlineData(ErrorCorrectionLevel.M)]
     [InlineData(ErrorCorrectionLevel.Q)]
     [InlineData(ErrorCorrectionLevel.H)]
-    public void Generate_AllErrorCorrectionLevels_CreatesBitmap(ErrorCorrectionLevel level)
+    public void Generate_AllErrorCorrectionLevels_CreatesResult(ErrorCorrectionLevel level)
     {
         var element = new QrElement
         {
@@ -131,10 +133,10 @@ public class QrProviderTests
             ErrorCorrection = level
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 100, 100);
 
-        Assert.NotNull(bitmap);
-        Assert.Equal(100, bitmap.Width);
+        Assert.True(result.PngBytes.Length > 0);
+        Assert.Equal(100, result.Width);
     }
 
     /// <summary>
@@ -143,7 +145,7 @@ public class QrProviderTests
     [Fact]
     public void Generate_NullElement_ThrowsArgumentNullException()
     {
-        Assert.Throws<ArgumentNullException>(() => _provider.Generate(null!));
+        Assert.Throws<ArgumentNullException>(() => _provider.Generate(null!, 100, 100));
     }
 
     /// <summary>
@@ -154,7 +156,7 @@ public class QrProviderTests
     {
         var element = new QrElement { Data = "" };
 
-        Assert.Throws<ArgumentException>(() => _provider.Generate(element));
+        Assert.Throws<ArgumentException>(() => _provider.Generate(element, 100, 100));
     }
 
     /// <summary>
@@ -171,14 +173,14 @@ public class QrProviderTests
             Size = size
         };
 
-        Assert.Throws<ArgumentException>(() => _provider.Generate(element));
+        Assert.Throws<ArgumentException>(() => _provider.Generate(element, size, size));
     }
 
     /// <summary>
     /// Verifies QR code can encode URLs.
     /// </summary>
     [Fact]
-    public void Generate_Url_CreatesBitmap()
+    public void Generate_Url_CreatesResult()
     {
         var element = new QrElement
         {
@@ -186,17 +188,17 @@ public class QrProviderTests
             Size = 150
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 150, 150);
 
-        Assert.NotNull(bitmap);
-        Assert.Equal(150, bitmap.Width);
+        Assert.True(result.PngBytes.Length > 0);
+        Assert.Equal(150, result.Width);
     }
 
     /// <summary>
     /// Verifies QR code can encode special characters.
     /// </summary>
     [Fact]
-    public void Generate_SpecialCharacters_CreatesBitmap()
+    public void Generate_SpecialCharacters_CreatesResult()
     {
         var element = new QrElement
         {
@@ -204,8 +206,8 @@ public class QrProviderTests
             Size = 200
         };
 
-        using var bitmap = _provider.Generate(element);
+        var result = _provider.Generate(element, 200, 200);
 
-        Assert.NotNull(bitmap);
+        Assert.True(result.PngBytes.Length > 0);
     }
 }

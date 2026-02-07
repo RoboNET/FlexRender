@@ -29,9 +29,23 @@ Install only what you need:
 |---------|-------------|----------------------|
 | `FlexRender.Core` | Layout engine, template processing | None |
 | `FlexRender.Yaml` | YAML template parser | YamlDotNet |
-| `FlexRender.Skia` | SkiaSharp renderer | SkiaSharp |
-| `FlexRender.QrCode` | QR code support | QRCoder |
-| `FlexRender.Barcode` | Barcode support | None |
+| `FlexRender.Skia.Render` | SkiaSharp renderer | SkiaSharp |
+| `FlexRender.Skia` | Skia backend meta-package (renderer + providers) | SkiaSharp |
+| `FlexRender.ImageSharp.Render` | Pure .NET renderer (no native deps) | SixLabors.ImageSharp, SixLabors.Fonts, SixLabors.ImageSharp.Drawing |
+| `FlexRender.ImageSharp` | ImageSharp backend meta-package (renderer + providers) | SixLabors.ImageSharp, SixLabors.Fonts, SixLabors.ImageSharp.Drawing |
+| `FlexRender.Svg.Render` | SVG output renderer | None |
+| `FlexRender.Svg` | SVG backend meta-package (renderer + providers) | None |
+| `FlexRender.QrCode.Skia.Render` | QR codes for Skia | QRCoder |
+| `FlexRender.QrCode.Svg.Render` | QR codes for SVG | QRCoder |
+| `FlexRender.QrCode.ImageSharp.Render` | QR codes for ImageSharp | QRCoder |
+| `FlexRender.QrCode` | QR meta-package (all renderers) | QRCoder |
+| `FlexRender.Barcode.Skia.Render` | Barcodes for Skia | None |
+| `FlexRender.Barcode.Svg.Render` | Barcodes for SVG | None |
+| `FlexRender.Barcode.ImageSharp.Render` | Barcodes for ImageSharp | None |
+| `FlexRender.Barcode` | Barcode meta-package (all renderers) | None |
+| `FlexRender.SvgElement.Skia.Render` | SVG elements for Skia | Svg.Skia |
+| `FlexRender.SvgElement.Svg.Render` | SVG elements for SVG output | None |
+| `FlexRender.SvgElement` | SvgElement meta-package (all renderers) | Svg.Skia |
 | `FlexRender.HarfBuzz` | HarfBuzz text shaping for Arabic/Hebrew | SkiaSharp.HarfBuzz |
 | `FlexRender.Http` | HTTP/HTTPS resource loading | None |
 | `FlexRender.DependencyInjection` | Microsoft DI integration | Microsoft.Extensions.DI |
@@ -40,7 +54,7 @@ Install only what you need:
 # Example: core + YAML parser + Skia renderer
 dotnet add package FlexRender.Core
 dotnet add package FlexRender.Yaml
-dotnet add package FlexRender.Skia
+dotnet add package FlexRender.Skia.Render
 ```
 
 ### CLI tool
@@ -93,7 +107,7 @@ using FlexRender;
 using FlexRender.Configuration;
 using FlexRender.Yaml;
 
-// Build renderer with fluent API
+// Build renderer with Skia backend (full features)
 var render = new FlexRenderBuilder()
     .WithBasePath("./templates")
     .WithSkia(skia => skia
@@ -111,6 +125,19 @@ var data = new ObjectValue
 byte[] png = await render.RenderFile("hello.yaml", data);
 await File.WriteAllBytesAsync("hello.png", png);
 ```
+
+**Alternative: ImageSharp backend (pure .NET, no native deps):**
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithBasePath("./templates")
+    .WithImageSharp(imageSharp => imageSharp.WithQr().WithBarcode())
+    .Build();
+
+byte[] png = await render.RenderFile("hello.yaml", data);
+```
+
+> **Note:** ImageSharp supports QR codes and barcodes via `FlexRender.QrCode.ImageSharp.Render` and `FlexRender.Barcode.ImageSharp.Render`. SVG elements are not supported in ImageSharp.
 
 ### 2. Dependency Injection
 
@@ -154,6 +181,84 @@ flexrender render hello.yaml -d data.json -o hello.png
 # Watch mode -- auto re-render on file changes
 flexrender watch hello.yaml -d data.json -o preview.png
 ```
+
+## Renderer Configuration
+
+FlexRender supports three rendering backends. Choose based on your deployment environment and requirements.
+
+### Skia Backend
+
+Native rendering via SkiaSharp. Best quality, widest feature set.
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithSkia(skia => skia
+        .WithQr()        // QR code support
+        .WithBarcode()   // Barcode support
+        .WithSvgElement()) // Inline SVG elements
+    .Build();
+```
+
+- **Formats:** PNG, JPEG, BMP, Raw
+- **Requires:** `SkiaSharp.NativeAssets.Linux` on Linux/Docker
+- **Optional:** `.WithHarfBuzz()` for Arabic/Hebrew text shaping
+- **Best for:** Desktop apps, servers with native library support
+
+### ImageSharp Backend
+
+Pure .NET rendering — zero native dependencies.
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithImageSharp(imageSharp => imageSharp
+        .WithQr()        // QR code support
+        .WithBarcode())  // Barcode support
+    .Build();
+```
+
+- **Formats:** PNG, JPEG, BMP, Raw
+- **No native dependencies** — pure managed .NET
+- **Best for:** Containers, serverless, ARM platforms, environments where SkiaSharp is unavailable
+- **Limitations:** No SVG element support, no HarfBuzz text shaping
+
+### SVG Backend
+
+Vector SVG output with optional raster fallback.
+
+```csharp
+// SVG-only (vector output, no native dependencies)
+var render = new FlexRenderBuilder()
+    .WithSvg(svg => svg
+        .WithQrSvg()           // Vector QR codes
+        .WithBarcodeSvg()      // Vector barcodes
+        .WithSvgElementSvg())  // Inline SVG elements
+    .Build();
+```
+
+```csharp
+// SVG + Skia raster fallback (also supports PNG/JPEG)
+var render = new FlexRenderBuilder()
+    .WithSvg(svg => svg
+        .WithQrSvg()
+        .WithBarcodeSvg()
+        .WithSkia(skia => skia
+            .WithQr()
+            .WithBarcode()))
+    .Build();
+```
+
+- **SVG output:** Scalable vector graphics, smallest file size
+- **SVG-native providers:** QR codes and barcodes rendered as `<path>` elements
+- **Optional raster backend:** Add `.WithSkia()` for PNG/JPEG output alongside SVG
+- **Best for:** Web, print, documents where vector graphics are preferred
+
+### Renderer Comparison
+
+See the [showcase-capabilities template](../../examples/showcase-capabilities.yaml) for a side-by-side comparison of all three backends rendering the same template. Pre-rendered outputs:
+
+- [Skia output (PNG)](../../examples/output/showcase-capabilities-skia.png) -- gradients, shadows, SVG elements
+- [ImageSharp output (PNG)](../../examples/output/showcase-capabilities-imagesharp.png) -- pure .NET rendering
+- [SVG output](../../examples/output/showcase-capabilities.svg) -- vector graphics
 
 ## Output Formats
 

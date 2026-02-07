@@ -69,8 +69,10 @@ public static class WatchCommand
             var bmpColor = parseResult.GetValue(bmpColorOption);
             var verbose = parseResult.GetValue(GlobalOptions.Verbose);
             var basePath = parseResult.GetValue(GlobalOptions.BasePath);
+            var backend = parseResult.GetValue(GlobalOptions.Backend);
+            var rasterBackend = parseResult.GetValue(GlobalOptions.RasterBackend);
 
-            return await Execute(templateFile!, dataFile, outputFile, quality, open, bmpColor, verbose, basePath);
+            return await Execute(templateFile!, dataFile, outputFile, quality, open, bmpColor, verbose, basePath, backend!, rasterBackend!);
         });
 
         return command;
@@ -84,7 +86,9 @@ public static class WatchCommand
         bool open,
         BmpColorMode bmpColor,
         bool verbose,
-        DirectoryInfo? basePath)
+        DirectoryInfo? basePath,
+        string backend,
+        string rasterBackend)
     {
         // Validate output file is specified
         if (outputFile is null)
@@ -119,6 +123,14 @@ public static class WatchCommand
             return 1;
         }
 
+        // Validate backend/format compatibility
+        var backendError = Program.ValidateBackendFormat(format, backend);
+        if (backendError is not null)
+        {
+            Console.Error.WriteLine(backendError);
+            return 1;
+        }
+
         // Validate quality range
         if (quality < 0 || quality > 100)
         {
@@ -128,7 +140,7 @@ public static class WatchCommand
 
         // Create renderer with base path
         var effectiveBasePath = basePath?.FullName ?? templateFile.DirectoryName!;
-        using var renderer = Program.CreateRenderBuilder(effectiveBasePath).Build();
+        using var renderer = Program.CreateRenderBuilder(effectiveBasePath, backend, rasterBackend).Build();
 
         // Set BMP color mode if applicable
 #pragma warning disable CS0618 // Obsolete BmpColorMode property - CLI still supports legacy option
@@ -361,18 +373,30 @@ public static class WatchCommand
             // Ensure output directory exists
             FileOpener.EnsureDirectoryExists(outputFile.FullName);
 
-            // Map output format to ImageFormat
-            var imageFormat = format switch
+            if (format == OutputFormat.Svg)
             {
-                OutputFormat.Png => ImageFormat.Png,
-                OutputFormat.Jpeg => ImageFormat.Jpeg,
-                OutputFormat.Bmp => ImageFormat.Bmp,
-                _ => ImageFormat.Png
-            };
+                // SVG output path
+                var parser = new TemplateParser();
+                var yaml = await File.ReadAllTextAsync(templateFile.FullName);
+                var template = parser.Parse(yaml);
 
-            // Render directly to file
-            await using var outputStream = File.Create(outputFile.FullName);
-            await renderer.RenderFile(outputStream, templateFile.FullName, data, imageFormat);
+                await using var outputStream = File.Create(outputFile.FullName);
+                await renderer.RenderToSvg(outputStream, template, data);
+            }
+            else
+            {
+                // Raster output path
+                var imageFormat = format switch
+                {
+                    OutputFormat.Png => ImageFormat.Png,
+                    OutputFormat.Jpeg => ImageFormat.Jpeg,
+                    OutputFormat.Bmp => ImageFormat.Bmp,
+                    _ => ImageFormat.Png
+                };
+
+                await using var outputStream = File.Create(outputFile.FullName);
+                await renderer.RenderFile(outputStream, templateFile.FullName, data, imageFormat);
+            }
 
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Rendered: {outputFile.Name}");
             return 0;

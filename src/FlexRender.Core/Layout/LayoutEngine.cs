@@ -42,7 +42,16 @@ public sealed class LayoutEngine
     /// The delegate receives a <see cref="TextElement"/>, its computed font size, and
     /// a maximum width constraint, and returns the measured size of the text content.
     /// </summary>
+    [Obsolete("Use TextShaper instead. TextMeasurer will be removed in a future major release.")]
     public Func<TextElement, float, float, LayoutSize>? TextMeasurer { get; set; }
+
+    /// <summary>
+    /// Optional text shaper for computing line breaks and text metrics.
+    /// When set, takes precedence over <see cref="TextMeasurer"/>.
+    /// The shaper computes pre-broken lines that are stored on <see cref="LayoutNode.TextLines"/>,
+    /// enabling renderers to draw text without re-computing word wrap.
+    /// </summary>
+    public ITextShaper? TextShaper { get; set; }
 
     /// <summary>
     /// Base font size in pixels used for em resolution and as fallback when text elements
@@ -458,14 +467,42 @@ public sealed class LayoutEngine
         }
 
         float contentHeight;
-        // If height is explicitly specified, use it
+        IReadOnlyList<string>? textLines = null;
+        float computedLineHeight = 0f;
+
+        // If height is explicitly specified, use it (but still compute lines if shaper available)
         if (!string.IsNullOrEmpty(text.Height))
         {
             contentHeight = context.ResolveHeight(text.Height) ?? DefaultTextHeight;
+
+            // Still compute lines for renderers even with explicit height
+            if (TextShaper != null && !string.IsNullOrEmpty(text.Content))
+            {
+                var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
+                var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
+                    ? Math.Min(contentWidth, context.ContainerWidth)
+                    : float.MaxValue;
+                var shaped = TextShaper.ShapeText(text, fontSize, measureWidth);
+                textLines = shaped.Lines;
+                computedLineHeight = shaped.LineHeight;
+            }
         }
+        else if (TextShaper != null && !string.IsNullOrEmpty(text.Content))
+        {
+            // Use TextShaper for accurate height and pre-computed lines
+            var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
+            var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
+                ? Math.Min(contentWidth, context.ContainerWidth)
+                : float.MaxValue;
+            var shaped = TextShaper.ShapeText(text, fontSize, measureWidth);
+            contentHeight = shaped.TotalSize.Height;
+            textLines = shaped.Lines;
+            computedLineHeight = shaped.LineHeight;
+        }
+#pragma warning disable CS0618 // TextMeasurer is obsolete but still supported for backward compatibility
         else if (TextMeasurer != null && !string.IsNullOrEmpty(text.Content))
         {
-            // Use TextMeasurer for accurate height based on real font metrics
+            // Backward compatibility: use TextMeasurer delegate for height only
             var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
             var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
                 ? Math.Min(contentWidth, context.ContainerWidth)
@@ -473,18 +510,29 @@ public sealed class LayoutEngine
             var measured = TextMeasurer(text, fontSize, measureWidth);
             contentHeight = measured.Height;
         }
+#pragma warning restore CS0618
         else
         {
-            // Fallback when no TextMeasurer available: estimate using multiplier
+            // Fallback when no TextShaper or TextMeasurer available
             var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
             contentHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
+        }
+
+        // Handle empty content with shaper: set empty lines
+        if (TextShaper != null && string.IsNullOrEmpty(text.Content))
+        {
+            textLines = Array.Empty<string>();
+            contentHeight = 0f;
         }
 
         // Total size includes padding and border (margin is applied in flex layout pass)
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(text, 0, 0, totalWidth, totalHeight);
+        var node = new LayoutNode(text, 0, 0, totalWidth, totalHeight);
+        node.TextLines = textLines;
+        node.ComputedLineHeight = computedLineHeight;
+        return node;
     }
 
     /// <summary>

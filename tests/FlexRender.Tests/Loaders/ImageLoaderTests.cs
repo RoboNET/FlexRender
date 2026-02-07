@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Loaders;

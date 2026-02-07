@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.Barcode.Svg.Render</PackageId>
+    <Description>SVG-native barcode provider for FlexRender SVG rendering without the Skia raster backend.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
+    <ProjectReference Include="..\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
+  </ItemGroup>
+
+</Project>

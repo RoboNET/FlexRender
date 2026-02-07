@@ -14,6 +14,8 @@
     <ProjectReference Include="..\FlexRender.Yaml\FlexRender.Yaml.csproj" />
     <ProjectReference Include="..\FlexRender.Http\FlexRender.Http.csproj" />
     <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
+    <ProjectReference Include="..\FlexRender.ImageSharp\FlexRender.ImageSharp.csproj" />
+    <ProjectReference Include="..\FlexRender.Svg\FlexRender.Svg.csproj" />
     <ProjectReference Include="..\FlexRender.QrCode\FlexRender.QrCode.csproj" />
     <ProjectReference Include="..\FlexRender.Barcode\FlexRender.Barcode.csproj" />
     <ProjectReference Include="..\FlexRender.DependencyInjection\FlexRender.DependencyInjection.csproj" />

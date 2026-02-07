@@ -1,0 +1,68 @@
+template:
+  name: "business-card"
+  version: 1
+
+canvas:
+  fixed: both
+  width: 500
+  height: 280
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    padding: 25
+    gap: 20
+    children:
+      # Left side: contact info
+      - type: flex
+        direction: column
+        gap: 8
+        grow: 1
+        children:
+          - type: text
+            content: "{{name}}"
+            size: 1.6em
+            color: "#1a1a2e"
+            bold: true
+
+          - type: text
+            content: "{{title}}"
+            size: 0.95em
+            color: "#16213e"
+
+          - type: separator
+            color: "#e2e2e2"
+            thickness: 1
+
+          - type: flex
+            direction: column
+            gap: 5
+            padding: "5 0 0 0"
+            children:
+              - type: text
+                content: "{{email}}"
+                size: 0.8em
+                color: "#0f3460"
+
+              - type: text
+                content: "{{phone}}"
+                size: 0.8em
+                color: "#0f3460"
+
+              - type: text
+                content: "{{website}}"
+                size: 0.8em
+                color: "#0f3460"
+
+      # Right side: QR code
+      - type: flex
+        direction: column
+        align: center
+        justify: center
+        children:
+          - type: qr
+            data: "{{qrUrl}}"
+            size: 140
+            foreground: "#1a1a2e"
+            background: "#ffffff"

@@ -1,0 +1,104 @@
+template:
+  name: "svg-icons"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+
+canvas:
+  fixed: width
+  width: 360
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "24 20"
+    gap: 16
+    children:
+      - type: text
+        content: "SVG Icons Demo"
+        font: bold
+        size: 1.3em
+        align: center
+        color: "#1a1a1a"
+
+      - type: separator
+        style: solid
+        color: "#e0e0e0"
+
+      # Row of inline SVG icons with labels
+      - type: flex
+        direction: row
+        gap: 16
+        justify: space-around
+        children:
+          - type: flex
+            align: center
+            gap: 6
+            children:
+              - type: svg
+                content: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#e74c3c"/></svg>'
+                width: 36
+                height: 36
+              - type: text
+                content: "Favorites"
+                size: 0.75em
+                color: "#666666"
+
+          - type: flex
+            align: center
+            gap: 6
+            children:
+              - type: svg
+                content: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v5h-2z" fill="#f39c12"/></svg>'
+                width: 36
+                height: 36
+              - type: text
+                content: "Warnings"
+                size: 0.75em
+                color: "#666666"
+
+          - type: flex
+            align: center
+            gap: 6
+            children:
+              - type: svg
+                content: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="#27ae60"/></svg>'
+                width: 36
+                height: 36
+              - type: text
+                content: "Completed"
+                size: 0.75em
+                color: "#666666"
+
+      - type: separator
+        style: solid
+        color: "#e0e0e0"
+
+      # Larger SVG with description
+      - type: flex
+        direction: row
+        gap: 16
+        align: center
+        padding: "12"
+        background: "#f8f9fa"
+        border-radius: "8"
+        children:
+          - type: svg
+            content: '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="56" height="56" rx="12" fill="#667eea"/><text x="32" y="40" text-anchor="middle" fill="white" font-size="24" font-weight="bold">FR</text></svg>'
+            width: 56
+            height: 56
+          - type: flex
+            gap: 4
+            grow: 1
+            children:
+              - type: text
+                content: "FlexRender"
+                font: bold
+                size: 1.1em
+                color: "#1a1a1a"
+              - type: text
+                content: "YAML templates → images with flexbox layout"
+                size: 0.8em
+                color: "#666666"

@@ -34,6 +34,19 @@ public sealed class LayoutNode
     /// <summary>Effective text direction for this node.</summary>
     public TextDirection Direction { get; set; } = TextDirection.Ltr;
 
+    /// <summary>
+    /// Pre-computed text lines after wrapping, max-lines, and ellipsis processing.
+    /// Only populated for <see cref="Parsing.Ast.TextElement"/> nodes when an
+    /// <see cref="ITextShaper"/> is available during layout. Null for non-text elements.
+    /// </summary>
+    public IReadOnlyList<string>? TextLines { get; set; }
+
+    /// <summary>
+    /// Computed line height in pixels for text rendering.
+    /// Only meaningful when <see cref="TextLines"/> is not null.
+    /// </summary>
+    public float ComputedLineHeight { get; set; }
+
     /// <summary>Right edge (X + Width).</summary>
     public float Right => X + Width;
 

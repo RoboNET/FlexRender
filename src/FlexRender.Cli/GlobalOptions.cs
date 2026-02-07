@@ -28,6 +28,17 @@ public static class GlobalOptions
     /// </summary>
     public static Option<DirectoryInfo?> BasePath { get; } = CreateBasePathOption();
 
+    /// <summary>
+    /// Rendering backend to use: skia (default), imagesharp, or svg.
+    /// </summary>
+    public static Option<string> Backend { get; } = CreateBackendOption();
+
+    /// <summary>
+    /// Raster backend used for embedded rasterization when <c>--backend svg</c> is selected.
+    /// Accepts "skia" (default) or "imagesharp". Ignored when the primary backend is not svg.
+    /// </summary>
+    public static Option<string> RasterBackend { get; } = CreateRasterBackendOption();
+
     private static Option<bool> CreateVerboseOption()
     {
         var option = new Option<bool>("--verbose", "-v")
@@ -54,6 +65,59 @@ public static class GlobalOptions
         {
             Description = "Base path for resolving relative file paths in templates (default: template directory)",
             Recursive = true
+        };
+        return option;
+    }
+
+    private static Option<string> CreateBackendOption()
+    {
+        var option = new Option<string>("--backend", "-b")
+        {
+            Description = "Rendering backend: skia (default, direct raster), imagesharp (pure .NET raster), or svg (vector output)",
+            DefaultValueFactory = _ => "skia",
+            Recursive = true,
+            CustomParser = result =>
+            {
+                if (result.Tokens.Count == 0)
+                    return "skia";
+
+                var value = result.Tokens[0].Value;
+                if (string.Equals(value, "skia", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "imagesharp", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "svg", StringComparison.OrdinalIgnoreCase))
+                {
+                    return value.ToLowerInvariant();
+                }
+
+                result.AddError($"Invalid backend '{value}'. Valid options: skia, imagesharp, svg");
+                return "skia";
+            }
+        };
+        return option;
+    }
+
+    private static Option<string> CreateRasterBackendOption()
+    {
+        var option = new Option<string>("--raster-backend")
+        {
+            Description = "Raster backend for SVG mode: skia (default) or imagesharp. Only used with --backend svg",
+            DefaultValueFactory = _ => "skia",
+            Recursive = true,
+            CustomParser = result =>
+            {
+                if (result.Tokens.Count == 0)
+                    return "skia";
+
+                var value = result.Tokens[0].Value;
+                if (string.Equals(value, "skia", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "imagesharp", StringComparison.OrdinalIgnoreCase))
+                {
+                    return value.ToLowerInvariant();
+                }
+
+                result.AddError($"Invalid raster backend '{value}'. Valid options: skia, imagesharp");
+                return "skia";
+            }
         };
         return option;
     }

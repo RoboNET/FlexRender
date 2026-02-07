@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.SvgElement.Svg.Render</PackageId>
+    <Description>SVG-native svg element provider for FlexRender SVG rendering without the Skia raster backend.</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
+  </ItemGroup>
+
+</Project>

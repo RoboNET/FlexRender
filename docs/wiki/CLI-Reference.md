@@ -173,8 +173,26 @@ These options apply to all commands:
 | `--verbose` | `-v` | Verbose output |
 | `--fonts <dir>` | | Custom fonts directory |
 | `--scale <float>` | | Scale factor (e.g., `2.0` for retina) |
+| `--backend <name>` | `-b` | Rendering backend: `skia` (default) or `imagesharp` |
 
 The `--scale` option uses invariant culture -- always use `.` as the decimal separator (e.g., `--scale 2.0`).
+
+### Backend Selection
+
+| Backend | Features | Native Deps |
+|---------|----------|-------------|
+| `skia` (default) | Full features: QR codes, barcodes, SVG elements, HarfBuzz | Requires SkiaSharp native libs |
+| `imagesharp` | Pure .NET rendering, QR/barcode support (if packages installed), no SVG elements | None |
+
+> **Note:** The CLI references `FlexRender.QrCode` and `FlexRender.Barcode`, so the ImageSharp backend includes QR/barcode support out of the box. SVG elements are still Skia/SVG-only.
+
+```bash
+# Default (Skia backend)
+flexrender render receipt.yaml -d data.json -o receipt.png
+
+# Render with ImageSharp backend (no native dependencies)
+flexrender render receipt.yaml -d data.json -o receipt.png --backend imagesharp
+```
 
 ---
 

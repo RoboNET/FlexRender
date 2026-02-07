@@ -18,6 +18,8 @@ public class OutputFormatTests
     [InlineData("output.JPEG", OutputFormat.Jpeg)]
     [InlineData("output.bmp", OutputFormat.Bmp)]
     [InlineData("output.BMP", OutputFormat.Bmp)]
+    [InlineData("output.svg", OutputFormat.Svg)]
+    [InlineData("output.SVG", OutputFormat.Svg)]
     public void FromExtension_WithValidExtension_ReturnsCorrectFormat(string path, OutputFormat expected)
     {
         // Act
@@ -47,6 +49,7 @@ public class OutputFormatTests
     [InlineData(OutputFormat.Png, ".png")]
     [InlineData(OutputFormat.Jpeg, ".jpg")]
     [InlineData(OutputFormat.Bmp, ".bmp")]
+    [InlineData(OutputFormat.Svg, ".svg")]
     public void ToExtension_ReturnsCorrectExtension(OutputFormat format, string expected)
     {
         // Act
@@ -63,6 +66,7 @@ public class OutputFormatTests
     [InlineData(OutputFormat.Png, "image/png")]
     [InlineData(OutputFormat.Jpeg, "image/jpeg")]
     [InlineData(OutputFormat.Bmp, "image/bmp")]
+    [InlineData(OutputFormat.Svg, "image/svg+xml")]
     public void ToMimeType_ReturnsCorrectMimeType(OutputFormat format, string expected)
     {
         // Act

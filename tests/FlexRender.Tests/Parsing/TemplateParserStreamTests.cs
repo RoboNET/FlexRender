@@ -23,7 +23,7 @@ public sealed class TemplateParserStreamTests
             """;
 
         ITemplateParser parser = new TemplateParser();
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml));
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(yaml));
 
         var template = parser.Parse(stream);
 

@@ -1,6 +1,6 @@
 # Template Syntax
 
-FlexRender templates are YAML files that define image layouts using a tree of typed elements. This page covers the template structure, all 9 element types, common properties, and supported units.
+FlexRender templates are YAML files that define image layouts using a tree of typed elements. This page covers the template structure, all 10 element types, common properties, and supported units.
 
 For template expressions (variables, loops, conditionals), see [[Template-Expressions]].
 For flexbox layout properties, see [[Flexbox-Layout]].
@@ -210,7 +210,7 @@ Renders an image from a file, URL, base64 data, or embedded resource.
 
 ### qr
 
-Renders a QR code. Requires the `FlexRender.QrCode` package and `.WithQr()` on the builder.
+Renders a QR code. Requires `FlexRender.QrCode.Skia.Render` (or `FlexRender.QrCode`) and `.WithQr()` on the builder for Skia, or `FlexRender.QrCode.ImageSharp.Render` for ImageSharp.
 
 ```yaml
 - type: qr
@@ -240,7 +240,7 @@ Renders a QR code. Requires the `FlexRender.QrCode` package and `.WithQr()` on t
 
 ### barcode
 
-Renders a barcode. Requires the `FlexRender.Barcode` package and `.WithBarcode()` on the builder.
+Renders a barcode. Requires `FlexRender.Barcode.Skia.Render` (or `FlexRender.Barcode`) and `.WithBarcode()` on the builder for Skia, or `FlexRender.Barcode.ImageSharp.Render` for ImageSharp.
 
 ```yaml
 - type: barcode
@@ -392,6 +392,38 @@ Conditional rendering based on data values. Supports 13 comparison operators. Se
 | `then` | element[] | Yes | Elements when condition is true |
 | `elseIf` | if element | No | Nested else-if condition |
 | `else` | element[] | No | Elements when all conditions are false |
+
+---
+
+### svg
+
+Renders SVG vector graphics in templates. Supports external files (`src`) or inline markup (`content`).
+
+> Requires `FlexRender.SvgElement.Skia.Render` (or `FlexRender.SvgElement`) package: `.WithSkia(skia => skia.WithSvgElement())`
+
+```yaml
+# From file
+- type: svg
+  src: "assets/icons/logo.svg"
+  width: 120
+  height: 40
+
+# Inline SVG
+- type: svg
+  content: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#4CAF50"/></svg>'
+  width: 48
+  height: 48
+```
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `src` | string? | `null` | Path to SVG file. Loaded via resource loaders (file, HTTP, embedded). Mutually exclusive with `content`. |
+| `content` | string? | `null` | Inline SVG markup string. Mutually exclusive with `src`. |
+| `width` | int? | `null` | Target render width in pixels. `null` = use SVG intrinsic width or container. |
+| `height` | int? | `null` | Target render height in pixels. `null` = use SVG intrinsic height or container. |
+| `fit` | ImageFit | `contain` | How the SVG fits within its bounds: `fill`, `contain`, `cover`, `none`. |
+
+Must specify exactly one of `src` or `content` (not both, not neither).
 
 ---
 

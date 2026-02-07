@@ -1,0 +1,15 @@
+{
+  "renderer": "imagesharp",
+  "rendererName": "ImageSharp (Pure .NET)",
+  "rendererDescription": "Zero native dependencies, cross-platform",
+  "showGradients": false,
+  "showSvgElements": false,
+  "qrUrl": "https://github.com/RoboNET/FlexRender",
+  "items": [
+    {"name": "Flexbox Layout", "desc": "Row/column, wrap, gap, justify, align"},
+    {"name": "Text Features", "desc": "Alignment, wrapping, truncation, lineHeight"},
+    {"name": "QR + Barcodes", "desc": "QR codes with ECC, Code128 barcodes"},
+    {"name": "Pure .NET", "desc": "No native libraries required"},
+    {"name": "Cross-Platform", "desc": "ARM, serverless, containers"}
+  ]
+}
