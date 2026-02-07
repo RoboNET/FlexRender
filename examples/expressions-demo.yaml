@@ -1,0 +1,237 @@
+# Expressions Demo
+# Demonstrates: arithmetic expressions (+, -, *, /), null coalesce (??)
+# Note: filter pipes (currency, upper, etc.) require WithFilters() in FlexRenderBuilder
+
+template:
+  name: "expressions-demo"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+  semibold: "assets/fonts/Inter-SemiBold.ttf"
+
+canvas:
+  fixed: width
+  width: 380
+  background: "#f8f9fa"
+
+layout:
+  - type: flex
+    padding: "20"
+    gap: 16
+
+    children:
+      # Title
+      - type: text
+        content: "Inline Expressions"
+        font: bold
+        size: 1.3em
+        color: "#1a1a1a"
+        align: center
+
+      - type: separator
+        style: solid
+        color: "#dee2e6"
+        thickness: 1
+
+      # Section: Arithmetic
+      - type: flex
+        gap: 6
+        padding: "12"
+        background: "#ffffff"
+        border: "1 solid #e9ecef"
+        border-radius: "6"
+        children:
+          - type: text
+            content: "Arithmetic Expressions"
+            font: semibold
+            size: 0.95em
+            color: "#495057"
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "price + tax ="
+                size: 0.85em
+                color: "#6c757d"
+              - type: text
+                content: "{{price + tax}}"
+                size: 0.85em
+                color: "#212529"
+                font: semibold
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "price * quantity ="
+                size: 0.85em
+                color: "#6c757d"
+              - type: text
+                content: "{{price * quantity}}"
+                size: 0.85em
+                color: "#212529"
+                font: semibold
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "10% discount ="
+                size: 0.85em
+                color: "#6c757d"
+              - type: text
+                content: "{{price * quantity * 0.1}}"
+                size: 0.85em
+                color: "#e74c3c"
+                font: semibold
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "total / quantity ="
+                size: 0.85em
+                color: "#6c757d"
+              - type: text
+                content: "{{total / quantity}}"
+                size: 0.85em
+                color: "#212529"
+                font: semibold
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "negation: -price ="
+                size: 0.85em
+                color: "#6c757d"
+              - type: text
+                content: "{{-price}}"
+                size: 0.85em
+                color: "#e74c3c"
+                font: semibold
+
+      # Section: Null Coalesce
+      - type: flex
+        gap: 6
+        padding: "12"
+        background: "#ffffff"
+        border: "1 solid #e9ecef"
+        border-radius: "6"
+        children:
+          - type: text
+            content: "Null Coalesce (??)"
+            font: semibold
+            size: 0.95em
+            color: "#495057"
+
+          - type: text
+            content: "Returns the first non-null value"
+            size: 0.75em
+            color: "#868e96"
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "nickname ?? fullName:"
+                size: 0.85em
+                color: "#6c757d"
+              - type: text
+                content: "{{nickname ?? fullName}}"
+                size: 0.85em
+                color: "#212529"
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "notes ?? fallback:"
+                size: 0.85em
+                color: "#6c757d"
+              - type: text
+                content: "{{notes ?? defaultNote}}"
+                size: 0.85em
+                color: "#868e96"
+
+      # Section: Conditional with expressions
+      - type: flex
+        gap: 6
+        padding: "12"
+        background: "#ffffff"
+        border: "1 solid #e9ecef"
+        border-radius: "6"
+        children:
+          - type: text
+            content: "Expressions in Conditions"
+            font: semibold
+            size: 0.95em
+            color: "#495057"
+
+          - type: if
+            condition: "price * quantity"
+            greaterThan: 100
+            then:
+              - type: flex
+                padding: "8"
+                background: "#d4edda"
+                border-radius: "4"
+                children:
+                  - type: text
+                    content: "Order qualifies for free shipping (>$100)"
+                    size: 0.8em
+                    color: "#155724"
+
+          - type: if
+            condition: discount
+            greaterThan: 0
+            then:
+              - type: flex
+                padding: "8"
+                background: "#fff3cd"
+                border-radius: "4"
+                children:
+                  - type: text
+                    content: "Discount applied: -${{discount}}"
+                    size: 0.8em
+                    color: "#856404"
+
+      # Summary
+      - type: flex
+        padding: "12"
+        background: "#e8f4f8"
+        border-radius: "6"
+        gap: 4
+        children:
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "Final total:"
+                size: 1em
+                color: "#495057"
+                font: semibold
+              - type: text
+                content: "${{price * quantity - discount + tax}}"
+                size: 1em
+                color: "#212529"
+                font: bold
+
+      # Footer
+      - type: text
+        content: "FlexRender Expressions Demo"
+        size: 0.7em
+        align: center
+        color: "#adb5bd"
+        padding: "4 0 0 0"

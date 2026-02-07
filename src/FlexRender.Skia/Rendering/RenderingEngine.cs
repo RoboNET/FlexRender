@@ -1,3 +1,4 @@
+using System.Globalization;
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Layout;
@@ -18,12 +19,16 @@ internal sealed class RenderingEngine
     private readonly TextRenderer _textRenderer;
     private readonly IContentProvider<QrElement>? _qrProvider;
     private readonly IContentProvider<BarcodeElement>? _barcodeProvider;
+    private readonly IContentProvider<SvgElement>? _svgProvider;
     private readonly IImageLoader? _imageLoader;
     private readonly TemplateExpander _expander;
     private readonly TemplatePreprocessor _preprocessor;
     private readonly LayoutEngine _layoutEngine;
     private readonly ResourceLimits _limits;
     private readonly float _baseFontSize;
+    private readonly FilterRegistry? _filterRegistry;
+    private readonly FontManager? _fontManager;
+    private readonly FlexRenderOptions? _renderingOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RenderingEngine"/> class.
@@ -31,22 +36,30 @@ internal sealed class RenderingEngine
     /// <param name="textRenderer">The text renderer for drawing text elements.</param>
     /// <param name="qrProvider">Optional QR code content provider.</param>
     /// <param name="barcodeProvider">Optional barcode content provider.</param>
+    /// <param name="svgProvider">Optional SVG content provider.</param>
     /// <param name="imageLoader">Optional image loader for async pre-loading.</param>
     /// <param name="expander">The template expander for control flow expansion.</param>
     /// <param name="preprocessor">The template preprocessor for expression resolution.</param>
     /// <param name="layoutEngine">The layout engine for computing element positions.</param>
     /// <param name="limits">The resource limits to enforce.</param>
     /// <param name="baseFontSize">The base font size in pixels.</param>
+    /// <param name="filterRegistry">Optional filter registry for per-call culture resolution.</param>
+    /// <param name="fontManager">Optional font manager for creating culture-aware preprocessors.</param>
+    /// <param name="renderingOptions">Optional rendering options for creating culture-aware preprocessors.</param>
     internal RenderingEngine(
         TextRenderer textRenderer,
         IContentProvider<QrElement>? qrProvider,
         IContentProvider<BarcodeElement>? barcodeProvider,
+        IContentProvider<SvgElement>? svgProvider,
         IImageLoader? imageLoader,
         TemplateExpander expander,
         TemplatePreprocessor preprocessor,
         LayoutEngine layoutEngine,
         ResourceLimits limits,
-        float baseFontSize)
+        float baseFontSize,
+        FilterRegistry? filterRegistry = null,
+        FontManager? fontManager = null,
+        FlexRenderOptions? renderingOptions = null)
     {
         ArgumentNullException.ThrowIfNull(textRenderer);
         ArgumentNullException.ThrowIfNull(expander);
@@ -56,12 +69,16 @@ internal sealed class RenderingEngine
         _textRenderer = textRenderer;
         _qrProvider = qrProvider;
         _barcodeProvider = barcodeProvider;
+        _svgProvider = svgProvider;
         _imageLoader = imageLoader;
         _expander = expander;
         _preprocessor = preprocessor;
         _layoutEngine = layoutEngine;
         _limits = limits;
         _baseFontSize = baseFontSize;
+        _filterRegistry = filterRegistry;
+        _fontManager = fontManager;
+        _renderingOptions = renderingOptions;
     }
 
     /// <summary>
@@ -84,8 +101,9 @@ internal sealed class RenderingEngine
         RenderOptions? renderOptions = null)
     {
         var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
-        var expandedTemplate = _expander.Expand(template, data);
-        var processedTemplate = _preprocessor.Process(expandedTemplate, data);
+        var (expander, preprocessor) = ResolveExpanderAndPreprocessor(effectiveRenderOptions, template);
+        var expandedTemplate = expander.Expand(template, data);
+        var processedTemplate = preprocessor.Process(expandedTemplate, data);
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
 
         // Save canvas state
@@ -140,8 +158,10 @@ internal sealed class RenderingEngine
         }
 
         // Render to temporary bitmap first, then rotate
-        var expandedTemplate = _expander.Expand(template, data);
-        var processedTemplate = _preprocessor.Process(expandedTemplate, data);
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var (expander, preprocessor) = ResolveExpanderAndPreprocessor(effectiveRenderOptions, template);
+        var expandedTemplate = expander.Expand(template, data);
+        var processedTemplate = preprocessor.Process(expandedTemplate, data);
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
         var originalWidth = (int)rootNode.Width;
         var originalHeight = (int)rootNode.Height;
@@ -193,7 +213,23 @@ internal sealed class RenderingEngine
         var x = node.X + offsetX;
         var y = node.Y + offsetY;
 
-        // Draw current element
+        // Apply opacity via SaveLayer (offscreen buffer) only when opacity < 1.0.
+        // Per CSS spec, opacity affects the entire element visual output including
+        // box-shadow, so the shadow must be drawn inside the SaveLayer block.
+        // Note: SaveLayer allocates an offscreen bitmap -- only used when opacity < 1.0.
+        var hasOpacity = node.Element.Opacity < 1.0f;
+        if (hasOpacity)
+        {
+            var alpha = (byte)(node.Element.Opacity * 255);
+            using var opacityPaint = new SKPaint { Color = new SKColor(255, 255, 255, alpha) };
+            canvas.SaveLayer(opacityPaint);
+        }
+
+        // Draw box shadow before background (shadow is behind the element).
+        // Drawn inside SaveLayer so opacity affects the shadow per CSS spec.
+        DrawBoxShadow(canvas, node.Element, x, y, node.Width, node.Height);
+
+        // Draw current element (background, borders, content)
         DrawElement(canvas, node.Element, x, y, node.Width, node.Height, imageCache, renderOptions, node.Direction);
 
         // Apply overflow:hidden clipping for flex containers
@@ -211,6 +247,12 @@ internal sealed class RenderingEngine
         }
 
         if (needsClip)
+        {
+            canvas.Restore();
+        }
+
+        // Restore the opacity layer
+        if (hasOpacity)
         {
             canvas.Restore();
         }
@@ -242,19 +284,10 @@ internal sealed class RenderingEngine
         // Resolve border-radius for background clipping and border rendering
         var borderRadius = ResolveBorderRadius(element, width, height, _baseFontSize);
 
-        // Draw background if specified
+        // Draw background if specified (supports solid colors and gradients)
         if (!string.IsNullOrEmpty(element.Background))
         {
-            var bgColor = ColorParser.Parse(element.Background);
-            using var bgPaint = new SKPaint { Color = bgColor };
-            if (borderRadius > 0f)
-            {
-                canvas.DrawRoundRect(x, y, width, height, borderRadius, borderRadius, bgPaint);
-            }
-            else
-            {
-                canvas.DrawRect(x, y, width, height, bgPaint);
-            }
+            DrawBackground(canvas, element.Background, x, y, width, height, borderRadius);
         }
 
         // Draw borders between background and content
@@ -281,6 +314,13 @@ internal sealed class RenderingEngine
                 }
                 break;
 
+            case SvgElement svg when _svgProvider is not null:
+                using (var bitmap = _svgProvider.Generate(svg))
+                {
+                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
+                }
+                break;
+
             case ImageElement image:
                 using (var bitmap = ImageProvider.Generate(
                     image,
@@ -300,6 +340,119 @@ internal sealed class RenderingEngine
             case FlexElement:
                 // FlexElement is a container, children are rendered via RenderNode recursion
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Draws the background for an element, supporting solid colors and CSS gradient functions.
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="background">The background value (color string or gradient function).</param>
+    /// <param name="x">X position.</param>
+    /// <param name="y">Y position.</param>
+    /// <param name="width">Element width.</param>
+    /// <param name="height">Element height.</param>
+    /// <param name="borderRadius">Border radius for rounded corners.</param>
+    private static void DrawBackground(
+        SKCanvas canvas,
+        string background,
+        float x,
+        float y,
+        float width,
+        float height,
+        float borderRadius)
+    {
+        if (GradientParser.IsGradient(background) &&
+            GradientParser.TryParse(background, out var gradient) &&
+            gradient is not null)
+        {
+            // Gradient background
+            using var shader = GradientParser.CreateShader(gradient, x, y, width, height);
+            if (shader is not null)
+            {
+                using var gradientPaint = new SKPaint { Shader = shader };
+                if (borderRadius > 0f)
+                {
+                    canvas.DrawRoundRect(x, y, width, height, borderRadius, borderRadius, gradientPaint);
+                }
+                else
+                {
+                    canvas.DrawRect(x, y, width, height, gradientPaint);
+                }
+                return;
+            }
+        }
+
+        // Solid color background (fallback)
+        var bgColor = ColorParser.Parse(background);
+        using var bgPaint = new SKPaint { Color = bgColor };
+        if (borderRadius > 0f)
+        {
+            canvas.DrawRoundRect(x, y, width, height, borderRadius, borderRadius, bgPaint);
+        }
+        else
+        {
+            canvas.DrawRect(x, y, width, height, bgPaint);
+        }
+    }
+
+    /// <summary>
+    /// Draws a box shadow behind an element if the element has a box-shadow property.
+    /// Uses <see cref="SKMaskFilter.CreateBlur(SKBlurStyle, float)"/> for the blur effect.
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="element">The element whose shadow to draw.</param>
+    /// <param name="x">X position of the element.</param>
+    /// <param name="y">Y position of the element.</param>
+    /// <param name="width">Element width.</param>
+    /// <param name="height">Element height.</param>
+    private static void DrawBoxShadow(
+        SKCanvas canvas,
+        TemplateElement element,
+        float x,
+        float y,
+        float width,
+        float height)
+    {
+        if (string.IsNullOrEmpty(element.BoxShadow))
+            return;
+
+        if (!BoxShadowParser.TryParse(element.BoxShadow, out var shadow) || shadow is null)
+            return;
+
+        var borderRadius = 0f;
+        if (!string.IsNullOrEmpty(element.BorderRadius))
+        {
+            var unit = Layout.Units.UnitParser.Parse(element.BorderRadius);
+            borderRadius = Math.Max(0f, unit.Resolve(Math.Min(width, height), 12f) ?? 0f);
+            borderRadius = Math.Min(borderRadius, Math.Min(width, height) / 2f);
+        }
+
+        // Convert blur radius to sigma (SkiaSharp uses sigma for Gaussian blur)
+        var sigma = shadow.BlurRadius / 2f;
+
+        using var shadowPaint = new SKPaint
+        {
+            Color = shadow.Color,
+            IsAntialias = true
+        };
+
+        if (sigma > 0f)
+        {
+            using var blurFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, sigma);
+            shadowPaint.MaskFilter = blurFilter;
+        }
+
+        var shadowX = x + shadow.OffsetX;
+        var shadowY = y + shadow.OffsetY;
+
+        if (borderRadius > 0f)
+        {
+            canvas.DrawRoundRect(shadowX, shadowY, width, height, borderRadius, borderRadius, shadowPaint);
+        }
+        else
+        {
+            canvas.DrawRect(shadowX, shadowY, width, height, shadowPaint);
         }
     }
 
@@ -666,5 +819,62 @@ internal sealed class RenderingEngine
                     new[] { side.Width * 4, side.Width * 2 }, 0);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Resolves the effective culture from render options and template, and returns
+    /// the appropriate expander/preprocessor pair. When a non-default culture is specified
+    /// (via <c>RenderOptions.Culture</c> or <c>Template.Culture</c>), creates new
+    /// culture-aware instances. Otherwise, returns the default instances.
+    /// </summary>
+    private (TemplateExpander Expander, TemplatePreprocessor Preprocessor) ResolveExpanderAndPreprocessor(
+        RenderOptions renderOptions,
+        Template template)
+    {
+        if (_filterRegistry is null)
+        {
+            return (_expander, _preprocessor);
+        }
+
+        var effectiveCulture = ResolveCulture(renderOptions, template);
+        if (effectiveCulture is null || effectiveCulture.Equals(CultureInfo.InvariantCulture))
+        {
+            return (_expander, _preprocessor);
+        }
+
+        var expander = new TemplateExpander(_limits, _filterRegistry, effectiveCulture);
+        var processor = new TemplateProcessor(_limits, _filterRegistry, effectiveCulture);
+        var preprocessor = new TemplatePreprocessor(
+            _fontManager ?? throw new InvalidOperationException("FontManager is required for culture-aware rendering."),
+            processor,
+            _renderingOptions);
+
+        return (expander, preprocessor);
+    }
+
+    /// <summary>
+    /// Resolves the effective culture from render options and template.
+    /// Priority: <c>RenderOptions.Culture</c> &gt; <c>Template.Culture</c> &gt; <c>null</c>.
+    /// </summary>
+    private static CultureInfo? ResolveCulture(RenderOptions renderOptions, Template template)
+    {
+        if (renderOptions.Culture is not null)
+        {
+            return renderOptions.Culture;
+        }
+
+        if (!string.IsNullOrWhiteSpace(template.Culture))
+        {
+            try
+            {
+                return CultureInfo.GetCultureInfo(template.Culture);
+            }
+            catch (CultureNotFoundException)
+            {
+                return null;
+            }
+        }
+
+        return null;
     }
 }

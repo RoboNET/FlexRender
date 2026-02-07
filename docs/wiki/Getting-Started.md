@@ -32,6 +32,7 @@ Install only what you need:
 | `FlexRender.Skia` | SkiaSharp renderer | SkiaSharp |
 | `FlexRender.QrCode` | QR code support | QRCoder |
 | `FlexRender.Barcode` | Barcode support | None |
+| `FlexRender.HarfBuzz` | HarfBuzz text shaping for Arabic/Hebrew | SkiaSharp.HarfBuzz |
 | `FlexRender.Http` | HTTP/HTTPS resource loading | None |
 | `FlexRender.DependencyInjection` | Microsoft DI integration | Microsoft.Extensions.DI |
 
@@ -58,6 +59,7 @@ Create a file `hello.yaml`:
 template:
   name: "hello"
   version: 1
+  # culture: "ru-RU"          # Optional: culture for number/date formatting
 
 canvas:
   fixed: width
@@ -183,6 +185,10 @@ byte[] bmp = await render.RenderToBmp(template, data,
 
 // Raw BGRA pixel data
 byte[] raw = await render.RenderToRaw(template, data);
+
+// With culture-specific formatting (e.g., Russian number/date formatting)
+byte[] localized = await render.RenderToPng(template, data,
+    renderOptions: new RenderOptions { Culture = new CultureInfo("ru-RU") });
 ```
 
 Convenience extension methods from `FlexRender.Yaml`:

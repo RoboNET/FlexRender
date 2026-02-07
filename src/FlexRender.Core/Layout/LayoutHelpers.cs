@@ -172,6 +172,7 @@ internal static class LayoutHelpers
             QrElement q => !string.IsNullOrEmpty(q.Height) || q.Size > 0,
             BarcodeElement b => !string.IsNullOrEmpty(b.Height) || b.BarcodeHeight > 0,
             ImageElement i => !string.IsNullOrEmpty(i.Height) || i.ImageHeight.HasValue,
+            SvgElement s => !string.IsNullOrEmpty(s.Height) || s.SvgHeight.HasValue,
             _ => !string.IsNullOrEmpty(element.Height)
         };
     }
@@ -189,6 +190,7 @@ internal static class LayoutHelpers
             QrElement q => !string.IsNullOrEmpty(q.Width) || q.Size > 0,
             BarcodeElement b => !string.IsNullOrEmpty(b.Width) || b.BarcodeWidth > 0,
             ImageElement i => !string.IsNullOrEmpty(i.Width) || i.ImageWidth.HasValue,
+            SvgElement s => !string.IsNullOrEmpty(s.Width) || s.SvgWidth.HasValue,
             _ => !string.IsNullOrEmpty(element.Width)
         };
     }

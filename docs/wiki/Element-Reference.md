@@ -12,7 +12,7 @@ For rendering options (antialiasing, format settings), see [[Render-Options]].
 
 ## Common Properties (TemplateElement)
 
-All 8 element types (`flex`, `text`, `image`, `qr`, `barcode`, `separator`, `each`, `if`) inherit these 22 properties from the base `TemplateElement` class. You can use any of them on any element.
+All 9 element types (`flex`, `text`, `image`, `qr`, `barcode`, `separator`, `table`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
 
 ### Size Properties
 
@@ -274,10 +274,12 @@ When both opposing insets are set (e.g., `left` + `right`) without an explicit d
 
 | Property | YAML Name | Type | Default | Valid Values | Description |
 |----------|-----------|------|---------|--------------|-------------|
-| Background | `background` | string? | `null` | Hex color (#rgb or #rrggbb) | Background color. `null` means transparent. |
+| Background | `background` | string? | `null` | Hex color (#rgb or #rrggbb) or CSS gradient | Background color or gradient. `null` means transparent. |
+| Opacity | `opacity` | float | `1.0` | 0.0 to 1.0 | Element opacity. 0.0 is fully transparent, 1.0 is fully opaque. Affects the element and all its children. |
+| BoxShadow | `box-shadow` or `boxShadow` | string? | `null` | `"offsetX offsetY blurRadius color"` | Box shadow rendered behind the element. |
 | Rotate | `rotate` | string | `"none"` | none, left, right, flip, or degrees (e.g., "45") | Element rotation applied after rendering. |
 | AspectRatio | `aspectRatio` or `aspect-ratio` | float? | `null` | Any positive float | Width/height ratio. When one dimension is known, the other is computed. |
-| Dir | `dir` | TextDirection? | `null` | ltr, rtl, null | Text direction override. `null` inherits from parent or canvas. |
+| TextDirection | `text-direction` | TextDirection? | `null` | ltr, rtl, null | Text direction override. `null` inherits from parent or canvas. |
 
 ```yaml
 # Background color
@@ -325,6 +327,41 @@ When both opposing insets are set (e.g., `left` + `right`) without an explicit d
   width: "100"
   aspect-ratio: 1.0
   background: "#f0f0f0"
+
+# Semi-transparent overlay
+- type: flex
+  opacity: 0.5
+  background: "#000000"
+  padding: "16"
+  children:
+    - type: text
+      content: "50% transparent"
+      color: "#ffffff"
+
+# Box shadow
+- type: flex
+  box-shadow: "4 4 8 #00000040"
+  background: "#ffffff"
+  padding: "16"
+  children:
+    - type: text
+      content: "Shadowed card"
+
+# Linear gradient background
+- type: flex
+  background: "linear-gradient(to right, #ff0000, #0000ff)"
+  padding: "20"
+  children:
+    - type: text
+      content: "Gradient background"
+      color: "#ffffff"
+
+# Radial gradient background
+- type: flex
+  background: "radial-gradient(#ffffff, #000000)"
+  padding: "20"
+  width: "200"
+  height: "200"
 ```
 
 | Rotate Value | Effect |
@@ -1215,6 +1252,171 @@ Horizontal separators use `thickness` as their height and stretch to the contain
 
 ---
 
+## table
+
+Renders tabular data with configurable columns, optional header row, and support for both dynamic (data-driven) and static rows. During template expansion, the `table` element is expanded into a tree of `flex` and `text` elements -- no changes to the layout or rendering engines are needed.
+
+### Minimal Example
+
+```yaml
+- type: table
+  array: items
+  as: item
+  columns:
+    - key: name
+      label: "Name"
+      grow: 1
+    - key: price
+      label: "Price"
+      width: "80"
+      align: right
+```
+
+### Table Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| ArrayPath | `array` | string | `""` | Dot-notation path to array in data | No (use `rows` for static data) | Path to the data array for dynamic rows. |
+| ItemVariable | `as` | string? | `null` | Any valid identifier | No | Variable name for the current item. |
+| Columns | `columns` | column[] | -- | Array of column definitions | **Yes** | Column definitions. Must have at least one column. |
+| Rows | `rows` | row[] | `[]` | Array of static row definitions | No | Static rows. Alternative to `array` for fixed data. |
+| HeaderFont | `headerFont` or `header-font` | string? | `null` | Any font name from `fonts` section | No | Font for the header row. |
+| HeaderColor | `headerColor` or `header-color` | string? | `null` | Hex color | No | Text color for the header row. |
+| HeaderSize | `headerSize` or `header-size` | string? | `null` | px, em, % | No | Font size for the header row. |
+| HeaderBackground | `headerBackground` or `header-background` | string? | `null` | Hex color | No | Background color for the header row. |
+
+### Column Properties
+
+| Property | YAML Name | Type | Default | Description |
+|----------|-----------|------|---------|-------------|
+| Key | `key` | string | -- | **Required.** Data field name to display in this column. |
+| Label | `label` | string? | `null` | Header text. If null, no header cell is rendered for this column. |
+| Width | `width` | string? | `null` | Explicit column width (px, %, em). |
+| Grow | `grow` | float | `0` | Flex grow factor for the column. |
+| Align | `align` | TextAlign | `left` | Text alignment: `left`, `center`, `right`. |
+| Font | `font` | string? | `null` | Font override for cells in this column. |
+| Color | `color` | string? | `null` | Text color override for cells in this column. |
+| Size | `size` | string? | `null` | Font size override for cells in this column. |
+| Format | `format` | string? | `null` | Format string for cell values. |
+
+### Static Row Properties
+
+| Property | YAML Name | Type | Default | Description |
+|----------|-----------|------|---------|-------------|
+| Values | `values` | map | -- | **Required.** Mapping of column keys to display values. Uses case-insensitive keys. |
+| Font | `font` | string? | `null` | Font override for this entire row. |
+| Color | `color` | string? | `null` | Text color override for this entire row. |
+| Size | `size` | string? | `null` | Font size override for this entire row. |
+
+```yaml
+# Dynamic table with styled header
+- type: table
+  array: products
+  as: product
+  headerFont: bold
+  headerColor: "#ffffff"
+  headerBackground: "#333333"
+  columns:
+    - key: name
+      label: "Product"
+      grow: 1
+    - key: quantity
+      label: "Qty"
+      width: "50"
+      align: center
+    - key: price
+      label: "Price"
+      width: "80"
+      align: right
+      format: "N2"
+
+# Static table with explicit rows
+- type: table
+  columns:
+    - key: label
+      grow: 1
+      font: bold
+    - key: value
+      width: "120"
+      align: right
+  rows:
+    - values:
+        label: "Subtotal"
+        value: "85.00 $"
+    - values:
+        label: "Tax (10%)"
+        value: "8.50 $"
+    - values:
+        label: "Total"
+        value: "93.50 $"
+      font: bold
+      size: 1.2em
+```
+
+### Complete Example: Invoice Table
+
+```yaml
+- type: flex
+  gap: 12
+  padding: "20"
+  width: "400"
+  children:
+    - type: text
+      content: "Invoice #{{invoiceId}}"
+      font: bold
+      size: 1.3em
+
+    - type: table
+      array: lineItems
+      as: line
+      headerFont: bold
+      headerBackground: "#f5f5f5"
+      columns:
+        - key: description
+          label: "Description"
+          grow: 1
+        - key: qty
+          label: "Qty"
+          width: "40"
+          align: center
+        - key: unitPrice
+          label: "Unit"
+          width: "70"
+          align: right
+        - key: total
+          label: "Total"
+          width: "70"
+          align: right
+          font: bold
+
+    - type: separator
+      style: solid
+      color: "#333333"
+
+    - type: table
+      columns:
+        - key: label
+          grow: 1
+        - key: amount
+          width: "70"
+          align: right
+          font: bold
+      rows:
+        - values:
+            label: "Subtotal"
+            amount: "{{subtotal}} $"
+        - values:
+            label: "Tax"
+            amount: "{{tax}} $"
+        - values:
+            label: "Total"
+            amount: "{{total}} $"
+          font: bold
+          size: 1.2em
+```
+
+---
+
 ## each (Control Flow)
 
 Iterates over an array in the template data, rendering the `children` template once for each array item. This is the primary mechanism for dynamic, data-driven lists.
@@ -1647,6 +1849,11 @@ Several properties accept both camelCase and kebab-case names in YAML. The parse
 | `alignContent` | `align-content` | flex | Both forms accepted |
 | `rowGap` | `row-gap` | flex | Both forms accepted |
 | `columnGap` | `column-gap` | flex | Both forms accepted |
+| `boxShadow` | `box-shadow` | All (TemplateElement) | Both forms accepted |
+| `headerFont` | `header-font` | table | Both forms accepted |
+| `headerColor` | `header-color` | table | Both forms accepted |
+| `headerSize` | `header-size` | table | Both forms accepted |
+| `headerBackground` | `header-background` | table | Both forms accepted |
 
 The following properties are **camelCase only** (no kebab-case variant):
 

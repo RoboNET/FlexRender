@@ -9,6 +9,11 @@ namespace FlexRender.Layout;
 public static class LineHeightResolver
 {
     /// <summary>
+    /// Default line height multiplier used when no explicit line-height is set and no font metrics are available.
+    /// </summary>
+    public const float DefaultMultiplier = 1.4f;
+
+    /// <summary>
     /// Resolves a line height specification to an absolute pixel value.
     /// </summary>
     /// <param name="lineHeight">The line height string (e.g., "1.8", "24px", "2em"). Null or empty means use default.</param>

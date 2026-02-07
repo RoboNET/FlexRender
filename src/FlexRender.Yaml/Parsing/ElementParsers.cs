@@ -141,6 +141,10 @@ internal sealed class ElementParsers
                 _ => null
             };
         }
+
+        // Visual effect properties
+        element.Opacity = Math.Clamp(GetFloatValue(node, "opacity", 1.0f), 0.0f, 1.0f);
+        element.BoxShadow = GetStringValue(node, "box-shadow") ?? GetStringValue(node, "boxShadow");
     }
 
     /// <summary>
@@ -602,6 +606,204 @@ internal sealed class ElementParsers
             }
         }
         return result;
+    }
+
+    /// <summary>
+    /// Parses an SVG element from YAML.
+    /// Supports both external SVG files (via src) and inline SVG markup (via content).
+    /// </summary>
+    /// <param name="node">The YAML node containing the SVG element definition.</param>
+    /// <returns>The parsed SVG element.</returns>
+    /// <exception cref="TemplateParseException">
+    /// Thrown when neither src nor content is specified, or both are specified.
+    /// </exception>
+    internal static TemplateElement ParseSvgElement(YamlMappingNode node)
+    {
+        var src = GetStringValue(node, "src");
+        var content = GetStringValue(node, "content");
+
+        var hasSrc = !string.IsNullOrEmpty(src);
+        var hasContent = !string.IsNullOrEmpty(content);
+
+        if (!hasSrc && !hasContent)
+        {
+            throw new TemplateParseException(
+                "SVG element requires either 'src' or 'content' property.");
+        }
+
+        if (hasSrc && hasContent)
+        {
+            throw new TemplateParseException(
+                "SVG element cannot have both 'src' and 'content'. Use one or the other.");
+        }
+
+        var svg = new SvgElement
+        {
+            Src = src,
+            Content = content,
+            SvgWidth = GetNullableIntValue(node, "width"),
+            SvgHeight = GetNullableIntValue(node, "height"),
+            Rotate = GetStringValue(node, "rotate", "none"),
+            Background = GetStringValue(node, "background"),
+            Padding = GetStringValue(node, "padding", "0"),
+            Margin = GetStringValue(node, "margin", "0")
+        };
+
+        var fitStr = GetStringValue(node, "fit", "contain");
+        svg.Fit = fitStr.ToLowerInvariant() switch
+        {
+            "fill" => ImageFit.Fill,
+            "contain" => ImageFit.Contain,
+            "cover" => ImageFit.Cover,
+            "none" => ImageFit.None,
+            _ => ImageFit.Contain
+        };
+
+        ApplyFlexItemProperties(node, svg);
+        return svg;
+    }
+
+    /// <summary>
+    /// Parses a table element from YAML.
+    /// Supports both dynamic (data-bound) and static (hardcoded rows) tables.
+    /// </summary>
+    /// <param name="node">The YAML node containing the table element definition.</param>
+    /// <returns>The parsed table element.</returns>
+    /// <exception cref="TemplateParseException">
+    /// Thrown when columns are missing, or both array and rows are specified.
+    /// </exception>
+    internal static TemplateElement ParseTableElement(YamlMappingNode node)
+    {
+        // Parse columns (required)
+        if (!TryGetSequence(node, "columns", out var columnsNode))
+        {
+            throw new TemplateParseException("Table element requires 'columns' property");
+        }
+
+        var columns = ParseTableColumns(columnsNode);
+        if (columns.Count == 0)
+        {
+            throw new TemplateParseException("Table element must have at least one column");
+        }
+
+        // Parse data source: array (dynamic) or rows (static) -- mutually exclusive
+        var arrayPath = GetStringValue(node, "array");
+        var hasRows = TryGetSequence(node, "rows", out var rowsNode);
+
+        if (!string.IsNullOrEmpty(arrayPath) && hasRows)
+        {
+            throw new TemplateParseException("Table element cannot have both 'array' and 'rows' properties");
+        }
+
+        IReadOnlyList<TableRow> rows = hasRows ? ParseTableRows(rowsNode, columns) : Array.Empty<TableRow>();
+
+        var table = new TableElement(columns, rows)
+        {
+            ArrayPath = arrayPath,
+            ItemVariable = GetStringValue(node, "as"),
+            Font = GetStringValue(node, "font", "main"),
+            Size = GetStringValue(node, "size", "1em"),
+            Color = GetStringValue(node, "color", "#000000"),
+            RowGap = GetStringValue(node, "rowGap") ?? GetStringValue(node, "row-gap"),
+            ColumnGap = GetStringValue(node, "columnGap") ?? GetStringValue(node, "column-gap"),
+            HeaderFont = GetStringValue(node, "headerFont") ?? GetStringValue(node, "header-font"),
+            HeaderColor = GetStringValue(node, "headerColor") ?? GetStringValue(node, "header-color"),
+            HeaderSize = GetStringValue(node, "headerSize") ?? GetStringValue(node, "header-size"),
+            HeaderBorderBottom = GetStringValue(node, "headerBorderBottom") ?? GetStringValue(node, "header-border-bottom"),
+            Rotate = GetStringValue(node, "rotate", "none"),
+            Background = GetStringValue(node, "background"),
+            Padding = GetStringValue(node, "padding", "0"),
+            Margin = GetStringValue(node, "margin", "0")
+        };
+
+        ApplyFlexItemProperties(node, table);
+        return table;
+    }
+
+    /// <summary>
+    /// Parses a YAML sequence of column definitions into <see cref="TableColumn"/> objects.
+    /// </summary>
+    /// <param name="sequence">The YAML sequence node containing column mappings.</param>
+    /// <returns>A list of parsed table columns.</returns>
+    private static List<TableColumn> ParseTableColumns(YamlSequenceNode sequence)
+    {
+        var columns = new List<TableColumn>(sequence.Children.Count);
+
+        foreach (var child in sequence.Children)
+        {
+            if (child is not YamlMappingNode colNode)
+            {
+                continue;
+            }
+
+            var column = new TableColumn
+            {
+                Key = GetStringValue(colNode, "key", ""),
+                Label = GetStringValue(colNode, "label"),
+                Width = GetStringValue(colNode, "width"),
+                Grow = GetFloatValue(colNode, "grow", 0f),
+                Font = GetStringValue(colNode, "font"),
+                Color = GetStringValue(colNode, "color"),
+                Size = GetStringValue(colNode, "size"),
+                Format = GetStringValue(colNode, "format")
+            };
+
+            var alignStr = GetStringValue(colNode, "align", "left");
+            column.Align = alignStr.ToLowerInvariant() switch
+            {
+                "left" => TextAlign.Left,
+                "center" => TextAlign.Center,
+                "right" => TextAlign.Right,
+                "start" => TextAlign.Start,
+                "end" => TextAlign.End,
+                _ => TextAlign.Left
+            };
+
+            columns.Add(column);
+        }
+
+        return columns;
+    }
+
+    /// <summary>
+    /// Parses a YAML sequence of static row definitions into <see cref="TableRow"/> objects.
+    /// Each row is a YAML mapping where keys match column keys.
+    /// </summary>
+    /// <param name="sequence">The YAML sequence node containing row mappings.</param>
+    /// <param name="columns">The column definitions for key reference.</param>
+    /// <returns>A list of parsed table rows.</returns>
+    private static List<TableRow> ParseTableRows(YamlSequenceNode sequence, IReadOnlyList<TableColumn> columns)
+    {
+        var rows = new List<TableRow>(sequence.Children.Count);
+
+        foreach (var child in sequence.Children)
+        {
+            if (child is not YamlMappingNode rowNode)
+            {
+                continue;
+            }
+
+            var row = new TableRow
+            {
+                Font = GetStringValue(rowNode, "font"),
+                Color = GetStringValue(rowNode, "color"),
+                Size = GetStringValue(rowNode, "size")
+            };
+
+            // Extract cell values matching column keys
+            foreach (var column in columns)
+            {
+                var value = GetStringValue(rowNode, column.Key);
+                if (value != null)
+                {
+                    row.Values[column.Key] = value;
+                }
+            }
+
+            rows.Add(row);
+        }
+
+        return rows;
     }
 
     /// <summary>

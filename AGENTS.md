@@ -26,8 +26,9 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
   Layout/                       # Two-pass flexbox layout engine (LayoutEngine, LayoutNode, LayoutSize)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser, MarginValue, MarginValues
   Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
-  Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, etc.
-  TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator
+  Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, TableElement, TableColumn, TableRow, etc.
+  TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator, InlineExpressionParser, InlineExpressionEvaluator, FilterRegistry
+    Filters/                    # ITemplateFilter, CurrencyFilter, NumberFilter, UpperFilter, LowerFilter, TrimFilter, TruncateFilter, FormatFilter
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
@@ -35,7 +36,7 @@ src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia/            # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
-  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder
+  Rendering/                    # SkiaRenderer, TextRenderer, FontManager, ColorParser, RotationHelper, BmpEncoder, BoxShadowParser, GradientParser
   Loaders/                      # FontLoader, ImageLoader
   Providers/                    # IContentProvider<T,O>, ImageProvider
 src/FlexRender.QrCode/          # QR code provider (-> Skia + QRCoder)
@@ -145,10 +146,10 @@ byte[] png = await render.Render(_templates["receipt"], data);
 |-------|------------|
 | Configuration | `FlexRenderBuilder`, `SkiaBuilder`, `FlexRenderOptions`, `ResourceLimits` |
 | Abstractions | `IFlexRender`, `IResourceLoader` |
-| Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `EachElement`, `IfElement` |
-| Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext` |
+| Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `TableElement`, `TableColumn`, `TableRow`, `EachElement`, `IfElement` |
+| Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext`, `InlineExpressionParser`, `InlineExpressionEvaluator`, `FilterRegistry`, `ITemplateFilter` |
 | Layout | `LayoutEngine`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize`, `Unit`, `UnitParser`, `MarginValue`, `MarginValues`, `PaddingParser.ParseMargin` |
-| Rendering | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder` |
+| Rendering | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder`, `BoxShadowParser`, `GradientParser` |
 | Providers | `IContentProvider<T,O>`, `QrProvider`, `BarcodeProvider`, `ImageProvider` |
 | Loaders | `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader` |
 | DI | `ServiceCollectionExtensions.AddFlexRender()` |
@@ -360,6 +361,17 @@ var sb = new StringBuilder(estimatedCapacity);
 3. Add evaluation in `TemplateProcessor.cs`
 4. Write tests
 
+### Add new property to TemplateElement
+
+1. Add property to `TemplateElement` in `Parsing/Ast/TemplateElement.cs`
+2. Parse the property in `ElementParsers.cs`
+3. **CRITICAL**: Copy the property in ALL THREE `CopyBaseProperties()` methods:
+   - `TemplateExpander.CopyBaseProperties()` (FlexRender.Core)
+   - `TemplatePreprocessor.CopyBaseProperties()` (FlexRender.Skia)
+   - `SvgPreprocessor.CopyBaseProperties()` (FlexRender.Svg)
+4. If the property contains expressions (e.g., `{{variable}}`), also add `ProcessExpression()` calls in the preprocessors
+5. Write tests to verify the property survives the full rendering pipeline
+
 ## Important Patterns
 
 - **TextMeasurer delegate** -- `Func<TextElement, float, float, LayoutSize>?` on `LayoutEngine` (element, fontSize, maxWidth), wired up by `SkiaRenderer` for content-based text sizing with wrap-aware height measurement
@@ -377,7 +389,9 @@ All elements inherit these properties:
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `Rotate` | string | `"none"` | Rotation of the element |
-| `Background` | string? | null | Background color in hex format |
+| `Background` | string? | null | Background color in hex or CSS gradient |
+| `Opacity` | float | 1.0f | Element opacity (0.0-1.0), affects element and children |
+| `BoxShadow` | string? | null | Box shadow: `"offsetX offsetY blurRadius color"` |
 | `Padding` | string | `"0"` | Padding inside (px, %, em, CSS shorthand) |
 | `Margin` | string | `"0"` | Margin outside (px, %, em, auto, CSS shorthand) |
 | `Display` | Display | `Flex` | Display mode (Flex, None) |

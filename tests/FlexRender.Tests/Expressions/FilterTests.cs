@@ -1,0 +1,708 @@
+// Tests for individual built-in filters and the FilterRegistry.
+//
+// Compilation status: WILL NOT COMPILE until ITemplateFilter, FilterRegistry,
+// and the 7 built-in filter classes are implemented.
+
+using System.Globalization;
+using FlexRender.TemplateEngine;
+using FlexRender.TemplateEngine.Filters;
+using Xunit;
+
+namespace FlexRender.Tests.Expressions;
+
+/// <summary>
+/// Tests for the 7 built-in filters and the FilterRegistry.
+/// </summary>
+public sealed class FilterTests
+{
+    // === CurrencyFilter ===
+
+    [Theory]
+    [InlineData(0, "0.00")]
+    [InlineData(1234.56, "1,234.56")]
+    [InlineData(1000000, "1,000,000.00")]
+    [InlineData(0.5, "0.50")]
+    [InlineData(-42.5, "-42.50")]
+    public void CurrencyFilter_FormatsNumberWithCommasAndTwoDecimals(decimal input, string expected)
+    {
+        var filter = new CurrencyFilter();
+        var result = filter.Apply(new NumberValue(input), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Fact]
+    public void CurrencyFilter_NullInput_ReturnsNullValue()
+    {
+        var filter = new CurrencyFilter();
+        var result = filter.Apply(NullValue.Instance, null, CultureInfo.InvariantCulture);
+
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void CurrencyFilter_StringInput_ReturnsNullValue()
+    {
+        var filter = new CurrencyFilter();
+        var result = filter.Apply(new StringValue("not a number"), null, CultureInfo.InvariantCulture);
+
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void CurrencyFilter_Name_IsCurrency()
+    {
+        var filter = new CurrencyFilter();
+        Assert.Equal("currency", filter.Name);
+    }
+
+    // === CurrencySymbolFilter ===
+
+    [Theory]
+    [InlineData("USD", "$")]
+    [InlineData("EUR", "€")]
+    [InlineData("GBP", "£")]
+    [InlineData("RUB", "₽")]
+    [InlineData("RUR", "₽")]
+    [InlineData("JPY", "¥")]
+    [InlineData("CNY", "¥")]
+    [InlineData("TRY", "₺")]
+    [InlineData("INR", "₹")]
+    [InlineData("KRW", "₩")]
+    [InlineData("UAH", "₴")]
+    [InlineData("KZT", "₸")]
+    [InlineData("BYN", "Br")]
+    [InlineData("PLN", "zł")]
+    [InlineData("CZK", "Kč")]
+    [InlineData("CHF", "CHF")]
+    [InlineData("CAD", "C$")]
+    [InlineData("AUD", "A$")]
+    [InlineData("BRL", "R$")]
+    public void CurrencySymbolFilter_AlphaCode_ReturnsSymbol(string code, string expectedSymbol)
+    {
+        var filter = new CurrencySymbolFilter();
+        var result = filter.Apply(new StringValue(code), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expectedSymbol, str.Value);
+    }
+
+    [Theory]
+    [InlineData("usd", "$")]
+    [InlineData("eur", "€")]
+    [InlineData("rub", "₽")]
+    [InlineData("rur", "₽")]
+    [InlineData("Gbp", "£")]
+    public void CurrencySymbolFilter_CaseInsensitive_ReturnsSymbol(string code, string expectedSymbol)
+    {
+        var filter = new CurrencySymbolFilter();
+        var result = filter.Apply(new StringValue(code), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expectedSymbol, str.Value);
+    }
+
+    [Theory]
+    [InlineData(840, "$")]
+    [InlineData(978, "€")]
+    [InlineData(826, "£")]
+    [InlineData(643, "₽")]
+    [InlineData(810, "₽")]
+    [InlineData(392, "¥")]
+    [InlineData(156, "¥")]
+    [InlineData(949, "₺")]
+    [InlineData(356, "₹")]
+    [InlineData(410, "₩")]
+    [InlineData(980, "₴")]
+    [InlineData(398, "₸")]
+    [InlineData(036, "A$")]
+    public void CurrencySymbolFilter_NumericCode_ReturnsSymbol(int code, string expectedSymbol)
+    {
+        var filter = new CurrencySymbolFilter();
+        var result = filter.Apply(new NumberValue(code), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expectedSymbol, str.Value);
+    }
+
+    [Fact]
+    public void CurrencySymbolFilter_UnknownAlphaCode_ReturnsInputUnchanged()
+    {
+        var filter = new CurrencySymbolFilter();
+        var input = new StringValue("XYZ");
+        var result = filter.Apply(input, null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("XYZ", str.Value);
+    }
+
+    [Fact]
+    public void CurrencySymbolFilter_UnknownNumericCode_ReturnsInputUnchanged()
+    {
+        var filter = new CurrencySymbolFilter();
+        var input = new NumberValue(999);
+        var result = filter.Apply(input, null, CultureInfo.InvariantCulture);
+
+        var num = Assert.IsType<NumberValue>(result);
+        Assert.Equal(999m, num.Value);
+    }
+
+    [Fact]
+    public void CurrencySymbolFilter_NullInput_ReturnsInputUnchanged()
+    {
+        var filter = new CurrencySymbolFilter();
+        var result = filter.Apply(NullValue.Instance, null, CultureInfo.InvariantCulture);
+
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void CurrencySymbolFilter_BoolInput_ReturnsInputUnchanged()
+    {
+        var filter = new CurrencySymbolFilter();
+        var input = new BoolValue(true);
+        var result = filter.Apply(input, null, CultureInfo.InvariantCulture);
+
+        Assert.IsType<BoolValue>(result);
+    }
+
+    [Fact]
+    public void CurrencySymbolFilter_Name_IsCurrencySymbol()
+    {
+        var filter = new CurrencySymbolFilter();
+        Assert.Equal("currencySymbol", filter.Name);
+    }
+
+    // === NumberFilter ===
+
+    [Theory]
+    [InlineData(1234.567, "2", "1234.57")]
+    [InlineData(1234.567, "0", "1235")]
+    [InlineData(1234.567, "4", "1234.5670")]
+    [InlineData(0, "2", "0.00")]
+    public void NumberFilter_FormatsWithSpecifiedDecimals(decimal input, string decimals, string expected)
+    {
+        var filter = new NumberFilter();
+        var result = filter.Apply(new NumberValue(input), new StringValue(decimals), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Fact]
+    public void NumberFilter_NoArgument_DefaultsToZeroDecimals()
+    {
+        var filter = new NumberFilter();
+        var result = filter.Apply(new NumberValue(1234.567m), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("1235", str.Value);
+    }
+
+    [Fact]
+    public void NumberFilter_Name_IsNumber()
+    {
+        var filter = new NumberFilter();
+        Assert.Equal("number", filter.Name);
+    }
+
+    // === UpperFilter ===
+
+    [Theory]
+    [InlineData("hello", "HELLO")]
+    [InlineData("Hello World", "HELLO WORLD")]
+    [InlineData("ALREADY", "ALREADY")]
+    [InlineData("", "")]
+    public void UpperFilter_ConvertsToUpperCase(string input, string expected)
+    {
+        var filter = new UpperFilter();
+        var result = filter.Apply(new StringValue(input), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Fact]
+    public void UpperFilter_NullInput_ReturnsNullValue()
+    {
+        var filter = new UpperFilter();
+        var result = filter.Apply(NullValue.Instance, null, CultureInfo.InvariantCulture);
+
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void UpperFilter_NumberInput_ReturnsUnchanged()
+    {
+        var filter = new UpperFilter();
+        var result = filter.Apply(new NumberValue(42), null, CultureInfo.InvariantCulture);
+
+        // Non-string input is returned unchanged
+        var num = Assert.IsType<NumberValue>(result);
+        Assert.Equal(42m, num.Value);
+    }
+
+    [Fact]
+    public void UpperFilter_Name_IsUpper()
+    {
+        var filter = new UpperFilter();
+        Assert.Equal("upper", filter.Name);
+    }
+
+    // === LowerFilter ===
+
+    [Theory]
+    [InlineData("HELLO", "hello")]
+    [InlineData("Hello World", "hello world")]
+    [InlineData("already", "already")]
+    [InlineData("", "")]
+    public void LowerFilter_ConvertsToLowerCase(string input, string expected)
+    {
+        var filter = new LowerFilter();
+        var result = filter.Apply(new StringValue(input), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Fact]
+    public void LowerFilter_Name_IsLower()
+    {
+        var filter = new LowerFilter();
+        Assert.Equal("lower", filter.Name);
+    }
+
+    // === TrimFilter ===
+
+    [Theory]
+    [InlineData("  hello  ", "hello")]
+    [InlineData("hello", "hello")]
+    [InlineData("  ", "")]
+    [InlineData("\t\nhello\r\n", "hello")]
+    public void TrimFilter_RemovesLeadingAndTrailingWhitespace(string input, string expected)
+    {
+        var filter = new TrimFilter();
+        var result = filter.Apply(new StringValue(input), null, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Fact]
+    public void TrimFilter_Name_IsTrim()
+    {
+        var filter = new TrimFilter();
+        Assert.Equal("trim", filter.Name);
+    }
+
+    // === TruncateFilter ===
+
+    [Fact]
+    public void TruncateFilter_LongString_TruncatesWithEllipsis()
+    {
+        var filter = new TruncateFilter();
+        var result = filter.Apply(
+            new StringValue("This is a very long string that needs truncation"),
+            new StringValue("20"),
+            CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(20, str.Value.Length); // maxLen including "..."
+        Assert.EndsWith("...", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_ShortString_NoChange()
+    {
+        var filter = new TruncateFilter();
+        var result = filter.Apply(new StringValue("Short"), new StringValue("30"), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("Short", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_ExactLength_NoChange()
+    {
+        var filter = new TruncateFilter();
+        var result = filter.Apply(new StringValue("12345"), new StringValue("5"), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("12345", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_Name_IsTruncate()
+    {
+        var filter = new TruncateFilter();
+        Assert.Equal("truncate", filter.Name);
+    }
+
+    // === FormatFilter ===
+
+    [Fact]
+    public void FormatFilter_Name_IsFormat()
+    {
+        var filter = new FormatFilter();
+        Assert.Equal("format", filter.Name);
+    }
+
+    [Theory]
+    [InlineData(1234.567, "F2", "1234.57")]
+    [InlineData(1234.567, "F0", "1235")]
+    [InlineData(1234.567, "F4", "1234.5670")]
+    [InlineData(0.5, "F1", "0.5")]
+    public void FormatFilter_NumberValue_FormatsWithFormatString(decimal input, string format, string expected)
+    {
+        var filter = new FormatFilter();
+        var result = filter.Apply(new NumberValue(input), new StringValue(format), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Theory]
+    [InlineData("2026-02-07", "dd.MM.yyyy", "07.02.2026")]
+    [InlineData("2026-02-07", "yyyy/MM/dd", "2026/02/07")]
+    [InlineData("2026-12-25", "MMMM d, yyyy", "December 25, 2026")]
+    public void FormatFilter_DateString_ParsesAndFormats(string input, string format, string expected)
+    {
+        var filter = new FormatFilter();
+        var result = filter.Apply(new StringValue(input), new StringValue(format), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Fact]
+    public void FormatFilter_NoArgument_ReturnsInputUnchanged()
+    {
+        var filter = new FormatFilter();
+        var input = new NumberValue(42);
+        var result = filter.Apply(input, null, CultureInfo.InvariantCulture);
+
+        var num = Assert.IsType<NumberValue>(result);
+        Assert.Equal(42m, num.Value);
+    }
+
+    [Fact]
+    public void FormatFilter_EmptyArgument_ReturnsInputUnchanged()
+    {
+        var filter = new FormatFilter();
+        var input = new NumberValue(42);
+        var result = filter.Apply(input, new StringValue(""), CultureInfo.InvariantCulture);
+
+        var num = Assert.IsType<NumberValue>(result);
+        Assert.Equal(42m, num.Value);
+    }
+
+    [Fact]
+    public void FormatFilter_NullInput_ReturnsNullUnchanged()
+    {
+        var filter = new FormatFilter();
+        var result = filter.Apply(NullValue.Instance, new StringValue("F2"), CultureInfo.InvariantCulture);
+
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void FormatFilter_NonParsableDateString_ReturnsInputUnchanged()
+    {
+        var filter = new FormatFilter();
+        var input = new StringValue("not a date");
+        var result = filter.Apply(input, new StringValue("dd.MM.yyyy"), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("not a date", str.Value);
+    }
+
+    [Fact]
+    public void FormatFilter_LongFormatString_TruncatedToMaxLength()
+    {
+        var filter = new FormatFilter();
+        var longFormat = new string('0', 200);
+        // Should not throw, just truncates the format to 100 chars
+        var result = filter.Apply(new NumberValue(42), new StringValue(longFormat), CultureInfo.InvariantCulture);
+
+        Assert.IsType<StringValue>(result);
+    }
+
+    [Fact]
+    public void FormatFilter_WithRussianCulture_FormatsDateInRussian()
+    {
+        var filter = new FormatFilter();
+        var ruCulture = CultureInfo.GetCultureInfo("ru-RU");
+        var result = filter.Apply(new StringValue("2026-02-07"), new StringValue("dd MMMM yyyy"), ruCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        // Russian month name for February
+        Assert.Contains("02", str.Value.Replace("февраля", "02").Replace("Февраля", "02"));
+    }
+
+    [Fact]
+    public void FormatFilter_NumberWithGermanCulture_UsesCommaDecimalSeparator()
+    {
+        var filter = new FormatFilter();
+        var deCulture = CultureInfo.GetCultureInfo("de-DE");
+        var result = filter.Apply(new NumberValue(1234.56m), new StringValue("F2"), deCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("1234,56", str.Value);
+    }
+
+    // === FilterRegistry ===
+
+    [Fact]
+    public void FilterRegistry_Get_BuiltInFilter_ReturnsFilter()
+    {
+        var registry = FilterRegistry.CreateDefault();
+
+        var filter = registry.Get("currency");
+
+        Assert.NotNull(filter);
+        Assert.Equal("currency", filter.Name);
+    }
+
+    [Fact]
+    public void FilterRegistry_Get_AllBuiltInFilters_Exist()
+    {
+        var registry = FilterRegistry.CreateDefault();
+        var names = new[] { "currency", "currencySymbol", "number", "upper", "lower", "trim", "truncate", "format" };
+
+        foreach (var name in names)
+        {
+            var filter = registry.Get(name);
+            Assert.NotNull(filter);
+            Assert.Equal(name, filter.Name);
+        }
+    }
+
+    [Fact]
+    public void FilterRegistry_Get_UnknownFilter_ReturnsNull()
+    {
+        var registry = FilterRegistry.CreateDefault();
+
+        var result = registry.Get("nonexistent");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void FilterRegistry_Register_CustomFilter_CanBeRetrieved()
+    {
+        var registry = FilterRegistry.CreateDefault();
+        var customFilter = new TestFilter("custom");
+
+        registry.Register(customFilter);
+
+        var retrieved = registry.Get("custom");
+        Assert.Same(customFilter, retrieved);
+    }
+
+    [Fact]
+    public void FilterRegistry_Register_NullFilter_ThrowsArgumentNullException()
+    {
+        var registry = FilterRegistry.CreateDefault();
+
+        Assert.Throws<ArgumentNullException>(() => registry.Register(null!));
+    }
+
+    // === Culture-aware formatting ===
+
+    [Fact]
+    public void CurrencyFilter_WithRussianCulture_UsesSpaceSeparatorAndComma()
+    {
+        var filter = new CurrencyFilter();
+        var ruCulture = CultureInfo.GetCultureInfo("ru-RU");
+
+        var result = filter.Apply(new NumberValue(1234.56m), null, ruCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        // ru-RU uses non-breaking space as group separator and comma as decimal separator
+        Assert.Contains(",", str.Value);
+        Assert.Contains("56", str.Value);
+    }
+
+    [Fact]
+    public void NumberFilter_WithGermanCulture_UsesCommaDecimalSeparator()
+    {
+        var filter = new NumberFilter();
+        var deCulture = CultureInfo.GetCultureInfo("de-DE");
+
+        var result = filter.Apply(new NumberValue(1234.56m), new StringValue("2"), deCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("1234,56", str.Value);
+    }
+
+    [Fact]
+    public void UpperFilter_WithTurkishCulture_HandlesDottedI()
+    {
+        var filter = new UpperFilter();
+        var trCulture = CultureInfo.GetCultureInfo("tr-TR");
+
+        var result = filter.Apply(new StringValue("istanbul"), null, trCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        // Turkish uppercase I-without-dot = \u0130
+        Assert.StartsWith("\u0130", str.Value);
+    }
+
+    [Fact]
+    public void LowerFilter_WithTurkishCulture_HandlesDottedI()
+    {
+        var filter = new LowerFilter();
+        var trCulture = CultureInfo.GetCultureInfo("tr-TR");
+
+        var result = filter.Apply(new StringValue("I"), null, trCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        // Turkish lowercase I = \u0131 (dotless i)
+        Assert.Equal("\u0131", str.Value);
+    }
+
+    [Fact]
+    public void CurrencySymbolFilter_NotAffectedByCulture()
+    {
+        var filter = new CurrencySymbolFilter();
+        var ruCulture = CultureInfo.GetCultureInfo("ru-RU");
+
+        var result = filter.Apply(new StringValue("USD"), null, ruCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("$", str.Value);
+    }
+
+    [Fact]
+    public void TrimFilter_NotAffectedByCulture()
+    {
+        var filter = new TrimFilter();
+        var jpCulture = CultureInfo.GetCultureInfo("ja-JP");
+
+        var result = filter.Apply(new StringValue("  hello  "), null, jpCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("hello", str.Value);
+    }
+
+    [Fact]
+    public void CurrencyFilter_EnUs_FormatsWithCommaAndDot()
+    {
+        var filter = new CurrencyFilter();
+        var enCulture = CultureInfo.GetCultureInfo("en-US");
+
+        var result = filter.Apply(new NumberValue(1234.56m), null, enCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("1,234.56", str.Value);
+    }
+
+    [Fact]
+    public void NumberFilter_WithRussianCulture_UsesCommaDecimalSeparator()
+    {
+        var filter = new NumberFilter();
+        var ruCulture = CultureInfo.GetCultureInfo("ru-RU");
+
+        var result = filter.Apply(new NumberValue(1234.56m), new StringValue("2"), ruCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("1234,56", str.Value);
+    }
+
+    [Fact]
+    public void NumberFilter_NegativeDecimals_ClampedToZero()
+    {
+        var filter = new NumberFilter();
+        var result = filter.Apply(new NumberValue(1234.567m), new StringValue("-5"), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        // Clamped to 0 decimals
+        Assert.Equal("1235", str.Value);
+    }
+
+    [Fact]
+    public void NumberFilter_ExcessiveDecimals_ClampedToMax()
+    {
+        var filter = new NumberFilter();
+        var result = filter.Apply(new NumberValue(1.5m), new StringValue("100"), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        // Clamped to MaxDecimalPlaces=20, so 20 decimal digits
+        Assert.Equal(1 + 1 + 20, str.Value.Length); // "1." + 20 digits
+    }
+
+    [Fact]
+    public void NumberFilter_InvalidDecimalArgument_DefaultsToZero()
+    {
+        var filter = new NumberFilter();
+        var result = filter.Apply(new NumberValue(1234.567m), new StringValue("abc"), CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("1235", str.Value);
+    }
+
+    [Fact]
+    public void NumberFilter_NonNumberInput_ReturnsNullValue()
+    {
+        var filter = new NumberFilter();
+        var result = filter.Apply(new StringValue("not a number"), null, CultureInfo.InvariantCulture);
+
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void FormatFilter_WithEnUsCulture_FormatsDateInEnglish()
+    {
+        var filter = new FormatFilter();
+        var enCulture = CultureInfo.GetCultureInfo("en-US");
+        var result = filter.Apply(new StringValue("2026-02-07"), new StringValue("MMMM d, yyyy"), enCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("February 7, 2026", str.Value);
+    }
+
+    [Fact]
+    public void FilterRegistry_Get_CaseInsensitive()
+    {
+        var registry = FilterRegistry.CreateDefault();
+
+        var result = registry.Get("CURRENCY");
+
+        Assert.NotNull(result);
+        Assert.Equal("currency", result.Name);
+    }
+
+    [Fact]
+    public void FilterRegistry_Get_NullOrEmpty_ReturnsNull()
+    {
+        var registry = FilterRegistry.CreateDefault();
+
+        Assert.Null(registry.Get(null!));
+        Assert.Null(registry.Get(""));
+    }
+
+    [Fact]
+    public void FilterRegistry_Register_OverridesByName()
+    {
+        var registry = FilterRegistry.CreateDefault();
+        var custom = new TestFilter("currency");
+
+        registry.Register(custom);
+
+        var retrieved = registry.Get("currency");
+        Assert.Same(custom, retrieved);
+    }
+
+    /// <summary>
+    /// Test helper filter for custom filter registration tests.
+    /// </summary>
+    private sealed class TestFilter : ITemplateFilter
+    {
+        public string Name { get; }
+
+        public TestFilter(string name) => Name = name;
+
+        public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture) => input;
+    }
+}

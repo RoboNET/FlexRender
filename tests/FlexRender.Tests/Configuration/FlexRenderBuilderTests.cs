@@ -1,9 +1,11 @@
+using System.Globalization;
 using System.Reflection;
 using FlexRender.Abstractions;
 using FlexRender.Barcode;
 using FlexRender.Configuration;
 using FlexRender.Parsing.Ast;
 using FlexRender.QrCode;
+using FlexRender.TemplateEngine;
 using Xunit;
 
 namespace FlexRender.Tests.Configuration;
@@ -191,6 +193,164 @@ public sealed class FlexRenderBuilderTests
             .Build();
 
         Assert.NotNull(render);
+    }
+
+    #endregion
+
+    #region WithFilter / WithFilters / WithoutDefaultFilters Tests
+
+    /// <summary>
+    /// Verifies that WithFilters enables built-in filters and exposes them via FilterRegistry.
+    /// </summary>
+    [Fact]
+    public void WithFilters_EnablesBuiltInFilters()
+    {
+        var builder = new FlexRenderBuilder()
+            .WithFilters();
+
+        Assert.NotNull(builder.FilterRegistry);
+        Assert.NotNull(builder.FilterRegistry!.Get("currency"));
+        Assert.NotNull(builder.FilterRegistry.Get("currencySymbol"));
+        Assert.NotNull(builder.FilterRegistry.Get("upper"));
+    }
+
+    /// <summary>
+    /// Verifies that WithFilter registers a custom filter alongside built-ins.
+    /// </summary>
+    [Fact]
+    public void WithFilter_CustomFilter_RegisteredAlongsideBuiltIns()
+    {
+        var customFilter = new StubFilter("myCustom");
+        var builder = new FlexRenderBuilder()
+            .WithFilter(customFilter);
+
+        Assert.NotNull(builder.FilterRegistry);
+        // Custom filter is available
+        Assert.Same(customFilter, builder.FilterRegistry!.Get("myCustom"));
+        // Built-ins still available
+        Assert.NotNull(builder.FilterRegistry.Get("currency"));
+        Assert.NotNull(builder.FilterRegistry.Get("upper"));
+    }
+
+    /// <summary>
+    /// Verifies that WithFilter with null throws ArgumentNullException.
+    /// </summary>
+    [Fact]
+    public void WithFilter_NullFilter_ThrowsArgumentNullException()
+    {
+        var builder = new FlexRenderBuilder();
+
+        Assert.Throws<ArgumentNullException>(() => builder.WithFilter(null!));
+    }
+
+    /// <summary>
+    /// Verifies that WithoutDefaultFilters clears all built-in filters.
+    /// </summary>
+    [Fact]
+    public void WithoutDefaultFilters_ClearsBuiltInFilters()
+    {
+        var builder = new FlexRenderBuilder()
+            .WithoutDefaultFilters();
+
+        Assert.NotNull(builder.FilterRegistry);
+        // No built-in filters
+        Assert.Null(builder.FilterRegistry!.Get("currency"));
+        Assert.Null(builder.FilterRegistry.Get("currencySymbol"));
+        Assert.Null(builder.FilterRegistry.Get("upper"));
+        Assert.Null(builder.FilterRegistry.Get("lower"));
+        Assert.Null(builder.FilterRegistry.Get("trim"));
+        Assert.Null(builder.FilterRegistry.Get("truncate"));
+        Assert.Null(builder.FilterRegistry.Get("number"));
+        Assert.Null(builder.FilterRegistry.Get("format"));
+    }
+
+    /// <summary>
+    /// Verifies that WithoutDefaultFilters then WithFilter only has the custom filter.
+    /// </summary>
+    [Fact]
+    public void WithoutDefaultFilters_ThenWithFilter_OnlyCustomFilterAvailable()
+    {
+        var customFilter = new StubFilter("onlyMe");
+        var builder = new FlexRenderBuilder()
+            .WithoutDefaultFilters()
+            .WithFilter(customFilter);
+
+        Assert.NotNull(builder.FilterRegistry);
+        // Custom filter is available
+        Assert.Same(customFilter, builder.FilterRegistry!.Get("onlyMe"));
+        // Built-ins are NOT available
+        Assert.Null(builder.FilterRegistry.Get("currency"));
+        Assert.Null(builder.FilterRegistry.Get("upper"));
+    }
+
+    /// <summary>
+    /// Verifies that WithFilter can override a built-in filter by name.
+    /// </summary>
+    [Fact]
+    public void WithFilter_SameNameAsBuiltIn_OverridesBuiltIn()
+    {
+        var overrideFilter = new StubFilter("currency");
+        var builder = new FlexRenderBuilder()
+            .WithFilter(overrideFilter);
+
+        Assert.NotNull(builder.FilterRegistry);
+        var retrieved = builder.FilterRegistry!.Get("currency");
+        Assert.Same(overrideFilter, retrieved);
+    }
+
+    /// <summary>
+    /// Verifies that WithFilters returns same builder instance for chaining.
+    /// </summary>
+    [Fact]
+    public void WithFilters_ReturnsSameBuilderInstance()
+    {
+        var builder = new FlexRenderBuilder();
+
+        var result = builder.WithFilters();
+
+        Assert.Same(builder, result);
+    }
+
+    /// <summary>
+    /// Verifies that WithFilter returns same builder instance for chaining.
+    /// </summary>
+    [Fact]
+    public void WithFilter_ReturnsSameBuilderInstance()
+    {
+        var builder = new FlexRenderBuilder();
+
+        var result = builder.WithFilter(new StubFilter("test"));
+
+        Assert.Same(builder, result);
+    }
+
+    /// <summary>
+    /// Verifies that WithoutDefaultFilters returns same builder instance for chaining.
+    /// </summary>
+    [Fact]
+    public void WithoutDefaultFilters_ReturnsSameBuilderInstance()
+    {
+        var builder = new FlexRenderBuilder();
+
+        var result = builder.WithoutDefaultFilters();
+
+        Assert.Same(builder, result);
+    }
+
+    /// <summary>
+    /// Verifies that WithoutDefaultFilters then WithFilters does not restore defaults
+    /// (because _useDefaultFilters was set to false).
+    /// </summary>
+    [Fact]
+    public void WithoutDefaultFilters_ThenWithFilters_DoesNotRestoreDefaults()
+    {
+        var builder = new FlexRenderBuilder()
+            .WithoutDefaultFilters()
+            .WithFilters();
+
+        Assert.NotNull(builder.FilterRegistry);
+        // WithFilters after WithoutDefaultFilters creates empty registry (no defaults)
+        Assert.Null(builder.FilterRegistry!.Get("currency"));
     }
 
     #endregion
@@ -577,4 +737,16 @@ public sealed class FlexRenderBuilderIntegrationTests : IDisposable
         Assert.Equal(0x89, bytes[0]);
         Assert.Equal(0x50, bytes[1]);
     }
+}
+
+/// <summary>
+/// Minimal filter stub for builder tests.
+/// </summary>
+file sealed class StubFilter : ITemplateFilter
+{
+    public string Name { get; }
+
+    public StubFilter(string name) => Name = name;
+
+    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture) => input;
 }

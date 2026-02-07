@@ -84,6 +84,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     /// Prefer passing <see cref="RenderOptions"/> per-call instead.
     /// </param>
     /// <param name="options">Optional configuration options for path resolution and other settings.</param>
+    /// <param name="svgProvider">Optional SVG content provider for rendering SVG elements.</param>
+    /// <param name="filterRegistry">Optional filter registry for expression filter evaluation.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="limits"/> is null.</exception>
     public SkiaRenderer(
         ResourceLimits limits,
@@ -91,13 +93,19 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         IContentProvider<BarcodeElement>? barcodeProvider,
         IImageLoader? imageLoader,
         bool deterministicRendering = false,
-        FlexRenderOptions? options = null)
+        FlexRenderOptions? options = null,
+        IContentProvider<SvgElement>? svgProvider = null,
+        FilterRegistry? filterRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
         _imageLoader = imageLoader;
-        var templateProcessor = new TemplateProcessor(limits);
-        _expander = new TemplateExpander(limits);
+        var templateProcessor = filterRegistry is not null
+            ? new TemplateProcessor(limits, filterRegistry)
+            : new TemplateProcessor(limits);
+        _expander = filterRegistry is not null
+            ? new TemplateExpander(limits, filterRegistry)
+            : new TemplateExpander(limits);
         _fontManager = new FontManager();
         _defaultRenderOptions = deterministicRendering ? RenderOptions.Deterministic : RenderOptions.Default;
         _textRenderer = new TextRenderer(_fontManager);
@@ -114,12 +122,16 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             _textRenderer,
             qrProvider,
             barcodeProvider,
+            svgProvider,
             imageLoader,
             _expander,
             _preprocessor,
             _layoutEngine,
             _limits,
-            BaseFontSize);
+            BaseFontSize,
+            filterRegistry,
+            _fontManager,
+            options);
     }
 
     /// <summary>

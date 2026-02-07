@@ -19,6 +19,10 @@ A comprehensive visual guide with rendered examples for all FlexRender propertie
   - [order](#order)
   - [position](#position)
   - [border](#border)
+- [Visual Effects](#visual-effects)
+  - [opacity](#opacity)
+  - [box-shadow](#box-shadow)
+  - [gradient backgrounds](#gradient-backgrounds)
 - [Element Types](#element-types)
   - [text](#text)
   - [separator](#separator)
@@ -72,7 +76,7 @@ The `rotate` property applies a post-render rotation to the entire canvas. The l
 | `height` | integer | Canvas height in pixels | `0` (auto) |
 | `background` | color | Background color in hex format (e.g., `#ffffff`) | `#ffffff` |
 | `rotate` | string | Post-render rotation: `none`, `left`, `right`, `flip`, or numeric degrees | `none` |
-| `dir` | enum | Text direction: `ltr`, `rtl` | `ltr` |
+| `text-direction` | enum | Text direction: `ltr`, `rtl` | `ltr` |
 
 ---
 
@@ -91,17 +95,17 @@ The `direction` property defines the main axis direction in which flex items are
 
 #### RTL Direction
 
-When `dir: rtl` is set on the canvas or element, row layout is mirrored so items flow right-to-left.
+When `text-direction: rtl` is set on the canvas or element, row layout is mirrored so items flow right-to-left.
 
 | Value | Description | Visual Example |
 |-------|-------------|----------------|
 | `row` (RTL) | Items flow right-to-left instead of left-to-right. | ![row RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-rtl.png) |
 | `row-reverse` (RTL) | Items flow left-to-right (reversed from RTL default). | ![row-reverse RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-reverse-rtl.png) |
-| `row` (RTL, labeled) | Three labeled items showing right-to-left positioning with `dir: rtl`. | ![RTL row](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-row.png) |
+| `row` (RTL, labeled) | Three labeled items showing right-to-left positioning with `text-direction: rtl`. | ![RTL row](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-row.png) |
 
 #### RTL with Arabic Text
 
-FlexRender supports Arabic and other RTL scripts when using an Arabic-capable font (e.g., Noto Sans Arabic). Use `dir: rtl` on the canvas for full RTL layout and text alignment.
+FlexRender supports Arabic and other RTL scripts when using an Arabic-capable font (e.g., Noto Sans Arabic). Use `text-direction: rtl` on the canvas for full RTL layout and text alignment.
 
 | Example | Description | Visual |
 |---------|-------------|--------|
@@ -249,6 +253,141 @@ Rounded corners using `border-radius`. Larger values create more rounding.
 | `border-color` | color | Color override for all sides | (none) |
 | `border-style` | enum | Style override: `solid`, `dashed`, `dotted`, `none` | (none) |
 | `border-radius` | string | Corner rounding (px, em, %) | (none) |
+
+---
+
+## Visual Effects
+
+### opacity
+
+The `opacity` property controls the transparency of an element and all its children. Values range from 0.0 (fully transparent) to 1.0 (fully opaque, default).
+
+```yaml
+# Semi-transparent element
+- type: flex
+  opacity: 0.5
+  background: "#3498db"
+  padding: "16"
+  children:
+    - type: text
+      content: "50% transparent"
+      color: "#ffffff"
+```
+
+| Value | Effect |
+|-------|--------|
+| `1.0` | Fully opaque (default) |
+| `0.75` | 75% visible |
+| `0.5` | 50% visible |
+| `0.25` | 25% visible |
+| `0.0` | Fully transparent (invisible) |
+
+Opacity is implemented via `canvas.SaveLayer()` with an alpha paint, so it applies to the entire element subtree including children, background, and borders.
+
+### box-shadow
+
+The `box-shadow` property adds a shadow behind an element. The shadow is defined with offset, blur radius, and color.
+
+**Format:** `"offsetX offsetY blurRadius color"`
+
+```yaml
+# Simple drop shadow
+- type: flex
+  box-shadow: "4 4 8 #00000040"
+  background: "#ffffff"
+  padding: "16"
+  children:
+    - type: text
+      content: "Card with shadow"
+
+# Elevated card effect
+- type: flex
+  box-shadow: "0 8 24 #00000030"
+  background: "#ffffff"
+  padding: "20"
+  border-radius: "8"
+  children:
+    - type: text
+      content: "Elevated card"
+```
+
+| Component | Type | Description |
+|-----------|------|-------------|
+| offsetX | float | Horizontal offset in pixels (positive = right) |
+| offsetY | float | Vertical offset in pixels (positive = down) |
+| blurRadius | float | Blur radius in pixels (0 = sharp edge) |
+| color | hex | Shadow color with optional alpha (e.g., `#00000040` for 25% black) |
+
+Both `box-shadow` and `boxShadow` YAML names are accepted.
+
+### gradient backgrounds
+
+The `background` property accepts CSS-like gradient values in addition to solid hex colors.
+
+#### Linear Gradient
+
+```yaml
+# Left to right gradient
+- type: flex
+  background: "linear-gradient(to right, #ff0000, #0000ff)"
+  padding: "20"
+  children:
+    - type: text
+      content: "Left to right"
+      color: "#ffffff"
+
+# Angled gradient with color stops
+- type: flex
+  background: "linear-gradient(45deg, #ff0000, #00ff00 50%, #0000ff)"
+  padding: "20"
+  children:
+    - type: text
+      content: "Diagonal gradient"
+      color: "#ffffff"
+```
+
+**Supported direction keywords:**
+
+| Keyword | Angle | Direction |
+|---------|-------|-----------|
+| `to top` | 0deg | Bottom to top |
+| `to top right` | 45deg | Bottom-left to top-right |
+| `to right` | 90deg | Left to right |
+| `to bottom right` | 135deg | Top-left to bottom-right |
+| `to bottom` | 180deg | Top to bottom (default) |
+| `to bottom left` | 225deg | Top-right to bottom-left |
+| `to left` | 270deg | Right to left |
+| `to top left` | 315deg | Bottom-right to top-left |
+
+#### Radial Gradient
+
+```yaml
+# Radial gradient from center
+- type: flex
+  background: "radial-gradient(#ffffff, #000000)"
+  padding: "30"
+  width: "200"
+  height: "200"
+  children:
+    - type: text
+      content: "Radial"
+      color: "#888888"
+      align: center
+```
+
+#### Color Stops
+
+Color stops can include optional percentage positions:
+
+```yaml
+# Custom color stop positions
+- type: flex
+  background: "linear-gradient(to right, #ff0000, #ffff00 30%, #00ff00 70%, #0000ff)"
+  padding: "16"
+  height: "60"
+```
+
+Stops without explicit positions are evenly distributed between neighboring positioned stops.
 
 ---
 

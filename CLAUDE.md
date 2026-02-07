@@ -28,3 +28,4 @@ When reviewing code changes, verify:
 - [ ] New element types follow the switch-based dispatch pattern (not base class properties)
 - [ ] XML docs on all public API surface
 - [ ] Snapshot tests added/updated for visual changes (`UPDATE_SNAPSHOTS=true`)
+- [ ] Wiki pages updated -- if code changes affect public API, element properties, YAML syntax, builder methods, or CLI options, update the corresponding `docs/wiki/` pages

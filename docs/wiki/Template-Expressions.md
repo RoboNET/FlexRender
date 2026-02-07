@@ -29,6 +29,130 @@ Use `{{variable}}` syntax to insert data values into text and properties:
 
 Variables can be used in most string properties: `content`, `data`, `src`, `color`, and others.
 
+## Inline Expressions
+
+FlexRender supports inline expressions within `{{ }}` delimiters. Expressions extend simple variable substitution with arithmetic, null coalescing, and filters.
+
+### Arithmetic
+
+Arithmetic operators work on numeric values:
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `+` | Addition | `{{price + tax}}` |
+| `-` | Subtraction | `{{total - discount}}` |
+| `*` | Multiplication | `{{price * quantity}}` |
+| `/` | Division | `{{total / count}}` |
+| `-` (unary) | Negation | `{{-balance}}` |
+
+```yaml
+# Compute line total
+- type: text
+  content: "Line total: {{price * quantity}} $"
+
+# Compute discount
+- type: text
+  content: "After discount: {{total - total * discountPercent / 100}} $"
+```
+
+Both operands must be numeric (NumberValue). Division by zero returns a null value.
+
+### Null Coalescing
+
+The `??` operator provides a fallback when the left side is null or missing:
+
+```yaml
+# Fallback to default text
+- type: text
+  content: "{{nickname ?? name ?? 'Anonymous'}}"
+
+# Fallback for missing data
+- type: text
+  content: "Phone: {{user.phone ?? 'Not provided'}}"
+```
+
+### Filters
+
+Filters transform values using the pipe (`|`) syntax. Filters can take an optional argument after a colon:
+
+```yaml
+{{value | filterName}}
+{{value | filterName:argument}}
+```
+
+#### Built-in Filters
+
+| Filter | Argument | Description | Example |
+|--------|----------|-------------|---------|
+| `currency` | -- | Format number as currency (2 decimal places) | `{{price \| currency}}` -> `"1234.50"` |
+| `number` | decimal places (0-20) | Format number with specific decimal places | `{{rate \| number:4}}` -> `"3.1416"` |
+| `upper` | -- | Convert string to uppercase | `{{name \| upper}}` -> `"JOHN"` |
+| `lower` | -- | Convert string to lowercase | `{{name \| lower}}` -> `"john"` |
+| `trim` | -- | Remove leading/trailing whitespace | `{{input \| trim}}` |
+| `truncate` | max length (default: 50) | Truncate string with "..." suffix | `{{desc \| truncate:20}}` |
+| `format` | format string | Format number or date with .NET format string | `{{date \| format:"dd.MM.yyyy"}}` |
+| `currencySymbol` | -- | Convert ISO 4217 currency code to symbol | `{{currency \| currencySymbol}}` -> `"$"` |
+
+```yaml
+# Price with currency formatting
+- type: text
+  content: "Total: {{subtotal * 1.1 | currency}} $"
+
+# Uppercase label
+- type: text
+  content: "{{status | upper}}"
+
+# Date formatting
+- type: text
+  content: "Date: {{orderDate | format:\"dd.MM.yyyy\"}}"
+
+# Truncated description
+- type: text
+  content: "{{product.description | truncate:50}}"
+```
+
+### Expression Precedence
+
+Operators are evaluated in this order (highest to lowest):
+
+| Precedence | Operators |
+|------------|-----------|
+| 1 (highest) | Unary minus (`-x`) |
+| 2 | Multiplication, Division (`*`, `/`) |
+| 3 | Addition, Subtraction (`+`, `-`) |
+| 4 | Null coalescing (`??`) |
+| 5 (lowest) | Filter pipe (`\|`) |
+
+### Expression Limits
+
+Expressions have safety limits to prevent abuse:
+
+| Limit | Value | Description |
+|-------|-------|-------------|
+| Max expression length | 2000 characters | Maximum length of the expression string inside `{{ }}` |
+| Max expression depth | 50 | Maximum nesting depth of the expression AST |
+
+### Custom Filters
+
+You can register custom filters via the builder API:
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithFilter("myFilter", new MyCustomFilter())
+    .WithSkia()
+    .Build();
+```
+
+Custom filters implement `ITemplateFilter`:
+
+```csharp
+public interface ITemplateFilter
+{
+    string Name { get; }
+    TemplateValue Apply(TemplateValue input, TemplateValue? argument);
+}
+```
+
 ### Data Structure
 
 Data is passed as `ObjectValue`:

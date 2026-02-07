@@ -1,0 +1,196 @@
+# All New Features Showcase
+# Demonstrates: tables, expressions, filters, opacity, box-shadow, gradients
+
+template:
+  name: "showcase-all-features"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+  semibold: "assets/fonts/Inter-SemiBold.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#f4f5f7"
+
+layout:
+  - type: flex
+    padding: "20"
+    gap: 16
+
+    children:
+      # Gradient header with shadow
+      - type: flex
+        padding: "20 16"
+        background: "linear-gradient(135deg, #667eea, #764ba2)"
+        border-radius: "10"
+        box-shadow: "0 4 12 rgba(102,126,234,0.4)"
+        gap: 6
+        align: center
+        children:
+          - type: text
+            content: "{{title}}"
+            font: bold
+            size: 1.3em
+            color: "#ffffff"
+            align: center
+          - type: text
+            content: "Order #{{orderId}} - {{date}}"
+            size: 0.8em
+            color: "#e0e0ff"
+            align: center
+
+      # Customer info with expressions
+      - type: flex
+        padding: "14"
+        background: "#ffffff"
+        border-radius: "8"
+        box-shadow: "0 1 4 rgba(0,0,0,0.08)"
+        gap: 6
+        children:
+          - type: text
+            content: "Customer"
+            font: semibold
+            size: 0.9em
+            color: "#6c757d"
+
+          - type: flex
+            direction: row
+            justify: space-between
+            children:
+              - type: text
+                content: "{{customerName}}"
+                size: 0.9em
+                color: "#212529"
+                font: semibold
+              - type: text
+                content: "{{customerEmail}}"
+                size: 0.8em
+                color: "#868e96"
+
+      # Order items table (dynamic)
+      - type: flex
+        padding: "14"
+        background: "#ffffff"
+        border-radius: "8"
+        box-shadow: "0 1 4 rgba(0,0,0,0.08)"
+        gap: 10
+        children:
+          - type: text
+            content: "Order Items"
+            font: semibold
+            size: 0.9em
+            color: "#6c757d"
+
+          - type: table
+            array: items
+            as: item
+            font: default
+            size: 0.85em
+            color: "#495057"
+            row-gap: "4"
+            column-gap: "6"
+            header-font: semibold
+            header-color: "#212529"
+            header-size: 0.8em
+            header-border-bottom: dashed
+            columns:
+              - key: name
+                label: "Product"
+                grow: 1
+              - key: qty
+                label: "Qty"
+                width: "30"
+                align: center
+              - key: price
+                label: "Price"
+                width: "55"
+                align: right
+
+      # Summary with expressions and static table
+      - type: flex
+        padding: "14"
+        background: "#ffffff"
+        border-radius: "8"
+        box-shadow: "0 1 4 rgba(0,0,0,0.08)"
+        gap: 6
+        children:
+          - type: table
+            font: default
+            size: 0.85em
+            color: "#6c757d"
+            row-gap: "4"
+            columns:
+              - key: label
+                grow: 1
+              - key: value
+                width: "80"
+                align: right
+            rows:
+              - label: "Subtotal"
+                value: "${{subtotal}}"
+              - label: "Discount ({{discountPercent}}%)"
+                value: "-${{discount}}"
+                color: "#e74c3c"
+              - label: "Tax"
+                value: "${{tax}}"
+
+          - type: separator
+            style: solid
+            color: "#e9ecef"
+            thickness: 1
+
+          - type: flex
+            direction: row
+            justify: space-between
+            padding: "4 0 0 0"
+            children:
+              - type: text
+                content: "Total"
+                font: bold
+                size: 1.1em
+                color: "#212529"
+              - type: text
+                content: "${{total}}"
+                font: bold
+                size: 1.1em
+                color: "#212529"
+
+      # Status badge with opacity
+      - type: flex
+        direction: row
+        gap: 8
+        justify: center
+        children:
+          - type: flex
+            padding: "6 14"
+            background: "#28a745"
+            border-radius: "12"
+            children:
+              - type: text
+                content: "{{status}}"
+                size: 0.75em
+                color: "#ffffff"
+                font: semibold
+
+          - type: flex
+            padding: "6 14"
+            background: "#6c757d"
+            border-radius: "12"
+            opacity: 0.6
+            children:
+              - type: text
+                content: "{{paymentMethod}}"
+                size: 0.75em
+                color: "#ffffff"
+                font: semibold
+
+      # Footer
+      - type: text
+        content: "Powered by FlexRender"
+        size: 0.65em
+        align: center
+        color: "#ced4da"
+        padding: "4 0 0 0"

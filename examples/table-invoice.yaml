@@ -1,0 +1,119 @@
+# Table Invoice Example
+# Demonstrates: type: table with dynamic rows, header styling, column alignment,
+# row gap, column gap, header border, format strings, per-row styling
+
+template:
+  name: "table-invoice"
+  version: 1
+
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  bold: "assets/fonts/Inter-Bold.ttf"
+  semibold: "assets/fonts/Inter-SemiBold.ttf"
+
+canvas:
+  fixed: width
+  width: 360
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "24 20"
+    gap: 16
+
+    children:
+      # Header
+      - type: flex
+        gap: 4
+        align: center
+        children:
+          - type: text
+            content: "{{companyName}}"
+            font: bold
+            size: 1.4em
+            align: center
+            color: "#1a1a1a"
+
+          - type: text
+            content: "Invoice #{{invoiceNumber}}"
+            size: 0.9em
+            align: center
+            color: "#666666"
+
+          - type: text
+            content: "{{date}}"
+            size: 0.8em
+            align: center
+            color: "#999999"
+
+      - type: separator
+        style: solid
+        color: "#e0e0e0"
+        thickness: 1
+
+      # Line items table (dynamic from data)
+      - type: table
+        array: items
+        as: item
+        font: default
+        size: 0.9em
+        color: "#333333"
+        row-gap: "2"
+        column-gap: "8"
+        header-font: semibold
+        header-color: "#1a1a1a"
+        header-size: 0.85em
+        header-border-bottom: dashed
+        columns:
+          - key: description
+            label: "Item"
+            grow: 1
+          - key: qty
+            label: "Qty"
+            width: "32"
+            align: center
+          - key: price
+            label: "Price"
+            width: "60"
+            align: right
+          - key: total
+            label: "Total"
+            width: "60"
+            align: right
+            font: semibold
+
+      - type: separator
+        style: solid
+        color: "#e0e0e0"
+        thickness: 1
+
+      # Summary table (static rows)
+      - type: table
+        font: default
+        size: 0.9em
+        color: "#555555"
+        row-gap: "4"
+        columns:
+          - key: label
+            grow: 1
+          - key: value
+            width: "80"
+            align: right
+        rows:
+          - label: "Subtotal"
+            value: "{{subtotal}}"
+          - label: "Tax ({{taxRate}})"
+            value: "{{tax}}"
+          - label: "TOTAL"
+            value: "{{total}}"
+            font: bold
+            color: "#1a1a1a"
+            size: "1.1em"
+
+      # Footer
+      - type: text
+        content: "Thank you for your business!"
+        size: 0.8em
+        align: center
+        color: "#999999"
+        padding: "8 0 0 0"

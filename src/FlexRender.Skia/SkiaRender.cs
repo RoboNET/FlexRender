@@ -3,6 +3,7 @@ using FlexRender.Configuration;
 using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.Rendering;
+using FlexRender.TemplateEngine;
 using SkiaSharp;
 
 namespace FlexRender.Skia;
@@ -58,6 +59,7 @@ public sealed class SkiaRender : IFlexRender
     /// <param name="options">Rendering configuration options.</param>
     /// <param name="resourceLoaders">Collection of resource loaders for images and other assets.</param>
     /// <param name="skiaBuilder">Skia-specific configuration including content providers.</param>
+    /// <param name="filterRegistry">Optional filter registry for expression filter evaluation.</param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="limits"/>, <paramref name="options"/>,
     /// <paramref name="resourceLoaders"/>, or <paramref name="skiaBuilder"/> is null.
@@ -66,7 +68,8 @@ public sealed class SkiaRender : IFlexRender
         ResourceLimits limits,
         FlexRenderOptions options,
         IReadOnlyList<IResourceLoader> resourceLoaders,
-        SkiaBuilder skiaBuilder)
+        SkiaBuilder skiaBuilder,
+        FilterRegistry? filterRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(options);
@@ -79,6 +82,7 @@ public sealed class SkiaRender : IFlexRender
 
         var qrProvider = skiaBuilder.QrProvider;
         var barcodeProvider = skiaBuilder.BarcodeProvider;
+        var svgProvider = skiaBuilder.SvgProvider;
 
 #pragma warning disable CS0618 // Obsolete DeterministicRendering property - captured for legacy Render() backward compatibility
         _legacyDeterministicRendering = options.DeterministicRendering;
@@ -90,7 +94,9 @@ public sealed class SkiaRender : IFlexRender
             barcodeProvider,
             imageLoader,
             _legacyDeterministicRendering,
-            options);
+            options,
+            svgProvider,
+            filterRegistry);
 
         _renderer.BaseFontSize = options.BaseFontSize;
     }

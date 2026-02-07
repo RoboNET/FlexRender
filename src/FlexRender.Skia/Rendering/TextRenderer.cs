@@ -51,8 +51,9 @@ public sealed class TextRenderer
         if (lines.Count == 0)
             return new SKSize(0, 0);
 
-        var maxLineWidth = lines.Max(line => font.MeasureText(line));
-        var lineHeight = LineHeightResolver.Resolve(element.LineHeight, font.Size, font.Spacing);
+        var maxLineWidth = (float)Math.Ceiling(lines.Max(line => font.MeasureText(line)));
+        var defaultLineHeight = Math.Abs(font.Metrics.Top) + font.Metrics.Bottom;
+        var lineHeight = LineHeightResolver.Resolve(element.LineHeight, font.Size, defaultLineHeight);
         var totalHeight = lines.Count * lineHeight;
 
         // Handle rotation affecting dimensions
@@ -108,8 +109,9 @@ public sealed class TextRenderer
             canvas.RotateDegrees(rotation, centerX, centerY);
         }
 
-        var lineHeight = LineHeightResolver.Resolve(element.LineHeight, font.Size, font.Spacing);
-        var y = bounds.Top + lineHeight; // Start below top (baseline positioning)
+        var defaultLineHeight = Math.Abs(font.Metrics.Top) + font.Metrics.Bottom;
+        var lineHeight = LineHeightResolver.Resolve(element.LineHeight, font.Size, defaultLineHeight);
+        var y = bounds.Top + Math.Abs(font.Metrics.Top); // Position baseline so Top glyph extent aligns with box top
 
         foreach (var line in lines)
         {

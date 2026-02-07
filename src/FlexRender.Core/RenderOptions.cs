@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace FlexRender;
 
 /// <summary>
@@ -105,4 +107,21 @@ public sealed record RenderOptions
     /// </para>
     /// </remarks>
     public TextRendering TextRendering { get; init; } = TextRendering.SubpixelLcd;
+
+    /// <summary>
+    /// Gets the culture to use for culture-aware filter formatting.
+    /// </summary>
+    /// <value>The default value is <c>null</c>, which falls back to
+    /// <c>Template.Culture</c> or <see cref="CultureInfo.InvariantCulture"/>.</value>
+    /// <remarks>
+    /// <para>
+    /// When set, this takes highest priority in the culture resolution chain:
+    /// <c>RenderOptions.Culture</c> &gt; <c>Template.Culture</c> &gt; <see cref="CultureInfo.InvariantCulture"/>.
+    /// </para>
+    /// <para>
+    /// Affects filters that perform culture-sensitive operations: <c>currency</c>, <c>number</c>,
+    /// <c>format</c>, <c>upper</c>, <c>lower</c>.
+    /// </para>
+    /// </remarks>
+    public CultureInfo? Culture { get; init; }
 }

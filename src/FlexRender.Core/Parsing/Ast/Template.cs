@@ -18,6 +18,15 @@ public sealed class Template
     public int Version { get; set; } = 1;
 
     /// <summary>
+    /// The culture identifier for culture-aware formatting in filter expressions.
+    /// Must be a valid BCP 47 language tag (e.g., "ru-RU", "en-US", "de-DE").
+    /// When set, filters like <c>currency</c>, <c>number</c>, <c>upper</c>, and <c>lower</c>
+    /// will use this culture for formatting. Can be overridden at render time by
+    /// <c>RenderOptions.Culture</c>.
+    /// </summary>
+    public string? Culture { get; set; }
+
+    /// <summary>
     /// Font definitions for use in the template.
     /// Maps font names to their definitions (path and optional fallback).
     /// </summary>

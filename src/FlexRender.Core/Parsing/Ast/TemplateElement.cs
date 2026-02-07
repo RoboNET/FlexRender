@@ -45,11 +45,23 @@ public enum ElementType
     /// <summary>
     /// A conditional element for conditional rendering.
     /// </summary>
-    If
+    If,
+
+    /// <summary>
+    /// A table element for structured tabular data.
+    /// </summary>
+    Table,
+
+    /// <summary>
+    /// An SVG element for rendering vector graphics content.
+    /// </summary>
+    Svg
 }
 
 /// <summary>
 /// Base class for all template elements.
+/// IMPORTANT: When adding new properties, update CopyBaseProperties() in ALL locations:
+/// TemplateExpander (Core), TemplatePreprocessor (Skia), SvgPreprocessor (Svg).
 /// </summary>
 public abstract class TemplateElement
 {
@@ -169,4 +181,18 @@ public abstract class TemplateElement
     /// Text direction override. Null means inherit from parent/canvas.
     /// </summary>
     public TextDirection? TextDirection { get; set; }
+
+    /// <summary>
+    /// Opacity of the element (0.0 = fully transparent, 1.0 = fully opaque).
+    /// Affects the entire element including children (CSS behavior).
+    /// Only allocates an offscreen buffer when less than 1.0.
+    /// </summary>
+    public float Opacity { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Box shadow definition: "offsetX offsetY blurRadius color".
+    /// Example: "4 4 8 rgba(0,0,0,0.3)".
+    /// Null means no shadow.
+    /// </summary>
+    public string? BoxShadow { get; set; }
 }

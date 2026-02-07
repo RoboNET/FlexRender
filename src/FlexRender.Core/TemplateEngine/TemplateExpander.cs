@@ -11,6 +11,7 @@ namespace FlexRender.TemplateEngine;
 public sealed class TemplateExpander
 {
     private readonly ResourceLimits _limits;
+    private readonly InlineExpressionEvaluator? _expressionEvaluator;
 
     /// <summary>
     /// Creates a new TemplateExpander with default resource limits.
@@ -28,6 +29,34 @@ public sealed class TemplateExpander
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
+        _expressionEvaluator = new InlineExpressionEvaluator();
+    }
+
+    /// <summary>
+    /// Creates a new TemplateExpander with the specified resource limits and filter registry.
+    /// </summary>
+    /// <param name="limits">Resource limits for expansion depth protection.</param>
+    /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when limits or filterRegistry is null.</exception>
+    public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry)
+        : this(limits, filterRegistry, CultureInfo.InvariantCulture)
+    {
+    }
+
+    /// <summary>
+    /// Creates a new TemplateExpander with the specified resource limits, filter registry, and culture.
+    /// </summary>
+    /// <param name="limits">Resource limits for expansion depth protection.</param>
+    /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
+    /// <param name="culture">The culture to use for culture-aware filter formatting.</param>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry, CultureInfo culture)
+    {
+        ArgumentNullException.ThrowIfNull(limits);
+        ArgumentNullException.ThrowIfNull(filterRegistry);
+        ArgumentNullException.ThrowIfNull(culture);
+        _limits = limits;
+        _expressionEvaluator = new InlineExpressionEvaluator(filterRegistry, culture);
     }
 
     /// <summary>
@@ -88,6 +117,7 @@ public sealed class TemplateExpander
         {
             EachElement each => ExpandEach(each, context, depth),
             IfElement ifEl => ExpandIf(ifEl, context, depth),
+            TableElement table => [ExpandTable(table, context, depth)],
             FlexElement flex => [ExpandFlex(flex, context, depth)],
             _ => [CloneWithVariableSubstitution(element, context)]
         };
@@ -209,9 +239,19 @@ public sealed class TemplateExpander
         return ExpandElements(ifEl.ElseBranch, context, childDepth);
     }
 
-    private static bool EvaluateCondition(IfElement ifEl, TemplateContext context)
+    private bool EvaluateCondition(IfElement ifEl, TemplateContext context)
     {
-        var value = ExpressionEvaluator.Resolve(ifEl.ConditionPath, context);
+        // Check if the condition contains an inline expression
+        TemplateValue value;
+        if (_expressionEvaluator is not null && InlineExpressionParser.NeedsFullParsing(ifEl.ConditionPath))
+        {
+            var ast = InlineExpressionParser.Parse(ifEl.ConditionPath);
+            value = _expressionEvaluator.Evaluate(ast, context);
+        }
+        else
+        {
+            value = ExpressionEvaluator.Resolve(ifEl.ConditionPath, context);
+        }
 
         if (ifEl.Operator == null)
         {
@@ -413,6 +453,13 @@ public sealed class TemplateExpander
     /// <param name="target">The target element to copy properties to.</param>
     private static void CopyBaseProperties(TemplateElement source, TemplateElement target)
     {
+        // ⚠ SYNC WARNING: This method is duplicated in 3 locations that MUST stay in sync:
+        //   1. TemplateExpander.CopyBaseProperties       (FlexRender.Core)
+        //   2. TemplatePreprocessor.CopyBaseProperties    (FlexRender.Skia)
+        //   3. SvgPreprocessor.CopyBaseProperties         (FlexRender.Svg)
+        // When adding a new property to TemplateElement, you MUST add it to ALL THREE methods.
+        // Failure to do so causes properties to silently disappear during preprocessing.
+
         // Flex-item properties
         target.Grow = source.Grow;
         target.Shrink = source.Shrink;
@@ -450,6 +497,241 @@ public sealed class TemplateExpander
 
         // Text direction
         target.TextDirection = source.TextDirection;
+
+        // Visual effects
+        target.Opacity = source.Opacity;
+        target.BoxShadow = source.BoxShadow;
+    }
+
+    private FlexElement ExpandTable(TableElement table, TemplateContext context, int depth)
+    {
+        var childDepth = depth + 1;
+        if (childDepth > _limits.MaxRenderDepth)
+        {
+            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
+        }
+
+        // Build the outer column container
+        var outerFlex = new FlexElement
+        {
+            Direction = Layout.FlexDirection.Column,
+            Rotate = table.Rotate,
+            Background = SubstituteVariables(table.Background, context),
+            Padding = table.Padding,
+            Margin = table.Margin
+        };
+
+        if (table.RowGap != null)
+        {
+            outerFlex.Gap = table.RowGap;
+        }
+
+        CopyBaseProperties(table, outerFlex);
+
+        // Build header row if any column has a label
+        var hasHeaders = false;
+        foreach (var col in table.Columns)
+        {
+            if (col.Label != null)
+            {
+                hasHeaders = true;
+                break;
+            }
+        }
+
+        if (hasHeaders)
+        {
+            var headerRow = BuildHeaderRow(table, context);
+            outerFlex.AddChild(headerRow);
+
+            // Add header border bottom separator if specified
+            if (table.HeaderBorderBottom != null)
+            {
+                var separator = new SeparatorElement
+                {
+                    Orientation = SeparatorOrientation.Horizontal,
+                    Color = table.HeaderColor ?? table.Color,
+                    Thickness = 1f
+                };
+
+                var styleLower = table.HeaderBorderBottom.ToLowerInvariant();
+                separator.Style = styleLower switch
+                {
+                    "solid" => SeparatorStyle.Solid,
+                    "dashed" => SeparatorStyle.Dashed,
+                    "dotted" => SeparatorStyle.Dotted,
+                    "true" => SeparatorStyle.Dotted,
+                    _ => SeparatorStyle.Dotted
+                };
+
+                outerFlex.AddChild(separator);
+            }
+        }
+
+        // Build data rows
+        if (!string.IsNullOrEmpty(table.ArrayPath))
+        {
+            // Dynamic table: wrap rows in an EachElement
+            var rowTemplate = BuildRowTemplate(table);
+            var each = new EachElement(new List<TemplateElement> { rowTemplate })
+            {
+                ArrayPath = table.ArrayPath,
+                ItemVariable = table.ItemVariable
+            };
+
+            // Expand the each element inline
+            var expandedRows = ExpandEach(each, context, childDepth);
+            foreach (var row in expandedRows)
+            {
+                outerFlex.AddChild(row);
+            }
+        }
+        else
+        {
+            // Static table: create a FlexElement row for each static row
+            foreach (var row in table.Rows)
+            {
+                var rowFlex = BuildStaticRow(table, row, context);
+                outerFlex.AddChild(rowFlex);
+            }
+        }
+
+        return outerFlex;
+    }
+
+    private FlexElement BuildHeaderRow(TableElement table, TemplateContext context)
+    {
+        var headerRow = new FlexElement
+        {
+            Direction = Layout.FlexDirection.Row
+        };
+
+        if (table.ColumnGap != null)
+        {
+            headerRow.Gap = table.ColumnGap;
+        }
+
+        foreach (var col in table.Columns)
+        {
+            var headerCell = new TextElement
+            {
+                Content = SubstituteVariables(col.Label ?? "", context),
+                Font = table.HeaderFont ?? col.Font ?? table.Font,
+                Color = table.HeaderColor ?? col.Color ?? table.Color,
+                Size = table.HeaderSize ?? col.Size ?? table.Size,
+                Align = col.Align
+            };
+
+            if (col.Width != null)
+            {
+                headerCell.Width = col.Width;
+            }
+
+            if (col.Grow > 0)
+            {
+                headerCell.Grow = col.Grow;
+            }
+
+            headerRow.AddChild(headerCell);
+        }
+
+        return headerRow;
+    }
+
+    private static FlexElement BuildRowTemplate(TableElement table)
+    {
+        var rowFlex = new FlexElement
+        {
+            Direction = Layout.FlexDirection.Row
+        };
+
+        if (table.ColumnGap != null)
+        {
+            rowFlex.Gap = table.ColumnGap;
+        }
+
+        foreach (var col in table.Columns)
+        {
+            // Determine content expression
+            string content;
+            if (col.Format != null)
+            {
+                content = col.Format;
+            }
+            else if (table.ItemVariable != null)
+            {
+                content = $"{{{{{table.ItemVariable}.{col.Key}}}}}";
+            }
+            else
+            {
+                content = $"{{{{{col.Key}}}}}";
+            }
+
+            var cell = new TextElement
+            {
+                Content = content,
+                Font = col.Font ?? table.Font,
+                Color = col.Color ?? table.Color,
+                Size = col.Size ?? table.Size,
+                Align = col.Align
+            };
+
+            if (col.Width != null)
+            {
+                cell.Width = col.Width;
+            }
+
+            if (col.Grow > 0)
+            {
+                cell.Grow = col.Grow;
+            }
+
+            rowFlex.AddChild(cell);
+        }
+
+        return rowFlex;
+    }
+
+    private FlexElement BuildStaticRow(TableElement table, TableRow row, TemplateContext context)
+    {
+        var rowFlex = new FlexElement
+        {
+            Direction = Layout.FlexDirection.Row
+        };
+
+        if (table.ColumnGap != null)
+        {
+            rowFlex.Gap = table.ColumnGap;
+        }
+
+        foreach (var col in table.Columns)
+        {
+            row.Values.TryGetValue(col.Key, out var rawValue);
+            var content = SubstituteVariables(rawValue ?? "", context);
+
+            var cell = new TextElement
+            {
+                Content = content,
+                Font = row.Font ?? col.Font ?? table.Font,
+                Color = row.Color ?? col.Color ?? table.Color,
+                Size = row.Size ?? col.Size ?? table.Size,
+                Align = col.Align
+            };
+
+            if (col.Width != null)
+            {
+                cell.Width = col.Width;
+            }
+
+            if (col.Grow > 0)
+            {
+                cell.Grow = col.Grow;
+            }
+
+            rowFlex.AddChild(cell);
+        }
+
+        return rowFlex;
     }
 
     private FlexElement ExpandFlex(FlexElement flex, TemplateContext context, int depth)
@@ -490,7 +772,7 @@ public sealed class TemplateExpander
     /// <param name="context">The template context for variable resolution.</param>
     /// <returns>A new element with variables substituted.</returns>
     /// <exception cref="InvalidOperationException">Thrown for control flow elements that should be expanded, not cloned.</exception>
-    private static TemplateElement CloneWithVariableSubstitution(TemplateElement element, TemplateContext context)
+    private TemplateElement CloneWithVariableSubstitution(TemplateElement element, TemplateContext context)
     {
         return element switch
         {
@@ -498,22 +780,25 @@ public sealed class TemplateExpander
             ImageElement image => CloneImageElement(image, context),
             QrElement qr => CloneQrElement(qr, context),
             BarcodeElement barcode => CloneBarcodeElement(barcode, context),
+            SvgElement svg => CloneSvgElement(svg, context),
             SeparatorElement sep => CloneSeparatorElement(sep, context),
             FlexElement => throw new InvalidOperationException("FlexElement should be handled by ExpandFlex"),
             EachElement => throw new InvalidOperationException("EachElement should be expanded, not cloned"),
             IfElement => throw new InvalidOperationException("IfElement should be expanded, not cloned"),
+            TableElement => throw new InvalidOperationException("TableElement should be handled by ExpandTable"),
             _ => element
         };
     }
 
     /// <summary>
     /// Substitutes variables in a string using the current context.
+    /// Supports inline expressions when a filter registry is configured.
     /// </summary>
-    /// <param name="text">The text containing variables like {{path}}.</param>
+    /// <param name="text">The text containing variables like {{path}} or expressions like {{price * qty}}.</param>
     /// <param name="context">The template context for variable resolution.</param>
     /// <returns>The text with all variables substituted, or null if input was null.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(text))]
-    private static string? SubstituteVariables(string? text, TemplateContext context)
+    private string? SubstituteVariables(string? text, TemplateContext context)
     {
         if (text is null)
         {
@@ -545,6 +830,14 @@ public sealed class TemplateExpander
                     var value = ExpressionEvaluator.Resolve(variable.Path, context);
                     result.Append(ValueToString(value));
                     break;
+                case InlineExpressionToken inlineExpr when _expressionEvaluator is not null:
+                    var exprValue = _expressionEvaluator.Evaluate(inlineExpr.Expression, context);
+                    result.Append(ValueToString(exprValue));
+                    break;
+                case InlineExpressionToken inlineExpr:
+                    // No evaluator configured; fall back to empty string
+                    result.Append(string.Empty);
+                    break;
             }
         }
 
@@ -568,7 +861,7 @@ public sealed class TemplateExpander
         };
     }
 
-    private static TextElement CloneTextElement(TextElement text, TemplateContext context)
+    private TextElement CloneTextElement(TextElement text, TemplateContext context)
     {
         var clone = new TextElement
         {
@@ -591,7 +884,7 @@ public sealed class TemplateExpander
         return clone;
     }
 
-    private static ImageElement CloneImageElement(ImageElement image, TemplateContext context)
+    private ImageElement CloneImageElement(ImageElement image, TemplateContext context)
     {
         var clone = new ImageElement
         {
@@ -609,7 +902,26 @@ public sealed class TemplateExpander
         return clone;
     }
 
-    private static QrElement CloneQrElement(QrElement qr, TemplateContext context)
+    private SvgElement CloneSvgElement(SvgElement svg, TemplateContext context)
+    {
+        var clone = new SvgElement
+        {
+            Src = SubstituteVariables(svg.Src, context),
+            Content = SubstituteVariables(svg.Content, context),
+            SvgWidth = svg.SvgWidth,
+            SvgHeight = svg.SvgHeight,
+            Fit = svg.Fit,
+            Rotate = svg.Rotate,
+            Background = SubstituteVariables(svg.Background, context),
+            Padding = svg.Padding,
+            Margin = svg.Margin
+        };
+
+        CopyBaseProperties(svg, clone);
+        return clone;
+    }
+
+    private QrElement CloneQrElement(QrElement qr, TemplateContext context)
     {
         var clone = new QrElement
         {
@@ -627,7 +939,7 @@ public sealed class TemplateExpander
         return clone;
     }
 
-    private static BarcodeElement CloneBarcodeElement(BarcodeElement barcode, TemplateContext context)
+    private BarcodeElement CloneBarcodeElement(BarcodeElement barcode, TemplateContext context)
     {
         var clone = new BarcodeElement
         {
@@ -647,7 +959,7 @@ public sealed class TemplateExpander
         return clone;
     }
 
-    private static SeparatorElement CloneSeparatorElement(SeparatorElement sep, TemplateContext context)
+    private SeparatorElement CloneSeparatorElement(SeparatorElement sep, TemplateContext context)
     {
         var clone = new SeparatorElement
         {

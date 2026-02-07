@@ -122,6 +122,13 @@ internal sealed class TemplatePreprocessor
     /// <param name="target">The target element to copy properties to.</param>
     private static void CopyBaseProperties(TemplateElement source, TemplateElement target)
     {
+        // ⚠ SYNC WARNING: This method is duplicated in 3 locations that MUST stay in sync:
+        //   1. TemplateExpander.CopyBaseProperties       (FlexRender.Core)
+        //   2. TemplatePreprocessor.CopyBaseProperties    (FlexRender.Skia)
+        //   3. SvgPreprocessor.CopyBaseProperties         (FlexRender.Svg)
+        // When adding a new property to TemplateElement, you MUST add it to ALL THREE methods.
+        // Failure to do so causes properties to silently disappear during preprocessing.
+
         // Flex-item properties
         target.Grow = source.Grow;
         target.Shrink = source.Shrink;
@@ -145,6 +152,13 @@ internal sealed class TemplatePreprocessor
         // Other base properties
         target.Display = source.Display;
         target.AspectRatio = source.AspectRatio;
+
+        // Visual effects
+        target.Opacity = source.Opacity;
+        target.BoxShadow = source.BoxShadow;
+
+        // Text direction
+        target.TextDirection = source.TextDirection;
 
         // Border properties
         target.Border = source.Border;
@@ -172,6 +186,7 @@ internal sealed class TemplatePreprocessor
             QrElement qr => ProcessQrElement(qr, data),
             BarcodeElement barcode => ProcessBarcodeElement(barcode, data),
             ImageElement image => ProcessImageElement(image, data),
+            SvgElement svg => ProcessSvgElement(svg, data),
             FlexElement flex => ProcessFlexElement(flex, data),
             SeparatorElement separator => ProcessSeparatorElement(separator, data),
             _ => element
@@ -286,6 +301,32 @@ internal sealed class TemplatePreprocessor
     }
 
     /// <summary>
+    /// Processes an SVG element by resolving expressions in its properties.
+    /// </summary>
+    /// <param name="svg">The SVG element to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <returns>A new SVG element with expressions resolved.</returns>
+    private SvgElement ProcessSvgElement(SvgElement svg, ObjectValue data)
+    {
+        var clone = new SvgElement
+        {
+            Src = ProcessExpression(svg.Src, data),
+            Content = ProcessExpression(svg.Content, data),
+            SvgWidth = svg.SvgWidth,
+            SvgHeight = svg.SvgHeight,
+            Fit = svg.Fit,
+            Rotate = svg.Rotate,
+            Background = ProcessExpression(svg.Background, data),
+            Padding = svg.Padding,
+            Margin = svg.Margin
+        };
+
+        CopyBaseProperties(svg, clone);
+        ProcessBorderExpressions(clone, data);
+        return clone;
+    }
+
+    /// <summary>
     /// Processes a separator element by resolving expressions in its properties.
     /// </summary>
     /// <param name="separator">The separator element to process.</param>
@@ -372,6 +413,7 @@ internal sealed class TemplatePreprocessor
         element.BorderBottom = ProcessExpression(element.BorderBottom, data);
         element.BorderLeft = ProcessExpression(element.BorderLeft, data);
         element.BorderRadius = ProcessExpression(element.BorderRadius, data);
+        element.BoxShadow = ProcessExpression(element.BoxShadow, data);
     }
 
     /// <summary>

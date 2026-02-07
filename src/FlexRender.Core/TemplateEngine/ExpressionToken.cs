@@ -18,7 +18,9 @@ public enum TokenType
     /// <summary>Start of each loop: {{#each array}}.</summary>
     EachStart,
     /// <summary>End of each loop: {{/each}}.</summary>
-    EachEnd
+    EachEnd,
+    /// <summary>Inline expression with operators/filters: {{price * quantity | currency}}.</summary>
+    InlineExpression
 }
 
 /// <summary>
@@ -65,3 +67,11 @@ public sealed record EachStartToken(string ArrayPath) : ExpressionToken(TokenTyp
 /// End of loop block: {{/each}}.
 /// </summary>
 public sealed record EachEndToken() : ExpressionToken(TokenType.EachEnd);
+
+/// <summary>
+/// Inline expression token containing a parsed expression AST.
+/// Created when the expression content contains operators, filters, or other non-path syntax.
+/// </summary>
+/// <param name="Expression">The parsed expression AST.</param>
+/// <param name="RawContent">The original expression text for error reporting.</param>
+public sealed record InlineExpressionToken(InlineExpression Expression, string RawContent) : ExpressionToken(TokenType.InlineExpression);

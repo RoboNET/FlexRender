@@ -1,0 +1,74 @@
+namespace FlexRender.TemplateEngine;
+
+/// <summary>
+/// Arithmetic operators supported in inline expressions.
+/// </summary>
+public enum ArithmeticOperator
+{
+    /// <summary>Addition operator (+).</summary>
+    Add,
+
+    /// <summary>Subtraction operator (-).</summary>
+    Subtract,
+
+    /// <summary>Multiplication operator (*).</summary>
+    Multiply,
+
+    /// <summary>Division operator (/).</summary>
+    Divide
+}
+
+/// <summary>
+/// Base class for all inline expression AST nodes.
+/// Used by the Pratt parser to represent parsed expressions within <c>{{...}}</c> blocks.
+/// </summary>
+public abstract record InlineExpression;
+
+/// <summary>
+/// A path expression referencing a variable (e.g., <c>user.name</c>, <c>items[0].price</c>).
+/// </summary>
+/// <param name="Path">The dot-separated path to the variable.</param>
+public sealed record PathExpression(string Path) : InlineExpression;
+
+/// <summary>
+/// A numeric literal (e.g., <c>42</c>, <c>3.14</c>).
+/// </summary>
+/// <param name="Value">The decimal value of the literal.</param>
+public sealed record NumberLiteral(decimal Value) : InlineExpression;
+
+/// <summary>
+/// A string literal enclosed in double quotes (e.g., <c>"hello"</c>).
+/// </summary>
+/// <param name="Value">The string value without quotes.</param>
+public sealed record StringLiteral(string Value) : InlineExpression;
+
+/// <summary>
+/// A binary arithmetic expression (e.g., <c>price * quantity</c>).
+/// </summary>
+/// <param name="Left">The left operand.</param>
+/// <param name="Op">The arithmetic operator.</param>
+/// <param name="Right">The right operand.</param>
+public sealed record ArithmeticExpression(InlineExpression Left, ArithmeticOperator Op, InlineExpression Right) : InlineExpression;
+
+/// <summary>
+/// A null-coalesce expression (e.g., <c>name ?? "Guest"</c>).
+/// Returns <paramref name="Right"/> when <paramref name="Left"/> evaluates to null.
+/// </summary>
+/// <param name="Left">The primary expression.</param>
+/// <param name="Right">The fallback expression.</param>
+public sealed record CoalesceExpression(InlineExpression Left, InlineExpression Right) : InlineExpression;
+
+/// <summary>
+/// A filter pipe expression (e.g., <c>price | currency</c>, <c>name | truncate:30</c>).
+/// Applies a named filter to the input expression.
+/// </summary>
+/// <param name="Input">The expression whose result is passed to the filter.</param>
+/// <param name="FilterName">The name of the filter to apply.</param>
+/// <param name="Argument">An optional string argument to the filter (after the colon).</param>
+public sealed record FilterExpression(InlineExpression Input, string FilterName, string? Argument) : InlineExpression;
+
+/// <summary>
+/// A unary negation expression (e.g., <c>-price</c>).
+/// </summary>
+/// <param name="Operand">The expression to negate.</param>
+public sealed record NegateExpression(InlineExpression Operand) : InlineExpression;

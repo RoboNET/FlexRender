@@ -10,7 +10,6 @@ namespace FlexRender.Layout;
 internal sealed class IntrinsicMeasurer
 {
     private const float DefaultFontSize = 16f;
-    private const float LineHeightMultiplier = 1.4f;
 
     private readonly LayoutEngine _engine;
 
@@ -57,6 +56,7 @@ internal sealed class IntrinsicMeasurer
             QrElement qr => MeasureQrIntrinsic(qr),
             BarcodeElement barcode => MeasureBarcodeIntrinsic(barcode),
             ImageElement image => MeasureImageIntrinsic(image),
+            SvgElement svg => MeasureSvgIntrinsic(svg),
             SeparatorElement separator => MeasureSeparatorIntrinsic(separator),
             FlexElement flex => MeasureFlexIntrinsic(flex, sizes),
             _ => new IntrinsicSize(0f, 0f, 0f, 0f)
@@ -89,7 +89,7 @@ internal sealed class IntrinsicMeasurer
         else
         {
             contentWidth = ParseAbsolutePixelValue(text.Width, 0f);
-            var lineHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightMultiplier);
+            var lineHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
             contentHeight = !string.IsNullOrEmpty(text.Height)
                 ? ParseAbsolutePixelValue(text.Height, lineHeight)
                 : lineHeight;
@@ -135,6 +135,19 @@ internal sealed class IntrinsicMeasurer
         var intrinsic = new IntrinsicSize(width, width, height, height);
 
         return ApplyPaddingBorderAndMargin(intrinsic, image);
+    }
+
+    /// <summary>
+    /// Measures intrinsic size for an SVG element.
+    /// </summary>
+    private static IntrinsicSize MeasureSvgIntrinsic(SvgElement svg)
+    {
+        // Default to 100x100 if dimensions not specified (similar to QR code default)
+        float width = svg.SvgWidth ?? 100f;
+        float height = svg.SvgHeight ?? 100f;
+        var intrinsic = new IntrinsicSize(width, width, height, height);
+
+        return ApplyPaddingBorderAndMargin(intrinsic, svg);
     }
 
     /// <summary>
