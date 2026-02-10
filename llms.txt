@@ -163,7 +163,7 @@ Values can use px, %, or em units (e.g., `"10px 5% 2em 20"`).
 - `template.culture`: optional culture string in YAML template (e.g., `"ru-RU"`)
 - `RenderOptions.Culture`: per-call CultureInfo override
 - Priority: RenderOptions.Culture > template.culture > InvariantCulture
-- Affects built-in filters: currency, currencySymbol, number, format
+- Affects built-in filters (enabled by default): currency, currencySymbol, number, format
 
 ### Visual Effects
 
@@ -359,7 +359,7 @@ public class MyService(IFlexRender render)
 ```csharp
 var render = new FlexRenderBuilder()
     .WithoutDefaultLoaders()
-    .WithoutDefaultFilters()         // Remove all 8 built-in filters
+    .WithoutDefaultFilters()         // Remove all 8 built-in filters (enabled by default)
     .WithFilter("custom", new MyFilter()) // Register custom filters
     .WithEmbeddedLoader(typeof(Program).Assembly)
     .WithSkia()

@@ -200,34 +200,17 @@ public sealed class FlexRenderBuilder
     }
 
     /// <summary>
-    /// Enables the built-in filter system with default filters.
-    /// </summary>
-    /// <returns>This builder instance for method chaining.</returns>
-    /// <remarks>
-    /// This is called automatically when <see cref="WithFilter"/> is used.
-    /// Call it explicitly to enable the 8 built-in filters (currency, currencySymbol, number, upper, lower, trim, truncate, format)
-    /// without adding custom filters.
-    /// </remarks>
-    public FlexRenderBuilder WithFilters()
-    {
-        _filterRegistry ??= _useDefaultFilters
-            ? FilterRegistry.CreateDefault()
-            : new FilterRegistry();
-        return this;
-    }
-
-    /// <summary>
     /// Clears all built-in filters, allowing only explicitly registered custom filters.
     /// </summary>
     /// <returns>This builder instance for method chaining.</returns>
     /// <remarks>
     /// <para>
     /// By default, the 8 built-in filters (currency, currencySymbol, number, upper, lower, trim, truncate, format)
-    /// are automatically registered. Call this method before <see cref="WithFilter"/> to start
+    /// are automatically registered at build time. Call this method to start
     /// with an empty registry and only use custom filters.
     /// </para>
     /// <para>
-    /// If called after <see cref="WithFilter"/> or <see cref="WithFilters"/>, the existing
+    /// If called after <see cref="WithFilter"/>, the existing
     /// registry is cleared and only subsequently registered filters will be available.
     /// </para>
     /// </remarks>
@@ -271,6 +254,47 @@ public sealed class FlexRenderBuilder
     }
 
     /// <summary>
+    /// Sets the default <see cref="RenderOptions"/> used when <c>renderOptions</c>
+    /// is <c>null</c> in render calls.
+    /// </summary>
+    /// <param name="renderOptions">The default render options to use.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="renderOptions"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// By default, <see cref="RenderOptions.Default"/> is used when no explicit
+    /// <see cref="RenderOptions"/> is passed to a render method. Use this method
+    /// to change that default — for example, to always render with
+    /// <see cref="RenderOptions.Deterministic"/> for snapshot testing.
+    /// </para>
+    /// <para>
+    /// Passing an explicit <see cref="RenderOptions"/> to a render method always
+    /// overrides the builder default.
+    /// </para>
+    /// <para>
+    /// <b>Backend compatibility:</b> The Skia backend applies all <see cref="RenderOptions"/>
+    /// properties. The ImageSharp backend applies <see cref="RenderOptions.Antialiasing"/>
+    /// and <see cref="RenderOptions.Culture"/> only; <see cref="RenderOptions.SubpixelText"/>,
+    /// <see cref="RenderOptions.FontHinting"/>, and <see cref="RenderOptions.TextRendering"/>
+    /// are ignored.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var render = new FlexRenderBuilder()
+    ///     .WithDefaultRenderOptions(new RenderOptions { Antialiasing = false })
+    ///     .WithSkia()
+    ///     .Build();
+    /// </code>
+    /// </example>
+    public FlexRenderBuilder WithDefaultRenderOptions(RenderOptions renderOptions)
+    {
+        ArgumentNullException.ThrowIfNull(renderOptions);
+        Options.DefaultRenderOptions = renderOptions;
+        return this;
+    }
+
+    /// <summary>
     /// Builds and returns the configured <see cref="IFlexRender"/> instance.
     /// </summary>
     /// <returns>A fully configured <see cref="IFlexRender"/> instance.</returns>
@@ -306,6 +330,13 @@ public sealed class FlexRenderBuilder
         if (Options.EmbeddedResourceAssemblies.Count > 0)
         {
             ResourceLoaders.Add(new EmbeddedResourceLoader(Options));
+        }
+
+        // Initialize default filter registry if neither WithFilter() nor WithoutDefaultFilters() was called.
+        // WithFilter() eagerly creates the registry; WithoutDefaultFilters() sets _useDefaultFilters = false.
+        if (_filterRegistry is null && _useDefaultFilters)
+        {
+            _filterRegistry = FilterRegistry.CreateDefault();
         }
 
         _built = true;

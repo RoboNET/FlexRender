@@ -198,16 +198,20 @@ public sealed class FlexRenderBuilderTests
 
     #endregion
 
-    #region WithFilter / WithFilters / WithoutDefaultFilters Tests
+    #region WithFilter / WithoutDefaultFilters Tests
 
     /// <summary>
-    /// Verifies that WithFilters enables built-in filters and exposes them via FilterRegistry.
+    /// Verifies that built-in filters are enabled by default without explicit configuration.
     /// </summary>
     [Fact]
-    public void WithFilters_EnablesBuiltInFilters()
+    public void Build_DefaultFiltersEnabled()
     {
         var builder = new FlexRenderBuilder()
-            .WithFilters();
+            .WithSkia();
+
+        Assert.Null(builder.FilterRegistry); // not yet initialized
+
+        using var render = builder.Build();
 
         Assert.NotNull(builder.FilterRegistry);
         Assert.NotNull(builder.FilterRegistry!.Get("currency"));
@@ -300,19 +304,6 @@ public sealed class FlexRenderBuilderTests
     }
 
     /// <summary>
-    /// Verifies that WithFilters returns same builder instance for chaining.
-    /// </summary>
-    [Fact]
-    public void WithFilters_ReturnsSameBuilderInstance()
-    {
-        var builder = new FlexRenderBuilder();
-
-        var result = builder.WithFilters();
-
-        Assert.Same(builder, result);
-    }
-
-    /// <summary>
     /// Verifies that WithFilter returns same builder instance for chaining.
     /// </summary>
     [Fact]
@@ -338,20 +329,57 @@ public sealed class FlexRenderBuilderTests
         Assert.Same(builder, result);
     }
 
+    #endregion
+
+    #region WithDefaultRenderOptions Tests
+
     /// <summary>
-    /// Verifies that WithoutDefaultFilters then WithFilters does not restore defaults
-    /// (because _useDefaultFilters was set to false).
+    /// Verifies that WithDefaultRenderOptions stores the value on FlexRenderOptions.
     /// </summary>
     [Fact]
-    public void WithoutDefaultFilters_ThenWithFilters_DoesNotRestoreDefaults()
+    public void WithDefaultRenderOptions_SetsOnOptions()
     {
-        var builder = new FlexRenderBuilder()
-            .WithoutDefaultFilters()
-            .WithFilters();
+        var builder = new FlexRenderBuilder();
+        var custom = new RenderOptions { Antialiasing = false };
 
-        Assert.NotNull(builder.FilterRegistry);
-        // WithFilters after WithoutDefaultFilters creates empty registry (no defaults)
-        Assert.Null(builder.FilterRegistry!.Get("currency"));
+        builder.WithDefaultRenderOptions(custom);
+
+        Assert.Same(custom, builder.Options.DefaultRenderOptions);
+    }
+
+    /// <summary>
+    /// Verifies that passing null to WithDefaultRenderOptions throws ArgumentNullException.
+    /// </summary>
+    [Fact]
+    public void WithDefaultRenderOptions_Null_Throws()
+    {
+        var builder = new FlexRenderBuilder();
+
+        Assert.Throws<ArgumentNullException>(() => builder.WithDefaultRenderOptions(null!));
+    }
+
+    /// <summary>
+    /// Verifies that FlexRenderOptions defaults to RenderOptions.Default when not set.
+    /// </summary>
+    [Fact]
+    public void DefaultRenderOptions_WhenNotSet_IsDefault()
+    {
+        var builder = new FlexRenderBuilder();
+
+        Assert.Same(RenderOptions.Default, builder.Options.DefaultRenderOptions);
+    }
+
+    /// <summary>
+    /// Verifies that WithDefaultRenderOptions returns the same builder for fluent chaining.
+    /// </summary>
+    [Fact]
+    public void WithDefaultRenderOptions_ReturnsSameBuilder()
+    {
+        var builder = new FlexRenderBuilder();
+
+        var result = builder.WithDefaultRenderOptions(RenderOptions.Deterministic);
+
+        Assert.Same(builder, result);
     }
 
     #endregion
@@ -371,12 +399,14 @@ public sealed class FlexRenderBuilderTests
         var result3 = builder.WithoutDefaultLoaders();
         var result4 = builder.WithEmbeddedLoader(Assembly.GetExecutingAssembly());
         var result5 = builder.WithSkia();
+        var result6 = builder.WithDefaultRenderOptions(RenderOptions.Default);
 
         Assert.Same(builder, result1);
         Assert.Same(builder, result2);
         Assert.Same(builder, result3);
         Assert.Same(builder, result4);
         Assert.Same(builder, result5);
+        Assert.Same(builder, result6);
     }
 
     /// <summary>

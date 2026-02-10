@@ -21,6 +21,13 @@ namespace FlexRender;
 /// For cross-platform deterministic output (e.g., snapshot testing),
 /// use <see cref="Deterministic"/>.
 /// </para>
+/// <para>
+/// <b>Backend compatibility:</b> The Skia backend applies all properties.
+/// The ImageSharp backend applies <see cref="Antialiasing"/> and
+/// <see cref="Culture"/> only; <see cref="SubpixelText"/>,
+/// <see cref="FontHinting"/>, and <see cref="TextRendering"/> are ignored.
+/// See the wiki Render-Options page for the full compatibility matrix.
+/// </para>
 /// </remarks>
 public sealed record RenderOptions
 {
@@ -75,6 +82,7 @@ public sealed record RenderOptions
     /// When enabled, glyph positions are calculated at sub-pixel precision,
     /// producing smoother text spacing. Disable for deterministic cross-platform
     /// output where glyphs must snap to whole pixel boundaries.
+    /// <para><b>Skia only.</b> Ignored by the ImageSharp backend.</para>
     /// </remarks>
     public bool SubpixelText { get; init; } = true;
 
@@ -85,6 +93,7 @@ public sealed record RenderOptions
     /// <remarks>
     /// Font hinting adjusts glyph outlines to align with the pixel grid.
     /// Use <see cref="FlexRender.FontHinting.None"/> for platform-independent output.
+    /// <para><b>Skia only.</b> Ignored by the ImageSharp backend.</para>
     /// </remarks>
     public FontHinting FontHinting { get; init; } = FontHinting.Normal;
 
@@ -105,6 +114,7 @@ public sealed record RenderOptions
     /// <see cref="FlexRender.TextRendering.Aliased"/> produces jagged text with no
     /// smoothing — suitable for very low resolution or monochrome targets.
     /// </para>
+    /// <para><b>Skia only.</b> Ignored by the ImageSharp backend.</para>
     /// </remarks>
     public TextRendering TextRendering { get; init; } = TextRendering.SubpixelLcd;
 

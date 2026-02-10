@@ -71,7 +71,6 @@ public sealed class Program
         string rasterBackend = "skia")
     {
         var builder = new FlexRenderBuilder()
-            .WithFilters()
             .WithHttpLoader();
 
         switch (backend)

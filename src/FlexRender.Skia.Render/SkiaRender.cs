@@ -37,6 +37,7 @@ public sealed class SkiaRender : IFlexRender
     private readonly SkiaRenderer _renderer;
     private readonly IReadOnlyList<IResourceLoader> _resourceLoaders;
     private readonly bool _legacyDeterministicRendering;
+    private readonly RenderOptions _defaultRenderOptions;
     private int _disposed;
 
     /// <summary>
@@ -93,6 +94,7 @@ public sealed class SkiaRender : IFlexRender
 #pragma warning disable CS0618 // Obsolete DeterministicRendering property - captured for legacy Render() backward compatibility
         _legacyDeterministicRendering = options.DeterministicRendering;
 #pragma warning restore CS0618
+        _defaultRenderOptions = options.DefaultRenderOptions;
 
         _renderer = new SkiaRenderer(
             limits,
@@ -229,7 +231,7 @@ public sealed class SkiaRender : IFlexRender
         ValidatePngOptions(effectiveOptions);
 
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         using var stream = new MemoryStream();
         await _renderer.RenderToPng(
@@ -258,7 +260,7 @@ public sealed class SkiaRender : IFlexRender
         ValidatePngOptions(effectiveOptions);
 
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         await _renderer.RenderToPng(
             output, layoutTemplate, effectiveData,
@@ -284,7 +286,7 @@ public sealed class SkiaRender : IFlexRender
         ValidateJpegOptions(effectiveOptions);
 
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         using var stream = new MemoryStream();
         await _renderer.RenderToJpeg(
@@ -313,7 +315,7 @@ public sealed class SkiaRender : IFlexRender
         ValidateJpegOptions(effectiveOptions);
 
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         await _renderer.RenderToJpeg(
             output, layoutTemplate, effectiveData,
@@ -337,7 +339,7 @@ public sealed class SkiaRender : IFlexRender
 
         var effectiveOptions = options ?? BmpOptions.Default;
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         using var stream = new MemoryStream();
         await _renderer.RenderToBmp(
@@ -364,7 +366,7 @@ public sealed class SkiaRender : IFlexRender
 
         var effectiveOptions = options ?? BmpOptions.Default;
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         await _renderer.RenderToBmp(
             output, layoutTemplate, effectiveData,
@@ -386,7 +388,7 @@ public sealed class SkiaRender : IFlexRender
         ArgumentNullException.ThrowIfNull(layoutTemplate);
 
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         using var stream = new MemoryStream();
         await _renderer.RenderToRaw(
@@ -410,7 +412,7 @@ public sealed class SkiaRender : IFlexRender
         ArgumentNullException.ThrowIfNull(layoutTemplate);
 
         var effectiveData = data ?? new ObjectValue();
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var effectiveRenderOptions = renderOptions ?? _defaultRenderOptions;
 
         await _renderer.RenderToRaw(
             output, layoutTemplate, effectiveData,
