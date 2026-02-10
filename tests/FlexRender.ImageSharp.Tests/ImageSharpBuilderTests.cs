@@ -1,5 +1,4 @@
 using FlexRender.Barcode.ImageSharp;
-using FlexRender.ImageSharp;
 using FlexRender.QrCode.ImageSharp;
 using Xunit;
 

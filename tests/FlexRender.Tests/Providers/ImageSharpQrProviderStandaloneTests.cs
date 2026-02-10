@@ -1,6 +1,5 @@
 using FlexRender.Parsing.Ast;
 using FlexRender.QrCode.ImageSharp.Providers;
-using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace FlexRender.Tests.Providers;

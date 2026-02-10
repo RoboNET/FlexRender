@@ -1,7 +1,6 @@
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.ImageSharp.Rendering;
-using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.TemplateEngine;
 using SixLabors.ImageSharp;

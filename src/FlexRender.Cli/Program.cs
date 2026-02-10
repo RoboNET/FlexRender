@@ -4,10 +4,8 @@ using FlexRender.Barcode.ImageSharp;
 using FlexRender.Cli.Commands;
 using FlexRender.Configuration;
 using FlexRender.Http;
-using FlexRender.ImageSharp;
 using FlexRender.QrCode;
 using FlexRender.QrCode.ImageSharp;
-using FlexRender.Svg;
 using FlexRender.SvgElement;
 
 namespace FlexRender.Cli;

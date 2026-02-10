@@ -1,5 +1,4 @@
 using FlexRender.Barcode.Providers;
-using FlexRender.Providers;
 using FlexRender.Skia;
 
 namespace FlexRender.Barcode;

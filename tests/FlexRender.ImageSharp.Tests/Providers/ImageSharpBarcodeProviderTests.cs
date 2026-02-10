@@ -1,7 +1,5 @@
 using FlexRender.Barcode.ImageSharp.Providers;
 using FlexRender.Parsing.Ast;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace FlexRender.ImageSharp.Tests.Providers;

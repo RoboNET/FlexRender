@@ -1,4 +1,3 @@
-using System.CommandLine;
 using Xunit;
 
 namespace FlexRender.Cli.Tests.Commands;

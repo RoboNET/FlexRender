@@ -1,6 +1,5 @@
 using FlexRender.Abstractions;
 using FlexRender.Barcode;
-using FlexRender.Configuration;
 using FlexRender.Parsing.Ast;
 using FlexRender.QrCode;
 using FlexRender.Yaml;

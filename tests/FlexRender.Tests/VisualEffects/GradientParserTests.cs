@@ -1,5 +1,4 @@
 using FlexRender.Rendering;
-using SkiaSharp;
 using Xunit;
 
 namespace FlexRender.Tests.VisualEffects;
