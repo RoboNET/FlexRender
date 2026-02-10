@@ -247,6 +247,17 @@ All new features and non-trivial changes must be developed in separate branches.
 - **Do NOT merge into `main`** -- leave the feature branch as-is after completing work. Merging is done manually by the maintainer or via GitHub PR
 - **Do NOT use git worktrees** -- work directly in the repository checkout. Worktrees add unnecessary complexity and cause issues with stash conflicts and asset path resolution
 
+### Git LFS & Image URLs
+
+All binary assets (PNG images, fonts) are stored in Git LFS. When referencing images in README or documentation:
+
+- **Use `media.githubusercontent.com`** for LFS-tracked files:
+  ```
+  https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/receipt.png
+  ```
+- **Do NOT use `raw.githubusercontent.com`** -- it returns the LFS pointer file (text), not the actual image content
+- LFS-tracked paths: `examples/output/*.png`, `examples/assets/fonts/*.ttf`, `examples/assets/placeholder/*.png`, `examples/visual-docs/output/*.png`
+
 ### Commits
 
 Conventional Commits: `type(scope): description`
