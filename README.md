@@ -30,16 +30,16 @@ A .NET library for rendering images from YAML templates with a full CSS flexbox 
 
 | Receipt | Dynamic Receipt | Ticket | Label |
 |---------|-----------------|--------|-------|
-| ![Receipt](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/receipt.png) | ![Dynamic](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/receipt-dynamic.png) | ![Ticket](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/ticket.png) | ![Label](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/label.png) |
+| ![Receipt](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/receipt.png) | ![Dynamic](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/receipt-dynamic.png) | ![Ticket](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/ticket.png) | ![Label](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/label.png) |
 
 | Table Invoice | Expressions | Visual Effects |
 |---------------|-------------|----------------|
-| ![Table Invoice](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/table-invoice.png) | ![Expressions](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/expressions-demo.png) | ![Visual Effects](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/visual-effects.png) |
+| ![Table Invoice](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/table-invoice.png) | ![Expressions](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/expressions-demo.png) | ![Visual Effects](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/visual-effects.png) |
 
 <details>
 <summary>All Features Showcase (click to expand)</summary>
 
-![Showcase](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/showcase-all-features.png)
+![Showcase](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/showcase-all-features.png)
 
 </details>
 
@@ -48,7 +48,7 @@ A .NET library for rendering images from YAML templates with a full CSS flexbox 
 
 | Skia | ImageSharp | SVG |
 |------|------------|-----|
-| ![Skia](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/showcase-capabilities-skia.png) | ![ImageSharp](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/showcase-capabilities-imagesharp.png) | [SVG output](examples/output/showcase-capabilities.svg) |
+| ![Skia](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/showcase-capabilities-skia.png) | ![ImageSharp](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/showcase-capabilities-imagesharp.png) | [SVG output](examples/output/showcase-capabilities.svg) |
 | Native rendering, gradients, shadows, SVG elements | Pure .NET, zero native deps | Vector output, scalable |
 
 </details>
