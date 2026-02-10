@@ -304,6 +304,27 @@ Common RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `win-x64`.
 
 Native AOT binaries are attached to every GitHub Release for: osx-arm64, linux-x64, win-x64.
 
+### NuGet Packages Published on Release
+
+The release workflow (`.github/workflows/release.yml`) publishes all packages to NuGet.org on tag push (`v*`). When adding a new project to `src/`, it **must** be added to the pack list in `release.yml`.
+
+**Library packages** (packed with `--no-build`):
+
+| Category | Packages |
+|----------|----------|
+| Core | `FlexRender.Core`, `FlexRender.Yaml`, `FlexRender.Http` |
+| Renderers | `FlexRender.Skia.Render`, `FlexRender.ImageSharp.Render`, `FlexRender.Svg.Render` |
+| QR providers | `FlexRender.QrCode.Skia.Render`, `FlexRender.QrCode.ImageSharp.Render`, `FlexRender.QrCode.Svg.Render` |
+| Barcode providers | `FlexRender.Barcode.Skia.Render`, `FlexRender.Barcode.ImageSharp.Render`, `FlexRender.Barcode.Svg.Render` |
+| SvgElement providers | `FlexRender.SvgElement.Skia.Render`, `FlexRender.SvgElement.Svg.Render` |
+| Extensions | `FlexRender.HarfBuzz` |
+| Meta (backend) | `FlexRender.Skia`, `FlexRender.ImageSharp`, `FlexRender.Svg` |
+| Meta (feature) | `FlexRender.QrCode`, `FlexRender.Barcode`, `FlexRender.SvgElement` |
+| DI & all-in-one | `FlexRender.DependencyInjection`, `FlexRender.MetaPackage` |
+
+**CLI tool** (packed separately, without `--no-build` -- `PackAsTool` requires publish):
+- `FlexRender.Cli` -- native PDB files are excluded via MSBuild target to keep package ~23MB
+
 ### NuGet Trusted Publishing (OIDC)
 
 The release workflow uses NuGet trusted publishing via OIDC instead of long-lived API keys. Setup:
