@@ -3,7 +3,6 @@ using FlexRender.Barcode.Providers;
 using FlexRender.Configuration;
 using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
-using FlexRender.Providers;
 using FlexRender.QrCode.Providers;
 using FlexRender.Rendering;
 using SkiaSharp;

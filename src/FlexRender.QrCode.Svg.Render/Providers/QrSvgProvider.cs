@@ -1,7 +1,6 @@
 using System.Text;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
-using FlexRender.QrCode;
 using FlexRender.Rendering;
 using QRCoder;
 

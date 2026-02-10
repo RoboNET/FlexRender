@@ -1,7 +1,6 @@
 using System.Globalization;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
-using FlexRender.QrCode;
 using QRCoder;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;

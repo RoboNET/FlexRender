@@ -1,5 +1,4 @@
 using FlexRender.ImageSharp.Rendering;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 

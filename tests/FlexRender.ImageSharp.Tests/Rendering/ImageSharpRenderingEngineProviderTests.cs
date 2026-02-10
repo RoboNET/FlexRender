@@ -1,7 +1,6 @@
 using FlexRender.Abstractions;
 using FlexRender.Barcode.ImageSharp;
 using FlexRender.Configuration;
-using FlexRender.ImageSharp;
 using FlexRender.Parsing.Ast;
 using FlexRender.QrCode.ImageSharp;
 using SixLabors.ImageSharp;

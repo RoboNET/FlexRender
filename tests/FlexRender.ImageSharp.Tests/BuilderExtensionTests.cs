@@ -1,5 +1,4 @@
 using FlexRender.Configuration;
-using FlexRender.ImageSharp;
 using FlexRender.Parsing.Ast;
 using Xunit;
 

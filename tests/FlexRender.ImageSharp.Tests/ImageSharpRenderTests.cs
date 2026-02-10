@@ -1,7 +1,5 @@
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
-using FlexRender.ImageSharp;
-using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using Xunit;
 

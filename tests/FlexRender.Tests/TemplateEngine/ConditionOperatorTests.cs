@@ -1,4 +1,3 @@
-using FlexRender.Configuration;
 using FlexRender.Parsing.Ast;
 using FlexRender.TemplateEngine;
 using Xunit;

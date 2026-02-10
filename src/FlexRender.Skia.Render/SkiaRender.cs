@@ -5,7 +5,6 @@ using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
 using FlexRender.Rendering;
 using FlexRender.TemplateEngine;
-using SkiaSharp;
 
 namespace FlexRender.Skia;
 

@@ -1,5 +1,4 @@
 using FlexRender;
-using FlexRender.Abstractions;
 using FlexRender.Barcode.Svg;
 using FlexRender.Configuration;
 using FlexRender.Parsing;
