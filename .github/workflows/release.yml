@@ -57,17 +57,38 @@ jobs:
             src/FlexRender.Core/FlexRender.Core.csproj \
             src/FlexRender.Yaml/FlexRender.Yaml.csproj \
             src/FlexRender.Http/FlexRender.Http.csproj \
+            src/FlexRender.Skia.Render/FlexRender.Skia.Render.csproj \
+            src/FlexRender.ImageSharp.Render/FlexRender.ImageSharp.Render.csproj \
+            src/FlexRender.Svg.Render/FlexRender.Svg.Render.csproj \
+            src/FlexRender.QrCode.Skia.Render/FlexRender.QrCode.Skia.Render.csproj \
+            src/FlexRender.QrCode.ImageSharp.Render/FlexRender.QrCode.ImageSharp.Render.csproj \
+            src/FlexRender.QrCode.Svg.Render/FlexRender.QrCode.Svg.Render.csproj \
+            src/FlexRender.Barcode.Skia.Render/FlexRender.Barcode.Skia.Render.csproj \
+            src/FlexRender.Barcode.ImageSharp.Render/FlexRender.Barcode.ImageSharp.Render.csproj \
+            src/FlexRender.Barcode.Svg.Render/FlexRender.Barcode.Svg.Render.csproj \
+            src/FlexRender.SvgElement.Skia.Render/FlexRender.SvgElement.Skia.Render.csproj \
+            src/FlexRender.SvgElement.Svg.Render/FlexRender.SvgElement.Svg.Render.csproj \
+            src/FlexRender.HarfBuzz/FlexRender.HarfBuzz.csproj \
             src/FlexRender.Skia/FlexRender.Skia.csproj \
+            src/FlexRender.ImageSharp/FlexRender.ImageSharp.csproj \
+            src/FlexRender.Svg/FlexRender.Svg.csproj \
             src/FlexRender.QrCode/FlexRender.QrCode.csproj \
             src/FlexRender.Barcode/FlexRender.Barcode.csproj \
+            src/FlexRender.SvgElement/FlexRender.SvgElement.csproj \
             src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj \
-            src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj \
-            src/FlexRender.Cli/FlexRender.Cli.csproj; do
+            src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj; do
             dotnet pack "$project" \
               --no-build --configuration Release \
               -p:Version=${{ steps.version.outputs.VERSION }} \
               --output ./artifacts
           done
+
+      - name: Pack CLI tool
+        run: |
+          dotnet pack src/FlexRender.Cli/FlexRender.Cli.csproj \
+            --configuration Release \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
+            --output ./artifacts
 
       - name: Login to NuGet with trusted publishing
         id: nuget-login
