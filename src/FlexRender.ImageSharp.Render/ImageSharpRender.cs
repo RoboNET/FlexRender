@@ -39,6 +39,7 @@ public sealed class ImageSharpRender : IFlexRender
     private readonly FilterRegistry? _filterRegistry;
     private readonly ResourceLimits _limits;
     private readonly FlexRenderOptions _options;
+    private readonly RenderOptions _defaultRenderOptions;
     private int _disposed;
 
     /// <summary>
@@ -67,6 +68,7 @@ public sealed class ImageSharpRender : IFlexRender
 
         _limits = limits;
         _options = options;
+        _defaultRenderOptions = options.DefaultRenderOptions;
         _resourceLoaders = resourceLoaders;
         _filterRegistry = filterRegistry;
 

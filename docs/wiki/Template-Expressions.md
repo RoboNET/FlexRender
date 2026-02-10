@@ -82,6 +82,8 @@ Filters transform values using the pipe (`|`) syntax. Filters can take an option
 
 #### Built-in Filters
 
+All 8 built-in filters are enabled by default. Use `WithoutDefaultFilters()` on `FlexRenderBuilder` to disable them if needed.
+
 | Filter | Argument | Description | Example |
 |--------|----------|-------------|---------|
 | `currency` | -- | Format number as currency (2 decimal places) | `{{price \| currency}}` -> `"1234.50"` |
@@ -91,12 +93,20 @@ Filters transform values using the pipe (`|`) syntax. Filters can take an option
 | `trim` | -- | Remove leading/trailing whitespace | `{{input \| trim}}` |
 | `truncate` | max length (default: 50) | Truncate string with "..." suffix | `{{desc \| truncate:20}}` |
 | `format` | format string | Format number or date with .NET format string | `{{date \| format:"dd.MM.yyyy"}}` |
-| `currencySymbol` | -- | Convert ISO 4217 currency code to symbol | `{{currency \| currencySymbol}}` -> `"$"` |
+| `currencySymbol` | -- | Convert ISO 4217 currency code (alphabetic or numeric) to symbol | `{{currency \| currencySymbol}}` -> `"$"`, `{{840 \| currencySymbol}}` -> `"$"` |
 
 ```yaml
 # Price with currency formatting
 - type: text
   content: "Total: {{subtotal * 1.1 | currency}} $"
+
+# Currency symbol from alphabetic code ("USD" -> "$")
+- type: text
+  content: "{{currencyCode | currencySymbol}} {{amount | currency}}"
+
+# Currency symbol from numeric ISO 4217 code (840 -> "$")
+- type: text
+  content: "{{numericCode | currencySymbol}} {{amount | currency}}"
 
 # Uppercase label
 - type: text
@@ -134,11 +144,21 @@ Expressions have safety limits to prevent abuse:
 
 ### Custom Filters
 
-You can register custom filters via the builder API:
+You can register custom filters via the builder API. Custom filters work alongside the 8 built-in filters (which are enabled by default):
 
 ```csharp
 var render = new FlexRenderBuilder()
-    .WithFilter("myFilter", new MyCustomFilter())
+    .WithFilter(new MyCustomFilter())
+    .WithSkia()
+    .Build();
+```
+
+To use only custom filters (no built-in filters):
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithoutDefaultFilters()  // Removes all 8 built-in filters
+    .WithFilter(new MyCustomFilter())
     .WithSkia()
     .Build();
 ```

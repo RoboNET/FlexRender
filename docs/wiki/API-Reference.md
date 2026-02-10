@@ -73,11 +73,12 @@ Builder for configuring and creating `IFlexRender` instances. Defined in `FlexRe
 | `WithImageSharp(Action<ImageSharpBuilder>?)` | Configure ImageSharp renderer (pure .NET, no native deps) |
 | `WithSvg(Action<SvgBuilder>?)` | Configure SVG output renderer |
 | `WithBasePath(string)` | Base path for resolving relative file paths |
+| `WithDefaultRenderOptions(RenderOptions)` | Set default per-call render options (used when `renderOptions` is `null`) |
 | `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
 | `WithEmbeddedLoader(Assembly)` | Add embedded resource loader for `embedded://` URIs |
-| `WithFilter(string, ITemplateFilter)` | Register a custom template filter for inline expressions |
+| `WithFilter(ITemplateFilter)` | Register a custom template filter for inline expressions. Works alongside built-in filters (enabled by default) |
 | `WithoutDefaultLoaders()` | Remove default File and Base64 loaders (sandboxed mode) |
-| `WithoutDefaultFilters()` | Remove all 8 built-in filters, leaving only custom-registered filters |
+| `WithoutDefaultFilters()` | Remove all 8 built-in filters (enabled by default), leaving only custom-registered filters |
 | `Build()` | Create the configured `IFlexRender` instance |
 
 ### Usage
@@ -96,6 +97,7 @@ var render = new FlexRenderBuilder()
     })
     .WithEmbeddedLoader(typeof(Program).Assembly)
     .WithBasePath("./templates")
+    .WithDefaultRenderOptions(RenderOptions.Deterministic)
     .WithLimits(limits => limits.MaxRenderDepth = 200)
     .WithSkia(skia => skia
         .WithQr()
@@ -344,6 +346,7 @@ Engine-level configuration. Configured via the builder.
 | `BaseFontSize` | float | `12` | Base font size in points |
 | `MaxImageSize` | int | 10 MB | Delegates to `Limits.MaxImageSize` |
 | `EnableCaching` | bool | `true` | Resource caching toggle |
+| `DefaultRenderOptions` | RenderOptions | `RenderOptions.Default` | Default per-call render options when `renderOptions` is `null` |
 | `DeterministicRendering` | bool | `false` | **Deprecated.** Use `RenderOptions.Deterministic` instead |
 | `EmbeddedResourceAssemblies` | List\<Assembly\> | `[]` | Assemblies for `embedded://` resource loading |
 

@@ -32,6 +32,9 @@ FlexRender separates configuration into two levels:
 | `FontHinting` | Supported | Ignored |
 | `TextRendering` | Supported | Ignored |
 | `Culture` | Supported | Supported |
+| `DefaultRenderOptions` | Supported | Supported |
+
+`DefaultRenderOptions` is respected by both backends: when `renderOptions` is `null` in a render call, the builder-configured default is used instead of `RenderOptions.Default`. However, properties that a backend ignores (e.g. `SubpixelText` for ImageSharp) remain ignored even when set through `DefaultRenderOptions`.
 
 ---
 
@@ -106,6 +109,35 @@ byte[] png = await render.RenderToPng(template, data,
     renderOptions: RenderOptions.Deterministic);
 // Same engine can produce both deterministic and non-deterministic output
 ```
+
+### Setting Default Render Options
+
+Instead of passing `RenderOptions` to every render call, you can set a default at build time:
+
+```csharp
+// All renders use Deterministic unless overridden:
+var render = new FlexRenderBuilder()
+    .WithDefaultRenderOptions(RenderOptions.Deterministic)
+    .WithSkia()
+    .Build();
+
+// Uses builder default (Deterministic):
+byte[] png = await render.RenderToPng(template, data);
+
+// Explicit options override the default:
+byte[] png2 = await render.RenderToPng(template, data,
+    renderOptions: new RenderOptions { Antialiasing = false });
+```
+
+This is especially useful with dependency injection:
+
+```csharp
+services.AddFlexRender(builder => builder
+    .WithDefaultRenderOptions(RenderOptions.Deterministic)
+    .WithSkia());
+```
+
+When `renderOptions` is `null` in a render call, the builder default is used. When no default is configured, `RenderOptions.Default` is used (all quality features enabled).
 
 ---
 

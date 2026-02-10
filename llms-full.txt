@@ -688,7 +688,7 @@ Expressions within `{{ }}` support arithmetic, null coalescing, and filters:
 
 **Precedence** (highest to lowest): unary minus, `*`/`/`, `+`/`-`, `??`, `|`
 
-**Built-in filters:** `currency` (2dp), `currencySymbol` (ISO 4217 code to symbol, e.g., USD -> $, RUB -> ruble sign), `number:N` (N decimal places, 0-20), `upper`, `lower`, `trim`, `truncate:N` (default 50, max 10000), `format:str` (number/date formatting via .NET format strings)
+**Built-in filters (enabled by default):** `currency` (2dp), `currencySymbol` (ISO 4217 code to symbol, e.g., USD -> $, RUB -> ruble sign), `number:N` (N decimal places, 0-20), `upper`, `lower`, `trim`, `truncate:N` (default 50, max 10000), `format:str` (number/date formatting via .NET format strings). Use `WithoutDefaultFilters()` to disable.
 
 **Limits:** Max expression length = 2000 chars, max depth = 50
 
@@ -708,7 +708,7 @@ Expressions within `{{ }}` support arithmetic, null coalescing, and filters:
 - `template.culture`: optional culture string in YAML (e.g., `"ru-RU"`, `"en-US"`)
 - `RenderOptions.Culture`: per-call `CultureInfo` override in C# code
 - Priority: `RenderOptions.Culture` > `template.culture` > `CultureInfo.InvariantCulture`
-- Affects built-in filters: `currency`, `currencySymbol`, `number`, `format`
+- Affects built-in filters (enabled by default): `currency`, `currencySymbol`, `number`, `format`
 
 ```csharp
 // Per-call culture override
@@ -953,9 +953,9 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
 | `WithEmbeddedLoader(Assembly)` | Add embedded resource loader |
 | `WithHttpLoader(HttpClient?)` | Add HTTP resource loader |
-| `WithFilter(string, ITemplateFilter)` | Register a custom template filter for inline expressions |
+| `WithFilter(string, ITemplateFilter)` | Register a custom template filter for inline expressions (works alongside built-in filters) |
 | `WithoutDefaultLoaders()` | Remove File and Base64 loaders |
-| `WithoutDefaultFilters()` | Remove all 8 built-in filters, leaving only custom-registered filters |
+| `WithoutDefaultFilters()` | Remove all 8 built-in filters (enabled by default), leaving only custom-registered filters |
 
 ### SkiaBuilder Methods
 

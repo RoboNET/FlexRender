@@ -1,6 +1,6 @@
 # Expressions Demo
 # Demonstrates: arithmetic expressions (+, -, *, /), null coalesce (??)
-# Note: filter pipes (currency, upper, etc.) require WithFilters() in FlexRenderBuilder
+# Note: filter pipes (currency, upper, etc.) are enabled by default in FlexRenderBuilder
 
 template:
   name: "expressions-demo"

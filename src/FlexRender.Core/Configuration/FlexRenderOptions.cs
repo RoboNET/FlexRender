@@ -86,4 +86,26 @@ public sealed class FlexRenderOptions
     /// that should be accessible via the embedded:// URI scheme.
     /// </remarks>
     public List<Assembly> EmbeddedResourceAssemblies { get; } = new();
+
+    /// <summary>
+    /// Gets or sets the default per-call render options used when
+    /// <c>renderOptions</c> is <c>null</c> in render methods.
+    /// </summary>
+    /// <value>The default value is <see cref="RenderOptions.Default"/>.</value>
+    /// <remarks>
+    /// <para>
+    /// Set via <see cref="FlexRenderBuilder.WithDefaultRenderOptions"/> at build time.
+    /// Individual render calls can still override by passing an explicit
+    /// <see cref="RenderOptions"/> instance.
+    /// </para>
+    /// <para>
+    /// <b>Backend compatibility:</b> The Skia backend applies all <see cref="RenderOptions"/>
+    /// properties (<see cref="RenderOptions.Antialiasing"/>, <see cref="RenderOptions.SubpixelText"/>,
+    /// <see cref="RenderOptions.FontHinting"/>, <see cref="RenderOptions.TextRendering"/>,
+    /// <see cref="RenderOptions.Culture"/>). The ImageSharp backend applies
+    /// <see cref="RenderOptions.Antialiasing"/> and <see cref="RenderOptions.Culture"/> only;
+    /// other properties are ignored.
+    /// </para>
+    /// </remarks>
+    public RenderOptions DefaultRenderOptions { get; set; } = RenderOptions.Default;
 }

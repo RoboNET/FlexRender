@@ -13,7 +13,7 @@ A modular .NET library for rendering images from YAML templates with a full CSS 
 - **Full CSS Flexbox** -- direction, wrapping, justify, align, grow/shrink/basis, min/max constraints, auto margins, positioning
 - **RTL Support** -- right-to-left layout with `text-direction: rtl`, logical alignment (`start`/`end`), HarfBuzz text shaping for Arabic/Hebrew
 - **Template engine** -- variables (`{{name}}`), inline expressions (`{{price * qty | currency}}`), loops (`type: each`), conditionals (`type: if` with 13 operators)
-- **Inline expressions** -- arithmetic (`+`, `-`, `*`, `/`), null coalescing (`??`), 8 built-in filters (`currency`, `currencySymbol`, `number`, `upper`, `lower`, `trim`, `truncate`, `format`)
+- **Inline expressions** -- arithmetic (`+`, `-`, `*`, `/`), null coalescing (`??`), 8 built-in filters enabled by default (`currency`, `currencySymbol`, `number`, `upper`, `lower`, `trim`, `truncate`, `format`)
 - **Rich content types** -- text, images, SVG, QR codes, barcodes, separators, tables
 - **Visual effects** -- opacity, box-shadow, linear and radial gradient backgrounds
 - **Multiple output formats** -- PNG, JPEG, BMP (6 color modes), Raw pixels, with per-call format options
@@ -28,7 +28,7 @@ A modular .NET library for rendering images from YAML templates with a full CSS 
 | Flexbox layout | Row/column, wrapping, gap, justify, align, grow/shrink/basis |
 | RTL layout | Right-to-left with `text-direction: rtl`, logical `start`/`end` alignment, HarfBuzz shaping |
 | Template expressions | `{{variable}}`, dot notation, array indexing, arithmetic, null coalescing |
-| Inline filters | `{{value \| currency}}`, 8 built-in: currency, currencySymbol, number, upper, lower, trim, truncate, format |
+| Inline filters | `{{value \| currency}}`, 8 built-in enabled by default: currency, currencySymbol, number, upper, lower, trim, truncate, format |
 | Control flow | `type: each` loops with @index/@first/@last, `type: if` with 13 operators |
 | Tables | `type: table` with dynamic/static rows, column definitions, header styling |
 | Visual effects | `opacity`, `box-shadow`, `linear-gradient()`, `radial-gradient()` backgrounds |
