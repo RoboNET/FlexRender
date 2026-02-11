@@ -76,6 +76,8 @@ public sealed class InlineExpressionEvaluator
             PathExpression path => ExpressionEvaluator.Resolve(path.Path, context),
             NumberLiteral num => new NumberValue(num.Value),
             StringLiteral str => new StringValue(str.Value),
+            BoolLiteral b => new BoolValue(b.Value),
+            NullLiteral => NullValue.Instance,
             ArithmeticExpression arith => EvaluateArithmetic(arith, context),
             ComparisonExpression comp => EvaluateComparison(comp, context),
             CoalesceExpression coal => EvaluateCoalesce(coal, context),

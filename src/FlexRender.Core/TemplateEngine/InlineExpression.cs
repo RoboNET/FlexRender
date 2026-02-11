@@ -43,6 +43,17 @@ public sealed record NumberLiteral(decimal Value) : InlineExpression;
 public sealed record StringLiteral(string Value) : InlineExpression;
 
 /// <summary>
+/// A boolean literal (<c>true</c> or <c>false</c>).
+/// </summary>
+/// <param name="Value">The boolean value.</param>
+public sealed record BoolLiteral(bool Value) : InlineExpression;
+
+/// <summary>
+/// A null literal (<c>null</c>).
+/// </summary>
+public sealed record NullLiteral() : InlineExpression;
+
+/// <summary>
 /// A binary arithmetic expression (e.g., <c>price * quantity</c>).
 /// </summary>
 /// <param name="Left">The left operand.</param>

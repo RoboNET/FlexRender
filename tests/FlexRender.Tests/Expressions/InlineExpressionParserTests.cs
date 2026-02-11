@@ -704,6 +704,21 @@ public sealed class InlineExpressionParserTests
         Assert.True(InlineExpressionParser.NeedsFullParsing(content));
     }
 
+    [Fact]
+    public void Parse_ChainedComparison_Throws()
+    {
+        var ex = Assert.Throws<TemplateEngineException>(
+            () => InlineExpressionParser.Parse("a < b < c"));
+        Assert.Contains("Chained comparisons", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_ChainedComparisonWithDifferentOps_Throws()
+    {
+        Assert.Throws<TemplateEngineException>(
+            () => InlineExpressionParser.Parse("a == b != c"));
+    }
+
     #endregion
 
     #region Logical NOT
@@ -726,9 +741,8 @@ public sealed class InlineExpressionParserTests
 
         var comp = Assert.IsType<ComparisonExpression>(result);
         Assert.Equal(ComparisonOperator.Equal, comp.Op);
-        var not = Assert.IsType<NotExpression>(comp.Left);
-        Assert.IsType<PathExpression>(not.Operand);
-        Assert.IsType<PathExpression>(comp.Right);
+        Assert.IsType<NotExpression>(comp.Left);
+        Assert.IsType<BoolLiteral>(comp.Right); // NOW it's BoolLiteral, not PathExpression
     }
 
     [Theory]
@@ -737,6 +751,70 @@ public sealed class InlineExpressionParserTests
     public void NeedsFullParsing_LogicalNot_ReturnsTrue(string content)
     {
         Assert.True(InlineExpressionParser.NeedsFullParsing(content));
+    }
+
+    #endregion
+
+    #region Boolean and Null Literals
+
+    [Theory]
+    [InlineData("true", true)]
+    [InlineData("false", false)]
+    public void Parse_BooleanKeyword_ReturnsBoolLiteral(string expression, bool expected)
+    {
+        var result = InlineExpressionParser.Parse(expression);
+
+        var literal = Assert.IsType<BoolLiteral>(result);
+        Assert.Equal(expected, literal.Value);
+    }
+
+    [Fact]
+    public void Parse_NullKeyword_ReturnsNullLiteral()
+    {
+        var result = InlineExpressionParser.Parse("null");
+
+        Assert.IsType<NullLiteral>(result);
+    }
+
+    [Fact]
+    public void Parse_ComparisonWithBoolLiteral_Works()
+    {
+        var result = InlineExpressionParser.Parse("active == true");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.IsType<PathExpression>(comp.Left);
+        var right = Assert.IsType<BoolLiteral>(comp.Right);
+        Assert.True(right.Value);
+    }
+
+    [Fact]
+    public void Parse_ComparisonWithNullLiteral_Works()
+    {
+        var result = InlineExpressionParser.Parse("value == null");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.IsType<PathExpression>(comp.Left);
+        Assert.IsType<NullLiteral>(comp.Right);
+    }
+
+    [Fact]
+    public void Parse_NullCoalesceWithNullLiteral_DoesNotMatchKeyword()
+    {
+        // "nullable" should still be a path, not a null keyword
+        var result = InlineExpressionParser.Parse("nullable");
+
+        var path = Assert.IsType<PathExpression>(result);
+        Assert.Equal("nullable", path.Path);
+    }
+
+    [Fact]
+    public void Parse_TruePrefix_IsPath()
+    {
+        // "trueName" should still be a path, not a bool keyword
+        var result = InlineExpressionParser.Parse("trueName");
+
+        var path = Assert.IsType<PathExpression>(result);
+        Assert.Equal("trueName", path.Path);
     }
 
     #endregion

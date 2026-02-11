@@ -678,19 +678,52 @@ Parsed by `UnitParser.Parse(string?)` which returns a `Unit` value. Plain number
 
 ### Inline Expressions
 
-Expressions within `{{ }}` support arithmetic, null coalescing, and filters:
+Expressions within `{{ }}` support arithmetic, comparison, logical NOT, null coalescing, and filters:
 
 - `{{price * quantity}}` -- arithmetic (`+`, `-`, `*`, `/`, unary `-`)
+- `{{total > 1000}}` -- comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`)
+- `{{!active}}` -- logical NOT (inverts truthiness)
 - `{{nickname ?? name ?? 'Guest'}}` -- null coalescing chain
 - `{{price | currency}}` -- filter pipe
 - `{{total * 1.1 | currency}}` -- combined
 - `{{date | format:"dd.MM.yyyy"}}` -- filter with argument
+- Literals: `true`, `false`, `null` (e.g., `{{status == null}}`, `{{active == true}}`)
 
-**Precedence** (highest to lowest): unary minus, `*`/`/`, `+`/`-`, `??`, `|`
+**Precedence** (highest to lowest): `!`/unary `-`, `*`/`/`, `+`/`-`, `==`/`!=`/`<`/`>`/`<=`/`>=`, `??`, `|`
+
+**Comparison rules:**
+- Numbers: compared by value
+- Strings: ordinal (case-sensitive) comparison
+- Booleans: only `==` and `!=`; ordered comparisons return false
+- Null: `null == null` is true; `null != <anything>` is true; ordered comparisons with null return false
+- Mixed types: `==` is false, `!=` is true, ordered comparisons return false
+- Chained comparisons (e.g., `a < b < c`) are not supported (parse error)
 
 **Built-in filters (enabled by default):** `currency` (2dp), `currencySymbol` (ISO 4217 code to symbol, e.g., USD -> $, RUB -> ruble sign), `number:N` (N decimal places, 0-20), `upper`, `lower`, `trim`, `truncate:N` (default 50, max 10000), `format:str` (number/date formatting via .NET format strings). Use `WithoutDefaultFilters()` to disable.
 
 **Limits:** Max expression length = 2000 chars, max depth = 50
+
+### Text Blocks (inside `content` strings)
+
+Text blocks provide control flow inside text `content` values. They are processed by the template engine at render time.
+
+**Conditional:** `{{#if condition}}...{{else}}...{{/if}}`
+- Condition is evaluated for truthiness (non-empty string, non-zero number, true, non-empty array/object = truthy)
+- Supports full expressions: `{{#if status == 'paid'}}...{{/if}}`, `{{#if total > 100}}...{{/if}}`, `{{#if !disabled}}...{{/if}}`
+
+**Loop:** `{{#each arrayPath}}...{{/each}}`
+- Iterates over an array. Inside the body, current item properties are accessible directly
+- Loop variables: `@index` (0-based), `@first`, `@last`
+
+```yaml
+- type: text
+  content: "{{#if status == 'paid'}}Paid{{else}}Unpaid{{/if}}"
+
+- type: text
+  content: "{{#each items}}{{name}}{{#if @last}}.{{else}}, {{/if}}{{/each}}"
+```
+
+> **Note:** Text blocks (`{{#if}}`, `{{#each}}`) work inside text `content` values. For element-level conditions and loops, use `type: if` and `type: each` elements instead.
 
 ### Visual Effects Properties
 
@@ -953,7 +986,7 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | `WithLimits(Action<ResourceLimits>)` | Configure resource limits |
 | `WithEmbeddedLoader(Assembly)` | Add embedded resource loader |
 | `WithHttpLoader(HttpClient?)` | Add HTTP resource loader |
-| `WithFilter(string, ITemplateFilter)` | Register a custom template filter for inline expressions (works alongside built-in filters) |
+| `WithFilter(ITemplateFilter)` | Register a custom template filter for inline expressions (works alongside built-in filters) |
 | `WithoutDefaultLoaders()` | Remove File and Base64 loaders |
 | `WithoutDefaultFilters()` | Remove all 8 built-in filters (enabled by default), leaving only custom-registered filters |
 
