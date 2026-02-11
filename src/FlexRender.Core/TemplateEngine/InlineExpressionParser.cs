@@ -6,16 +6,18 @@ namespace FlexRender.TemplateEngine;
 
 /// <summary>
 /// Pratt parser for inline expressions within <c>{{...}}</c> blocks.
-/// Supports arithmetic operators, null coalesce, filter pipes, and parenthesized grouping.
+/// Supports arithmetic operators, comparison operators, logical NOT, null coalesce,
+/// filter pipes, and parenthesized grouping.
 /// </summary>
 /// <remarks>
 /// <para>Operator precedence (lowest to highest):</para>
 /// <list type="number">
 ///   <item><c>|</c> (filter pipe)</item>
 ///   <item><c>??</c> (null coalesce)</item>
+///   <item><c>==</c>, <c>!=</c>, <c>&lt;</c>, <c>&gt;</c>, <c>&lt;=</c>, <c>&gt;=</c> (comparison)</item>
 ///   <item><c>+</c>, <c>-</c> (add, subtract)</item>
 ///   <item><c>*</c>, <c>/</c> (multiply, divide)</item>
-///   <item>Unary <c>-</c> (negation)</item>
+///   <item>Unary <c>-</c> (negation), <c>!</c> (logical NOT)</item>
 ///   <item><c>()</c> (grouping)</item>
 /// </list>
 /// <para>
@@ -80,7 +82,7 @@ public sealed partial class InlineExpressionParser
         // Fast check: scan for operator characters
         foreach (var c in content)
         {
-            if (c is '+' or '*' or '/' or '|' or '?' or '(' or ')' or '"')
+            if (c is '+' or '*' or '/' or '|' or '?' or '(' or ')' or '"' or '\'' or '=' or '<' or '>' or '!')
             {
                 return true;
             }
@@ -258,8 +260,16 @@ public sealed partial class InlineExpressionParser
             return new NegateExpression(operand);
         }
 
-        // String literal
-        if (c == '"')
+        // Logical NOT
+        if (c == '!')
+        {
+            _pos++;
+            var operand = ParseExpression(Precedence.Unary);
+            return new NotExpression(operand);
+        }
+
+        // String literal (double or single quotes)
+        if (c is '"' or '\'')
         {
             return ParseStringLiteral();
         }
@@ -291,6 +301,12 @@ public sealed partial class InlineExpressionParser
         {
             '|' when !IsDoubleChar('|') => ParseFilter(left),
             '?' when IsDoubleChar('?') => ParseCoalesce(left),
+            '=' when IsDoubleChar('=') => ParseComparison(left, ComparisonOperator.Equal, 2),
+            '!' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => ParseComparison(left, ComparisonOperator.NotEqual, 2),
+            '<' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => ParseComparison(left, ComparisonOperator.LessThanOrEqual, 2),
+            '>' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => ParseComparison(left, ComparisonOperator.GreaterThanOrEqual, 2),
+            '<' => ParseComparison(left, ComparisonOperator.LessThan, 1),
+            '>' => ParseComparison(left, ComparisonOperator.GreaterThan, 1),
             '+' => ParseArithmetic(left, ArithmeticOperator.Add),
             '-' => ParseArithmetic(left, ArithmeticOperator.Subtract),
             '*' => ParseArithmetic(left, ArithmeticOperator.Multiply),
@@ -314,6 +330,13 @@ public sealed partial class InlineExpressionParser
             _ => Precedence.Additive
         });
         return new ArithmeticExpression(left, op, right);
+    }
+
+    private ComparisonExpression ParseComparison(InlineExpression left, ComparisonOperator op, int operatorLength)
+    {
+        _pos += operatorLength; // skip operator chars
+        var right = ParseExpression(Precedence.Comparison);
+        return new ComparisonExpression(left, op, right);
     }
 
     private CoalesceExpression ParseCoalesce(InlineExpression left)
@@ -390,14 +413,30 @@ public sealed partial class InlineExpressionParser
                 expression: _input);
         }
 
-        // Quoted string argument
-        if (_input[_pos] == '"')
+        // Quoted string argument (double or single quotes)
+        if (_input[_pos] is '"' or '\'')
         {
+            var quoteChar = _input[_pos];
             _pos++; // skip opening quote
             var start = _pos;
-            while (_pos < _input.Length && _input[_pos] != '"')
+            var hasEscape = false;
+
+            while (_pos < _input.Length)
             {
-                _pos++;
+                var c = _input[_pos];
+                if (c == '\\' && _pos + 1 < _input.Length)
+                {
+                    hasEscape = true;
+                    _pos += 2;
+                }
+                else if (c == quoteChar)
+                {
+                    break;
+                }
+                else
+                {
+                    _pos++;
+                }
             }
 
             if (_pos >= _input.Length)
@@ -410,7 +449,7 @@ public sealed partial class InlineExpressionParser
 
             var value = _input[start.._pos];
             _pos++; // skip closing quote
-            return value;
+            return hasEscape ? UnescapeString(value) : value;
         }
 
         // Unquoted argument (number or identifier)
@@ -433,12 +472,27 @@ public sealed partial class InlineExpressionParser
 
     private StringLiteral ParseStringLiteral()
     {
+        var quoteChar = _input[_pos];
         _pos++; // skip opening quote
         var start = _pos;
+        var hasEscape = false;
 
-        while (_pos < _input.Length && _input[_pos] != '"')
+        while (_pos < _input.Length)
         {
-            _pos++;
+            var c = _input[_pos];
+            if (c == '\\' && _pos + 1 < _input.Length)
+            {
+                hasEscape = true;
+                _pos += 2; // skip escape sequence
+            }
+            else if (c == quoteChar)
+            {
+                break;
+            }
+            else
+            {
+                _pos++;
+            }
         }
 
         if (_pos >= _input.Length)
@@ -449,9 +503,37 @@ public sealed partial class InlineExpressionParser
                 expression: _input);
         }
 
-        var value = _input[start.._pos];
+        var raw = _input[start.._pos];
         _pos++; // skip closing quote
-        return new StringLiteral(value);
+
+        return new StringLiteral(hasEscape ? UnescapeString(raw) : raw);
+    }
+
+    private static string UnescapeString(string raw)
+    {
+        var sb = new System.Text.StringBuilder(raw.Length);
+        for (var i = 0; i < raw.Length; i++)
+        {
+            if (raw[i] == '\\' && i + 1 < raw.Length)
+            {
+                i++;
+                sb.Append(raw[i] switch
+                {
+                    'n' => '\n',
+                    't' => '\t',
+                    '\\' => '\\',
+                    '\'' => '\'',
+                    '"' => '"',
+                    _ => raw[i]
+                });
+            }
+            else
+            {
+                sb.Append(raw[i]);
+            }
+        }
+
+        return sb.ToString();
     }
 
     private NumberLiteral ParseNumberLiteral()
@@ -521,6 +603,10 @@ public sealed partial class InlineExpressionParser
         {
             '|' when !IsDoubleChar('|') => (Precedence.Filter, false),
             '?' when IsDoubleChar('?') => (Precedence.Coalesce, true),
+            '=' when IsDoubleChar('=') => (Precedence.Comparison, false),
+            '!' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => (Precedence.Comparison, false),
+            '<' => (Precedence.Comparison, false),
+            '>' => (Precedence.Comparison, false),
             '+' or '-' => (Precedence.Additive, false),
             '*' or '/' => (Precedence.Multiplicative, false),
             _ => (Precedence.None, false)
@@ -545,8 +631,9 @@ public sealed partial class InlineExpressionParser
         None = 0,
         Filter = 1,
         Coalesce = 2,
-        Additive = 3,
-        Multiplicative = 4,
-        Unary = 5
+        Comparison = 3,
+        Additive = 4,
+        Multiplicative = 5,
+        Unary = 6
     }
 }

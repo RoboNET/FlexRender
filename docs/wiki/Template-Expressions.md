@@ -31,7 +31,7 @@ Variables can be used in most string properties: `content`, `data`, `src`, `colo
 
 ## Inline Expressions
 
-FlexRender supports inline expressions within `{{ }}` delimiters. Expressions extend simple variable substitution with arithmetic, null coalescing, and filters.
+FlexRender supports inline expressions within `{{ }}` delimiters. Expressions extend simple variable substitution with arithmetic, comparison operators, logical NOT, null coalescing, and filters.
 
 ### Arithmetic
 
@@ -56,6 +56,52 @@ Arithmetic operators work on numeric values:
 ```
 
 Both operands must be numeric (NumberValue). Division by zero returns a null value.
+
+### Comparison Operators
+
+Comparison operators return boolean values and are primarily used in `{{#if}}` conditions:
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `==` | Equal | `{{#if status == 'paid'}}...{{/if}}` |
+| `!=` | Not equal | `{{#if status != 'cancelled'}}...{{/if}}` |
+| `<` | Less than | `{{#if stock < 5}}...{{/if}}` |
+| `>` | Greater than | `{{#if total > 1000}}...{{/if}}` |
+| `<=` | Less than or equal | `{{#if quantity <= 10}}...{{/if}}` |
+| `>=` | Greater than or equal | `{{#if rating >= 4}}...{{/if}}` |
+
+```yaml
+# Show status based on comparison
+- type: text
+  content: "{{#if total > 1000}}Free shipping!{{else}}Shipping: 10${{/if}}"
+
+# Check string equality
+- type: text
+  content: "{{#if status == 'paid'}}Payment received{{else}}Awaiting payment{{/if}}"
+```
+
+Comparison rules:
+- **Numbers**: compared by value (`100 == 100.0` is true)
+- **Strings**: compared using ordinal (case-sensitive) comparison
+- **Booleans**: only `==` and `!=` supported; ordered comparisons return false
+- **Null**: `null == null` is true; `null != <anything>` is true; ordered comparisons with null return false
+- **Mixed types** (e.g., string vs number): `==` is false, `!=` is true, ordered comparisons return false
+
+### Logical NOT
+
+The `!` operator inverts the truthiness of a value:
+
+```yaml
+# Show when NOT active
+- type: text
+  content: "{{#if !active}}Account is inactive{{/if}}"
+
+# NOT with comparison
+- type: text
+  content: "{{#if !(total > 1000)}}Standard shipping{{/if}}"
+```
+
+The `!` operator evaluates the operand for [truthiness](#conditional-blocks) and returns the opposite boolean value.
 
 ### Null Coalescing
 
@@ -127,11 +173,12 @@ Operators are evaluated in this order (highest to lowest):
 
 | Precedence | Operators |
 |------------|-----------|
-| 1 (highest) | Unary minus (`-x`) |
+| 1 (highest) | Logical NOT (`!x`), Unary minus (`-x`) |
 | 2 | Multiplication, Division (`*`, `/`) |
 | 3 | Addition, Subtraction (`+`, `-`) |
-| 4 | Null coalescing (`??`) |
-| 5 (lowest) | Filter pipe (`\|`) |
+| 4 | Comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`) |
+| 5 | Null coalescing (`??`) |
+| 6 (lowest) | Filter pipe (`\|`) |
 
 ### Expression Limits
 
@@ -172,6 +219,119 @@ public interface ITemplateFilter
     TemplateValue Apply(TemplateValue input, TemplateValue? argument);
 }
 ```
+
+---
+
+## Text Blocks
+
+Text blocks provide control flow inside `content` strings. They are processed by the template engine at render time.
+
+> **Note:** Text blocks (`{{#if}}`, `{{#each}}`) work inside text `content` values. For element-level conditions and loops, use the `if` and `for-each` element properties instead.
+
+### Conditional Blocks
+
+```
+{{#if condition}}...{{/if}}
+{{#if condition}}...{{else}}...{{/if}}
+```
+
+The condition is evaluated for truthiness:
+
+| Value | Truthy? |
+|-------|---------|
+| Non-empty string | Yes |
+| Non-zero number | Yes |
+| `true` | Yes |
+| Non-empty array | Yes |
+| Non-empty object | Yes |
+| `null` / missing key | No |
+| Empty string `""` | No |
+| `0` | No |
+| `false` | No |
+| Empty array `[]` | No |
+
+Conditions support full expressions including comparison operators, logical NOT, null coalescing, arithmetic, and filters:
+
+```yaml
+- type: text
+  content: "{{#if name}}Hello {{name}}{{else}}Hello guest{{/if}}"
+
+- type: text
+  content: "{{#if name ?? nickname}}Hi {{name ?? nickname}}{{/if}}"
+
+- type: text
+  content: "{{#if count}}{{count}} items{{else}}No items{{/if}}"
+
+# Comparison in conditions
+- type: text
+  content: "{{#if count > 0}}{{count}} items{{else}}No items{{/if}}"
+
+- type: text
+  content: "{{#if status == 'active'}}Online{{else}}Offline{{/if}}"
+
+# Logical NOT in conditions
+- type: text
+  content: "{{#if !disabled}}Feature enabled{{/if}}"
+```
+
+### Loop Blocks
+
+```
+{{#each arrayPath}}...{{/each}}
+```
+
+Iterates over an array. Inside the loop body, the current item's properties are accessible directly. Loop variables:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `@index` | number | 0-based iteration index |
+| `@first` | bool | `true` for the first item |
+| `@last` | bool | `true` for the last item |
+
+```yaml
+- type: text
+  content: "{{#each items}}{{name}}{{#if @last}}.{{else}}, {{/if}}{{/each}}"
+
+# Output with items=[{name:"A"},{name:"B"},{name:"C"}]: "A, B, C."
+```
+
+### Nesting
+
+Text blocks can be nested. The maximum nesting depth is controlled by `ResourceLimits.MaxTemplateNestingDepth` (default: 100).
+
+```yaml
+- type: text
+  content: "{{#each groups}}[{{#each items}}{{val}}{{/each}}]{{/each}}"
+
+- type: text
+  content: "{{#each users}}{{#if active}}{{name}} {{/if}}{{/each}}"
+```
+
+### String Literals and Escape Sequences
+
+String literals in expressions support both single and double quotes:
+
+```
+{{name ?? "default"}}
+{{name ?? 'default'}}
+```
+
+Escape sequences are supported inside string literals:
+
+| Escape | Result |
+|--------|--------|
+| `\\` | `\` |
+| `\"` | `"` |
+| `\'` | `'` |
+| `\n` | newline |
+| `\t` | tab |
+
+```yaml
+- type: text
+  content: "{{greeting ?? 'it\\'s a default'}}"
+```
+
+---
 
 ### Data Structure
 

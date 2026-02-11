@@ -1,4 +1,5 @@
 using System.Text;
+using FlexRender.Configuration;
 using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
 using FlexRender.TemplateEngine;
@@ -222,5 +223,51 @@ public class TemplateProcessorIntegrationTests
 
         Assert.Equal("receipt", resolved.Name);
         Assert.Equal(2, resolved.Version);
+    }
+
+    /// <summary>
+    /// Verifies that {{#if}} conditions support null coalescing operator.
+    /// </summary>
+    [Fact]
+    public void ProcessIfBlock_NullCoalesceInCondition_EvaluatesExpression()
+    {
+        var processor = new TemplateProcessor(new ResourceLimits(), FilterRegistry.CreateDefault());
+        var data = new ObjectValue
+        {
+            ["nickname"] = new StringValue("Bob")
+        };
+
+        // "name" is missing, "nickname" exists -> coalesces to "Bob" -> truthy
+        var result = processor.Process("{{#if name ?? nickname}}Hello {{name ?? nickname}}{{/if}}", data);
+
+        Assert.Equal("Hello Bob", result);
+    }
+
+    /// <summary>
+    /// Verifies that {{#if}} with null coalescing hides block when both values are missing.
+    /// </summary>
+    [Fact]
+    public void ProcessIfBlock_NullCoalesceBothNull_HidesBlock()
+    {
+        var processor = new TemplateProcessor(new ResourceLimits(), FilterRegistry.CreateDefault());
+        var data = new ObjectValue();
+
+        var result = processor.Process("{{#if name ?? nickname}}Hello{{/if}}", data);
+
+        Assert.Equal("", result);
+    }
+
+    /// <summary>
+    /// Verifies that {{#if}} with single-quoted null coalescing works.
+    /// </summary>
+    [Fact]
+    public void ProcessIfBlock_NullCoalesceWithSingleQuoteFallback_Works()
+    {
+        var processor = new TemplateProcessor(new ResourceLimits(), FilterRegistry.CreateDefault());
+        var data = new ObjectValue();
+
+        var result = processor.Process("{{#if name ?? 'guest'}}Welcome {{name ?? 'guest'}}{{/if}}", data);
+
+        Assert.Equal("Welcome guest", result);
     }
 }

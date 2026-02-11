@@ -13,6 +13,10 @@ namespace FlexRender.TemplateEngine;
 ///   <item>String + number (mixed types) produces <see cref="NullValue"/> (no implicit coercion).</item>
 ///   <item>Division by zero produces <see cref="NullValue"/> (no exception).</item>
 ///   <item>Null coalesce: returns right if left is <see cref="NullValue"/>.</item>
+///   <item>Comparison operators (<c>==</c>, <c>!=</c>, <c>&lt;</c>, <c>&gt;</c>, <c>&lt;=</c>, <c>&gt;=</c>)
+///     produce <see cref="BoolValue"/>. Null compared to null is equal; null compared to non-null
+///     yields false for all ordered comparisons (SQL NULL semantics).</item>
+///   <item>Logical NOT (<c>!</c>) returns <see cref="BoolValue"/> based on the truthiness of the operand.</item>
 /// </list>
 /// </remarks>
 public sealed class InlineExpressionEvaluator
@@ -73,9 +77,11 @@ public sealed class InlineExpressionEvaluator
             NumberLiteral num => new NumberValue(num.Value),
             StringLiteral str => new StringValue(str.Value),
             ArithmeticExpression arith => EvaluateArithmetic(arith, context),
+            ComparisonExpression comp => EvaluateComparison(comp, context),
             CoalesceExpression coal => EvaluateCoalesce(coal, context),
             FilterExpression filter => EvaluateFilter(filter, context),
             NegateExpression neg => EvaluateNegate(neg, context),
+            NotExpression not => EvaluateNot(not, context),
             _ => NullValue.Instance
         };
     }
@@ -139,5 +145,71 @@ public sealed class InlineExpressionEvaluator
         }
 
         return NullValue.Instance;
+    }
+
+    private BoolValue EvaluateComparison(ComparisonExpression expr, TemplateContext context)
+    {
+        var left = Evaluate(expr.Left, context);
+        var right = Evaluate(expr.Right, context);
+
+        // Both null
+        if (left is NullValue && right is NullValue)
+        {
+            return new BoolValue(expr.Op is ComparisonOperator.Equal or ComparisonOperator.LessThanOrEqual or ComparisonOperator.GreaterThanOrEqual);
+        }
+
+        // One null
+        if (left is NullValue || right is NullValue)
+        {
+            return new BoolValue(expr.Op == ComparisonOperator.NotEqual);
+        }
+
+        // Number comparison
+        if (left is NumberValue leftNum && right is NumberValue rightNum)
+        {
+            var cmp = leftNum.Value.CompareTo(rightNum.Value);
+            return new BoolValue(CompareResult(cmp, expr.Op));
+        }
+
+        // String comparison
+        if (left is StringValue leftStr && right is StringValue rightStr)
+        {
+            var cmp = string.Compare(leftStr.Value, rightStr.Value, StringComparison.Ordinal);
+            return new BoolValue(CompareResult(cmp, expr.Op));
+        }
+
+        // Bool comparison (only == and !=)
+        if (left is BoolValue leftBool && right is BoolValue rightBool)
+        {
+            return expr.Op switch
+            {
+                ComparisonOperator.Equal => new BoolValue(leftBool.Value == rightBool.Value),
+                ComparisonOperator.NotEqual => new BoolValue(leftBool.Value != rightBool.Value),
+                _ => new BoolValue(false) // ordered comparison on bools is always false
+            };
+        }
+
+        // Mixed types: == is false, != is true, ordered is false
+        return new BoolValue(expr.Op == ComparisonOperator.NotEqual);
+    }
+
+    private static bool CompareResult(int cmp, ComparisonOperator op)
+    {
+        return op switch
+        {
+            ComparisonOperator.Equal => cmp == 0,
+            ComparisonOperator.NotEqual => cmp != 0,
+            ComparisonOperator.LessThan => cmp < 0,
+            ComparisonOperator.GreaterThan => cmp > 0,
+            ComparisonOperator.LessThanOrEqual => cmp <= 0,
+            ComparisonOperator.GreaterThanOrEqual => cmp >= 0,
+            _ => false
+        };
+    }
+
+    private BoolValue EvaluateNot(NotExpression expr, TemplateContext context)
+    {
+        var operand = Evaluate(expr.Operand, context);
+        return new BoolValue(!ExpressionEvaluator.IsTruthy(operand));
     }
 }
