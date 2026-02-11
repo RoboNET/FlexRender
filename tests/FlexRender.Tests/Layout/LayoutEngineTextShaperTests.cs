@@ -25,7 +25,7 @@ public sealed class LayoutEngineTextShaperTests
         {
             CallCount++;
 
-            if (string.IsNullOrEmpty(element.Content))
+            if (string.IsNullOrEmpty(element.Content.Value))
             {
                 return new TextShapingResult(
                     Array.Empty<string>(),
@@ -38,10 +38,10 @@ public sealed class LayoutEngineTextShaperTests
             var lines = new List<string>();
 
             // Split by explicit newlines first
-            var paragraphs = element.Content.Split('\n');
+            var paragraphs = element.Content.Value.Split('\n');
             foreach (var paragraph in paragraphs)
             {
-                if (!element.Wrap || charWidth * paragraph.Length <= maxWidth)
+                if (!element.Wrap.Value || charWidth * paragraph.Length <= maxWidth)
                 {
                     lines.Add(paragraph);
                     continue;
@@ -63,7 +63,7 @@ public sealed class LayoutEngineTextShaperTests
                             lines.Add(currentLine);
                         currentLine = word;
 
-                        if (element.MaxLines.HasValue && lines.Count >= element.MaxLines.Value)
+                        if (element.MaxLines.Value.HasValue && lines.Count >= element.MaxLines.Value.Value)
                             break;
                     }
                 }
@@ -71,14 +71,14 @@ public sealed class LayoutEngineTextShaperTests
                 if (!string.IsNullOrEmpty(currentLine))
                     lines.Add(currentLine);
 
-                if (element.MaxLines.HasValue && lines.Count >= element.MaxLines.Value)
+                if (element.MaxLines.Value.HasValue && lines.Count >= element.MaxLines.Value.Value)
                     break;
             }
 
             // Apply MaxLines
-            if (element.MaxLines.HasValue && lines.Count > element.MaxLines.Value)
+            if (element.MaxLines.Value.HasValue && lines.Count > element.MaxLines.Value.Value)
             {
-                lines.RemoveRange(element.MaxLines.Value, lines.Count - element.MaxLines.Value);
+                lines.RemoveRange(element.MaxLines.Value.Value, lines.Count - element.MaxLines.Value.Value);
             }
 
             var maxLineWidth = 0f;

@@ -87,7 +87,7 @@ Console.WriteLine("FlexRender AST Render Example");
 Console.WriteLine("=============================");
 Console.WriteLine();
 Console.WriteLine("Building template from code (no YAML)...");
-Console.WriteLine($"  Canvas: {template.Canvas.Width}px wide, background {template.Canvas.Background}");
+Console.WriteLine($"  Canvas: {template.Canvas.Width}px wide, background {template.Canvas.Background.Value}");
 Console.WriteLine($"  Elements: {template.Elements.Count}");
 Console.WriteLine();
 

@@ -122,7 +122,7 @@ public sealed class VisualEffectsParsingTests
 
         var template = _parser.Parse(yaml);
         var flex = Assert.IsType<FlexElement>(template.Elements[0]);
-        Assert.Null(flex.BoxShadow);
+        Assert.Null(flex.BoxShadow.Value);
     }
 
     [Fact]

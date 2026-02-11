@@ -69,7 +69,7 @@ public sealed class QrSvgProviderTests
         var element = new QrElement
         {
             Data = "Hello",
-            Background = null
+            Background = null!
         };
 
         var svg = _provider.GenerateSvgContent(element, 200f, 200f);

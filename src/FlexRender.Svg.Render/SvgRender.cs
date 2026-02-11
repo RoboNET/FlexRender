@@ -61,15 +61,14 @@ public sealed class SvgRender : IFlexRender
 
         var templateProcessor = new TemplateProcessor(limits);
         var expander = new TemplateExpander(limits);
-        var preprocessor = new SvgPreprocessor(templateProcessor);
+        var pipeline = new TemplatePipeline(expander, templateProcessor);
         var layoutEngine = new LayoutEngine(limits);
         layoutEngine.TextShaper = new ApproximateTextShaper();
         layoutEngine.BaseFontSize = options.BaseFontSize;
 
         _svgEngine = new SvgRenderingEngine(
             limits,
-            expander,
-            preprocessor,
+            pipeline,
             layoutEngine,
             options.BaseFontSize,
             options,

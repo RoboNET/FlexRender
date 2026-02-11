@@ -43,7 +43,7 @@ internal sealed class IntrinsicMeasurer
     internal IntrinsicSize MeasureIntrinsic(TemplateElement element, Dictionary<TemplateElement, IntrinsicSize> sizes)
     {
         // Elements with display:none have zero intrinsic size
-        if (element.Display == Display.None)
+        if (element.Display.Value == Display.None)
         {
             var zero = new IntrinsicSize(0f, 0f, 0f, 0f);
             sizes[element] = zero;
@@ -71,40 +71,40 @@ internal sealed class IntrinsicMeasurer
     /// </summary>
     private IntrinsicSize MeasureTextIntrinsic(TextElement text)
     {
-        var fontSize = FontSizeResolver.Resolve(text.Size, _engine.BaseFontSize);
+        var fontSize = FontSizeResolver.Resolve(text.Size.Value, _engine.BaseFontSize);
 
         float contentWidth;
         float contentHeight;
 
-        if (_engine.TextShaper != null && !string.IsNullOrEmpty(text.Content))
+        if (_engine.TextShaper != null && !string.IsNullOrEmpty(text.Content.Value))
         {
             // TextShaper takes precedence: get accurate metrics
             var shaped = _engine.TextShaper.ShapeText(text, fontSize, float.MaxValue);
-            contentWidth = !string.IsNullOrEmpty(text.Width)
-                ? ParseAbsolutePixelValue(text.Width, shaped.TotalSize.Width)
+            contentWidth = !string.IsNullOrEmpty(text.Width.Value)
+                ? ParseAbsolutePixelValue(text.Width.Value, shaped.TotalSize.Width)
                 : shaped.TotalSize.Width;
-            contentHeight = !string.IsNullOrEmpty(text.Height)
-                ? ParseAbsolutePixelValue(text.Height, shaped.TotalSize.Height)
+            contentHeight = !string.IsNullOrEmpty(text.Height.Value)
+                ? ParseAbsolutePixelValue(text.Height.Value, shaped.TotalSize.Height)
                 : shaped.TotalSize.Height;
         }
 #pragma warning disable CS0618 // TextMeasurer is obsolete but still supported for backward compatibility
-        else if (_engine.TextMeasurer != null && !string.IsNullOrEmpty(text.Content))
+        else if (_engine.TextMeasurer != null && !string.IsNullOrEmpty(text.Content.Value))
         {
             var measured = _engine.TextMeasurer(text, fontSize, float.MaxValue);
-            contentWidth = !string.IsNullOrEmpty(text.Width)
-                ? ParseAbsolutePixelValue(text.Width, measured.Width)
+            contentWidth = !string.IsNullOrEmpty(text.Width.Value)
+                ? ParseAbsolutePixelValue(text.Width.Value, measured.Width)
                 : measured.Width;
-            contentHeight = !string.IsNullOrEmpty(text.Height)
-                ? ParseAbsolutePixelValue(text.Height, measured.Height)
+            contentHeight = !string.IsNullOrEmpty(text.Height.Value)
+                ? ParseAbsolutePixelValue(text.Height.Value, measured.Height)
                 : measured.Height;
         }
 #pragma warning restore CS0618
         else
         {
-            contentWidth = ParseAbsolutePixelValue(text.Width, 0f);
-            var lineHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
-            contentHeight = !string.IsNullOrEmpty(text.Height)
-                ? ParseAbsolutePixelValue(text.Height, lineHeight)
+            contentWidth = ParseAbsolutePixelValue(text.Width.Value, 0f);
+            var lineHeight = LineHeightResolver.Resolve(text.LineHeight.Value, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
+            contentHeight = !string.IsNullOrEmpty(text.Height.Value)
+                ? ParseAbsolutePixelValue(text.Height.Value, lineHeight)
                 : lineHeight;
         }
 
@@ -119,7 +119,7 @@ internal sealed class IntrinsicMeasurer
     private static IntrinsicSize MeasureQrIntrinsic(QrElement qr)
     {
         // Default to 100px if Size not specified (will be overridden by container dimensions in layout)
-        float size = qr.Size ?? 100f;
+        float size = qr.Size.Value ?? 100f;
         var intrinsic = new IntrinsicSize(size, size, size, size);
 
         return ApplyPaddingBorderAndMargin(intrinsic, qr);
@@ -131,8 +131,8 @@ internal sealed class IntrinsicMeasurer
     private static IntrinsicSize MeasureBarcodeIntrinsic(BarcodeElement barcode)
     {
         // Default to 200×80 if dimensions not specified (will be overridden by container dimensions in layout)
-        float width = barcode.BarcodeWidth ?? 200f;
-        float height = barcode.BarcodeHeight ?? 80f;
+        float width = barcode.BarcodeWidth.Value ?? 200f;
+        float height = barcode.BarcodeHeight.Value ?? 80f;
         var intrinsic = new IntrinsicSize(width, width, height, height);
 
         return ApplyPaddingBorderAndMargin(intrinsic, barcode);
@@ -143,8 +143,8 @@ internal sealed class IntrinsicMeasurer
     /// </summary>
     private static IntrinsicSize MeasureImageIntrinsic(ImageElement image)
     {
-        float width = image.ImageWidth ?? 0f;
-        float height = image.ImageHeight ?? 0f;
+        float width = image.ImageWidth.Value ?? 0f;
+        float height = image.ImageHeight.Value ?? 0f;
         var intrinsic = new IntrinsicSize(width, width, height, height);
 
         return ApplyPaddingBorderAndMargin(intrinsic, image);
@@ -156,8 +156,8 @@ internal sealed class IntrinsicMeasurer
     private static IntrinsicSize MeasureSvgIntrinsic(SvgElement svg)
     {
         // Default to 100x100 if dimensions not specified (similar to QR code default)
-        float width = svg.SvgWidth ?? 100f;
-        float height = svg.SvgHeight ?? 100f;
+        float width = svg.SvgWidth.Value ?? 100f;
+        float height = svg.SvgHeight.Value ?? 100f;
         var intrinsic = new IntrinsicSize(width, width, height, height);
 
         return ApplyPaddingBorderAndMargin(intrinsic, svg);
@@ -168,9 +168,9 @@ internal sealed class IntrinsicMeasurer
     /// </summary>
     private static IntrinsicSize MeasureSeparatorIntrinsic(SeparatorElement separator)
     {
-        var intrinsic = separator.Orientation == SeparatorOrientation.Horizontal
-            ? new IntrinsicSize(0f, 0f, separator.Thickness, separator.Thickness)
-            : new IntrinsicSize(separator.Thickness, separator.Thickness, 0f, 0f);
+        var intrinsic = separator.Orientation.Value == SeparatorOrientation.Horizontal
+            ? new IntrinsicSize(0f, 0f, separator.Thickness.Value, separator.Thickness.Value)
+            : new IntrinsicSize(separator.Thickness.Value, separator.Thickness.Value, 0f, 0f);
 
         return ApplyPaddingBorderAndMargin(intrinsic, separator);
     }
@@ -180,15 +180,15 @@ internal sealed class IntrinsicMeasurer
     /// </summary>
     private IntrinsicSize MeasureFlexIntrinsic(FlexElement flex, Dictionary<TemplateElement, IntrinsicSize> sizes)
     {
-        var padding = PaddingParser.ParseAbsolute(flex.Padding).ClampNegatives();
+        var padding = PaddingParser.ParseAbsolute(flex.Padding.Value).ClampNegatives();
         var border = BorderParser.ResolveAbsolute(flex);
         var effectivePadding = new PaddingValues(
             padding.Top + border.Top.Width,
             padding.Right + border.Right.Width,
             padding.Bottom + border.Bottom.Width,
             padding.Left + border.Left.Width);
-        var margin = PaddingParser.ParseAbsolute(flex.Margin).ClampNegatives();
-        var gap = ParseAbsolutePixelValue(flex.Gap, 0f);
+        var margin = PaddingParser.ParseAbsolute(flex.Margin.Value).ClampNegatives();
+        var gap = ParseAbsolutePixelValue(flex.Gap.Value, 0f);
 
         // Measure all children first (bottom-up)
         var childCount = flex.Children.Count;
@@ -198,14 +198,14 @@ internal sealed class IntrinsicMeasurer
             empty = empty.WithPadding(effectivePadding);
             empty = empty.WithMargin(margin);
 
-            if (!string.IsNullOrEmpty(flex.Width))
+            if (!string.IsNullOrEmpty(flex.Width.Value))
             {
-                var w = ParseAbsolutePixelValue(flex.Width, 0f);
+                var w = ParseAbsolutePixelValue(flex.Width.Value, 0f);
                 empty = new IntrinsicSize(w, w, empty.MinHeight, empty.MaxHeight);
             }
-            if (!string.IsNullOrEmpty(flex.Height))
+            if (!string.IsNullOrEmpty(flex.Height.Value))
             {
-                var h = ParseAbsolutePixelValue(flex.Height, 0f);
+                var h = ParseAbsolutePixelValue(flex.Height.Value, 0f);
                 empty = new IntrinsicSize(empty.MinWidth, empty.MaxWidth, h, h);
             }
 
@@ -217,7 +217,7 @@ internal sealed class IntrinsicMeasurer
         var visibleCount = 0;
         for (var i = 0; i < childCount; i++)
         {
-            if (flex.Children[i].Position == Position.Absolute)
+            if (flex.Children[i].Position.Value == Position.Absolute)
             {
                 childSizes[i] = new IntrinsicSize();
                 // Still measure the absolute child so it gets an entry in sizes dict
@@ -225,7 +225,7 @@ internal sealed class IntrinsicMeasurer
                 continue;
             }
             childSizes[i] = MeasureIntrinsic(flex.Children[i], sizes);
-            if (flex.Children[i].Display != Display.None)
+            if (flex.Children[i].Display.Value != Display.None)
                 visibleCount++;
         }
 
@@ -233,7 +233,7 @@ internal sealed class IntrinsicMeasurer
 
         float minWidth, maxWidth, minHeight, maxHeight;
 
-        var isColumn = flex.Direction is FlexDirection.Column or FlexDirection.ColumnReverse;
+        var isColumn = flex.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse;
         if (isColumn)
         {
             // Column: maxWidth = max of children, minWidth = max of children (container must fit widest child), height = sum + gaps
@@ -270,14 +270,14 @@ internal sealed class IntrinsicMeasurer
         result = result.WithMargin(margin);
 
         // Override with explicit dimensions
-        if (!string.IsNullOrEmpty(flex.Width))
+        if (!string.IsNullOrEmpty(flex.Width.Value))
         {
-            var w = ParseAbsolutePixelValue(flex.Width, result.MaxWidth);
+            var w = ParseAbsolutePixelValue(flex.Width.Value, result.MaxWidth);
             result = new IntrinsicSize(w, w, result.MinHeight, result.MaxHeight);
         }
-        if (!string.IsNullOrEmpty(flex.Height))
+        if (!string.IsNullOrEmpty(flex.Height.Value))
         {
-            var h = ParseAbsolutePixelValue(flex.Height, result.MaxHeight);
+            var h = ParseAbsolutePixelValue(flex.Height.Value, result.MaxHeight);
             result = new IntrinsicSize(result.MinWidth, result.MaxWidth, h, h);
         }
 
@@ -322,7 +322,7 @@ internal sealed class IntrinsicMeasurer
     /// </summary>
     private static IntrinsicSize ApplyPaddingBorderAndMargin(IntrinsicSize intrinsic, TemplateElement element)
     {
-        intrinsic = ApplyPaddingAndMargin(intrinsic, element.Padding, element.Margin);
+        intrinsic = ApplyPaddingAndMargin(intrinsic, element.Padding.Value, element.Margin.Value);
         var border = BorderParser.ResolveAbsolute(element);
         if (border.Horizontal > 0f || border.Vertical > 0f)
         {

@@ -1,3 +1,5 @@
+using FlexRender.TemplateEngine;
+
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -48,22 +50,42 @@ public sealed class SeparatorElement : TemplateElement
     /// <summary>
     /// The orientation of the separator.
     /// </summary>
-    public SeparatorOrientation Orientation { get; set; } = SeparatorOrientation.Horizontal;
+    public ExprValue<SeparatorOrientation> Orientation { get; set; } = SeparatorOrientation.Horizontal;
 
     /// <summary>
     /// The visual style of the separator line.
     /// Defaults to <see cref="SeparatorStyle.Dotted"/> which is intentional for the
     /// primary receipt printing use case where dotted separators are the convention.
     /// </summary>
-    public SeparatorStyle Style { get; set; } = SeparatorStyle.Dotted;
+    public ExprValue<SeparatorStyle> Style { get; set; } = SeparatorStyle.Dotted;
 
     /// <summary>
     /// The thickness of the separator in pixels.
     /// </summary>
-    public float Thickness { get; set; } = 1f;
+    public ExprValue<float> Thickness { get; set; } = 1f;
 
     /// <summary>
     /// The color of the separator in hex format.
     /// </summary>
-    public string Color { get; set; } = "#000000";
+    public ExprValue<string> Color { get; set; } = "#000000";
+
+    /// <inheritdoc />
+    public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
+    {
+        base.ResolveExpressions(resolver, data);
+        Orientation = Orientation.Resolve(resolver, data);
+        Style = Style.Resolve(resolver, data);
+        Thickness = Thickness.Resolve(resolver, data);
+        Color = Color.Resolve(resolver, data);
+    }
+
+    /// <inheritdoc />
+    public override void Materialize()
+    {
+        base.Materialize();
+        Orientation = Orientation.Materialize(nameof(Orientation));
+        Style = Style.Materialize(nameof(Style));
+        Thickness = Thickness.Materialize(nameof(Thickness));
+        Color = Color.Materialize(nameof(Color), ValueKind.Color);
+    }
 }

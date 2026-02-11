@@ -1,4 +1,5 @@
 using FlexRender.Layout;
+using FlexRender.TemplateEngine;
 
 namespace FlexRender.Parsing.Ast;
 
@@ -51,7 +52,7 @@ public sealed class CanvasSettings
     /// <summary>
     /// Background color in hex format (e.g., "#ffffff").
     /// </summary>
-    public string Background { get; set; } = "#ffffff";
+    public ExprValue<string> Background { get; set; } = "#ffffff";
 
     /// <summary>
     /// Canvas rotation applied to the final rendered image.
@@ -71,11 +72,31 @@ public sealed class CanvasSettings
     /// layout. The rotation transforms the entire rendered result.
     /// </para>
     /// </remarks>
-    public string Rotate { get; set; } = "none";
+    public ExprValue<string> Rotate { get; set; } = "none";
 
     /// <summary>
     /// Default text direction for the entire template.
     /// Individual elements can override this.
     /// </summary>
     public TextDirection TextDirection { get; set; } = TextDirection.Ltr;
+
+    /// <summary>
+    /// Resolves template expressions in all <see cref="ExprValue{T}"/> properties.
+    /// </summary>
+    /// <param name="resolver">Function that resolves a raw template string to a concrete string value.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    public void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
+    {
+        Background = Background.Resolve(resolver, data);
+        Rotate = Rotate.Resolve(resolver, data);
+    }
+
+    /// <summary>
+    /// Materializes all resolved <see cref="ExprValue{T}"/> properties into typed values.
+    /// </summary>
+    public void Materialize()
+    {
+        Background = Background.Materialize("Canvas.Background", ValueKind.Color);
+        Rotate = Rotate.Materialize("Canvas.Rotate");
+    }
 }

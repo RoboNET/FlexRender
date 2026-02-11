@@ -33,7 +33,7 @@ public sealed class BarcodeImageSharpProvider : IImageSharpContentProvider<Barco
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Data))
+        if (string.IsNullOrEmpty(element.Data.Value))
         {
             throw new ArgumentException("Barcode data cannot be empty.", nameof(element));
         }
@@ -43,26 +43,26 @@ public sealed class BarcodeImageSharpProvider : IImageSharpContentProvider<Barco
             throw new ArgumentException("Barcode dimensions must be positive.");
         }
 
-        return element.Format switch
+        return element.Format.Value switch
         {
             BarcodeFormat.Code128 => GenerateCode128(element, width, height),
-            _ => throw new NotSupportedException($"Barcode format '{element.Format}' is not yet supported.")
+            _ => throw new NotSupportedException($"Barcode format '{element.Format.Value}' is not yet supported.")
         };
     }
 
     private static Image<Rgba32> GenerateCode128(BarcodeElement element, int targetWidth, int targetHeight)
     {
-        var pattern = Code128Encoding.BuildPattern(element.Data);
+        var pattern = Code128Encoding.BuildPattern(element.Data.Value);
 
         var totalUnits = pattern.Length;
         var barWidth = targetWidth / (float)totalUnits;
-        var barcodeHeight = element.ShowText
+        var barcodeHeight = element.ShowText.Value
             ? targetHeight - TextHeight - TextPadding
             : targetHeight;
 
-        var foreground = ParseColor(element.Foreground, Color.Black);
-        var background = element.Background is not null
-            ? ParseColor(element.Background, Color.Transparent)
+        var foreground = ParseColor(element.Foreground.Value, Color.Black);
+        var background = element.Background.Value is not null
+            ? ParseColor(element.Background.Value, Color.Transparent)
             : Color.Transparent;
 
         var image = new Image<Rgba32>(targetWidth, targetHeight);
@@ -80,7 +80,7 @@ public sealed class BarcodeImageSharpProvider : IImageSharpContentProvider<Barco
                 x += barWidth;
             }
 
-            if (element.ShowText)
+            if (element.ShowText.Value)
             {
                 var font = ResolveFont(TextHeight - 2);
                 var textY = barcodeHeight + TextPadding;
@@ -90,7 +90,7 @@ public sealed class BarcodeImageSharpProvider : IImageSharpContentProvider<Barco
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Top
                 };
-                ctx.DrawText(options, element.Data, foreground);
+                ctx.DrawText(options, element.Data.Value, foreground);
             }
         });
 

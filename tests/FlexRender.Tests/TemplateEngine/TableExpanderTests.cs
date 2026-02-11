@@ -111,7 +111,7 @@ public sealed class TableExpanderTests
             var rowFlex = Assert.IsType<FlexElement>(child);
             Assert.Equal(FlexDirection.Row, rowFlex.Direction);
             var cell = Assert.IsType<TextElement>(rowFlex.Children[0]);
-            Assert.NotEmpty(cell.Content);
+            Assert.NotEmpty(cell.Content.Value);
         }
     }
 

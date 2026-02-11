@@ -27,7 +27,7 @@ public sealed class QrImageSharpProvider : IImageSharpContentProvider<QrElement>
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Data))
+        if (string.IsNullOrEmpty(element.Data.Value))
         {
             throw new ArgumentException("QR code data cannot be empty.", nameof(element));
         }
@@ -37,17 +37,17 @@ public sealed class QrImageSharpProvider : IImageSharpContentProvider<QrElement>
             throw new ArgumentException("QR code size must be positive.");
         }
 
-        var eccLevel = MapEccLevel(element.ErrorCorrection);
+        var eccLevel = MapEccLevel(element.ErrorCorrection.Value);
         QrDataValidator.ValidateDataCapacity(element);
 
         using var qrGenerator = new QRCodeGenerator();
-        using var qrCodeData = qrGenerator.CreateQrCode(element.Data, eccLevel);
+        using var qrCodeData = qrGenerator.CreateQrCode(element.Data.Value, eccLevel);
 
         var moduleCount = qrCodeData.ModuleMatrix.Count;
 
-        var foreground = ParseColor(element.Foreground, Color.Black);
-        var background = element.Background is not null
-            ? ParseColor(element.Background, Color.Transparent)
+        var foreground = ParseColor(element.Foreground.Value, Color.Black);
+        var background = element.Background.Value is not null
+            ? ParseColor(element.Background.Value, Color.Transparent)
             : Color.Transparent;
 
         var image = new Image<Rgba32>(width, height);

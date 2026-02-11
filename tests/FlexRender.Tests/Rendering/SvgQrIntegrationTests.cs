@@ -97,7 +97,7 @@ public sealed class SvgQrIntegrationTests
         {
             Data = data,
             Foreground = foreground,
-            Background = background,
+            Background = background!,
             Width = "200",
             Height = "200"
         };

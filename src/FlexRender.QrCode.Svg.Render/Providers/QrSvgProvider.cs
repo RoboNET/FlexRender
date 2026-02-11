@@ -24,16 +24,16 @@ public sealed class QrSvgProvider : ISvgContentProvider<QrElement>
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Data))
+        if (string.IsNullOrEmpty(element.Data.Value))
         {
             throw new ArgumentException("QR code data cannot be empty.", nameof(element));
         }
 
-        var eccLevel = MapEccLevel(element.ErrorCorrection);
+        var eccLevel = MapEccLevel(element.ErrorCorrection.Value);
         QrDataValidator.ValidateDataCapacity(element);
 
         using var qrGenerator = new QRCodeGenerator();
-        using var qrCodeData = qrGenerator.CreateQrCode(element.Data, eccLevel);
+        using var qrCodeData = qrGenerator.CreateQrCode(element.Data.Value, eccLevel);
 
         var moduleCount = qrCodeData.ModuleMatrix.Count;
         var moduleWidth = width / moduleCount;
@@ -42,18 +42,18 @@ public sealed class QrSvgProvider : ISvgContentProvider<QrElement>
         var sb = new StringBuilder(1024);
         sb.Append("<g>");
 
-        if (element.Background is not null)
+        if (element.Background.Value is not null)
         {
             sb.Append("<rect width=\"").Append(F(width));
             sb.Append("\" height=\"").Append(F(height));
-            sb.Append("\" fill=\"").Append(EscapeXml(element.Background)).Append("\"/>");
+            sb.Append("\" fill=\"").Append(EscapeXml(element.Background.Value)).Append("\"/>");
         }
 
         var pathData = BuildPathData(qrCodeData, moduleCount, moduleWidth, moduleHeight);
         if (pathData.Length > 0)
         {
             sb.Append("<path d=\"").Append(pathData);
-            sb.Append("\" fill=\"").Append(EscapeXml(element.Foreground)).Append("\"/>");
+            sb.Append("\" fill=\"").Append(EscapeXml(element.Foreground.Value)).Append("\"/>");
         }
 
         sb.Append("</g>");

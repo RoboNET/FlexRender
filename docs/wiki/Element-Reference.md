@@ -14,6 +14,8 @@ For rendering options (antialiasing, format settings), see [[Render-Options]].
 
 All 10 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `table`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
 
+> **Expression support:** All properties on all element types accept `{{expressions}}`. This includes typed properties like `opacity` (float), `grow`/`shrink` (float), `order` (int), `wrap` (bool on text, FlexWrap on flex), and enum properties like `display`, `position`, `align`. See [[Template-Expressions]] for details.
+
 ### Size Properties
 
 Control the explicit dimensions and constraints of an element. All size properties accept values in `px`, `%`, `em`, or `auto`. Plain numbers without a suffix are treated as pixels.

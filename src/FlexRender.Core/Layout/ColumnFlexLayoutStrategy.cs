@@ -21,9 +21,9 @@ internal sealed class ColumnFlexLayoutStrategy
         var visibleCount = 0;
         foreach (var child in node.Children)
         {
-            if (child.Element.Display == Display.None) continue;
-            if (child.Element.Position == Position.Absolute) continue;
-            var childMargin = PaddingParser.Parse(child.Element.Margin, context.ContainerWidth, context.FontSize).ClampNegatives();
+            if (child.Element.Display.Value == Display.None) continue;
+            if (child.Element.Position.Value == Position.Absolute) continue;
+            var childMargin = PaddingParser.Parse(child.Element.Margin.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
             totalMarginHeight += childMargin.Top + childMargin.Bottom;
             visibleCount++;
         }
@@ -42,7 +42,7 @@ internal sealed class ColumnFlexLayoutStrategy
         for (var i = 0; i < itemCount; i++)
         {
             var child = node.Children[i];
-            if (child.Element.Display == Display.None || child.Element.Position == Position.Absolute)
+            if (child.Element.Display.Value == Display.None || child.Element.Position.Value == Position.Absolute)
             {
                 bases[i] = 0f;
                 sizes[i] = 0f;
@@ -151,8 +151,8 @@ internal sealed class ColumnFlexLayoutStrategy
         Span<bool> heightChanged = itemCount <= 32 ? stackalloc bool[itemCount] : new bool[itemCount];
         for (var i = 0; i < itemCount; i++)
         {
-            if (node.Children[i].Element.Display == Display.None) continue;
-            if (node.Children[i].Element.Position == Position.Absolute) continue;
+            if (node.Children[i].Element.Display.Value == Display.None) continue;
+            if (node.Children[i].Element.Position.Value == Position.Absolute) continue;
             var newHeight = Math.Max(0, sizes[i]);
             heightChanged[i] = Math.Abs(node.Children[i].Height - newHeight) > 0.01f;
             node.Children[i].Height = newHeight;
@@ -166,10 +166,10 @@ internal sealed class ColumnFlexLayoutStrategy
         // Re-apply aspect ratio after flex resolution changed main-axis size (column: main=height)
         foreach (var child in node.Children)
         {
-            if (child.Element.Position == Position.Absolute) continue;
-            if (child.Element.Display == Display.None) continue;
-            if (!child.Element.AspectRatio.HasValue || child.Element.AspectRatio.Value <= 0f) continue;
-            var ratio = child.Element.AspectRatio.Value;
+            if (child.Element.Position.Value == Position.Absolute) continue;
+            if (child.Element.Display.Value == Display.None) continue;
+            if (!child.Element.AspectRatio.Value.HasValue || child.Element.AspectRatio.Value.Value <= 0f) continue;
+            var ratio = child.Element.AspectRatio.Value.Value;
             child.Width = child.Height * ratio;
         }
 
@@ -177,8 +177,8 @@ internal sealed class ColumnFlexLayoutStrategy
         var totalSized = 0f;
         for (var i = 0; i < itemCount; i++)
         {
-            if (node.Children[i].Element.Display == Display.None) continue;
-            if (node.Children[i].Element.Position == Position.Absolute) continue;
+            if (node.Children[i].Element.Display.Value == Display.None) continue;
+            if (node.Children[i].Element.Position.Value == Position.Absolute) continue;
             totalSized += sizes[i];
         }
         var freeSpace = availableHeight - totalSized - totalGaps - totalMarginHeight;
@@ -188,9 +188,9 @@ internal sealed class ColumnFlexLayoutStrategy
         var totalMainAutoCount = 0;
         foreach (var child in node.Children)
         {
-            if (child.Element.Display == Display.None) continue;
-            if (child.Element.Position == Position.Absolute) continue;
-            var m = PaddingParser.ParseMargin(child.Element.Margin, context.ContainerWidth, context.FontSize);
+            if (child.Element.Display.Value == Display.None) continue;
+            if (child.Element.Position.Value == Position.Absolute) continue;
+            var m = PaddingParser.ParseMargin(child.Element.Margin.Value, context.ContainerWidth, context.FontSize);
             var ac = m.MainAxisAutoCount(isColumn: true);
             if (ac > 0) { hasMainAutoMargins = true; totalMainAutoCount += ac; }
         }
@@ -206,12 +206,12 @@ internal sealed class ColumnFlexLayoutStrategy
             var first = true;
             foreach (var child in node.Children)
             {
-                if (child.Element.Display == Display.None) continue;
-                if (child.Element.Position == Position.Absolute) continue;
+                if (child.Element.Display.Value == Display.None) continue;
+                if (child.Element.Position.Value == Position.Absolute) continue;
                 if (!first) pos += gap;
                 first = false;
 
-                var m = PaddingParser.ParseMargin(child.Element.Margin, context.ContainerWidth, context.FontSize);
+                var m = PaddingParser.ParseMargin(child.Element.Margin.Value, context.ContainerWidth, context.FontSize);
                 pos += m.Top.IsAuto ? spacePerAuto : m.Top.ResolvedPixels;
                 child.Y = pos;
                 pos += child.Height;
@@ -227,13 +227,13 @@ internal sealed class ColumnFlexLayoutStrategy
             float y = padding.Top;
 
             // Overflow fallback: space-distribution modes fall back to Start when freeSpace < 0
-            var effectiveJustify = freeSpace < 0 ? flex.Justify switch
+            var effectiveJustify = freeSpace < 0 ? flex.Justify.Value switch
             {
                 JustifyContent.SpaceBetween => JustifyContent.Start,
                 JustifyContent.SpaceAround => JustifyContent.Start,
                 JustifyContent.SpaceEvenly => JustifyContent.Start,
-                _ => flex.Justify
-            } : flex.Justify;
+                _ => flex.Justify.Value
+            } : flex.Justify.Value;
 
             // Apply justify-content
             switch (effectiveJustify)
@@ -270,11 +270,11 @@ internal sealed class ColumnFlexLayoutStrategy
 
             foreach (var child in node.Children)
             {
-                if (child.Element.Display == Display.None) continue;
-                if (child.Element.Position == Position.Absolute) continue;
+                if (child.Element.Display.Value == Display.None) continue;
+                if (child.Element.Position.Value == Position.Absolute) continue;
 
                 // Parse child margin once (supports auto margins, clamp negatives)
-                var m = PaddingParser.ParseMargin(child.Element.Margin, context.ContainerWidth, context.FontSize);
+                var m = PaddingParser.ParseMargin(child.Element.Margin.Value, context.ContainerWidth, context.FontSize);
                 var mTop = Math.Max(0f, m.Top.ResolvedPixels);
                 var mBottom = Math.Max(0f, m.Bottom.ResolvedPixels);
                 var mLeft = Math.Max(0f, m.Left.ResolvedPixels);
@@ -288,7 +288,7 @@ internal sealed class ColumnFlexLayoutStrategy
                 else
                 {
                     // Original align-items / align-self logic (cross axis is horizontal for column)
-                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
+                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
                     child.X = mLeft + effectiveAlign switch
                     {
                         AlignItems.Start => padding.Left,
@@ -299,7 +299,7 @@ internal sealed class ColumnFlexLayoutStrategy
                     };
 
                     // Stretch width if align is stretch and no explicit width
-                    var hasAspectWidth = child.Element.AspectRatio.HasValue && child.Element.AspectRatio.Value > 0f
+                    var hasAspectWidth = child.Element.AspectRatio.Value.HasValue && child.Element.AspectRatio.Value.Value > 0f
                         && LayoutHelpers.HasExplicitHeight(child.Element) && !LayoutHelpers.HasExplicitWidth(child.Element);
                     if (effectiveAlign == AlignItems.Stretch && !LayoutHelpers.HasExplicitWidth(child.Element) && !hasAspectWidth && crossAxisSize > 0)
                     {
@@ -315,13 +315,13 @@ internal sealed class ColumnFlexLayoutStrategy
         }
 
         // Reverse positions for ColumnReverse
-        if (flex.Direction == FlexDirection.ColumnReverse)
+        if (flex.Direction.Value == FlexDirection.ColumnReverse)
         {
             var containerHeight = node.Height > 0 ? node.Height : yEnd;
             foreach (var child in node.Children)
             {
-                if (child.Element.Display == Display.None) continue;
-                if (child.Element.Position == Position.Absolute) continue;
+                if (child.Element.Display.Value == Display.None) continue;
+                if (child.Element.Position.Value == Position.Absolute) continue;
                 child.Y = containerHeight - child.Y - child.Height;
             }
         }
@@ -360,7 +360,7 @@ internal sealed class ColumnFlexLayoutStrategy
         else
         {
             // Normal align-items / align-self logic
-            var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
+            var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
             child.X = margin.Left.ResolvedPixels + effectiveAlign switch
             {
                 AlignItems.Start => padding.Left,
@@ -371,7 +371,7 @@ internal sealed class ColumnFlexLayoutStrategy
             };
 
             // Stretch width if align is stretch and no explicit width
-            var hasAspectWidth = child.Element.AspectRatio.HasValue && child.Element.AspectRatio.Value > 0f
+            var hasAspectWidth = child.Element.AspectRatio.Value.HasValue && child.Element.AspectRatio.Value.Value > 0f
                 && LayoutHelpers.HasExplicitHeight(child.Element) && !LayoutHelpers.HasExplicitWidth(child.Element);
             if (effectiveAlign == AlignItems.Stretch && !LayoutHelpers.HasExplicitWidth(child.Element) && !hasAspectWidth && crossAxisSize > 0)
             {
@@ -398,22 +398,22 @@ internal sealed class ColumnFlexLayoutStrategy
             if (!heightChanged[i]) continue;
 
             var child = node.Children[i];
-            if (child.Element.Display == Display.None) continue;
-            if (child.Element.Position == Position.Absolute) continue;
+            if (child.Element.Display.Value == Display.None) continue;
+            if (child.Element.Position.Value == Position.Absolute) continue;
             if (child.Element is not FlexElement childFlex) continue;
-            if (childFlex.Direction is not (FlexDirection.Row or FlexDirection.RowReverse)) continue;
+            if (childFlex.Direction.Value is not (FlexDirection.Row or FlexDirection.RowReverse)) continue;
 
-            var childPadding = PaddingParser.Parse(childFlex.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+            var childPadding = PaddingParser.Parse(childFlex.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
             var newCrossAxisSize = child.Height - childPadding.Vertical;
             if (newCrossAxisSize <= 0) continue;
 
             // For row containers, hasExplicitHeight is true since the height was set by flex grow/shrink
             foreach (var grandchild in child.Children)
             {
-                if (grandchild.Element.Display == Display.None) continue;
-                if (grandchild.Element.Position == Position.Absolute) continue;
+                if (grandchild.Element.Display.Value == Display.None) continue;
+                if (grandchild.Element.Position.Value == Position.Absolute) continue;
 
-                var m = PaddingParser.ParseMargin(grandchild.Element.Margin, context.ContainerWidth, context.FontSize);
+                var m = PaddingParser.ParseMargin(grandchild.Element.Margin.Value, context.ContainerWidth, context.FontSize);
 
                 if (m.CrossAxisAutoCount(isColumn: false) > 0)
                 {
@@ -425,7 +425,7 @@ internal sealed class ColumnFlexLayoutStrategy
                     var mTop = Math.Max(0f, m.Top.ResolvedPixels);
                     var mBottom = Math.Max(0f, m.Bottom.ResolvedPixels);
 
-                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(grandchild.Element, childFlex.Align);
+                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(grandchild.Element, childFlex.Align.Value);
                     grandchild.Y = mTop + (newCrossAxisSize > 0 ? effectiveAlign switch
                     {
                         AlignItems.Start => childPadding.Top,
@@ -436,7 +436,7 @@ internal sealed class ColumnFlexLayoutStrategy
                     } : childPadding.Top);
 
                     // Stretch height if align is stretch and no explicit height on grandchild
-                    var hasAspectHeight = grandchild.Element.AspectRatio.HasValue && grandchild.Element.AspectRatio.Value > 0f
+                    var hasAspectHeight = grandchild.Element.AspectRatio.Value.HasValue && grandchild.Element.AspectRatio.Value.Value > 0f
                         && LayoutHelpers.HasExplicitWidth(grandchild.Element) && !LayoutHelpers.HasExplicitHeight(grandchild.Element);
                     if (effectiveAlign == AlignItems.Stretch && !LayoutHelpers.HasExplicitHeight(grandchild.Element) && !hasAspectHeight && newCrossAxisSize > 0)
                     {

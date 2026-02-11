@@ -35,30 +35,44 @@ internal sealed class ElementParsers
     /// <param name="element">The element to apply flex-item properties to.</param>
     internal static void ApplyFlexItemProperties(YamlMappingNode node, TemplateElement element)
     {
-        element.Grow = GetFloatValue(node, "grow", 0f);
-        element.Shrink = GetFloatValue(node, "shrink", 1f);
-        element.Basis = GetStringValue(node, "basis", "auto");
-        element.Order = GetIntValue(node, "order", 0);
+        element.Grow = GetExprFloatValue(node, "grow", 0f);
+        element.Shrink = GetExprFloatValue(node, "shrink", 1f);
+        element.Basis = GetExprStringValue(node, "basis", "auto");
+        element.Order = GetExprIntValue(node, "order", 0);
 
         var displayStr = GetStringValue(node, "display", "flex");
-        element.Display = displayStr.ToLowerInvariant() switch
+        if (ContainsExpression(displayStr))
         {
-            "flex" => Display.Flex,
-            "none" => Display.None,
-            _ => Display.Flex
-        };
+            element.Display = ExprValue<Display>.Expression(displayStr);
+        }
+        else
+        {
+            element.Display = displayStr.ToLowerInvariant() switch
+            {
+                "flex" => Display.Flex,
+                "none" => Display.None,
+                _ => Display.Flex
+            };
+        }
 
         var alignSelfStr = GetStringValue(node, "alignSelf", "auto");
-        element.AlignSelf = alignSelfStr.ToLowerInvariant() switch
+        if (ContainsExpression(alignSelfStr))
         {
-            "auto" => AlignSelf.Auto,
-            "start" => AlignSelf.Start,
-            "center" => AlignSelf.Center,
-            "end" => AlignSelf.End,
-            "stretch" => AlignSelf.Stretch,
-            "baseline" => AlignSelf.Baseline,
-            _ => AlignSelf.Auto
-        };
+            element.AlignSelf = ExprValue<AlignSelf>.Expression(alignSelfStr);
+        }
+        else
+        {
+            element.AlignSelf = alignSelfStr.ToLowerInvariant() switch
+            {
+                "auto" => AlignSelf.Auto,
+                "start" => AlignSelf.Start,
+                "center" => AlignSelf.Center,
+                "end" => AlignSelf.End,
+                "stretch" => AlignSelf.Stretch,
+                "baseline" => AlignSelf.Baseline,
+                _ => AlignSelf.Auto
+            };
+        }
 
         // Width/Height: Barcode and Image YAML width/height map to content-specific properties
         // (BarcodeWidth/BarcodeHeight, ImageWidth/ImageHeight) in their element-specific parsers.
@@ -68,68 +82,75 @@ internal sealed class ElementParsers
         {
             case BarcodeElement bc:
                 // Set flex Width/Height from barcode-specific dimensions for proper layout centering
-                if (bc.BarcodeWidth.HasValue)
-                    element.Width = bc.BarcodeWidth.Value.ToString(CultureInfo.InvariantCulture);
-                if (bc.BarcodeHeight.HasValue)
-                    element.Height = bc.BarcodeHeight.Value.ToString(CultureInfo.InvariantCulture);
+                if (bc.BarcodeWidth.Value.HasValue)
+                    element.Width = bc.BarcodeWidth.Value.Value.ToString(CultureInfo.InvariantCulture);
+                if (bc.BarcodeHeight.Value.HasValue)
+                    element.Height = bc.BarcodeHeight.Value.Value.ToString(CultureInfo.InvariantCulture);
                 break;
             case QrElement qr:
                 // QR is square: Size maps to both Width and Height for proper layout centering
-                if (qr.Size.HasValue)
+                if (qr.Size.Value.HasValue)
                 {
-                    var sizeStr = qr.Size.Value.ToString(CultureInfo.InvariantCulture);
+                    var sizeStr = qr.Size.Value.Value.ToString(CultureInfo.InvariantCulture);
                     element.Width = sizeStr;
                     element.Height = sizeStr;
                 }
                 break;
             case ImageElement img:
                 // Set flex Width/Height from image-specific dimensions for proper layout centering
-                if (img.ImageWidth.HasValue)
-                    element.Width = img.ImageWidth.Value.ToString(CultureInfo.InvariantCulture);
-                if (img.ImageHeight.HasValue)
-                    element.Height = img.ImageHeight.Value.ToString(CultureInfo.InvariantCulture);
+                if (img.ImageWidth.Value.HasValue)
+                    element.Width = img.ImageWidth.Value.Value.ToString(CultureInfo.InvariantCulture);
+                if (img.ImageHeight.Value.HasValue)
+                    element.Height = img.ImageHeight.Value.Value.ToString(CultureInfo.InvariantCulture);
                 break;
             default:
-                element.Width = GetStringValue(node, "width");
-                element.Height = GetStringValue(node, "height");
+                element.Width = GetExprStringValueOptional(node, "width");
+                element.Height = GetExprStringValueOptional(node, "height");
                 break;
         }
 
         // Min/Max constraints: support both camelCase and kebab-case
-        element.MinWidth = GetStringValue(node, "min-width") ?? GetStringValue(node, "minWidth");
-        element.MaxWidth = GetStringValue(node, "max-width") ?? GetStringValue(node, "maxWidth");
-        element.MinHeight = GetStringValue(node, "min-height") ?? GetStringValue(node, "minHeight");
-        element.MaxHeight = GetStringValue(node, "max-height") ?? GetStringValue(node, "maxHeight");
+        element.MinWidth = GetExprStringValueOptional(node, "min-width", "minWidth");
+        element.MaxWidth = GetExprStringValueOptional(node, "max-width", "maxWidth");
+        element.MinHeight = GetExprStringValueOptional(node, "min-height", "minHeight");
+        element.MaxHeight = GetExprStringValueOptional(node, "max-height", "maxHeight");
 
         // Position properties
         var positionStr = GetStringValue(node, "position", "static");
-        element.Position = positionStr.ToLowerInvariant() switch
+        if (ContainsExpression(positionStr))
         {
-            "static" => Position.Static,
-            "relative" => Position.Relative,
-            "absolute" => Position.Absolute,
-            _ => Position.Static
-        };
+            element.Position = ExprValue<Position>.Expression(positionStr);
+        }
+        else
+        {
+            element.Position = positionStr.ToLowerInvariant() switch
+            {
+                "static" => Position.Static,
+                "relative" => Position.Relative,
+                "absolute" => Position.Absolute,
+                _ => Position.Static
+            };
+        }
 
-        element.Top = GetStringValue(node, "top");
-        element.Right = GetStringValue(node, "right");
-        element.Bottom = GetStringValue(node, "bottom");
-        element.Left = GetStringValue(node, "left");
+        element.Top = GetExprStringValueOptional(node, "top");
+        element.Right = GetExprStringValueOptional(node, "right");
+        element.Bottom = GetExprStringValueOptional(node, "bottom");
+        element.Left = GetExprStringValueOptional(node, "left");
 
         // Aspect ratio
         element.AspectRatio = GetNullableFloatValue(node, "aspectRatio")
                               ?? GetNullableFloatValue(node, "aspect-ratio");
 
         // Border properties
-        element.Border = GetStringValue(node, "border");
-        element.BorderWidth = GetStringValue(node, "border-width") ?? GetStringValue(node, "borderWidth");
-        element.BorderColor = GetStringValue(node, "border-color") ?? GetStringValue(node, "borderColor");
-        element.BorderStyle = GetStringValue(node, "border-style") ?? GetStringValue(node, "borderStyle");
-        element.BorderTop = GetStringValue(node, "border-top") ?? GetStringValue(node, "borderTop");
-        element.BorderRight = GetStringValue(node, "border-right") ?? GetStringValue(node, "borderRight");
-        element.BorderBottom = GetStringValue(node, "border-bottom") ?? GetStringValue(node, "borderBottom");
-        element.BorderLeft = GetStringValue(node, "border-left") ?? GetStringValue(node, "borderLeft");
-        element.BorderRadius = GetStringValue(node, "border-radius") ?? GetStringValue(node, "borderRadius");
+        element.Border = GetExprStringValueOptional(node, "border");
+        element.BorderWidth = GetExprStringValueOptional(node, "border-width", "borderWidth");
+        element.BorderColor = GetExprStringValueOptional(node, "border-color", "borderColor");
+        element.BorderStyle = GetExprStringValueOptional(node, "border-style", "borderStyle");
+        element.BorderTop = GetExprStringValueOptional(node, "border-top", "borderTop");
+        element.BorderRight = GetExprStringValueOptional(node, "border-right", "borderRight");
+        element.BorderBottom = GetExprStringValueOptional(node, "border-bottom", "borderBottom");
+        element.BorderLeft = GetExprStringValueOptional(node, "border-left", "borderLeft");
+        element.BorderRadius = GetExprStringValueOptional(node, "border-radius", "borderRadius");
 
         var dirStr = GetStringValue(node, "text-direction");
         if (dirStr != null)
@@ -143,8 +164,11 @@ internal sealed class ElementParsers
         }
 
         // Visual effect properties
-        element.Opacity = Math.Clamp(GetFloatValue(node, "opacity", 1.0f), 0.0f, 1.0f);
-        element.BoxShadow = GetStringValue(node, "box-shadow") ?? GetStringValue(node, "boxShadow");
+        var opacityExpr = GetExprFloatValue(node, "opacity", 1.0f);
+        element.Opacity = opacityExpr.IsExpression
+            ? opacityExpr
+            : Math.Clamp(opacityExpr.Value, 0.0f, 1.0f);
+        element.BoxShadow = GetExprStringValueOptional(node, "box-shadow", "boxShadow");
     }
 
     /// <summary>
@@ -157,37 +181,51 @@ internal sealed class ElementParsers
         var text = new TextElement
         {
             Content = GetStringValue(node, "content", ""),
-            Font = GetStringValue(node, "font", "main"),
-            Size = GetStringValue(node, "size", "1em"),
-            Color = GetStringValue(node, "color", "#000000"),
-            Wrap = GetBoolValue(node, "wrap", true),
-            MaxLines = GetNullableIntValue(node, "maxLines"),
-            Rotate = GetStringValue(node, "rotate", "none"),
-            Background = GetStringValue(node, "background"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0"),
-            LineHeight = GetStringValue(node, "lineHeight", "")
+            Font = GetExprStringValue(node, "font", "main"),
+            Size = GetExprStringValue(node, "size", "1em"),
+            Color = GetExprStringValue(node, "color", "#000000"),
+            Wrap = GetExprBoolValue(node, "wrap", true),
+            MaxLines = GetExprNullableIntValue(node, "maxLines"),
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Background = GetStringValue(node, "background")!,
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0"),
+            LineHeight = GetExprStringValue(node, "lineHeight", "")
         };
 
         var alignStr = GetStringValue(node, "align", "left");
-        text.Align = alignStr.ToLowerInvariant() switch
+        if (ContainsExpression(alignStr))
         {
-            "left" => TextAlign.Left,
-            "center" => TextAlign.Center,
-            "right" => TextAlign.Right,
-            "start" => TextAlign.Start,
-            "end" => TextAlign.End,
-            _ => TextAlign.Left
-        };
+            text.Align = ExprValue<TextAlign>.Expression(alignStr);
+        }
+        else
+        {
+            text.Align = alignStr.ToLowerInvariant() switch
+            {
+                "left" => TextAlign.Left,
+                "center" => TextAlign.Center,
+                "right" => TextAlign.Right,
+                "start" => TextAlign.Start,
+                "end" => TextAlign.End,
+                _ => TextAlign.Left
+            };
+        }
 
         var overflowStr = GetStringValue(node, "overflow", "ellipsis");
-        text.Overflow = overflowStr.ToLowerInvariant() switch
+        if (ContainsExpression(overflowStr))
         {
-            "ellipsis" => TextOverflow.Ellipsis,
-            "clip" => TextOverflow.Clip,
-            "visible" => TextOverflow.Visible,
-            _ => TextOverflow.Ellipsis
-        };
+            text.Overflow = ExprValue<TextOverflow>.Expression(overflowStr);
+        }
+        else
+        {
+            text.Overflow = overflowStr.ToLowerInvariant() switch
+            {
+                "ellipsis" => TextOverflow.Ellipsis,
+                "clip" => TextOverflow.Clip,
+                "visible" => TextOverflow.Visible,
+                _ => TextOverflow.Ellipsis
+            };
+        }
 
         ApplyFlexItemProperties(node, text);
         return text;
@@ -202,11 +240,11 @@ internal sealed class ElementParsers
     {
         var flex = new FlexElement
         {
-            Gap = GetStringValue(node, "gap", "0"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0"),
-            Background = GetStringValue(node, "background"),
-            Rotate = GetStringValue(node, "rotate", "none")
+            Gap = GetExprStringValue(node, "gap", "0"),
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0"),
+            Background = GetStringValue(node, "background")!,
+            Rotate = GetExprStringValue(node, "rotate", "none")
         };
 
         var directionStr = GetStringValue(node, "direction", "column");
@@ -267,8 +305,8 @@ internal sealed class ElementParsers
             };
         }
 
-        flex.RowGap = GetStringValue(node, "row-gap") ?? GetStringValue(node, "rowGap");
-        flex.ColumnGap = GetStringValue(node, "column-gap") ?? GetStringValue(node, "columnGap");
+        flex.RowGap = GetStringValue(node, "row-gap") ?? GetStringValue(node, "rowGap") ?? "";
+        flex.ColumnGap = GetStringValue(node, "column-gap") ?? GetStringValue(node, "columnGap") ?? "";
 
         var overflowStr = GetStringValue(node, "overflow", "visible");
         flex.Overflow = overflowStr.ToLowerInvariant() switch
@@ -306,11 +344,11 @@ internal sealed class ElementParsers
         {
             Data = GetStringValue(node, "data", ""),
             Size = GetIntValue(node, "size", 100),
-            Foreground = GetStringValue(node, "foreground", "#000000"),
-            Background = GetStringValue(node, "background"),
-            Rotate = GetStringValue(node, "rotate", "none"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0")
+            Foreground = GetExprStringValue(node, "foreground", "#000000"),
+            Background = GetStringValue(node, "background")!,
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
         };
 
         var ecStr = GetStringValue(node, "errorCorrection", "M");
@@ -339,12 +377,12 @@ internal sealed class ElementParsers
             Data = GetStringValue(node, "data", ""),
             BarcodeWidth = GetIntValue(node, "width", 200),
             BarcodeHeight = GetIntValue(node, "height", 80),
-            ShowText = GetBoolValue(node, "showText", true),
-            Foreground = GetStringValue(node, "foreground", "#000000"),
-            Background = GetStringValue(node, "background"),
-            Rotate = GetStringValue(node, "rotate", "none"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0")
+            ShowText = GetExprBoolValue(node, "showText", true),
+            Foreground = GetExprStringValue(node, "foreground", "#000000"),
+            Background = GetStringValue(node, "background")!,
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
         };
 
         var formatStr = GetStringValue(node, "format", "code128");
@@ -374,10 +412,10 @@ internal sealed class ElementParsers
             Src = GetStringValue(node, "src", ""),
             ImageWidth = GetNullableIntValue(node, "width"),
             ImageHeight = GetNullableIntValue(node, "height"),
-            Rotate = GetStringValue(node, "rotate", "none"),
-            Background = GetStringValue(node, "background"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0")
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Background = GetStringValue(node, "background")!,
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
         };
 
         var fitStr = GetStringValue(node, "fit", "contain");
@@ -413,12 +451,12 @@ internal sealed class ElementParsers
             // NOTE: Color is not validated at parse time. This is consistent with the
             // existing pattern for other elements (e.g., TextElement.Color). Invalid
             // colors fall back to black at render time via ColorParser.Parse.
-            Color = GetStringValue(node, "color", "#000000"),
+            Color = GetExprStringValue(node, "color", "#000000"),
             Thickness = thickness,
-            Rotate = GetStringValue(node, "rotate", "none"),
-            Background = GetStringValue(node, "background"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0")
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Background = GetStringValue(node, "background")!,
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
         };
 
         var orientationStr = GetStringValue(node, "orientation", "horizontal");
@@ -639,14 +677,14 @@ internal sealed class ElementParsers
 
         var svg = new SvgElement
         {
-            Src = src,
-            Content = content,
+            Src = src!,
+            Content = content!,
             SvgWidth = GetNullableIntValue(node, "width"),
             SvgHeight = GetNullableIntValue(node, "height"),
-            Rotate = GetStringValue(node, "rotate", "none"),
-            Background = GetStringValue(node, "background"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0")
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Background = GetStringValue(node, "background")!,
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
         };
 
         var fitStr = GetStringValue(node, "fit", "contain");
@@ -710,10 +748,10 @@ internal sealed class ElementParsers
             HeaderColor = GetStringValue(node, "headerColor") ?? GetStringValue(node, "header-color"),
             HeaderSize = GetStringValue(node, "headerSize") ?? GetStringValue(node, "header-size"),
             HeaderBorderBottom = GetStringValue(node, "headerBorderBottom") ?? GetStringValue(node, "header-border-bottom"),
-            Rotate = GetStringValue(node, "rotate", "none"),
-            Background = GetStringValue(node, "background"),
-            Padding = GetStringValue(node, "padding", "0"),
-            Margin = GetStringValue(node, "margin", "0")
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Background = GetStringValue(node, "background")!,
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
         };
 
         ApplyFlexItemProperties(node, table);

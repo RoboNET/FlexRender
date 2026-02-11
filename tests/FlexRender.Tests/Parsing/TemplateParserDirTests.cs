@@ -132,7 +132,7 @@ public class TemplateParserDirTests
         var template = _parser.Parse(yaml);
 
         var text = Assert.IsType<TextElement>(template.Elements[0]);
-        Assert.Null(text.TextDirection);
+        Assert.Null(text.TextDirection.Value);
     }
 
     [Fact]
@@ -170,6 +170,6 @@ public class TemplateParserDirTests
         var template = _parser.Parse(yaml);
 
         var text = Assert.IsType<TextElement>(template.Elements[0]);
-        Assert.Null(text.TextDirection);
+        Assert.Null(text.TextDirection.Value);
     }
 }

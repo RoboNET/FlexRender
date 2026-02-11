@@ -121,7 +121,7 @@ public class TemplateParserFlexTests
         var flex = template.Elements[0] as FlexElement;
 
         Assert.NotNull(flex);
-        Assert.Null(flex.Background);
+        Assert.Null(flex.Background.Value);
     }
 
     /// <summary>

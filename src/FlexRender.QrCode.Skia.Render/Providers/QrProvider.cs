@@ -83,24 +83,24 @@ public sealed class QrProvider : IContentProvider<QrElement>, ISvgContentProvide
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Data))
+        if (string.IsNullOrEmpty(element.Data.Value))
         {
             throw new ArgumentException("QR code data cannot be empty.", nameof(element));
         }
 
         // Priority order: layout dimensions > element.Size > default 100px
-        var targetSize = layoutWidth ?? element.Size ?? 100;
+        var targetSize = layoutWidth ?? element.Size.Value ?? 100;
 
         if (targetSize <= 0)
         {
             throw new ArgumentException("QR code size must be positive.", nameof(element));
         }
 
-        var eccLevel = MapEccLevel(element.ErrorCorrection);
+        var eccLevel = MapEccLevel(element.ErrorCorrection.Value);
         QrDataValidator.ValidateDataCapacity(element);
 
         using var qrGenerator = new QRCodeGenerator();
-        using var qrCodeData = qrGenerator.CreateQrCode(element.Data, eccLevel);
+        using var qrCodeData = qrGenerator.CreateQrCode(element.Data.Value, eccLevel);
 
         var moduleCount = qrCodeData.ModuleMatrix.Count;
         var moduleSize = targetSize / (float)moduleCount;
@@ -108,9 +108,9 @@ public sealed class QrProvider : IContentProvider<QrElement>, ISvgContentProvide
         var bitmap = new SKBitmap(targetSize, targetSize);
         using var canvas = new SKCanvas(bitmap);
 
-        var foreground = ColorParser.Parse(element.Foreground);
-        var background = element.Background is not null
-            ? ColorParser.Parse(element.Background)
+        var foreground = ColorParser.Parse(element.Foreground.Value);
+        var background = element.Background.Value is not null
+            ? ColorParser.Parse(element.Background.Value)
             : SKColors.Transparent;
 
         // Fill background
@@ -167,16 +167,16 @@ public sealed class QrProvider : IContentProvider<QrElement>, ISvgContentProvide
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Data))
+        if (string.IsNullOrEmpty(element.Data.Value))
         {
             throw new ArgumentException("QR code data cannot be empty.", nameof(element));
         }
 
-        var eccLevel = MapEccLevel(element.ErrorCorrection);
+        var eccLevel = MapEccLevel(element.ErrorCorrection.Value);
         QrDataValidator.ValidateDataCapacity(element);
 
         using var qrGenerator = new QRCodeGenerator();
-        using var qrCodeData = qrGenerator.CreateQrCode(element.Data, eccLevel);
+        using var qrCodeData = qrGenerator.CreateQrCode(element.Data.Value, eccLevel);
 
         var moduleCount = qrCodeData.ModuleMatrix.Count;
         var moduleWidth = width / moduleCount;
@@ -186,11 +186,11 @@ public sealed class QrProvider : IContentProvider<QrElement>, ISvgContentProvide
         sb.Append("<g>");
 
         // Optional background
-        if (element.Background is not null)
+        if (element.Background.Value is not null)
         {
             sb.Append("<rect width=\"").Append(F(width));
             sb.Append("\" height=\"").Append(F(height));
-            sb.Append("\" fill=\"").Append(EscapeXml(element.Background)).Append("\"/>");
+            sb.Append("\" fill=\"").Append(EscapeXml(element.Background.Value)).Append("\"/>");
         }
 
         // Build optimized path data using horizontal run-length encoding
@@ -199,7 +199,7 @@ public sealed class QrProvider : IContentProvider<QrElement>, ISvgContentProvide
         if (pathData.Length > 0)
         {
             sb.Append("<path d=\"").Append(pathData);
-            sb.Append("\" fill=\"").Append(EscapeXml(element.Foreground)).Append("\"/>");
+            sb.Append("\" fill=\"").Append(EscapeXml(element.Foreground.Value)).Append("\"/>");
         }
 
         sb.Append("</g>");

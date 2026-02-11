@@ -45,26 +45,26 @@ public sealed class SvgElementSvgProvider : ISvgContentProvider<Parsing.Ast.SvgE
         _ = width;
         _ = height;
 
-        if (!string.IsNullOrEmpty(element.Content))
+        if (!string.IsNullOrEmpty(element.Content.Value))
         {
-            return SvgFormatting.SanitizeSvgContent(element.Content);
+            return SvgFormatting.SanitizeSvgContent(element.Content.Value);
         }
 
-        if (string.IsNullOrEmpty(element.Src))
+        if (string.IsNullOrEmpty(element.Src.Value))
         {
             throw new ArgumentException(
                 "SVG element must have either 'src' or 'content' specified.",
                 nameof(element));
         }
 
-        var svgContent = SvgContentLoader.LoadFromLoaders(_loaders, element.Src!);
+        var svgContent = SvgContentLoader.LoadFromLoaders(_loaders, element.Src.Value!);
         if (svgContent is not null)
         {
             return SvgFormatting.SanitizeSvgContent(svgContent);
         }
 
         // Fallback to direct file loading if resource loaders were not available.
-        var path = element.Src!;
+        var path = element.Src.Value!;
         if (!File.Exists(path))
         {
             throw new InvalidOperationException($"Failed to load SVG content from '{path}'.");

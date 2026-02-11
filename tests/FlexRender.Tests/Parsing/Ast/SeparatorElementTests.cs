@@ -21,7 +21,7 @@ public sealed class SeparatorElementTests
         Assert.Equal(SeparatorStyle.Dotted, separator.Style);
         Assert.Equal("#000000", separator.Color);
         Assert.Equal(1f, separator.Thickness);
-        Assert.Null(separator.Background);
+        Assert.Null(separator.Background.Value);
         Assert.Equal("none", separator.Rotate);
         Assert.Equal("0", separator.Padding);
         Assert.Equal("0", separator.Margin);
@@ -101,8 +101,8 @@ public sealed class SeparatorElementTests
         Assert.Equal("auto", separator.Basis);
         Assert.Equal(AlignSelf.Auto, separator.AlignSelf);
         Assert.Equal(0, separator.Order);
-        Assert.Null(separator.Width);
-        Assert.Null(separator.Height);
+        Assert.Null(separator.Width.Value);
+        Assert.Null(separator.Height.Value);
     }
 
     /// <summary>

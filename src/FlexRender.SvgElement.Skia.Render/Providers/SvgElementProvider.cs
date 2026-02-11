@@ -115,7 +115,7 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Src) && string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Src.Value) && string.IsNullOrEmpty(element.Content.Value))
         {
             throw new ArgumentException(
                 "SVG element must have either 'src' or 'content' specified.",
@@ -125,14 +125,14 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
         using var svg = new SKSvg();
 
         SKPicture? picture;
-        if (!string.IsNullOrEmpty(element.Content))
+        if (!string.IsNullOrEmpty(element.Content.Value))
         {
-            picture = svg.FromSvg(element.Content);
+            picture = svg.FromSvg(element.Content.Value);
         }
         else
         {
             // Try resource loaders first (supports HTTP, base64, embedded)
-            var svgContent = SvgContentLoader.LoadFromLoaders(_loaders, element.Src!);
+            var svgContent = SvgContentLoader.LoadFromLoaders(_loaders, element.Src.Value!);
             if (svgContent is not null)
             {
                 picture = svg.FromSvg(svgContent);
@@ -140,14 +140,14 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
             else
             {
                 // Fallback to direct file loading
-                picture = svg.Load(element.Src!);
+                picture = svg.Load(element.Src.Value!);
             }
         }
 
         if (picture is null)
         {
             throw new InvalidOperationException(
-                $"Failed to parse SVG content. Source: {(element.Src ?? "inline content")}");
+                $"Failed to parse SVG content. Source: {(element.Src.Value ?? "inline content")}");
         }
 
         // Determine target dimensions
@@ -163,7 +163,7 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
         var scaleY = targetHeight / intrinsicHeight;
 
         // Apply fit mode
-        switch (element.Fit)
+        switch (element.Fit.Value)
         {
             case ImageFit.Contain:
             {
@@ -197,7 +197,7 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
         canvas.Save();
 
         // Clip to target bounds for Cover mode
-        if (element.Fit == ImageFit.Cover)
+        if (element.Fit.Value == ImageFit.Cover)
         {
             canvas.ClipRect(new SKRect(0, 0, targetWidth, targetHeight));
         }

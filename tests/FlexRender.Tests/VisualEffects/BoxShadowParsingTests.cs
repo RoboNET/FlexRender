@@ -76,7 +76,7 @@ public sealed class BoxShadowParsingTests
         var template = ParseYaml(yaml);
 
         var flex = Assert.IsType<FlexElement>(template.Elements[0]);
-        Assert.Null(flex.BoxShadow);
+        Assert.Null(flex.BoxShadow.Value);
     }
 
     [Fact]

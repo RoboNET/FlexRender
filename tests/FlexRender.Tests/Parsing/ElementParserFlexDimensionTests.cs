@@ -151,8 +151,8 @@ public sealed class ElementParserFlexDimensionTests
         var template = _parser.Parse(yaml);
         var image = Assert.IsType<ImageElement>(template.Elements[0]);
 
-        Assert.Null(image.ImageWidth);
-        Assert.Null(image.Width);
-        Assert.Null(image.Height);
+        Assert.Null(image.ImageWidth.Value);
+        Assert.Null(image.Width.Value);
+        Assert.Null(image.Height.Value);
     }
 }

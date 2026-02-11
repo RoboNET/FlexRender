@@ -38,7 +38,7 @@ public sealed class SkiaTextShaper : ITextShaper
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Content.Value))
         {
             return new TextShapingResult(
                 Array.Empty<string>(),
@@ -48,11 +48,11 @@ public sealed class SkiaTextShaper : ITextShaper
 
         using var font = CreateFont(element, fontSize);
 
-        var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
+        var effectiveMaxWidth = element.Overflow.Value == TextOverflow.Visible && !element.Wrap.Value
             ? float.MaxValue
             : maxWidth;
 
-        var lines = GetLines(element.Content, element.Wrap, effectiveMaxWidth, font, element.MaxLines, element.Overflow);
+        var lines = GetLines(element.Content.Value, element.Wrap.Value, effectiveMaxWidth, font, element.MaxLines.Value, element.Overflow.Value);
 
         if (lines.Count == 0)
         {
@@ -71,7 +71,7 @@ public sealed class SkiaTextShaper : ITextShaper
         maxLineWidth = (float)Math.Ceiling(maxLineWidth);
 
         var defaultLineHeight = Math.Abs(font.Metrics.Top) + font.Metrics.Bottom;
-        var lineHeight = LineHeightResolver.Resolve(element.LineHeight, font.Size, defaultLineHeight);
+        var lineHeight = LineHeightResolver.Resolve(element.LineHeight.Value, font.Size, defaultLineHeight);
         var totalHeight = lines.Count * lineHeight;
 
         return new TextShapingResult(
@@ -85,7 +85,7 @@ public sealed class SkiaTextShaper : ITextShaper
     /// </summary>
     private SKFont CreateFont(TextElement element, float fontSize)
     {
-        var typeface = _fontManager.GetTypeface(element.Font);
+        var typeface = _fontManager.GetTypeface(element.Font.Value);
         var font = new SKFont(typeface, fontSize)
         {
             Subpixel = _defaultRenderOptions.SubpixelText,

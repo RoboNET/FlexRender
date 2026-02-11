@@ -363,7 +363,7 @@ public sealed class TemplateProcessor
     {
         return new Parsing.Ast.TextElement
         {
-            Content = Process(original.Content, data),
+            Content = Process(original.Content.Value, data),
             Font = original.Font,
             Size = original.Size,
             Color = original.Color,

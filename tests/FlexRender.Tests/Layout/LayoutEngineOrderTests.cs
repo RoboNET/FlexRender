@@ -473,7 +473,7 @@ public sealed class LayoutEngineOrderTests
     {
         foreach (var child in parent.Children)
         {
-            if (child.Element is TextElement text && text.Content == content)
+            if (child.Element is TextElement text && text.Content.Value == content)
                 return child;
         }
 

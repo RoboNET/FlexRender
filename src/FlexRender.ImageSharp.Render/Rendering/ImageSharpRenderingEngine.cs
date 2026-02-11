@@ -22,6 +22,7 @@ internal sealed class ImageSharpRenderingEngine
 {
     private readonly ImageSharpTextRenderer _textRenderer;
     private readonly ImageSharpFontManager _fontManager;
+    private readonly ImageSharpPreprocessor _preprocessor;
     private readonly ResourceLimits _limits;
     private readonly FlexRenderOptions? _options;
     private readonly float _baseFontSize;
@@ -52,6 +53,7 @@ internal sealed class ImageSharpRenderingEngine
         ArgumentNullException.ThrowIfNull(limits);
         _textRenderer = textRenderer;
         _fontManager = fontManager;
+        _preprocessor = new ImageSharpPreprocessor(fontManager, options);
         _limits = limits;
         _options = options;
         _baseFontSize = baseFontSize;
@@ -93,7 +95,7 @@ internal sealed class ImageSharpRenderingEngine
         }
         else
         {
-            // Expand and process template
+            // Expand, resolve, and materialize template via the Core pipeline
             var expander = filterRegistry is not null
                 ? new TemplateExpander(_limits, filterRegistry)
                 : new TemplateExpander(_limits);
@@ -101,12 +103,12 @@ internal sealed class ImageSharpRenderingEngine
                 ? new TemplateProcessor(_limits, filterRegistry)
                 : new TemplateProcessor(_limits);
 
-            var expandedTemplate = expander.Expand(template, data);
-
-            // Process expressions using our preprocessor that preserves all element properties
-            var preprocessor = new ImageSharpPreprocessor(_fontManager, templateProcessor, _options);
-            processedTemplate = preprocessor.Process(expandedTemplate, data);
+            var pipeline = new TemplatePipeline(expander, templateProcessor);
+            processedTemplate = pipeline.Process(template, data);
         }
+
+        // Register fonts from the processed template (backend-specific)
+        _preprocessor.RegisterFonts(processedTemplate);
 
         // Compute layout
         var layoutEngine = new LayoutEngine(_limits);
@@ -123,7 +125,7 @@ internal sealed class ImageSharpRenderingEngine
         image.Mutate(ctx =>
         {
             // Draw canvas background
-            var bgColor = ImageSharpColorParser.Parse(processedTemplate.Canvas.Background);
+            var bgColor = ImageSharpColorParser.Parse(processedTemplate.Canvas.Background.Value);
             ctx.Fill(bgColor, new RectangleF(0, 0, width, height));
 
             // Render layout tree
@@ -161,9 +163,9 @@ internal sealed class ImageSharpRenderingEngine
     {
         foreach (var element in elements)
         {
-            if (element is ImageElement image && !string.IsNullOrEmpty(image.Src))
+            if (element is ImageElement image && !string.IsNullOrEmpty(image.Src.Value))
             {
-                uris.Add(image.Src);
+                uris.Add(image.Src.Value);
             }
             else if (element is FlexElement flex)
             {
@@ -186,16 +188,16 @@ internal sealed class ImageSharpRenderingEngine
                 $"Maximum render depth ({_limits.MaxRenderDepth}) exceeded. Template may be too deeply nested.");
         }
 
-        if (node.Element.Display == Display.None)
+        if (node.Element.Display.Value == Display.None)
             return;
 
         var x = node.X + offsetX;
         var y = node.Y + offsetY;
 
         // Draw background
-        if (!string.IsNullOrEmpty(node.Element.Background))
+        if (!string.IsNullOrEmpty(node.Element.Background.Value))
         {
-            DrawBackground(ctx, node.Element.Background, x, y, node.Width, node.Height, node.Element);
+            DrawBackground(ctx, node.Element.Background.Value, x, y, node.Width, node.Height, node.Element);
         }
 
         // Draw element-specific content
@@ -217,7 +219,7 @@ internal sealed class ImageSharpRenderingEngine
         float height,
         IReadOnlyDictionary<string, Image<Rgba32>>? imageCache)
     {
-        var rotation = RotationHelper.ParseRotation(element.Rotate);
+        var rotation = RotationHelper.ParseRotation(element.Rotate.Value);
 
         if (RotationHelper.HasRotation(rotation))
         {
@@ -353,7 +355,7 @@ internal sealed class ImageSharpRenderingEngine
         float height,
         IReadOnlyDictionary<string, Image<Rgba32>>? imageCache)
     {
-        if (string.IsNullOrEmpty(image.Src))
+        if (string.IsNullOrEmpty(image.Src.Value))
             return;
 
         try
@@ -410,17 +412,17 @@ internal sealed class ImageSharpRenderingEngine
         float width,
         float height)
     {
-        var color = ImageSharpColorParser.Parse(separator.Color);
+        var color = ImageSharpColorParser.Parse(separator.Color.Value);
 
-        if (separator.Orientation == SeparatorOrientation.Horizontal)
+        if (separator.Orientation.Value == SeparatorOrientation.Horizontal)
         {
             var lineY = y + height / 2f;
-            ctx.DrawLine(color, separator.Thickness, new PointF(x, lineY), new PointF(x + width, lineY));
+            ctx.DrawLine(color, separator.Thickness.Value, new PointF(x, lineY), new PointF(x + width, lineY));
         }
         else
         {
             var lineX = x + width / 2f;
-            ctx.DrawLine(color, separator.Thickness, new PointF(lineX, y), new PointF(lineX, y + height));
+            ctx.DrawLine(color, separator.Thickness.Value, new PointF(lineX, y), new PointF(lineX, y + height));
         }
     }
 
@@ -455,10 +457,10 @@ internal sealed class ImageSharpRenderingEngine
 
     private static float ResolveBorderRadius(TemplateElement element, float width, float height, float fontSize)
     {
-        if (string.IsNullOrEmpty(element.BorderRadius))
+        if (string.IsNullOrEmpty(element.BorderRadius.Value))
             return 0f;
 
-        var unit = UnitParser.Parse(element.BorderRadius);
+        var unit = UnitParser.Parse(element.BorderRadius.Value);
         var resolved = unit.Resolve(Math.Min(width, height), fontSize) ?? 0f;
         return Math.Max(0f, Math.Min(resolved, Math.Min(width, height) / 2f));
     }

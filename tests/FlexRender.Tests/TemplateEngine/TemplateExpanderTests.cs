@@ -496,7 +496,7 @@ public sealed class TemplateExpanderTests
         Assert.Equal("TestTemplate", result.Name);
         Assert.Equal(2, result.Version);
         Assert.Equal(500, result.Canvas.Width);
-        Assert.Equal("#FFFFFF", result.Canvas.Background);
+        Assert.Equal("#FFFFFF", result.Canvas.Background.Value);
         Assert.True(result.Fonts.ContainsKey("custom"));
     }
 

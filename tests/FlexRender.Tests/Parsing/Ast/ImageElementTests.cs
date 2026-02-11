@@ -18,8 +18,8 @@ public class ImageElementTests
         var image = new ImageElement();
 
         Assert.Equal("", image.Src);
-        Assert.Null(image.ImageWidth);
-        Assert.Null(image.ImageHeight);
+        Assert.Null(image.ImageWidth.Value);
+        Assert.Null(image.ImageHeight.Value);
         Assert.Equal(ImageFit.Contain, image.Fit);
         Assert.Equal("none", image.Rotate);
     }
@@ -85,8 +85,8 @@ public class ImageElementTests
         Assert.Equal("auto", image.Basis);
         Assert.Equal(AlignSelf.Auto, image.AlignSelf);
         Assert.Equal(0, image.Order);
-        Assert.Null(image.Width);
-        Assert.Null(image.Height);
+        Assert.Null(image.Width.Value);
+        Assert.Null(image.Height.Value);
     }
 
     /// <summary>

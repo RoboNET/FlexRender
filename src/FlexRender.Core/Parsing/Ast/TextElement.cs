@@ -1,3 +1,5 @@
+using FlexRender.TemplateEngine;
+
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -63,42 +65,42 @@ public sealed class TextElement : TemplateElement
     /// <summary>
     /// Text content, may contain template expressions like {{variable}}.
     /// </summary>
-    public string Content { get; set; } = "";
+    public ExprValue<string> Content { get; set; } = "";
 
     /// <summary>
     /// Font name reference.
     /// </summary>
-    public string Font { get; set; } = "main";
+    public ExprValue<string> Font { get; set; } = "main";
 
     /// <summary>
     /// Font size (pixels, em, or percentage).
     /// </summary>
-    public string Size { get; set; } = "1em";
+    public ExprValue<string> Size { get; set; } = "1em";
 
     /// <summary>
     /// Text color in hex format.
     /// </summary>
-    public string Color { get; set; } = "#000000";
+    public ExprValue<string> Color { get; set; } = "#000000";
 
     /// <summary>
     /// Text alignment within the element.
     /// </summary>
-    public TextAlign Align { get; set; } = TextAlign.Left;
+    public ExprValue<TextAlign> Align { get; set; } = TextAlign.Left;
 
     /// <summary>
     /// Whether to wrap text to multiple lines.
     /// </summary>
-    public bool Wrap { get; set; } = true;
+    public ExprValue<bool> Wrap { get; set; } = true;
 
     /// <summary>
     /// How to handle text overflow.
     /// </summary>
-    public TextOverflow Overflow { get; set; } = TextOverflow.Ellipsis;
+    public ExprValue<TextOverflow> Overflow { get; set; } = TextOverflow.Ellipsis;
 
     /// <summary>
     /// Maximum number of lines (null for unlimited).
     /// </summary>
-    public int? MaxLines { get; set; }
+    public ExprValue<int?> MaxLines { get; set; }
 
     /// <summary>
     /// Line height for multi-line text.
@@ -106,5 +108,35 @@ public sealed class TextElement : TemplateElement
     /// With unit (e.g. "24px", "2em") is an absolute or relative value.
     /// Empty string means default (font-defined spacing).
     /// </summary>
-    public string LineHeight { get; set; } = "";
+    public ExprValue<string> LineHeight { get; set; } = "";
+
+    /// <inheritdoc />
+    public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
+    {
+        base.ResolveExpressions(resolver, data);
+        Content = Content.Resolve(resolver, data);
+        Font = Font.Resolve(resolver, data);
+        Size = Size.Resolve(resolver, data);
+        Color = Color.Resolve(resolver, data);
+        Align = Align.Resolve(resolver, data);
+        Wrap = Wrap.Resolve(resolver, data);
+        Overflow = Overflow.Resolve(resolver, data);
+        MaxLines = MaxLines.Resolve(resolver, data);
+        LineHeight = LineHeight.Resolve(resolver, data);
+    }
+
+    /// <inheritdoc />
+    public override void Materialize()
+    {
+        base.Materialize();
+        Content = Content.Materialize(nameof(Content));
+        Font = Font.Materialize(nameof(Font));
+        Size = Size.Materialize(nameof(Size), ValueKind.Size);
+        Color = Color.Materialize(nameof(Color), ValueKind.Color);
+        Align = Align.Materialize(nameof(Align));
+        Wrap = Wrap.Materialize(nameof(Wrap));
+        Overflow = Overflow.Materialize(nameof(Overflow));
+        MaxLines = MaxLines.Materialize(nameof(MaxLines));
+        LineHeight = LineHeight.Materialize(nameof(LineHeight), ValueKind.Size);
+    }
 }

@@ -36,27 +36,27 @@ public sealed class BarcodeSvgProvider : ISvgContentProvider<BarcodeElement>
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Data))
+        if (string.IsNullOrEmpty(element.Data.Value))
         {
             throw new ArgumentException("Barcode data cannot be empty.", nameof(element));
         }
 
-        return element.Format switch
+        return element.Format.Value switch
         {
             BarcodeFormat.Code128 => GenerateCode128Svg(element, width, height),
-            _ => throw new NotSupportedException($"Barcode format '{element.Format}' is not yet supported.")
+            _ => throw new NotSupportedException($"Barcode format '{element.Format.Value}' is not yet supported.")
         };
     }
 
     private static string GenerateCode128Svg(BarcodeElement element, float width, float height)
     {
-        var pattern = Code128Encoding.BuildPattern(element.Data);
+        var pattern = Code128Encoding.BuildPattern(element.Data.Value);
 
         var totalUnits = pattern.Length;
         var barWidth = width / totalUnits;
 
-        var foreground = element.Foreground;
-        var background = element.Background;
+        var foreground = element.Foreground.Value;
+        var background = element.Background.Value;
 
         var sb = new StringBuilder(512);
         sb.Append("<g>");

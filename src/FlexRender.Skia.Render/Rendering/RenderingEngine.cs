@@ -21,7 +21,7 @@ internal sealed class RenderingEngine
     private readonly IContentProvider<BarcodeElement>? _barcodeProvider;
     private readonly IContentProvider<SvgElement>? _svgProvider;
     private readonly IImageLoader? _imageLoader;
-    private readonly TemplateExpander _expander;
+    private readonly TemplatePipeline _pipeline;
     private readonly TemplatePreprocessor _preprocessor;
     private readonly LayoutEngine _layoutEngine;
     private readonly ResourceLimits _limits;
@@ -38,21 +38,21 @@ internal sealed class RenderingEngine
     /// <param name="barcodeProvider">Optional barcode content provider.</param>
     /// <param name="svgProvider">Optional SVG content provider.</param>
     /// <param name="imageLoader">Optional image loader for async pre-loading.</param>
-    /// <param name="expander">The template expander for control flow expansion.</param>
-    /// <param name="preprocessor">The template preprocessor for expression resolution.</param>
+    /// <param name="pipeline">The template pipeline for expand, resolve, and materialize.</param>
+    /// <param name="preprocessor">The template preprocessor for font registration.</param>
     /// <param name="layoutEngine">The layout engine for computing element positions.</param>
     /// <param name="limits">The resource limits to enforce.</param>
     /// <param name="baseFontSize">The base font size in pixels.</param>
     /// <param name="filterRegistry">Optional filter registry for per-call culture resolution.</param>
-    /// <param name="fontManager">Optional font manager for creating culture-aware preprocessors.</param>
-    /// <param name="renderingOptions">Optional rendering options for creating culture-aware preprocessors.</param>
+    /// <param name="fontManager">Optional font manager for creating culture-aware pipelines.</param>
+    /// <param name="renderingOptions">Optional rendering options for creating culture-aware pipelines.</param>
     internal RenderingEngine(
         TextRenderer textRenderer,
         IContentProvider<QrElement>? qrProvider,
         IContentProvider<BarcodeElement>? barcodeProvider,
         IContentProvider<SvgElement>? svgProvider,
         IImageLoader? imageLoader,
-        TemplateExpander expander,
+        TemplatePipeline pipeline,
         TemplatePreprocessor preprocessor,
         LayoutEngine layoutEngine,
         ResourceLimits limits,
@@ -62,7 +62,7 @@ internal sealed class RenderingEngine
         FlexRenderOptions? renderingOptions = null)
     {
         ArgumentNullException.ThrowIfNull(textRenderer);
-        ArgumentNullException.ThrowIfNull(expander);
+        ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(preprocessor);
         ArgumentNullException.ThrowIfNull(layoutEngine);
         ArgumentNullException.ThrowIfNull(limits);
@@ -71,7 +71,7 @@ internal sealed class RenderingEngine
         _barcodeProvider = barcodeProvider;
         _svgProvider = svgProvider;
         _imageLoader = imageLoader;
-        _expander = expander;
+        _pipeline = pipeline;
         _preprocessor = preprocessor;
         _layoutEngine = layoutEngine;
         _limits = limits;
@@ -101,9 +101,9 @@ internal sealed class RenderingEngine
         RenderOptions? renderOptions = null)
     {
         var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
-        var (expander, preprocessor) = ResolveExpanderAndPreprocessor(effectiveRenderOptions, template);
-        var expandedTemplate = expander.Expand(template, data);
-        var processedTemplate = preprocessor.Process(expandedTemplate, data);
+        var pipeline = ResolvePipeline(effectiveRenderOptions, template);
+        var processedTemplate = pipeline.Process(template, data);
+        _preprocessor.RegisterFonts(processedTemplate);
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
 
         // Save canvas state
@@ -114,7 +114,7 @@ internal sealed class RenderingEngine
             canvas.Translate(offset.X, offset.Y);
 
         // Draw background
-        var backgroundColor = ColorParser.Parse(processedTemplate.Canvas.Background);
+        var backgroundColor = ColorParser.Parse(processedTemplate.Canvas.Background.Value);
         using var backgroundPaint = new SKPaint { Color = backgroundColor };
         canvas.DrawRect(0, 0, rootNode.Width, rootNode.Height, backgroundPaint);
 
@@ -147,7 +147,7 @@ internal sealed class RenderingEngine
         IReadOnlyDictionary<string, SKBitmap>? imageCache,
         RenderOptions? renderOptions = null)
     {
-        var rotationDegrees = RotationHelper.ParseRotation(template.Canvas.Rotate);
+        var rotationDegrees = RotationHelper.ParseRotation(template.Canvas.Rotate.Value);
 
         // If no rotation needed, render directly to bitmap
         if (!RotationHelper.HasRotation(rotationDegrees))
@@ -159,9 +159,9 @@ internal sealed class RenderingEngine
 
         // Render to temporary bitmap first, then rotate
         var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
-        var (expander, preprocessor) = ResolveExpanderAndPreprocessor(effectiveRenderOptions, template);
-        var expandedTemplate = expander.Expand(template, data);
-        var processedTemplate = preprocessor.Process(expandedTemplate, data);
+        var pipeline = ResolvePipeline(effectiveRenderOptions, template);
+        var processedTemplate = pipeline.Process(template, data);
+        _preprocessor.RegisterFonts(processedTemplate);
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
         var originalWidth = (int)rootNode.Width;
         var originalHeight = (int)rootNode.Height;
@@ -207,7 +207,7 @@ internal sealed class RenderingEngine
         }
 
         // Skip elements with display:none
-        if (node.Element.Display == Display.None)
+        if (node.Element.Display.Value == Display.None)
             return;
 
         var x = node.X + offsetX;
@@ -217,10 +217,10 @@ internal sealed class RenderingEngine
         // Per CSS spec, opacity affects the entire element visual output including
         // box-shadow, so the shadow must be drawn inside the SaveLayer block.
         // Note: SaveLayer allocates an offscreen bitmap -- only used when opacity < 1.0.
-        var hasOpacity = node.Element.Opacity < 1.0f;
+        var hasOpacity = node.Element.Opacity.Value < 1.0f;
         if (hasOpacity)
         {
-            var alpha = (byte)(node.Element.Opacity * 255);
+            var alpha = (byte)(node.Element.Opacity.Value * 255);
             using var opacityPaint = new SKPaint { Color = new SKColor(255, 255, 255, alpha) };
             canvas.SaveLayer(opacityPaint);
         }
@@ -233,7 +233,7 @@ internal sealed class RenderingEngine
         DrawElement(canvas, node, x, y, imageCache, renderOptions);
 
         // Apply overflow:hidden clipping for flex containers
-        var needsClip = node.Element is FlexElement { Overflow: Overflow.Hidden };
+        var needsClip = node.Element is FlexElement flexEl && flexEl.Overflow.Value == Overflow.Hidden;
         if (needsClip)
         {
             canvas.Save();
@@ -283,9 +283,9 @@ internal sealed class RenderingEngine
         var borderRadius = ResolveBorderRadius(element, width, height, _baseFontSize);
 
         // Draw background if specified (supports solid colors and gradients)
-        if (!string.IsNullOrEmpty(element.Background))
+        if (!string.IsNullOrEmpty(element.Background.Value))
         {
-            DrawBackground(canvas, element.Background, x, y, width, height, borderRadius);
+            DrawBackground(canvas, element.Background.Value, x, y, width, height, borderRadius);
         }
 
         // Draw borders between background and content
@@ -435,16 +435,16 @@ internal sealed class RenderingEngine
         float width,
         float height)
     {
-        if (string.IsNullOrEmpty(element.BoxShadow))
+        if (string.IsNullOrEmpty(element.BoxShadow.Value))
             return;
 
-        if (!BoxShadowParser.TryParse(element.BoxShadow, out var shadow) || shadow is null)
+        if (!BoxShadowParser.TryParse(element.BoxShadow.Value, out var shadow) || shadow is null)
             return;
 
         var borderRadius = 0f;
-        if (!string.IsNullOrEmpty(element.BorderRadius))
+        if (!string.IsNullOrEmpty(element.BorderRadius.Value))
         {
-            var unit = Layout.Units.UnitParser.Parse(element.BorderRadius);
+            var unit = Layout.Units.UnitParser.Parse(element.BorderRadius.Value);
             borderRadius = Math.Max(0f, unit.Resolve(Math.Min(width, height), 12f) ?? 0f);
             borderRadius = Math.Min(borderRadius, Math.Min(width, height) / 2f);
         }
@@ -497,7 +497,7 @@ internal sealed class RenderingEngine
         float width,
         float height)
     {
-        var rotation = RotationHelper.ParseRotation(element.Rotate);
+        var rotation = RotationHelper.ParseRotation(element.Rotate.Value);
 
         if (RotationHelper.HasRotation(rotation))
         {
@@ -527,28 +527,28 @@ internal sealed class RenderingEngine
     /// <param name="antialiasing">Whether to enable antialiasing for the separator line.</param>
     internal static void DrawSeparator(SKCanvas canvas, SeparatorElement separator, float x, float y, float width, float height, bool antialiasing = true)
     {
-        var color = ColorParser.Parse(separator.Color);
+        var color = ColorParser.Parse(separator.Color.Value);
 
         using var paint = new SKPaint
         {
             Color = color,
-            StrokeWidth = separator.Thickness,
+            StrokeWidth = separator.Thickness.Value,
             Style = SKPaintStyle.Stroke,
             IsAntialias = antialiasing
         };
 
         // Apply dash/dot pattern if not solid
-        if (separator.Style != SeparatorStyle.Solid)
+        if (separator.Style.Value != SeparatorStyle.Solid)
         {
-            var intervals = separator.Style == SeparatorStyle.Dotted
-                ? new[] { separator.Thickness, separator.Thickness * 2 }
-                : new[] { separator.Thickness * 4, separator.Thickness * 2 };
+            var intervals = separator.Style.Value == SeparatorStyle.Dotted
+                ? new[] { separator.Thickness.Value, separator.Thickness.Value * 2 }
+                : new[] { separator.Thickness.Value * 4, separator.Thickness.Value * 2 };
 
             using var pathEffect = SKPathEffect.CreateDash(intervals, 0);
             paint.PathEffect = pathEffect;
         }
 
-        if (separator.Orientation == SeparatorOrientation.Horizontal)
+        if (separator.Orientation.Value == SeparatorOrientation.Horizontal)
         {
             var lineY = y + height / 2f;
             canvas.DrawLine(x, lineY, x + width, lineY, paint);
@@ -622,9 +622,9 @@ internal sealed class RenderingEngine
     {
         foreach (var element in elements)
         {
-            if (element is ImageElement image && !string.IsNullOrEmpty(image.Src))
+            if (element is ImageElement image && !string.IsNullOrEmpty(image.Src.Value))
             {
-                uris.Add(image.Src);
+                uris.Add(image.Src.Value);
             }
             else if (element is FlexElement flex)
             {
@@ -645,8 +645,8 @@ internal sealed class RenderingEngine
         ObjectValue data,
         CancellationToken cancellationToken)
     {
-        var expandedTemplate = _expander.Expand(template, data);
-        var processedTemplate = _preprocessor.Process(expandedTemplate, data);
+        var processedTemplate = _pipeline.Process(template, data);
+        _preprocessor.RegisterFonts(processedTemplate);
         var uris = CollectImageUris(processedTemplate);
         var cache = new Dictionary<string, SKBitmap>(uris.Count, StringComparer.Ordinal);
 
@@ -672,10 +672,10 @@ internal sealed class RenderingEngine
     /// <param name="fontSize">The base font size for em/rem resolution.</param>
     private static float ResolveBorderRadius(TemplateElement element, float width, float height, float fontSize)
     {
-        if (string.IsNullOrEmpty(element.BorderRadius))
+        if (string.IsNullOrEmpty(element.BorderRadius.Value))
             return 0f;
 
-        var unit = UnitParser.Parse(element.BorderRadius);
+        var unit = UnitParser.Parse(element.BorderRadius.Value);
         var resolved = unit.Resolve(Math.Min(width, height), fontSize) ?? 0f;
         // Clamp to half the smaller dimension to avoid rendering artifacts
         return Math.Max(0f, Math.Min(resolved, Math.Min(width, height) / 2f));
@@ -844,33 +844,29 @@ internal sealed class RenderingEngine
 
     /// <summary>
     /// Resolves the effective culture from render options and template, and returns
-    /// the appropriate expander/preprocessor pair. When a non-default culture is specified
-    /// (via <c>RenderOptions.Culture</c> or <c>Template.Culture</c>), creates new
-    /// culture-aware instances. Otherwise, returns the default instances.
+    /// the appropriate <see cref="TemplatePipeline"/>. When a non-default culture is specified
+    /// (via <c>RenderOptions.Culture</c> or <c>Template.Culture</c>), creates a new
+    /// culture-aware pipeline. Otherwise, returns the default pipeline.
     /// </summary>
-    private (TemplateExpander Expander, TemplatePreprocessor Preprocessor) ResolveExpanderAndPreprocessor(
+    private TemplatePipeline ResolvePipeline(
         RenderOptions renderOptions,
         Template template)
     {
         if (_filterRegistry is null)
         {
-            return (_expander, _preprocessor);
+            return _pipeline;
         }
 
         var effectiveCulture = ResolveCulture(renderOptions, template);
         if (effectiveCulture is null || effectiveCulture.Equals(CultureInfo.InvariantCulture))
         {
-            return (_expander, _preprocessor);
+            return _pipeline;
         }
 
         var expander = new TemplateExpander(_limits, _filterRegistry, effectiveCulture);
         var processor = new TemplateProcessor(_limits, _filterRegistry, effectiveCulture);
-        var preprocessor = new TemplatePreprocessor(
-            _fontManager ?? throw new InvalidOperationException("FontManager is required for culture-aware rendering."),
-            processor,
-            _renderingOptions);
 
-        return (expander, preprocessor);
+        return new TemplatePipeline(expander, processor);
     }
 
     /// <summary>
