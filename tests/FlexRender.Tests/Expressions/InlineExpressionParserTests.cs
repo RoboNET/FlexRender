@@ -228,6 +228,158 @@ public sealed class InlineExpressionParserTests
         Assert.True(InlineExpressionParser.NeedsFullParsing(content));
     }
 
+    #region Single Quote Support
+
+    /// <summary>
+    /// Verifies that single-quoted string literals are parsed correctly.
+    /// </summary>
+    [Fact]
+    public void Parse_SingleQuoteString_ReturnsStringLiteral()
+    {
+        var result = InlineExpressionParser.Parse("'hello'");
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal("hello", literal.Value);
+    }
+
+    /// <summary>
+    /// Verifies that null coalescing works with single-quoted fallback.
+    /// </summary>
+    [Fact]
+    public void Parse_NullCoalesceWithSingleQuotes_ReturnsCoalesceExpression()
+    {
+        var result = InlineExpressionParser.Parse("name ?? 'default'");
+
+        var coalesce = Assert.IsType<CoalesceExpression>(result);
+        var left = Assert.IsType<PathExpression>(coalesce.Left);
+        Assert.Equal("name", left.Path);
+        var right = Assert.IsType<StringLiteral>(coalesce.Right);
+        Assert.Equal("default", right.Value);
+    }
+
+    /// <summary>
+    /// Verifies that NeedsFullParsing detects single quotes.
+    /// </summary>
+    [Fact]
+    public void NeedsFullParsing_SingleQuote_ReturnsTrue()
+    {
+        Assert.True(InlineExpressionParser.NeedsFullParsing("name ?? 'default'"));
+    }
+
+    /// <summary>
+    /// Verifies that unterminated single-quoted string throws.
+    /// </summary>
+    [Fact]
+    public void Parse_UnterminatedSingleQuote_Throws()
+    {
+        Assert.Throws<TemplateEngineException>(() => InlineExpressionParser.Parse("'unterminated"));
+    }
+
+    #endregion
+
+    #region Escape Sequences
+
+    /// <summary>
+    /// Verifies that escaped double quote inside double-quoted string works.
+    /// </summary>
+    [Fact]
+    public void Parse_EscapedDoubleQuote_ParsesCorrectly()
+    {
+        var result = InlineExpressionParser.Parse("\"He said \\\"hello\\\"\"");
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal("He said \"hello\"", literal.Value);
+    }
+
+    /// <summary>
+    /// Verifies that escaped single quote inside single-quoted string works.
+    /// </summary>
+    [Fact]
+    public void Parse_EscapedSingleQuote_ParsesCorrectly()
+    {
+        var result = InlineExpressionParser.Parse("'It\\'s nice'");
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal("It's nice", literal.Value);
+    }
+
+    /// <summary>
+    /// Verifies that escaped backslash produces a literal backslash.
+    /// </summary>
+    [Fact]
+    public void Parse_EscapedBackslash_ParsesCorrectly()
+    {
+        var result = InlineExpressionParser.Parse("'path\\\\to\\\\file'");
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal("path\\to\\file", literal.Value);
+    }
+
+    /// <summary>
+    /// Verifies that \n escape sequence produces newline.
+    /// </summary>
+    [Fact]
+    public void Parse_EscapedNewline_ParsesCorrectly()
+    {
+        var result = InlineExpressionParser.Parse("'line1\\nline2'");
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal("line1\nline2", literal.Value);
+    }
+
+    /// <summary>
+    /// Verifies that \t escape sequence produces tab.
+    /// </summary>
+    [Fact]
+    public void Parse_EscapedTab_ParsesCorrectly()
+    {
+        var result = InlineExpressionParser.Parse("'col1\\tcol2'");
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal("col1\tcol2", literal.Value);
+    }
+
+    /// <summary>
+    /// Verifies that strings without escapes use fast path (no allocation overhead).
+    /// </summary>
+    [Fact]
+    public void Parse_NoEscapeSequences_ReturnsSameContent()
+    {
+        var result = InlineExpressionParser.Parse("'simple string'");
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal("simple string", literal.Value);
+    }
+
+    /// <summary>
+    /// Verifies that null coalescing with escaped quotes works end-to-end.
+    /// </summary>
+    [Fact]
+    public void Parse_NullCoalesceWithEscapedQuote_Works()
+    {
+        var result = InlineExpressionParser.Parse("name ?? 'it\\'s a default'");
+
+        var coalesce = Assert.IsType<CoalesceExpression>(result);
+        var right = Assert.IsType<StringLiteral>(coalesce.Right);
+        Assert.Equal("it's a default", right.Value);
+    }
+
+    /// <summary>
+    /// Verifies that empty strings are handled correctly.
+    /// </summary>
+    [Theory]
+    [InlineData("\"\"", "")]
+    [InlineData("''", "")]
+    public void Parse_EmptyString_ReturnsEmptyStringLiteral(string input, string expected)
+    {
+        var result = InlineExpressionParser.Parse(input);
+
+        var literal = Assert.IsType<StringLiteral>(result);
+        Assert.Equal(expected, literal.Value);
+    }
+
+    #endregion
+
     // === Null coalesce ===
 
     [Fact]
@@ -419,4 +571,173 @@ public sealed class InlineExpressionParserTests
         InlineExpressionParser.ClearCache();
         Assert.Equal(0, InlineExpressionParser.CacheCount);
     }
+
+    #region Comparison Operators
+
+    [Fact]
+    public void Parse_EqualOperator_ReturnsComparisonExpression()
+    {
+        var result = InlineExpressionParser.Parse("a == b");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.Equal, comp.Op);
+        Assert.IsType<PathExpression>(comp.Left);
+        Assert.IsType<PathExpression>(comp.Right);
+    }
+
+    [Fact]
+    public void Parse_NotEqualOperator_ReturnsComparisonExpression()
+    {
+        var result = InlineExpressionParser.Parse("a != b");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.NotEqual, comp.Op);
+        Assert.IsType<PathExpression>(comp.Left);
+        Assert.IsType<PathExpression>(comp.Right);
+    }
+
+    [Fact]
+    public void Parse_LessThanOperator_ReturnsComparisonExpression()
+    {
+        var result = InlineExpressionParser.Parse("a < b");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.LessThan, comp.Op);
+        Assert.IsType<PathExpression>(comp.Left);
+        Assert.IsType<PathExpression>(comp.Right);
+    }
+
+    [Fact]
+    public void Parse_GreaterThanOperator_ReturnsComparisonExpression()
+    {
+        var result = InlineExpressionParser.Parse("a > b");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.GreaterThan, comp.Op);
+        Assert.IsType<PathExpression>(comp.Left);
+        Assert.IsType<PathExpression>(comp.Right);
+    }
+
+    [Fact]
+    public void Parse_LessThanOrEqualOperator_ReturnsComparisonExpression()
+    {
+        var result = InlineExpressionParser.Parse("a <= b");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.LessThanOrEqual, comp.Op);
+        Assert.IsType<PathExpression>(comp.Left);
+        Assert.IsType<PathExpression>(comp.Right);
+    }
+
+    [Fact]
+    public void Parse_GreaterThanOrEqualOperator_ReturnsComparisonExpression()
+    {
+        var result = InlineExpressionParser.Parse("a >= b");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.GreaterThanOrEqual, comp.Op);
+        Assert.IsType<PathExpression>(comp.Left);
+        Assert.IsType<PathExpression>(comp.Right);
+    }
+
+    [Fact]
+    public void Parse_ComparisonWithStringLiteral_ParsesCorrectly()
+    {
+        var result = InlineExpressionParser.Parse("status == \"paid\"");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.Equal, comp.Op);
+        var left = Assert.IsType<PathExpression>(comp.Left);
+        Assert.Equal("status", left.Path);
+        var right = Assert.IsType<StringLiteral>(comp.Right);
+        Assert.Equal("paid", right.Value);
+    }
+
+    [Fact]
+    public void Parse_ComparisonWithNumberLiteral_ParsesCorrectly()
+    {
+        var result = InlineExpressionParser.Parse("price > 100");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.GreaterThan, comp.Op);
+        var left = Assert.IsType<PathExpression>(comp.Left);
+        Assert.Equal("price", left.Path);
+        var right = Assert.IsType<NumberLiteral>(comp.Right);
+        Assert.Equal(100m, right.Value);
+    }
+
+    [Fact]
+    public void Parse_ArithmeticThenComparison_CorrectPrecedence()
+    {
+        // a + b == c + d should parse as (a + b) == (c + d)
+        var result = InlineExpressionParser.Parse("a + b == c + d");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.Equal, comp.Op);
+        var leftArith = Assert.IsType<ArithmeticExpression>(comp.Left);
+        Assert.Equal(ArithmeticOperator.Add, leftArith.Op);
+        var rightArith = Assert.IsType<ArithmeticExpression>(comp.Right);
+        Assert.Equal(ArithmeticOperator.Add, rightArith.Op);
+    }
+
+    [Fact]
+    public void Parse_ComparisonThenCoalesce_CoalesceWrapsComparison()
+    {
+        // a == b ?? c should parse as (a == b) ?? c because coalesce is lower precedence
+        var result = InlineExpressionParser.Parse("a == b ?? c");
+
+        var coalesce = Assert.IsType<CoalesceExpression>(result);
+        var comp = Assert.IsType<ComparisonExpression>(coalesce.Left);
+        Assert.Equal(ComparisonOperator.Equal, comp.Op);
+        Assert.IsType<PathExpression>(coalesce.Right);
+    }
+
+    [Theory]
+    [InlineData("a == b")]
+    [InlineData("a != b")]
+    [InlineData("a < b")]
+    [InlineData("a > b")]
+    [InlineData("a <= b")]
+    [InlineData("a >= b")]
+    public void NeedsFullParsing_ComparisonOperators_ReturnsTrue(string content)
+    {
+        Assert.True(InlineExpressionParser.NeedsFullParsing(content));
+    }
+
+    #endregion
+
+    #region Logical NOT
+
+    [Fact]
+    public void Parse_LogicalNot_ReturnsNotExpression()
+    {
+        var result = InlineExpressionParser.Parse("!active");
+
+        var not = Assert.IsType<NotExpression>(result);
+        var path = Assert.IsType<PathExpression>(not.Operand);
+        Assert.Equal("active", path.Path);
+    }
+
+    [Fact]
+    public void Parse_LogicalNotWithComparison_NotBindsTighter()
+    {
+        // !active == true should parse as (!active) == true
+        var result = InlineExpressionParser.Parse("!active == true");
+
+        var comp = Assert.IsType<ComparisonExpression>(result);
+        Assert.Equal(ComparisonOperator.Equal, comp.Op);
+        var not = Assert.IsType<NotExpression>(comp.Left);
+        Assert.IsType<PathExpression>(not.Operand);
+        Assert.IsType<PathExpression>(comp.Right);
+    }
+
+    [Theory]
+    [InlineData("!active")]
+    [InlineData("!flag")]
+    public void NeedsFullParsing_LogicalNot_ReturnsTrue(string content)
+    {
+        Assert.True(InlineExpressionParser.NeedsFullParsing(content));
+    }
+
+    #endregion
 }

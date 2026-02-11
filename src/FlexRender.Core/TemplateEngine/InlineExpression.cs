@@ -72,3 +72,42 @@ public sealed record FilterExpression(InlineExpression Input, string FilterName,
 /// </summary>
 /// <param name="Operand">The expression to negate.</param>
 public sealed record NegateExpression(InlineExpression Operand) : InlineExpression;
+
+/// <summary>
+/// Comparison operators supported in inline expressions.
+/// </summary>
+public enum ComparisonOperator
+{
+    /// <summary>Equality operator (==).</summary>
+    Equal,
+
+    /// <summary>Inequality operator (!=).</summary>
+    NotEqual,
+
+    /// <summary>Less than operator (&lt;).</summary>
+    LessThan,
+
+    /// <summary>Greater than operator (&gt;).</summary>
+    GreaterThan,
+
+    /// <summary>Less than or equal operator (&lt;=).</summary>
+    LessThanOrEqual,
+
+    /// <summary>Greater than or equal operator (&gt;=).</summary>
+    GreaterThanOrEqual
+}
+
+/// <summary>
+/// A binary comparison expression (e.g., <c>price &gt; 100</c>, <c>status == "paid"</c>).
+/// </summary>
+/// <param name="Left">The left operand.</param>
+/// <param name="Op">The comparison operator.</param>
+/// <param name="Right">The right operand.</param>
+public sealed record ComparisonExpression(InlineExpression Left, ComparisonOperator Op, InlineExpression Right) : InlineExpression;
+
+/// <summary>
+/// A logical NOT expression (e.g., <c>!isActive</c>).
+/// Returns true when the operand is falsy, false when truthy.
+/// </summary>
+/// <param name="Operand">The expression to negate logically.</param>
+public sealed record NotExpression(InlineExpression Operand) : InlineExpression;

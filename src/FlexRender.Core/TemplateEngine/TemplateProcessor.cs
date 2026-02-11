@@ -146,7 +146,18 @@ public sealed class TemplateProcessor
         }
 
         var ifStart = (IfStartToken)tokens[startIndex];
-        var conditionValue = ExpressionEvaluator.Resolve(ifStart.Condition, context);
+
+        TemplateValue conditionValue;
+        if (InlineExpressionParser.NeedsFullParsing(ifStart.Condition))
+        {
+            var ast = InlineExpressionParser.Parse(ifStart.Condition);
+            conditionValue = _expressionEvaluator.Evaluate(ast, context);
+        }
+        else
+        {
+            conditionValue = ExpressionEvaluator.Resolve(ifStart.Condition, context);
+        }
+
         var condition = ExpressionEvaluator.IsTruthy(conditionValue);
 
         var (thenTokens, elseTokens, endIndex) = ExtractIfBlockParts(tokens, startIndex);
