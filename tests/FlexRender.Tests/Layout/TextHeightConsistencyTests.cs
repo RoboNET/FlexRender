@@ -41,7 +41,7 @@ public sealed class TextHeightConsistencyTests
     private static LayoutSize MockTextMeasurer(TextElement text, float fontSize, float maxWidth)
     {
         // Return a narrow width so text never wraps (single-line path)
-        var width = fontSize * text.Content.Length * 0.5f;
+        var width = fontSize * text.Content.Value.Length * 0.5f;
         // Height uses the "real" font spacing: 1.2x, not the hardcoded 1.4x
         var height = fontSize * ActualFontSpacingMultiplier;
         return new LayoutSize(width, height);
@@ -105,9 +105,9 @@ public sealed class TextHeightConsistencyTests
         var flexNode = root.Children[0];
 
         // Resolve expected heights from the mock TextMeasurer
-        var fontSize1 = FontSizeResolver.Resolve(companyName.Size, BaseFontSize);
-        var fontSize2 = FontSizeResolver.Resolve(invoiceNumber.Size, BaseFontSize);
-        var fontSize3 = FontSizeResolver.Resolve(date.Size, BaseFontSize);
+        var fontSize1 = FontSizeResolver.Resolve(companyName.Size.Value, BaseFontSize);
+        var fontSize2 = FontSizeResolver.Resolve(invoiceNumber.Size.Value, BaseFontSize);
+        var fontSize3 = FontSizeResolver.Resolve(date.Size.Value, BaseFontSize);
 
         var expectedHeight1 = fontSize1 * ActualFontSpacingMultiplier;
         var expectedHeight2 = fontSize2 * ActualFontSpacingMultiplier;

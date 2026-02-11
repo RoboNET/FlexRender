@@ -1,3 +1,5 @@
+using FlexRender.TemplateEngine;
+
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -37,20 +39,40 @@ public sealed class ImageElement : TemplateElement
     /// <summary>
     /// The source of the image. Can be a file path or base64-encoded data URL.
     /// </summary>
-    public string Src { get; set; } = "";
+    public ExprValue<string> Src { get; set; } = "";
 
     /// <summary>
     /// The width of the image container in pixels. If null, uses the image's natural width.
     /// </summary>
-    public int? ImageWidth { get; set; }
+    public ExprValue<int?> ImageWidth { get; set; }
 
     /// <summary>
     /// The height of the image container in pixels. If null, uses the image's natural height.
     /// </summary>
-    public int? ImageHeight { get; set; }
+    public ExprValue<int?> ImageHeight { get; set; }
 
     /// <summary>
     /// How the image should be fitted within its container bounds.
     /// </summary>
-    public ImageFit Fit { get; set; } = ImageFit.Contain;
+    public ExprValue<ImageFit> Fit { get; set; } = ImageFit.Contain;
+
+    /// <inheritdoc />
+    public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
+    {
+        base.ResolveExpressions(resolver, data);
+        Src = Src.Resolve(resolver, data);
+        ImageWidth = ImageWidth.Resolve(resolver, data);
+        ImageHeight = ImageHeight.Resolve(resolver, data);
+        Fit = Fit.Resolve(resolver, data);
+    }
+
+    /// <inheritdoc />
+    public override void Materialize()
+    {
+        base.Materialize();
+        Src = Src.Materialize(nameof(Src), ValueKind.Path);
+        ImageWidth = ImageWidth.Materialize(nameof(ImageWidth));
+        ImageHeight = ImageHeight.Materialize(nameof(ImageHeight));
+        Fit = Fit.Materialize(nameof(Fit));
+    }
 }

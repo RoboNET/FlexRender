@@ -25,8 +25,8 @@ public static class QrDataValidator
     /// </exception>
     public static void ValidateDataCapacity(QrElement element)
     {
-        var dataBytes = System.Text.Encoding.UTF8.GetByteCount(element.Data);
-        if (!MaxDataCapacity.TryGetValue(element.ErrorCorrection, out var maxCapacity))
+        var dataBytes = System.Text.Encoding.UTF8.GetByteCount(element.Data.Value);
+        if (!MaxDataCapacity.TryGetValue(element.ErrorCorrection.Value, out var maxCapacity))
         {
             throw new ArgumentException(
                 $"Unsupported error correction level: {element.ErrorCorrection}.",

@@ -16,14 +16,14 @@ internal static class LayoutHelpers
     /// <exception cref="ArgumentException">Thrown when the grow value is negative.</exception>
     internal static float GetFlexGrow(TemplateElement element)
     {
-        if (element.Grow < 0f)
+        if (element.Grow.Value < 0f)
         {
             throw new ArgumentException(
-                $"Flex grow value cannot be negative. Got {element.Grow} for element of type {element.Type}.",
+                $"Flex grow value cannot be negative. Got {element.Grow.Value} for element of type {element.Type}.",
                 nameof(element));
         }
 
-        return element.Grow;
+        return element.Grow.Value;
     }
 
     /// <summary>
@@ -36,14 +36,14 @@ internal static class LayoutHelpers
     /// <exception cref="ArgumentException">Thrown when the shrink value is negative.</exception>
     internal static float GetFlexShrink(TemplateElement element)
     {
-        if (element.Shrink < 0f)
+        if (element.Shrink.Value < 0f)
         {
             throw new ArgumentException(
-                $"Flex shrink value cannot be negative. Got {element.Shrink} for element of type {element.Type}.",
+                $"Flex shrink value cannot be negative. Got {element.Shrink.Value} for element of type {element.Type}.",
                 nameof(element));
         }
 
-        return element.Shrink;
+        return element.Shrink.Value;
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ internal static class LayoutHelpers
     /// <returns>The effective alignment to use for this child.</returns>
     internal static AlignItems GetEffectiveAlign(TemplateElement element, AlignItems parentAlign)
     {
-        return element.AlignSelf switch
+        return element.AlignSelf.Value switch
         {
             AlignSelf.Auto => parentAlign,
             AlignSelf.Start => AlignItems.Start,
@@ -84,7 +84,7 @@ internal static class LayoutHelpers
         bool isColumn, LayoutContext context)
     {
         float resolved;
-        var basisStr = element.Basis;
+        var basisStr = element.Basis.Value;
         if (!string.IsNullOrEmpty(basisStr) && basisStr != "auto")
         {
             var unit = UnitParser.Parse(basisStr);
@@ -100,7 +100,7 @@ internal static class LayoutHelpers
         }
 
         // Flex basis minimum: can never go below padding (Yoga: maxOrDefined(basis, paddingAndBorder))
-        var paddingValues = PaddingParser.ParseAbsolute(element.Padding).ClampNegatives();
+        var paddingValues = PaddingParser.ParseAbsolute(element.Padding.Value).ClampNegatives();
         var paddingFloor = isColumn ? paddingValues.Vertical : paddingValues.Horizontal;
         return Math.Max(resolved, paddingFloor);
     }
@@ -114,8 +114,8 @@ internal static class LayoutHelpers
         float min = 0f;
         float max = float.MaxValue;
 
-        var minStr = isColumn ? element.MinHeight : element.MinWidth;
-        var maxStr = isColumn ? element.MaxHeight : element.MaxWidth;
+        var minStr = isColumn ? element.MinHeight.Value : element.MinWidth.Value;
+        var maxStr = isColumn ? element.MaxHeight.Value : element.MaxWidth.Value;
 
         if (!string.IsNullOrEmpty(minStr))
         {
@@ -144,12 +144,12 @@ internal static class LayoutHelpers
     {
         foreach (var child in node.Children)
         {
-            if (child.Element.Position != Position.Relative) continue;
+            if (child.Element.Position.Value != Position.Relative) continue;
 
-            var left = context.ResolveWidth(child.Element.Left);
-            var right = context.ResolveWidth(child.Element.Right);
-            var top = context.ResolveHeight(child.Element.Top);
-            var bottom = context.ResolveHeight(child.Element.Bottom);
+            var left = context.ResolveWidth(child.Element.Left.Value);
+            var right = context.ResolveWidth(child.Element.Right.Value);
+            var top = context.ResolveHeight(child.Element.Top.Value);
+            var bottom = context.ResolveHeight(child.Element.Bottom.Value);
 
             var offsetX = left ?? (right.HasValue ? -right.Value : 0f);
             var offsetY = top ?? (bottom.HasValue ? -bottom.Value : 0f);
@@ -167,13 +167,13 @@ internal static class LayoutHelpers
         return element switch
         {
             // Row wrap containers compute their own height from line cross-axis sizes
-            FlexElement f => !string.IsNullOrEmpty(f.Height)
-                || (f.Wrap != FlexWrap.NoWrap && f.Direction is FlexDirection.Row or FlexDirection.RowReverse),
-            QrElement q => !string.IsNullOrEmpty(q.Height) || q.Size > 0,
-            BarcodeElement b => !string.IsNullOrEmpty(b.Height) || b.BarcodeHeight > 0,
-            ImageElement i => !string.IsNullOrEmpty(i.Height) || i.ImageHeight.HasValue,
-            SvgElement s => !string.IsNullOrEmpty(s.Height) || s.SvgHeight.HasValue,
-            _ => !string.IsNullOrEmpty(element.Height)
+            FlexElement f => !string.IsNullOrEmpty(f.Height.Value)
+                || (f.Wrap.Value != FlexWrap.NoWrap && f.Direction.Value is FlexDirection.Row or FlexDirection.RowReverse),
+            QrElement q => !string.IsNullOrEmpty(q.Height.Value) || q.Size.Value > 0,
+            BarcodeElement b => !string.IsNullOrEmpty(b.Height.Value) || b.BarcodeHeight.Value > 0,
+            ImageElement i => !string.IsNullOrEmpty(i.Height.Value) || i.ImageHeight.Value.HasValue,
+            SvgElement s => !string.IsNullOrEmpty(s.Height.Value) || s.SvgHeight.Value.HasValue,
+            _ => !string.IsNullOrEmpty(element.Height.Value)
         };
     }
 
@@ -185,13 +185,13 @@ internal static class LayoutHelpers
         return element switch
         {
             // Column wrap containers compute their own width from line cross-axis sizes
-            FlexElement f => !string.IsNullOrEmpty(f.Width)
-                || (f.Wrap != FlexWrap.NoWrap && f.Direction is FlexDirection.Column or FlexDirection.ColumnReverse),
-            QrElement q => !string.IsNullOrEmpty(q.Width) || q.Size > 0,
-            BarcodeElement b => !string.IsNullOrEmpty(b.Width) || b.BarcodeWidth > 0,
-            ImageElement i => !string.IsNullOrEmpty(i.Width) || i.ImageWidth.HasValue,
-            SvgElement s => !string.IsNullOrEmpty(s.Width) || s.SvgWidth.HasValue,
-            _ => !string.IsNullOrEmpty(element.Width)
+            FlexElement f => !string.IsNullOrEmpty(f.Width.Value)
+                || (f.Wrap.Value != FlexWrap.NoWrap && f.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse),
+            QrElement q => !string.IsNullOrEmpty(q.Width.Value) || q.Size.Value > 0,
+            BarcodeElement b => !string.IsNullOrEmpty(b.Width.Value) || b.BarcodeWidth.Value > 0,
+            ImageElement i => !string.IsNullOrEmpty(i.Width.Value) || i.ImageWidth.Value.HasValue,
+            SvgElement s => !string.IsNullOrEmpty(s.Width.Value) || s.SvgWidth.Value.HasValue,
+            _ => !string.IsNullOrEmpty(element.Width.Value)
         };
     }
 
@@ -227,7 +227,7 @@ internal static class LayoutHelpers
         var maxBottom = 0f;
         foreach (var child in node.Children)
         {
-            if (child.Element.Position == Position.Absolute) continue;
+            if (child.Element.Position.Value == Position.Absolute) continue;
             if (child.Bottom > maxBottom)
                 maxBottom = child.Bottom;
         }
@@ -247,7 +247,7 @@ internal static class LayoutHelpers
         var maxRight = 0f;
         foreach (var child in node.Children)
         {
-            if (child.Element.Position == Position.Absolute) continue;
+            if (child.Element.Position.Value == Position.Absolute) continue;
             var right = child.X + child.Width;
             if (right > maxRight)
                 maxRight = right;
@@ -264,6 +264,6 @@ internal static class LayoutHelpers
     /// <returns>The effective text direction.</returns>
     internal static TextDirection ResolveDirection(TemplateElement element, TextDirection inherited)
     {
-        return element.TextDirection ?? inherited;
+        return element.TextDirection.Value ?? inherited;
     }
 }

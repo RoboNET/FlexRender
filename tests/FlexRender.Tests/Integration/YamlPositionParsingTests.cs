@@ -183,10 +183,10 @@ public sealed class YamlPositionParsingTests
         var child = container.Children[0];
 
         Assert.Equal(Position.Static, child.Position);
-        Assert.Null(child.Top);
-        Assert.Null(child.Right);
-        Assert.Null(child.Bottom);
-        Assert.Null(child.Left);
+        Assert.Null(child.Top.Value);
+        Assert.Null(child.Right.Value);
+        Assert.Null(child.Bottom.Value);
+        Assert.Null(child.Left.Value);
     }
 
     /// <summary>

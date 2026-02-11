@@ -1,9 +1,10 @@
 # Template Expressions
 
-FlexRender provides a template engine with variable substitution, loops, and conditionals. Expressions are processed in two layers:
+FlexRender provides a template engine with variable substitution, loops, and conditionals. Expressions are processed in three phases:
 
 1. **AST-level** (`TemplateExpander`) -- expands `type: each` and `type: if` elements into concrete elements based on data. This enables template caching.
-2. **Inline** (`TemplateProcessor`) -- resolves `{{variable}}` expressions in element property values after expansion.
+2. **Inline** (`TemplatePipeline`) -- resolves `{{variable}}` expressions in all element property values after expansion.
+3. **Materialization** -- resolved strings are parsed into their target types (float, int, bool, enum). This allows expressions to work in all property types, not just strings.
 
 ## Variable Substitution
 
@@ -27,7 +28,7 @@ Use `{{variable}}` syntax to insert data values into text and properties:
   content: "{{orders[0].items[2].name}}"
 ```
 
-Variables can be used in most string properties: `content`, `data`, `src`, `color`, and others.
+Variables can be used in **all** element properties -- including typed properties like numbers (`opacity`, `maxLines`, `size`), booleans (`wrap`, `showText`), and enums (`align`, `display`, `position`). When a typed property contains `{{`, the value is preserved as an expression during parsing, resolved at render time, and then parsed into the target type.
 
 ## Inline Expressions
 
@@ -762,17 +763,68 @@ The `condition` field supports inline expressions with filters. This enables cas
 
 ---
 
+## Expressions in Typed Properties
+
+All element properties accept `{{expressions}}`, including typed properties like floats, integers, booleans, and enums. This enables fully data-driven templates where any aspect of the layout can be controlled by data.
+
+```yaml
+# Expressions in numeric properties
+- type: text
+  content: "Dynamic opacity"
+  opacity: "{{theme.textOpacity}}"
+  maxLines: "{{layout.maxLines}}"
+
+# Expressions in boolean properties
+- type: barcode
+  data: "{{product.sku}}"
+  showText: "{{settings.showBarcodeText}}"
+
+# Expressions in enum properties
+- type: text
+  content: "Dynamic alignment"
+  align: "{{theme.alignment}}"
+
+# Expressions in size properties
+- type: qr
+  data: "{{payment.url}}"
+  size: "{{layout.qrSize}}"
+```
+
+How typed expressions work:
+
+1. When a typed property contains `{{`, the parser preserves the raw string as an `ExprValue<T>` expression instead of parsing it immediately
+2. After template expansion, the expression is resolved to a concrete string using the data context
+3. The resolved string is then parsed into the target type (e.g., `"0.5"` becomes `float 0.5`, `"true"` becomes `bool true`, `"center"` becomes `TextAlign.Center`)
+4. If parsing fails, the default value for that type is used (e.g., `1.0` for opacity, `null` for nullable properties)
+
+This works with all expression features -- arithmetic, filters, conditionals, and null coalescing:
+
+```yaml
+# Computed opacity with fallback
+- type: text
+  content: "Styled text"
+  opacity: "{{theme.opacity ?? 1}}"
+
+# Conditional boolean via expression
+- type: barcode
+  data: "{{sku}}"
+  showText: "{{#if printMode}}true{{else}}false{{/if}}"
+```
+
+---
+
 ## Processing Order
 
 Understanding the processing order helps with debugging:
 
-1. **Parse** -- YAML is parsed into an AST (Template with CanvasSettings + TemplateElement tree)
+1. **Parse** -- YAML is parsed into an AST. Typed properties containing `{{` are preserved as expressions
 2. **Expand** -- `type: each` and `type: if` elements are expanded based on data
-3. **Process** -- `{{variable}}` expressions are resolved in element properties
-4. **Layout** -- the flexbox engine computes positions and sizes
-5. **Render** -- elements are drawn to the output image
+3. **Resolve** -- `{{variable}}` expressions are resolved to concrete strings in all properties
+4. **Materialize** -- resolved strings are parsed into typed values (float, int, bool, enum)
+5. **Layout** -- the flexbox engine computes positions and sizes
+6. **Render** -- elements are drawn to the output image
 
-Template caching works because steps 1 (parse) and 2-5 (expand/process/layout/render) are separate. Parse once, then render many times with different data.
+Template caching works because step 1 (parse) is separate from steps 2-6 (expand/resolve/materialize/layout/render). Parse once, then process with different data for each render.
 
 ## See Also
 

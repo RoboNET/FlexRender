@@ -103,10 +103,10 @@ public sealed class LayoutNode
 
         for (var i = 0; i < count; i++)
         {
-            if (_children[i].Element.Position == Position.Absolute)
+            if (_children[i].Element.Position.Value == Position.Absolute)
                 absolute.Add(_children[i]);
             else
-                flow.Add((_children[i], _children[i].Element.Order, i));
+                flow.Add((_children[i], _children[i].Element.Order.Value, i));
         }
 
         flow.Sort(static (a, b) =>

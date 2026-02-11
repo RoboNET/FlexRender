@@ -19,11 +19,11 @@ public class BarcodeElementTests
 
         Assert.Equal("", barcode.Data);
         Assert.Equal(BarcodeFormat.Code128, barcode.Format);
-        Assert.Null(barcode.BarcodeWidth); // Changed: BarcodeWidth is now nullable, defaults to null (will inherit from container)
-        Assert.Null(barcode.BarcodeHeight); // Changed: BarcodeHeight is now nullable, defaults to null (will inherit from container)
-        Assert.True(barcode.ShowText);
+        Assert.Null(barcode.BarcodeWidth.Value); // Changed: BarcodeWidth is now nullable, defaults to null (will inherit from container)
+        Assert.Null(barcode.BarcodeHeight.Value); // Changed: BarcodeHeight is now nullable, defaults to null (will inherit from container)
+        Assert.True(barcode.ShowText.Value);
         Assert.Equal("#000000", barcode.Foreground);
-        Assert.Null(barcode.Background);
+        Assert.Null(barcode.Background.Value);
         Assert.Equal("none", barcode.Rotate);
     }
 
@@ -49,7 +49,7 @@ public class BarcodeElementTests
         Assert.Equal(BarcodeFormat.Code39, barcode.Format);
         Assert.Equal(300, barcode.BarcodeWidth);
         Assert.Equal(100, barcode.BarcodeHeight);
-        Assert.False(barcode.ShowText);
+        Assert.False(barcode.ShowText.Value);
         Assert.Equal("#0000ff", barcode.Foreground);
         Assert.Equal("#ffff00", barcode.Background);
         Assert.Equal("left", barcode.Rotate);
@@ -95,7 +95,7 @@ public class BarcodeElementTests
         Assert.Equal("auto", barcode.Basis);
         Assert.Equal(AlignSelf.Auto, barcode.AlignSelf);
         Assert.Equal(0, barcode.Order);
-        Assert.Null(barcode.Width);
-        Assert.Null(barcode.Height);
+        Assert.Null(barcode.Width.Value);
+        Assert.Null(barcode.Height.Value);
     }
 }

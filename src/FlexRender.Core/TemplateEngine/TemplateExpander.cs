@@ -456,7 +456,7 @@ public sealed class TemplateExpander
         {
             Direction = Layout.FlexDirection.Column,
             Rotate = table.Rotate,
-            Background = SubstituteVariables(table.Background, context),
+            Background = SubstituteVariables(table.Background.Value, context),
             Padding = table.Padding,
             Margin = table.Margin
         };
@@ -693,7 +693,7 @@ public sealed class TemplateExpander
 
             // Base element properties requiring per-element handling
             Rotate = flex.Rotate,
-            Background = SubstituteVariables(flex.Background, context),
+            Background = SubstituteVariables(flex.Background.Value, context),
             Padding = flex.Padding,
             Margin = flex.Margin,
 
@@ -805,7 +805,7 @@ public sealed class TemplateExpander
     {
         var clone = new TextElement
         {
-            Content = SubstituteVariables(text.Content, context),
+            Content = SubstituteVariables(text.Content.Value, context),
             Font = text.Font,
             Size = text.Size,
             Color = text.Color,
@@ -815,7 +815,7 @@ public sealed class TemplateExpander
             Overflow = text.Overflow,
             LineHeight = text.LineHeight,
             Rotate = text.Rotate,
-            Background = SubstituteVariables(text.Background, context),
+            Background = SubstituteVariables(text.Background.Value, context),
             Padding = text.Padding,
             Margin = text.Margin
         };
@@ -828,12 +828,12 @@ public sealed class TemplateExpander
     {
         var clone = new ImageElement
         {
-            Src = SubstituteVariables(image.Src, context),
+            Src = SubstituteVariables(image.Src.Value, context),
             ImageWidth = image.ImageWidth,
             ImageHeight = image.ImageHeight,
             Fit = image.Fit,
             Rotate = image.Rotate,
-            Background = SubstituteVariables(image.Background, context),
+            Background = SubstituteVariables(image.Background.Value, context),
             Padding = image.Padding,
             Margin = image.Margin
         };
@@ -846,13 +846,13 @@ public sealed class TemplateExpander
     {
         var clone = new SvgElement
         {
-            Src = SubstituteVariables(svg.Src, context),
-            Content = SubstituteVariables(svg.Content, context),
+            Src = SubstituteVariables(svg.Src.Value, context),
+            Content = SubstituteVariables(svg.Content.Value, context),
             SvgWidth = svg.SvgWidth,
             SvgHeight = svg.SvgHeight,
             Fit = svg.Fit,
             Rotate = svg.Rotate,
-            Background = SubstituteVariables(svg.Background, context),
+            Background = SubstituteVariables(svg.Background.Value, context),
             Padding = svg.Padding,
             Margin = svg.Margin
         };
@@ -865,12 +865,12 @@ public sealed class TemplateExpander
     {
         var clone = new QrElement
         {
-            Data = SubstituteVariables(qr.Data, context),
+            Data = SubstituteVariables(qr.Data.Value, context),
             Size = qr.Size,
             ErrorCorrection = qr.ErrorCorrection,
             Foreground = qr.Foreground,
             Rotate = qr.Rotate,
-            Background = SubstituteVariables(qr.Background, context),
+            Background = SubstituteVariables(qr.Background.Value, context),
             Padding = qr.Padding,
             Margin = qr.Margin
         };
@@ -883,14 +883,14 @@ public sealed class TemplateExpander
     {
         var clone = new BarcodeElement
         {
-            Data = SubstituteVariables(barcode.Data, context),
+            Data = SubstituteVariables(barcode.Data.Value, context),
             Format = barcode.Format,
             BarcodeWidth = barcode.BarcodeWidth,
             BarcodeHeight = barcode.BarcodeHeight,
             ShowText = barcode.ShowText,
             Foreground = barcode.Foreground,
             Rotate = barcode.Rotate,
-            Background = SubstituteVariables(barcode.Background, context),
+            Background = SubstituteVariables(barcode.Background.Value, context),
             Padding = barcode.Padding,
             Margin = barcode.Margin
         };
@@ -908,7 +908,7 @@ public sealed class TemplateExpander
             Thickness = sep.Thickness,
             Color = sep.Color,
             Rotate = sep.Rotate,
-            Background = SubstituteVariables(sep.Background, context),
+            Background = SubstituteVariables(sep.Background.Value, context),
             Padding = sep.Padding,
             Margin = sep.Margin
         };

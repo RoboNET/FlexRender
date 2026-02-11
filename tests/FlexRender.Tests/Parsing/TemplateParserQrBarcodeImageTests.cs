@@ -149,7 +149,7 @@ public class TemplateParserQrBarcodeImageTests
         Assert.Equal(BarcodeFormat.Code128, barcode.Format);
         Assert.Equal(300, barcode.BarcodeWidth);
         Assert.Equal(100, barcode.BarcodeHeight);
-        Assert.False(barcode.ShowText);
+        Assert.False(barcode.ShowText.Value);
         Assert.Equal("#0000ff", barcode.Foreground);
         Assert.Equal("#ffff00", barcode.Background);
         Assert.Equal("left", barcode.Rotate);
@@ -205,8 +205,8 @@ public class TemplateParserQrBarcodeImageTests
         Assert.Single(template.Elements);
         var image = Assert.IsType<ImageElement>(template.Elements[0]);
         Assert.Equal("/path/to/image.png", image.Src);
-        Assert.Null(image.ImageWidth);
-        Assert.Null(image.ImageHeight);
+        Assert.Null(image.ImageWidth.Value);
+        Assert.Null(image.ImageHeight.Value);
         Assert.Equal(ImageFit.Contain, image.Fit);
     }
 
@@ -281,7 +281,7 @@ public class TemplateParserQrBarcodeImageTests
         var template = _parser.Parse(yaml);
 
         var image = Assert.IsType<ImageElement>(template.Elements[0]);
-        Assert.StartsWith("data:image/png;base64,", image.Src);
+        Assert.StartsWith("data:image/png;base64,", image.Src.Value);
     }
 
     /// <summary>

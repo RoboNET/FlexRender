@@ -13,8 +13,8 @@ public class AstModelTests
         Assert.Equal(FixedDimension.Width, canvas.Fixed);
         Assert.Equal(300, canvas.Width);
         Assert.Equal(0, canvas.Height);
-        Assert.Equal("#ffffff", canvas.Background);
-        Assert.Equal("none", canvas.Rotate);
+        Assert.Equal("#ffffff", canvas.Background.Value);
+        Assert.Equal("none", canvas.Rotate.Value);
     }
 
     [Fact]
@@ -32,8 +32,8 @@ public class AstModelTests
         Assert.Equal(FixedDimension.Height, canvas.Fixed);
         Assert.Equal(300, canvas.Width);
         Assert.Equal(500, canvas.Height);
-        Assert.Equal("#000000", canvas.Background);
-        Assert.Equal("right", canvas.Rotate);
+        Assert.Equal("#000000", canvas.Background.Value);
+        Assert.Equal("right", canvas.Rotate.Value);
     }
 
     [Theory]
@@ -47,7 +47,7 @@ public class AstModelTests
     {
         var canvas = new CanvasSettings { Rotate = rotate };
 
-        Assert.Equal(rotate, canvas.Rotate);
+        Assert.Equal(rotate, canvas.Rotate.Value);
     }
 
     [Fact]
@@ -55,14 +55,14 @@ public class AstModelTests
     {
         var text = new TextElement();
 
-        Assert.Equal("", text.Content);
-        Assert.Equal("main", text.Font);
-        Assert.Equal("1em", text.Size);
-        Assert.Equal("#000000", text.Color);
-        Assert.Equal(TextAlign.Left, text.Align);
-        Assert.True(text.Wrap);
-        Assert.Equal(TextOverflow.Ellipsis, text.Overflow);
-        Assert.Null(text.MaxLines);
+        Assert.Equal("", text.Content.Value);
+        Assert.Equal("main", text.Font.Value);
+        Assert.Equal("1em", text.Size.Value);
+        Assert.Equal("#000000", text.Color.Value);
+        Assert.Equal(TextAlign.Left, text.Align.Value);
+        Assert.True(text.Wrap.Value);
+        Assert.Equal(TextOverflow.Ellipsis, text.Overflow.Value);
+        Assert.Null(text.MaxLines.Value);
     }
 
     [Fact]
@@ -80,14 +80,14 @@ public class AstModelTests
             MaxLines = 2
         };
 
-        Assert.Equal("Hello {{name}}", text.Content);
-        Assert.Equal("bold", text.Font);
-        Assert.Equal("1.5em", text.Size);
-        Assert.Equal("#ff0000", text.Color);
-        Assert.Equal(TextAlign.Center, text.Align);
-        Assert.False(text.Wrap);
-        Assert.Equal(TextOverflow.Clip, text.Overflow);
-        Assert.Equal(2, text.MaxLines);
+        Assert.Equal("Hello {{name}}", text.Content.Value);
+        Assert.Equal("bold", text.Font.Value);
+        Assert.Equal("1.5em", text.Size.Value);
+        Assert.Equal("#ff0000", text.Color.Value);
+        Assert.Equal(TextAlign.Center, text.Align.Value);
+        Assert.False(text.Wrap.Value);
+        Assert.Equal(TextOverflow.Clip, text.Overflow.Value);
+        Assert.Equal(2, text.MaxLines.Value);
     }
 
     [Fact]

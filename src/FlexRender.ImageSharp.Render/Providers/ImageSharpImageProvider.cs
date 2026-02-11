@@ -69,20 +69,20 @@ internal static class ImageSharpImageProvider
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Src))
+        if (string.IsNullOrEmpty(element.Src.Value))
         {
             throw new ArgumentException("Image source cannot be empty.", nameof(element));
         }
 
         // Check pre-loaded cache first (used for HTTP and other async sources)
-        if (imageCache is not null && imageCache.TryGetValue(element.Src, out var cached))
+        if (imageCache is not null && imageCache.TryGetValue(element.Src.Value, out var cached))
         {
             // Clone because ProcessImage caller disposes the source
             using var clone = cached.Clone();
             return ProcessImage(clone, element, layoutWidth, layoutHeight);
         }
 
-        using var source = LoadImage(element.Src);
+        using var source = LoadImage(element.Src.Value);
         return ProcessImage(source, element, layoutWidth, layoutHeight);
     }
 
@@ -151,15 +151,15 @@ internal static class ImageSharpImageProvider
         int? layoutWidth,
         int? layoutHeight)
     {
-        var targetWidth = layoutWidth ?? element.ImageWidth ?? source.Width;
-        var targetHeight = layoutHeight ?? element.ImageHeight ?? source.Height;
+        var targetWidth = layoutWidth ?? element.ImageWidth.Value ?? source.Width;
+        var targetHeight = layoutHeight ?? element.ImageHeight.Value ?? source.Height;
 
-        if (element.Fit == ImageFit.None)
+        if (element.Fit.Value == ImageFit.None)
         {
             return CreateCenteredCopy(source, targetWidth, targetHeight);
         }
 
-        return CreateFittedImage(source, targetWidth, targetHeight, element.Fit);
+        return CreateFittedImage(source, targetWidth, targetHeight, element.Fit.Value);
     }
 
     private static Image<Rgba32> CreateCenteredCopy(Image<Rgba32> source, int targetWidth, int targetHeight)

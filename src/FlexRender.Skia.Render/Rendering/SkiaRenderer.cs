@@ -28,7 +28,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     private readonly TextRenderer _textRenderer;
     private readonly LayoutEngine _layoutEngine;
     private readonly IImageLoader? _imageLoader;
-    private readonly TemplateExpander _expander;
+    private readonly TemplatePipeline _pipeline;
     private readonly TemplatePreprocessor _preprocessor;
     private readonly RenderingEngine _renderingEngine;
     private readonly ResourceLimits _limits;
@@ -103,7 +103,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         var templateProcessor = filterRegistry is not null
             ? new TemplateProcessor(limits, filterRegistry)
             : new TemplateProcessor(limits);
-        _expander = filterRegistry is not null
+        var expander = filterRegistry is not null
             ? new TemplateExpander(limits, filterRegistry)
             : new TemplateExpander(limits);
         _fontManager = new FontManager();
@@ -114,14 +114,15 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         _layoutEngine.TextShaper = textShaper;
         _layoutEngine.BaseFontSize = BaseFontSize;
 
-        _preprocessor = new TemplatePreprocessor(_fontManager, templateProcessor, options);
+        _pipeline = new TemplatePipeline(expander, templateProcessor);
+        _preprocessor = new TemplatePreprocessor(_fontManager, options);
         _renderingEngine = new RenderingEngine(
             _textRenderer,
             qrProvider,
             barcodeProvider,
             svgProvider,
             imageLoader,
-            _expander,
+            _pipeline,
             _preprocessor,
             _layoutEngine,
             _limits,
@@ -149,8 +150,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(data);
 
-        var expandedTemplate = _expander.Expand(template, data);
-        var processedTemplate = _preprocessor.Process(expandedTemplate, data);
+        var processedTemplate = _pipeline.Process(template, data);
+        _preprocessor.RegisterFonts(processedTemplate);
         return _layoutEngine.ComputeLayout(processedTemplate);
     }
 
@@ -167,8 +168,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(data);
 
-        var expandedTemplate = _expander.Expand(template, data);
-        var processedTemplate = _preprocessor.Process(expandedTemplate, data);
+        var processedTemplate = _pipeline.Process(template, data);
+        _preprocessor.RegisterFonts(processedTemplate);
 
         // Use LayoutEngine to compute accurate sizes
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
@@ -177,7 +178,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         var height = rootNode.Height;
 
         // Check if canvas rotation swaps dimensions
-        var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate);
+        var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate.Value);
         if (RotationHelper.SwapsDimensions(rotationDegrees))
         {
             return new SKSize(height, width);

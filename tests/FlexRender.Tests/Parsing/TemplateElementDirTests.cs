@@ -10,7 +10,7 @@ public class TemplateElementDirTests
     public void TemplateElement_Dir_DefaultsToNull()
     {
         var element = new TextElement { Content = "test" };
-        Assert.Null(element.TextDirection);
+        Assert.Null(element.TextDirection.Value);
     }
 
     [Fact]
@@ -32,6 +32,6 @@ public class TemplateElementDirTests
     {
         var element = new TextElement { Content = "test" };
         // Null means "inherit from parent/canvas"
-        Assert.Null(element.TextDirection);
+        Assert.Null(element.TextDirection.Value);
     }
 }

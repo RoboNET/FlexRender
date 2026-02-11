@@ -375,18 +375,16 @@ public sealed class ImageSharpRender : IFlexRender
         if (_resourceLoaders.Count == 0)
             return (null, null);
 
-        // Expand and preprocess template to resolve expressions in image src attributes
+        // Expand, resolve, and materialize template to resolve expressions in image src attributes
         var expander = _filterRegistry is not null
             ? new TemplateExpander(_limits, _filterRegistry)
             : new TemplateExpander(_limits);
         var templateProcessor = _filterRegistry is not null
             ? new TemplateProcessor(_limits, _filterRegistry)
             : new TemplateProcessor(_limits);
-        var preprocessor = new ImageSharpPreprocessor(
-            _fontManager, templateProcessor, _options);
 
-        var expandedTemplate = expander.Expand(template, data);
-        var processedTemplate = preprocessor.Process(expandedTemplate, data);
+        var pipeline = new TemplatePipeline(expander, templateProcessor);
+        var processedTemplate = pipeline.Process(template, data);
 
         var uris = ImageSharpRenderingEngine.CollectImageUris(processedTemplate);
         if (uris.Count == 0)

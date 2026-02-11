@@ -55,7 +55,7 @@ public sealed class BarcodeSvgProviderTests
         var element = new BarcodeElement
         {
             Data = "Hello",
-            Background = null
+            Background = null!
         };
 
         var svg = _provider.GenerateSvgContent(element, 200f, 80f);

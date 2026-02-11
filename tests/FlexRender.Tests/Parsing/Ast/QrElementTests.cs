@@ -18,10 +18,10 @@ public class QrElementTests
         var qr = new QrElement();
 
         Assert.Equal("", qr.Data);
-        Assert.Null(qr.Size); // Changed: Size is now nullable, defaults to null (will inherit from container)
+        Assert.Null(qr.Size.Value); // Changed: Size is now nullable, defaults to null (will inherit from container)
         Assert.Equal(ErrorCorrectionLevel.M, qr.ErrorCorrection);
         Assert.Equal("#000000", qr.Foreground);
-        Assert.Null(qr.Background);
+        Assert.Null(qr.Background.Value);
         Assert.Equal("none", qr.Rotate);
     }
 
@@ -88,7 +88,7 @@ public class QrElementTests
         Assert.Equal("auto", qr.Basis);
         Assert.Equal(AlignSelf.Auto, qr.AlignSelf);
         Assert.Equal(0, qr.Order);
-        Assert.Null(qr.Width);
-        Assert.Null(qr.Height);
+        Assert.Null(qr.Width.Value);
+        Assert.Null(qr.Height.Value);
     }
 }

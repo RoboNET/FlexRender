@@ -211,12 +211,12 @@ public sealed class LayoutEngine
 
     private LayoutNode LayoutFlexElement(FlexElement flex, LayoutContext context)
     {
-        var width = context.ResolveWidth(flex.Width) ?? context.ContainerWidth;
-        var height = context.ResolveHeight(flex.Height) ?? 0f;
+        var width = context.ResolveWidth(flex.Width.Value) ?? context.ContainerWidth;
+        var height = context.ResolveHeight(flex.Height.Value) ?? 0f;
 
         var node = new LayoutNode(flex, 0, 0, width, height);
 
-        var padding = PaddingParser.Parse(flex.Padding, width, context.FontSize).ClampNegatives();
+        var padding = PaddingParser.Parse(flex.Padding.Value, width, context.FontSize).ClampNegatives();
         var border = BorderParser.Resolve(flex, width, context.FontSize);
         // Combine padding and border into effective padding (Option A from design doc).
         // Layout strategies use this for all inset calculations transparently.
@@ -225,7 +225,7 @@ public sealed class LayoutEngine
             padding.Right + border.Right.Width,
             padding.Bottom + border.Bottom.Width,
             padding.Left + border.Left.Width);
-        var gap = UnitParser.Parse(flex.Gap).Resolve(width, context.FontSize) ?? 0f;
+        var gap = UnitParser.Parse(flex.Gap.Value).Resolve(width, context.FontSize) ?? 0f;
 
         // For inner context height: use explicit height minus effective padding (padding + border), or 0 to indicate auto-sizing
         // This prevents propagating large "unconstrained" heights down to children
@@ -235,12 +235,12 @@ public sealed class LayoutEngine
         var effectiveDirection = LayoutHelpers.ResolveDirection(flex, context.Direction);
         innerContext = innerContext.WithDirection(effectiveDirection);
 
-        var isColumn = flex.Direction is FlexDirection.Column or FlexDirection.ColumnReverse;
+        var isColumn = flex.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse;
 
         // Layout children
         foreach (var child in flex.Children)
         {
-            if (child.Display == Display.None)
+            if (child.Display.Value == Display.None)
             {
                 // Add a zero-sized node for display:none children to preserve indexing
                 node.AddChild(new LayoutNode(child, 0, 0, 0, 0));
@@ -248,15 +248,15 @@ public sealed class LayoutEngine
             }
 
             // Absolute children are removed from flex flow but still need layout
-            if (child.Position == Position.Absolute)
+            if (child.Position.Value == Position.Absolute)
             {
                 var childNode = LayoutElement(child, innerContext);
 
                 // Inset-based sizing: compute width from left+right when no explicit width
-                var leftInset = innerContext.ResolveWidth(child.Left);
-                var rightInset = innerContext.ResolveWidth(child.Right);
-                var topInset = innerContext.ResolveHeight(child.Top);
-                var bottomInset = innerContext.ResolveHeight(child.Bottom);
+                var leftInset = innerContext.ResolveWidth(child.Left.Value);
+                var rightInset = innerContext.ResolveWidth(child.Right.Value);
+                var topInset = innerContext.ResolveHeight(child.Top.Value);
+                var bottomInset = innerContext.ResolveHeight(child.Bottom.Value);
 
                 if (!LayoutHelpers.HasExplicitWidth(child) && leftInset.HasValue && rightInset.HasValue)
                 {
@@ -270,9 +270,9 @@ public sealed class LayoutEngine
                 }
 
                 // Apply aspect ratio for absolute children
-                if (child.AspectRatio.HasValue && child.AspectRatio.Value > 0f)
+                if (child.AspectRatio.Value.HasValue && child.AspectRatio.Value.Value > 0f)
                 {
-                    var ratio = child.AspectRatio.Value;
+                    var ratio = child.AspectRatio.Value.Value;
                     if (LayoutHelpers.HasExplicitWidth(child) && !LayoutHelpers.HasExplicitHeight(child))
                         childNode.Height = childNode.Width / ratio;
                     else if (LayoutHelpers.HasExplicitHeight(child) && !LayoutHelpers.HasExplicitWidth(child))
@@ -301,9 +301,9 @@ public sealed class LayoutEngine
             var flowChildNode = LayoutElement(child, childContext);
 
             // Apply aspect ratio for flow children (only when one dimension is explicitly set)
-            if (child.AspectRatio.HasValue && child.AspectRatio.Value > 0f)
+            if (child.AspectRatio.Value.HasValue && child.AspectRatio.Value.Value > 0f)
             {
-                var ratio = child.AspectRatio.Value;
+                var ratio = child.AspectRatio.Value.Value;
                 if (LayoutHelpers.HasExplicitWidth(child) && !LayoutHelpers.HasExplicitHeight(child))
                     flowChildNode.Height = flowChildNode.Width / ratio;
                 else if (LayoutHelpers.HasExplicitHeight(child) && !LayoutHelpers.HasExplicitWidth(child))
@@ -321,22 +321,22 @@ public sealed class LayoutEngine
         }
 
         // Apply flex layout
-        if (flex.Wrap != FlexWrap.NoWrap)
+        if (flex.Wrap.Value != FlexWrap.NoWrap)
         {
             // gap shorthand applies to both axes; RowGap/ColumnGap override individually
             var mainGap = gap;
             var crossGap = gap;
-            if (!string.IsNullOrEmpty(flex.RowGap))
+            if (!string.IsNullOrEmpty(flex.RowGap.Value))
             {
-                var rowGapValue = UnitParser.Parse(flex.RowGap).Resolve(width, context.FontSize) ?? 0f;
+                var rowGapValue = UnitParser.Parse(flex.RowGap.Value).Resolve(width, context.FontSize) ?? 0f;
                 if (isColumn)
                     mainGap = rowGapValue;
                 else
                     crossGap = rowGapValue;
             }
-            if (!string.IsNullOrEmpty(flex.ColumnGap))
+            if (!string.IsNullOrEmpty(flex.ColumnGap.Value))
             {
-                var colGapValue = UnitParser.Parse(flex.ColumnGap).Resolve(width, context.FontSize) ?? 0f;
+                var colGapValue = UnitParser.Parse(flex.ColumnGap.Value).Resolve(width, context.FontSize) ?? 0f;
                 if (isColumn)
                     crossGap = colGapValue;
                 else
@@ -361,7 +361,7 @@ public sealed class LayoutEngine
         }
 
         // Calculate height if not specified (skip for wrapped containers — they set height in LayoutWrappedFlex)
-        if (height == 0f && node.Children.Count > 0 && flex.Wrap == FlexWrap.NoWrap)
+        if (height == 0f && node.Children.Count > 0 && flex.Wrap.Value == FlexWrap.NoWrap)
         {
             node.Height = LayoutHelpers.CalculateTotalHeight(node) + effectivePadding.Bottom;
         }
@@ -369,12 +369,12 @@ public sealed class LayoutEngine
         // Position absolute children after flex layout is complete
         foreach (var child in node.Children)
         {
-            if (child.Element.Position != Position.Absolute) continue;
+            if (child.Element.Position.Value != Position.Absolute) continue;
 
-            var leftInset = innerContext.ResolveWidth(child.Element.Left);
-            var topInset = innerContext.ResolveHeight(child.Element.Top);
-            var rightInset = innerContext.ResolveWidth(child.Element.Right);
-            var bottomInset = innerContext.ResolveHeight(child.Element.Bottom);
+            var leftInset = innerContext.ResolveWidth(child.Element.Left.Value);
+            var topInset = innerContext.ResolveHeight(child.Element.Top.Value);
+            var rightInset = innerContext.ResolveWidth(child.Element.Right.Value);
+            var bottomInset = innerContext.ResolveHeight(child.Element.Bottom.Value);
 
             // X positioning: left takes priority, then right, then justify/align fallback
             if (leftInset.HasValue)
@@ -384,11 +384,11 @@ public sealed class LayoutEngine
             else
             {
                 // No horizontal insets — use justify-content (row) or align-items (column)
-                var isColumnDir = flex.Direction is FlexDirection.Column or FlexDirection.ColumnReverse;
+                var isColumnDir = flex.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse;
                 if (!isColumnDir)
                 {
                     // Row: main axis = X, use justify-content
-                    child.X = flex.Justify switch
+                    child.X = flex.Justify.Value switch
                     {
                         JustifyContent.End => node.Width - effectivePadding.Right - child.Width,
                         JustifyContent.Center or JustifyContent.SpaceAround or JustifyContent.SpaceEvenly
@@ -399,7 +399,7 @@ public sealed class LayoutEngine
                 else
                 {
                     // Column: cross axis = X, use align-items
-                    var align = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
+                    var align = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
                     child.X = align switch
                     {
                         AlignItems.End => node.Width - effectivePadding.Right - child.Width,
@@ -416,11 +416,11 @@ public sealed class LayoutEngine
                 child.Y = node.Height - effectivePadding.Bottom - child.Height - bottomInset.Value;
             else
             {
-                var isColumnDir = flex.Direction is FlexDirection.Column or FlexDirection.ColumnReverse;
+                var isColumnDir = flex.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse;
                 if (isColumnDir)
                 {
                     // Column: main axis = Y, use justify-content
-                    child.Y = flex.Justify switch
+                    child.Y = flex.Justify.Value switch
                     {
                         JustifyContent.End => node.Height - effectivePadding.Bottom - child.Height,
                         JustifyContent.Center or JustifyContent.SpaceAround or JustifyContent.SpaceEvenly
@@ -431,7 +431,7 @@ public sealed class LayoutEngine
                 else
                 {
                     // Row: cross axis = Y, use align-items
-                    var align = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
+                    var align = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
                     child.Y = align switch
                     {
                         AlignItems.End => node.Height - effectivePadding.Bottom - child.Height,
@@ -447,13 +447,13 @@ public sealed class LayoutEngine
 
     private LayoutNode LayoutTextElement(TextElement text, LayoutContext context)
     {
-        var padding = PaddingParser.Parse(text.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var padding = PaddingParser.Parse(text.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
         var border = BorderParser.Resolve(text, context.ContainerWidth, context.FontSize);
 
         float contentWidth;
-        if (!string.IsNullOrEmpty(text.Width))
+        if (!string.IsNullOrEmpty(text.Width.Value))
         {
-            contentWidth = context.ResolveWidth(text.Width) ?? context.ContainerWidth;
+            contentWidth = context.ResolveWidth(text.Width.Value) ?? context.ContainerWidth;
         }
         else if (context.IntrinsicSizes != null
             && context.IntrinsicSizes.TryGetValue(text, out var intrinsic)
@@ -471,14 +471,14 @@ public sealed class LayoutEngine
         float computedLineHeight = 0f;
 
         // If height is explicitly specified, use it (but still compute lines if shaper available)
-        if (!string.IsNullOrEmpty(text.Height))
+        if (!string.IsNullOrEmpty(text.Height.Value))
         {
-            contentHeight = context.ResolveHeight(text.Height) ?? DefaultTextHeight;
+            contentHeight = context.ResolveHeight(text.Height.Value) ?? DefaultTextHeight;
 
             // Still compute lines for renderers even with explicit height
-            if (TextShaper != null && !string.IsNullOrEmpty(text.Content))
+            if (TextShaper != null && !string.IsNullOrEmpty(text.Content.Value))
             {
-                var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
+                var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
                 var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
                     ? Math.Min(contentWidth, context.ContainerWidth)
                     : float.MaxValue;
@@ -487,10 +487,10 @@ public sealed class LayoutEngine
                 computedLineHeight = shaped.LineHeight;
             }
         }
-        else if (TextShaper != null && !string.IsNullOrEmpty(text.Content))
+        else if (TextShaper != null && !string.IsNullOrEmpty(text.Content.Value))
         {
             // Use TextShaper for accurate height and pre-computed lines
-            var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
+            var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
             var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
                 ? Math.Min(contentWidth, context.ContainerWidth)
                 : float.MaxValue;
@@ -500,10 +500,10 @@ public sealed class LayoutEngine
             computedLineHeight = shaped.LineHeight;
         }
 #pragma warning disable CS0618 // TextMeasurer is obsolete but still supported for backward compatibility
-        else if (TextMeasurer != null && !string.IsNullOrEmpty(text.Content))
+        else if (TextMeasurer != null && !string.IsNullOrEmpty(text.Content.Value))
         {
             // Backward compatibility: use TextMeasurer delegate for height only
-            var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
+            var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
             var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
                 ? Math.Min(contentWidth, context.ContainerWidth)
                 : float.MaxValue;
@@ -514,12 +514,12 @@ public sealed class LayoutEngine
         else
         {
             // Fallback when no TextShaper or TextMeasurer available
-            var fontSize = FontSizeResolver.Resolve(text.Size, context.FontSize);
-            contentHeight = LineHeightResolver.Resolve(text.LineHeight, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
+            var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
+            contentHeight = LineHeightResolver.Resolve(text.LineHeight.Value, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
         }
 
         // Handle empty content with shaper: set empty lines
-        if (TextShaper != null && string.IsNullOrEmpty(text.Content))
+        if (TextShaper != null && string.IsNullOrEmpty(text.Content.Value))
         {
             textLines = Array.Empty<string>();
             contentHeight = 0f;
@@ -542,11 +542,11 @@ public sealed class LayoutEngine
     private static bool MayWrapOrContainsNewlines(TextElement text, float contentWidth, LayoutContext context)
     {
         // Text with embedded newlines always needs multi-line measurement
-        if (text.Content.Contains('\n'))
+        if (text.Content.Value.Contains('\n'))
             return true;
 
         // If wrapping is disabled, it will never wrap
-        if (!text.Wrap)
+        if (!text.Wrap.Value)
             return false;
 
         // Check if intrinsic (unwrapped) width exceeds the available space,
@@ -567,14 +567,14 @@ public sealed class LayoutEngine
     /// </summary>
     private static LayoutNode LayoutQrElement(QrElement qr, LayoutContext context)
     {
-        var padding = PaddingParser.Parse(qr.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var padding = PaddingParser.Parse(qr.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
         var border = BorderParser.Resolve(qr, context.ContainerWidth, context.FontSize);
 
         // QR code is square, size is both width and height
         // Check if explicit width/height are provided via flex properties
         // Priority: flex Width/Height > Size > container defaults
-        var contentWidth = context.ResolveWidth(qr.Width) ?? (float?)qr.Size ?? context.ContainerWidth;
-        var contentHeight = context.ResolveHeight(qr.Height) ?? (float?)qr.Size ?? context.ContainerHeight;
+        var contentWidth = context.ResolveWidth(qr.Width.Value) ?? (float?)qr.Size.Value ?? context.ContainerWidth;
+        var contentHeight = context.ResolveHeight(qr.Height.Value) ?? (float?)qr.Size.Value ?? context.ContainerHeight;
 
         // Total size includes padding and border (margin is applied in flex layout pass)
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
@@ -588,13 +588,13 @@ public sealed class LayoutEngine
     /// </summary>
     private static LayoutNode LayoutBarcodeElement(BarcodeElement barcode, LayoutContext context)
     {
-        var padding = PaddingParser.Parse(barcode.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var padding = PaddingParser.Parse(barcode.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
         var border = BorderParser.Resolve(barcode, context.ContainerWidth, context.FontSize);
 
         // Use explicit flex dimensions if provided, otherwise fall back to barcode-specific dimensions
         // Priority: flex Width/Height > BarcodeWidth/BarcodeHeight > container defaults
-        var contentWidth = context.ResolveWidth(barcode.Width) ?? (float?)barcode.BarcodeWidth ?? context.ContainerWidth;
-        var contentHeight = context.ResolveHeight(barcode.Height) ?? (float?)barcode.BarcodeHeight ?? context.ContainerHeight;
+        var contentWidth = context.ResolveWidth(barcode.Width.Value) ?? (float?)barcode.BarcodeWidth.Value ?? context.ContainerWidth;
+        var contentHeight = context.ResolveHeight(barcode.Height.Value) ?? (float?)barcode.BarcodeHeight.Value ?? context.ContainerHeight;
 
         // Total size includes padding and border (margin is applied in flex layout pass)
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
@@ -608,12 +608,12 @@ public sealed class LayoutEngine
     /// </summary>
     private static LayoutNode LayoutImageElement(ImageElement image, LayoutContext context)
     {
-        var padding = PaddingParser.Parse(image.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var padding = PaddingParser.Parse(image.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
         var border = BorderParser.Resolve(image, context.ContainerWidth, context.FontSize);
 
         // Priority: flex Width/Height > ImageWidth/ImageHeight > container defaults
-        var contentWidth = context.ResolveWidth(image.Width) ?? image.ImageWidth ?? context.ContainerWidth;
-        var contentHeight = context.ResolveHeight(image.Height) ?? image.ImageHeight ?? context.ContainerHeight;
+        var contentWidth = context.ResolveWidth(image.Width.Value) ?? image.ImageWidth.Value ?? context.ContainerWidth;
+        var contentHeight = context.ResolveHeight(image.Height.Value) ?? image.ImageHeight.Value ?? context.ContainerHeight;
 
         // Total size includes padding and border (margin is applied in flex layout pass)
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
@@ -627,12 +627,12 @@ public sealed class LayoutEngine
     /// </summary>
     private static LayoutNode LayoutSvgElement(SvgElement svg, LayoutContext context)
     {
-        var padding = PaddingParser.Parse(svg.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var padding = PaddingParser.Parse(svg.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
         var border = BorderParser.Resolve(svg, context.ContainerWidth, context.FontSize);
 
         // Priority: flex Width/Height > SvgWidth/SvgHeight > default 100px
-        var contentWidth = context.ResolveWidth(svg.Width) ?? svg.SvgWidth ?? 100f;
-        var contentHeight = context.ResolveHeight(svg.Height) ?? svg.SvgHeight ?? 100f;
+        var contentWidth = context.ResolveWidth(svg.Width.Value) ?? svg.SvgWidth.Value ?? 100f;
+        var contentHeight = context.ResolveHeight(svg.Height.Value) ?? svg.SvgHeight.Value ?? 100f;
 
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
@@ -645,23 +645,23 @@ public sealed class LayoutEngine
     /// </summary>
     private static LayoutNode LayoutSeparatorElement(SeparatorElement separator, LayoutContext context)
     {
-        var padding = PaddingParser.Parse(separator.Padding, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var padding = PaddingParser.Parse(separator.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
         var border = BorderParser.Resolve(separator, context.ContainerWidth, context.FontSize);
 
         float contentWidth;
         float contentHeight;
 
-        if (separator.Orientation == SeparatorOrientation.Horizontal)
+        if (separator.Orientation.Value == SeparatorOrientation.Horizontal)
         {
-            contentWidth = context.ResolveWidth(separator.Width) ?? context.ContainerWidth;
-            contentHeight = context.ResolveHeight(separator.Height) ?? separator.Thickness;
+            contentWidth = context.ResolveWidth(separator.Width.Value) ?? context.ContainerWidth;
+            contentHeight = context.ResolveHeight(separator.Height.Value) ?? separator.Thickness.Value;
         }
         else
         {
-            contentWidth = context.ResolveWidth(separator.Width) ?? separator.Thickness;
+            contentWidth = context.ResolveWidth(separator.Width.Value) ?? separator.Thickness.Value;
             // Use thickness as fallback instead of context.ContainerHeight to avoid
             // producing a 10000px tall separator when the container is unconstrained.
-            contentHeight = context.ResolveHeight(separator.Height) ?? separator.Thickness;
+            contentHeight = context.ResolveHeight(separator.Height.Value) ?? separator.Thickness.Value;
         }
 
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
@@ -680,9 +680,9 @@ public sealed class LayoutEngine
     {
         foreach (var child in node.Children)
         {
-            if (child.Element.Position == Position.Absolute)
+            if (child.Element.Position.Value == Position.Absolute)
                 continue;
-            if (child.Element.Order != 0)
+            if (child.Element.Order.Value != 0)
                 return true;
         }
         return false;
@@ -696,8 +696,8 @@ public sealed class LayoutEngine
     {
         foreach (var child in node.Children)
         {
-            if (child.Element.Display == Display.None) continue;
-            if (child.Element.Position == Position.Absolute) continue;
+            if (child.Element.Display.Value == Display.None) continue;
+            if (child.Element.Position.Value == Position.Absolute) continue;
             child.X = node.Width - padding.Right - (child.X - padding.Left) - child.Width;
         }
     }

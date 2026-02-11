@@ -1,3 +1,5 @@
+using FlexRender.TemplateEngine;
+
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
@@ -42,32 +44,56 @@ public sealed class BarcodeElement : TemplateElement
     /// <summary>
     /// The data to encode in the barcode.
     /// </summary>
-    public string Data { get; set; } = "";
+    public ExprValue<string> Data { get; set; } = "";
 
     /// <summary>
     /// The barcode format to use.
     /// </summary>
-    public BarcodeFormat Format { get; set; } = BarcodeFormat.Code128;
+    public ExprValue<BarcodeFormat> Format { get; set; } = BarcodeFormat.Code128;
 
     /// <summary>
     /// The width of the barcode in pixels.
     /// If not specified, inherits from container width or flex Width property.
     /// </summary>
-    public int? BarcodeWidth { get; set; }
+    public ExprValue<int?> BarcodeWidth { get; set; }
 
     /// <summary>
     /// The height of the barcode in pixels.
     /// If not specified, inherits from container height or flex Height property.
     /// </summary>
-    public int? BarcodeHeight { get; set; }
+    public ExprValue<int?> BarcodeHeight { get; set; }
 
     /// <summary>
     /// Whether to display the encoded text below the barcode.
     /// </summary>
-    public bool ShowText { get; set; } = true;
+    public ExprValue<bool> ShowText { get; set; } = true;
 
     /// <summary>
     /// The foreground color (bars) in hex format.
     /// </summary>
-    public string Foreground { get; set; } = "#000000";
+    public ExprValue<string> Foreground { get; set; } = "#000000";
+
+    /// <inheritdoc />
+    public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
+    {
+        base.ResolveExpressions(resolver, data);
+        Data = Data.Resolve(resolver, data);
+        Format = Format.Resolve(resolver, data);
+        BarcodeWidth = BarcodeWidth.Resolve(resolver, data);
+        BarcodeHeight = BarcodeHeight.Resolve(resolver, data);
+        ShowText = ShowText.Resolve(resolver, data);
+        Foreground = Foreground.Resolve(resolver, data);
+    }
+
+    /// <inheritdoc />
+    public override void Materialize()
+    {
+        base.Materialize();
+        Data = Data.Materialize(nameof(Data));
+        Format = Format.Materialize(nameof(Format));
+        BarcodeWidth = BarcodeWidth.Materialize(nameof(BarcodeWidth));
+        BarcodeHeight = BarcodeHeight.Materialize(nameof(BarcodeHeight));
+        ShowText = ShowText.Materialize(nameof(ShowText));
+        Foreground = Foreground.Materialize(nameof(Foreground), ValueKind.Color);
+    }
 }

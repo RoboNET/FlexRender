@@ -33,7 +33,7 @@ public sealed class ApproximateTextShaper : ITextShaper
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Content.Value))
         {
             return new TextShapingResult(
                 Array.Empty<string>(),
@@ -43,16 +43,16 @@ public sealed class ApproximateTextShaper : ITextShaper
 
         var charWidth = fontSize * CharWidthFactor;
         var lineHeight = LineHeightResolver.Resolve(
-            element.LineHeight,
+            element.LineHeight.Value,
             fontSize,
             fontSize * DefaultLineHeightMultiplier);
 
-        var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
+        var effectiveMaxWidth = element.Overflow.Value == TextOverflow.Visible && !element.Wrap.Value
             ? float.MaxValue
             : maxWidth;
 
-        var lines = GetLines(element.Content, element.Wrap, effectiveMaxWidth, charWidth,
-            element.MaxLines, element.Overflow);
+        var lines = GetLines(element.Content.Value, element.Wrap.Value, effectiveMaxWidth, charWidth,
+            element.MaxLines.Value, element.Overflow.Value);
 
         if (lines.Count == 0)
         {

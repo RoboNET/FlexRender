@@ -34,15 +34,15 @@ internal sealed class ImageSharpTextRenderer
     /// <returns>The measured size as a LayoutSize.</returns>
     public LayoutSize MeasureText(TextElement element, float maxWidth, float baseFontSize)
     {
-        if (string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Content.Value))
             return new LayoutSize(0, 0);
 
         var font = CreateFont(element, baseFontSize);
-        var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
+        var effectiveMaxWidth = element.Overflow.Value == TextOverflow.Visible && !element.Wrap.Value
             ? float.MaxValue
             : maxWidth;
 
-        var lines = GetLines(element.Content, element.Wrap, effectiveMaxWidth, font, element.MaxLines, element.Overflow);
+        var lines = GetLines(element.Content.Value, element.Wrap.Value, effectiveMaxWidth, font, element.MaxLines.Value, element.Overflow.Value);
 
         if (lines.Count == 0)
             return new LayoutSize(0, 0);
@@ -56,7 +56,7 @@ internal sealed class ImageSharpTextRenderer
         }
 
         maxLineWidth = MathF.Ceiling(maxLineWidth);
-        var lineHeight = ResolveLineHeight(element.LineHeight, font);
+        var lineHeight = ResolveLineHeight(element.LineHeight.Value, font);
         var totalHeight = lines.Count * lineHeight;
 
         return new LayoutSize(maxLineWidth, totalHeight);
@@ -81,27 +81,27 @@ internal sealed class ImageSharpTextRenderer
         float height,
         float baseFontSize)
     {
-        if (string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Content.Value))
             return;
 
         var font = CreateFont(element, baseFontSize);
-        var color = ImageSharpColorParser.Parse(element.Color);
-        var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
+        var color = ImageSharpColorParser.Parse(element.Color.Value);
+        var effectiveMaxWidth = element.Overflow.Value == TextOverflow.Visible && !element.Wrap.Value
             ? float.MaxValue
             : width;
 
-        var lines = GetLines(element.Content, element.Wrap, effectiveMaxWidth, font, element.MaxLines, element.Overflow);
+        var lines = GetLines(element.Content.Value, element.Wrap.Value, effectiveMaxWidth, font, element.MaxLines.Value, element.Overflow.Value);
 
         if (lines.Count == 0)
             return;
 
-        var lineHeight = ResolveLineHeight(element.LineHeight, font);
+        var lineHeight = ResolveLineHeight(element.LineHeight.Value, font);
         var currentY = y;
 
         foreach (var line in lines)
         {
             var measured = TextMeasurer.MeasureSize(line, new TextOptions(font));
-            var lineX = CalculateX(element.Align, x, width, measured.Width);
+            var lineX = CalculateX(element.Align.Value, x, width, measured.Width);
 
             ctx.DrawText(line, font, color, new PointF(lineX, currentY));
             currentY += lineHeight;
@@ -110,8 +110,8 @@ internal sealed class ImageSharpTextRenderer
 
     private Font CreateFont(TextElement element, float baseFontSize)
     {
-        var fontSize = FontSizeResolver.Resolve(element.Size, baseFontSize);
-        return _fontManager.GetFont(element.Font, fontSize);
+        var fontSize = FontSizeResolver.Resolve(element.Size.Value, baseFontSize);
+        return _fontManager.GetFont(element.Font.Value, fontSize);
     }
 
     private static float ResolveLineHeight(string? lineHeight, Font font)

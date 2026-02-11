@@ -197,7 +197,7 @@ public static class DebugLayoutCommand
         return element switch
         {
             FlexElement f => $" [{f.Direction.ToString().ToLowerInvariant()}]",
-            TextElement t => $" \"{Truncate(t.Content, 30)}\"",
+            TextElement t => $" \"{Truncate(t.Content.Value, 30)}\"",
             QrElement => " [qr]",
             BarcodeElement => " [barcode]",
             ImageElement => " [image]",

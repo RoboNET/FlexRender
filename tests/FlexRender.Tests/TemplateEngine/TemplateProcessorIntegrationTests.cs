@@ -199,7 +199,7 @@ public class TemplateProcessorIntegrationTests
 
         Assert.Equal(FixedDimension.Height, resolved.Canvas.Fixed);
         Assert.Equal(500, resolved.Canvas.Height);
-        Assert.Equal("#f0f0f0", resolved.Canvas.Background);
+        Assert.Equal("#f0f0f0", resolved.Canvas.Background.Value);
     }
 
     [Fact]

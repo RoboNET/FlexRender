@@ -69,7 +69,7 @@ public sealed class OpacityTests
         var template = ParseYaml(yaml);
 
         var flex = Assert.IsType<FlexElement>(template.Elements[0]);
-        Assert.Equal(0.5f, flex.Opacity, 0.01f);
+        Assert.Equal(0.5f, flex.Opacity.Value, 0.01f);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class OpacityTests
         var template = ParseYaml(yaml);
 
         var text = Assert.IsType<TextElement>(template.Elements[0]);
-        Assert.Equal(0.3f, text.Opacity, 0.01f);
+        Assert.Equal(0.3f, text.Opacity.Value, 0.01f);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class OpacityTests
         var template = ParseYaml(yaml);
 
         var flex = Assert.IsType<FlexElement>(template.Elements[0]);
-        Assert.Equal(1.0f, flex.Opacity);
+        Assert.Equal(1.0f, flex.Opacity.Value);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class OpacityTests
         var template = ParseYaml(yaml);
 
         var flex = Assert.IsType<FlexElement>(template.Elements[0]);
-        Assert.Equal(0.0f, flex.Opacity, 0.01f);
+        Assert.Equal(0.0f, flex.Opacity.Value, 0.01f);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public sealed class OpacityTests
         var template = ParseYaml(yaml);
 
         var flex = Assert.IsType<FlexElement>(template.Elements[0]);
-        Assert.Equal(1.0f, flex.Opacity);
+        Assert.Equal(1.0f, flex.Opacity.Value);
     }
 
     // === Expansion preserves opacity ===

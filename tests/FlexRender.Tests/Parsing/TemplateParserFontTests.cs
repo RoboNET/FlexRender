@@ -227,7 +227,7 @@ public class TemplateParserFontTests
         Assert.Equal("Arial", template.Fonts["heading"].Fallback);
 
         Assert.Equal(400, template.Canvas.Width);
-        Assert.Equal("#f0f0f0", template.Canvas.Background);
+        Assert.Equal("#f0f0f0", template.Canvas.Background.Value);
 
         Assert.Equal(2, template.Elements.Count);
     }

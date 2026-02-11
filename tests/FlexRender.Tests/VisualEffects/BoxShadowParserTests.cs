@@ -142,7 +142,7 @@ public sealed class BoxShadowParserTests
     {
         var element = new FlexRender.Parsing.Ast.FlexElement();
 
-        Assert.Null(element.BoxShadow);
+        Assert.Null(element.BoxShadow.Value);
     }
 
     [Fact]

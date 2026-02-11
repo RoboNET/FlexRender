@@ -38,26 +38,26 @@ public sealed class TextRenderer
     /// <returns>The measured size.</returns>
     public SKSize MeasureText(TextElement element, float maxWidth, float baseFontSize)
     {
-        if (string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Content.Value))
             return new SKSize(0, 0);
 
         using var font = CreateFont(element, baseFontSize, _defaultRenderOptions);
-        var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
+        var effectiveMaxWidth = element.Overflow.Value == TextOverflow.Visible && !element.Wrap.Value
             ? float.MaxValue
             : maxWidth;
 
-        var lines = GetLines(element.Content, element.Wrap, effectiveMaxWidth, font, element.MaxLines, element.Overflow);
+        var lines = GetLines(element.Content.Value, element.Wrap.Value, effectiveMaxWidth, font, element.MaxLines.Value, element.Overflow.Value);
 
         if (lines.Count == 0)
             return new SKSize(0, 0);
 
         var maxLineWidth = (float)Math.Ceiling(lines.Max(line => font.MeasureText(line)));
         var defaultLineHeight = Math.Abs(font.Metrics.Top) + font.Metrics.Bottom;
-        var lineHeight = LineHeightResolver.Resolve(element.LineHeight, font.Size, defaultLineHeight);
+        var lineHeight = LineHeightResolver.Resolve(element.LineHeight.Value, font.Size, defaultLineHeight);
         var totalHeight = lines.Count * lineHeight;
 
         // Handle rotation affecting dimensions
-        var rotation = RotationHelper.ParseRotation(element.Rotate);
+        var rotation = RotationHelper.ParseRotation(element.Rotate.Value);
         if (RotationHelper.SwapsDimensions(rotation))
         {
             return new SKSize(totalHeight, maxLineWidth);
@@ -87,13 +87,13 @@ public sealed class TextRenderer
         IReadOnlyList<string>? precomputedLines = null,
         float precomputedLineHeight = 0f)
     {
-        if (string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Content.Value))
             return;
 
         var effectiveOptions = renderOptions ?? RenderOptions.Default;
         using var font = CreateFont(element, baseFontSize, effectiveOptions);
         using var paint = CreatePaint(element, effectiveOptions.Antialiasing);
-        var rotation = RotationHelper.ParseRotation(element.Rotate);
+        var rotation = RotationHelper.ParseRotation(element.Rotate.Value);
 
         IReadOnlyList<string> lines;
         if (precomputedLines != null)
@@ -104,17 +104,17 @@ public sealed class TextRenderer
         else
         {
             // Fallback: compute lines locally (backward compatibility for direct DrawText calls)
-            var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
+            var effectiveMaxWidth = element.Overflow.Value == TextOverflow.Visible && !element.Wrap.Value
                 ? float.MaxValue
                 : bounds.Width;
-            lines = GetLines(element.Content, element.Wrap, effectiveMaxWidth, font, element.MaxLines, element.Overflow);
+            lines = GetLines(element.Content.Value, element.Wrap.Value, effectiveMaxWidth, font, element.MaxLines.Value, element.Overflow.Value);
         }
 
         if (lines.Count == 0)
             return;
 
         // Apply clipping for Clip overflow mode
-        if (element.Overflow == TextOverflow.Clip)
+        if (element.Overflow.Value == TextOverflow.Clip)
         {
             canvas.Save();
             canvas.ClipRect(bounds);
@@ -137,14 +137,14 @@ public sealed class TextRenderer
         else
         {
             var defaultLineHeight = Math.Abs(font.Metrics.Top) + font.Metrics.Bottom;
-            lineHeight = LineHeightResolver.Resolve(element.LineHeight, font.Size, defaultLineHeight);
+            lineHeight = LineHeightResolver.Resolve(element.LineHeight.Value, font.Size, defaultLineHeight);
         }
         var y = bounds.Top + Math.Abs(font.Metrics.Top); // Position baseline so Top glyph extent aligns with box top
 
         foreach (var line in lines)
         {
             var lineWidth = font.MeasureText(line);
-            var x = CalculateX(element.Align, bounds, lineWidth, direction);
+            var x = CalculateX(element.Align.Value, bounds, lineWidth, direction);
 
             canvas.DrawText(line, x, y, SKTextAlign.Left, font, paint);
             y += lineHeight;
@@ -155,7 +155,7 @@ public sealed class TextRenderer
             canvas.Restore();
         }
 
-        if (element.Overflow == TextOverflow.Clip)
+        if (element.Overflow.Value == TextOverflow.Clip)
         {
             canvas.Restore();
         }
@@ -172,8 +172,8 @@ public sealed class TextRenderer
     /// <returns>A configured <see cref="SKFont"/> instance. Caller must dispose.</returns>
     private SKFont CreateFont(TextElement element, float baseFontSize, RenderOptions renderOptions)
     {
-        var typeface = _fontManager.GetTypeface(element.Font);
-        var fontSize = FontSizeResolver.Resolve(element.Size, baseFontSize);
+        var typeface = _fontManager.GetTypeface(element.Font.Value);
+        var fontSize = FontSizeResolver.Resolve(element.Size.Value, baseFontSize);
 
         var font = new SKFont(typeface, fontSize)
         {
@@ -217,7 +217,7 @@ public sealed class TextRenderer
     /// <returns>A configured <see cref="SKPaint"/> instance. Caller must dispose.</returns>
     private static SKPaint CreatePaint(TextElement element, bool antialiasing)
     {
-        var color = ColorParser.Parse(element.Color);
+        var color = ColorParser.Parse(element.Color.Value);
 
         return new SKPaint
         {

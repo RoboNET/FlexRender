@@ -882,7 +882,7 @@ public class LayoutEngineTests
         engine.TextMeasurer = (element, fontSize, maxWidth) =>
         {
             var lineHeight = fontSize * 1.4f;
-            var lineCount = element.Content.Split('\n').Length;
+            var lineCount = element.Content.Value.Split('\n').Length;
             var maxLineWidth = 50f;
             return new LayoutSize(maxLineWidth, lineHeight * lineCount);
         };

@@ -59,15 +59,15 @@ public class TemplateParserTextTests
         Assert.Single(template.Elements);
         var text = Assert.IsType<TextElement>(template.Elements[0]);
 
-        Assert.Equal("Total: {{total}} rub", text.Content);
-        Assert.Equal("bold", text.Font);
-        Assert.Equal("1.5em", text.Size);
-        Assert.Equal("#ff0000", text.Color);
-        Assert.Equal(TextAlign.Center, text.Align);
-        Assert.False(text.Wrap);
-        Assert.Equal(TextOverflow.Clip, text.Overflow);
-        Assert.Equal(2, text.MaxLines);
-        Assert.Equal("right", text.Rotate);
+        Assert.Equal("Total: {{total}} rub", text.Content.Value);
+        Assert.Equal("bold", text.Font.Value);
+        Assert.Equal("1.5em", text.Size.Value);
+        Assert.Equal("#ff0000", text.Color.Value);
+        Assert.Equal(TextAlign.Center, text.Align.Value);
+        Assert.False(text.Wrap.Value);
+        Assert.Equal(TextOverflow.Clip, text.Overflow.Value);
+        Assert.Equal(2, text.MaxLines.Value);
+        Assert.Equal("right", text.Rotate.Value);
     }
 
     /// <summary>
@@ -93,9 +93,9 @@ public class TemplateParserTextTests
         Assert.Equal(3, template.Elements.Count);
         Assert.All(template.Elements, e => Assert.IsType<TextElement>(e));
 
-        Assert.Equal("Line 1", ((TextElement)template.Elements[0]).Content);
-        Assert.Equal("Line 2", ((TextElement)template.Elements[1]).Content);
-        Assert.Equal("Line 3", ((TextElement)template.Elements[2]).Content);
+        Assert.Equal("Line 1", ((TextElement)template.Elements[0]).Content.Value);
+        Assert.Equal("Line 2", ((TextElement)template.Elements[1]).Content.Value);
+        Assert.Equal("Line 3", ((TextElement)template.Elements[2]).Content.Value);
     }
 
     /// <summary>
@@ -115,14 +115,14 @@ public class TemplateParserTextTests
         var template = _parser.Parse(yaml);
         var text = Assert.IsType<TextElement>(template.Elements[0]);
 
-        Assert.Equal("main", text.Font);
-        Assert.Equal("1em", text.Size);
-        Assert.Equal("#000000", text.Color);
-        Assert.Equal(TextAlign.Left, text.Align);
-        Assert.True(text.Wrap);
-        Assert.Equal(TextOverflow.Ellipsis, text.Overflow);
-        Assert.Null(text.MaxLines);
-        Assert.Equal("none", text.Rotate);
+        Assert.Equal("main", text.Font.Value);
+        Assert.Equal("1em", text.Size.Value);
+        Assert.Equal("#000000", text.Color.Value);
+        Assert.Equal(TextAlign.Left, text.Align.Value);
+        Assert.True(text.Wrap.Value);
+        Assert.Equal(TextOverflow.Ellipsis, text.Overflow.Value);
+        Assert.Null(text.MaxLines.Value);
+        Assert.Equal("none", text.Rotate.Value);
     }
 
     /// <summary>

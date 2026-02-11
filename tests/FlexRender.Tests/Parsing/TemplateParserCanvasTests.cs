@@ -28,7 +28,7 @@ public class TemplateParserCanvasTests
         Assert.NotNull(template);
         Assert.Equal(FixedDimension.Width, template.Canvas.Fixed);
         Assert.Equal(300, template.Canvas.Width);
-        Assert.Equal("#ffffff", template.Canvas.Background);
+        Assert.Equal("#ffffff", template.Canvas.Background.Value);
     }
 
     /// <summary>
@@ -48,7 +48,7 @@ public class TemplateParserCanvasTests
 
         Assert.Equal(FixedDimension.Height, template.Canvas.Fixed);
         Assert.Equal(500, template.Canvas.Height);
-        Assert.Equal("#f0f0f0", template.Canvas.Background);
+        Assert.Equal("#f0f0f0", template.Canvas.Background.Value);
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public class TemplateParserCanvasTests
 
         var template = _parser.Parse(yaml);
 
-        Assert.Equal("none", template.Canvas.Rotate);
+        Assert.Equal("none", template.Canvas.Rotate.Value);
     }
 
     /// <summary>
@@ -166,7 +166,7 @@ public class TemplateParserCanvasTests
 
         var template = _parser.Parse(yaml);
 
-        Assert.Equal(rotate, template.Canvas.Rotate);
+        Assert.Equal(rotate, template.Canvas.Rotate.Value);
     }
 
     /// <summary>

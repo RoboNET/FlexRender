@@ -32,7 +32,7 @@ internal sealed class ImageSharpTextShaper : ITextShaper
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Content))
+        if (string.IsNullOrEmpty(element.Content.Value))
         {
             return new TextShapingResult(
                 Array.Empty<string>(),
@@ -42,11 +42,11 @@ internal sealed class ImageSharpTextShaper : ITextShaper
 
         var font = CreateFont(element, fontSize);
 
-        var effectiveMaxWidth = element.Overflow == TextOverflow.Visible && !element.Wrap
+        var effectiveMaxWidth = element.Overflow.Value == TextOverflow.Visible && !element.Wrap.Value
             ? float.MaxValue
             : maxWidth;
 
-        var lines = GetLines(element.Content, element.Wrap, effectiveMaxWidth, font, element.MaxLines, element.Overflow);
+        var lines = GetLines(element.Content.Value, element.Wrap.Value, effectiveMaxWidth, font, element.MaxLines.Value, element.Overflow.Value);
 
         if (lines.Count == 0)
         {
@@ -65,7 +65,7 @@ internal sealed class ImageSharpTextShaper : ITextShaper
         }
 
         maxLineWidth = MathF.Ceiling(maxLineWidth);
-        var lineHeight = ResolveLineHeight(element.LineHeight, font);
+        var lineHeight = ResolveLineHeight(element.LineHeight.Value, font);
         var totalHeight = lines.Count * lineHeight;
 
         return new TextShapingResult(
@@ -76,7 +76,7 @@ internal sealed class ImageSharpTextShaper : ITextShaper
 
     private Font CreateFont(TextElement element, float fontSize)
     {
-        return _fontManager.GetFont(element.Font, fontSize);
+        return _fontManager.GetFont(element.Font.Value, fontSize);
     }
 
     private static float ResolveLineHeight(string? lineHeight, Font font)

@@ -37,7 +37,7 @@ internal sealed class WrappedFlexLayoutStrategy
     /// </summary>
     internal void LayoutWrappedFlex(LayoutNode node, FlexElement flex, LayoutContext context, PaddingValues padding, float mainGap, float crossGap)
     {
-        var isColumn = flex.Direction is FlexDirection.Column or FlexDirection.ColumnReverse;
+        var isColumn = flex.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse;
         var availableMainSize = isColumn
             ? (node.Height > 0 ? node.Height - padding.Vertical : float.MaxValue)
             : node.Width - padding.Horizontal;
@@ -65,7 +65,7 @@ internal sealed class WrappedFlexLayoutStrategy
         float availableCrossSize;
         if (isColumn)
         {
-            var hasExplicitWidth = !string.IsNullOrEmpty(flex.Width);
+            var hasExplicitWidth = !string.IsNullOrEmpty(flex.Width.Value);
             availableCrossSize = hasExplicitWidth
                 ? node.Width - padding.Horizontal
                 : totalLinesCrossSize + totalCrossGaps; // auto-width
@@ -81,19 +81,19 @@ internal sealed class WrappedFlexLayoutStrategy
 
         // Step 4: Align-content distribution
         // Overflow fallback: space-distribution modes -> Start when crossFreeSpace < 0
-        var effectiveAlignContent = crossFreeSpace < 0 ? flex.AlignContent switch
+        var effectiveAlignContent = crossFreeSpace < 0 ? flex.AlignContent.Value switch
         {
             AlignContent.SpaceBetween => AlignContent.Start,
             AlignContent.Stretch => AlignContent.Start,
             AlignContent.SpaceAround => AlignContent.Start,
             AlignContent.SpaceEvenly => AlignContent.Start,
-            _ => flex.AlignContent
-        } : flex.AlignContent;
+            _ => flex.AlignContent.Value
+        } : flex.AlignContent.Value;
 
         // WrapReverse reverses line stacking direction. Stretch distributes extra space
         // between lines which conflicts with the post-hoc position flip.
         // Fallback to Start to ensure correct flipped positions.
-        if (flex.Wrap == FlexWrap.WrapReverse && effectiveAlignContent == AlignContent.Stretch)
+        if (flex.Wrap.Value == FlexWrap.WrapReverse && effectiveAlignContent == AlignContent.Stretch)
             effectiveAlignContent = AlignContent.Start;
 
         var leadingCrossDim = 0f;
@@ -149,15 +149,15 @@ internal sealed class WrappedFlexLayoutStrategy
             for (var i = line.StartIndex; i < line.StartIndex + line.Count; i++)
             {
                 var child = node.Children[i];
-                if (child.Element.Display == Display.None) continue;
-                if (child.Element.Position == Position.Absolute) continue;
+                if (child.Element.Display.Value == Display.None) continue;
+                if (child.Element.Position.Value == Position.Absolute) continue;
 
-                var childMargin = PaddingParser.Parse(child.Element.Margin, context.ContainerWidth, context.FontSize).ClampNegatives();
+                var childMargin = PaddingParser.Parse(child.Element.Margin.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
 
                 if (isColumn)
                 {
                     // Column: cross axis is X
-                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
+                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
                     child.X = childMargin.Left + effectiveAlign switch
                     {
                         AlignItems.Start => crossLead,
@@ -175,7 +175,7 @@ internal sealed class WrappedFlexLayoutStrategy
                 else
                 {
                     // Row: cross axis is Y
-                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align);
+                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
                     child.Y = childMargin.Top + effectiveAlign switch
                     {
                         AlignItems.Start => crossLead,
@@ -199,7 +199,7 @@ internal sealed class WrappedFlexLayoutStrategy
         if (isColumn)
         {
             // Column wrap: auto-width = total cross-axis size
-            if (string.IsNullOrEmpty(flex.Width))
+            if (string.IsNullOrEmpty(flex.Width.Value))
             {
                 node.Width = crossLead + padding.Right;
             }
@@ -214,14 +214,14 @@ internal sealed class WrappedFlexLayoutStrategy
         }
 
         // Step 7: WrapReverse - flip cross-axis positions
-        if (flex.Wrap == FlexWrap.WrapReverse)
+        if (flex.Wrap.Value == FlexWrap.WrapReverse)
         {
             // Use FULL container cross dimension (Yoga: node.measuredDimension(crossAxis))
             var containerCrossSize = isColumn ? node.Width : node.Height;
             foreach (var child in node.Children)
             {
-                if (child.Element.Display == Display.None) continue;
-                if (child.Element.Position == Position.Absolute) continue;
+                if (child.Element.Display.Value == Display.None) continue;
+                if (child.Element.Position.Value == Position.Absolute) continue;
                 if (isColumn)
                     child.X = containerCrossSize - child.X - child.Width;
                 else
@@ -230,23 +230,23 @@ internal sealed class WrappedFlexLayoutStrategy
         }
 
         // Step 8: ColumnReverse / RowReverse - flip main-axis positions
-        if (flex.Direction == FlexDirection.ColumnReverse)
+        if (flex.Direction.Value == FlexDirection.ColumnReverse)
         {
             var containerMainSize = node.Height > 0 ? node.Height : crossLead;
             foreach (var child in node.Children)
             {
-                if (child.Element.Display == Display.None) continue;
-                if (child.Element.Position == Position.Absolute) continue;
+                if (child.Element.Display.Value == Display.None) continue;
+                if (child.Element.Position.Value == Position.Absolute) continue;
                 child.Y = containerMainSize - child.Y - child.Height;
             }
         }
-        else if (flex.Direction == FlexDirection.RowReverse)
+        else if (flex.Direction.Value == FlexDirection.RowReverse)
         {
             var containerMainSize = node.Width;
             foreach (var child in node.Children)
             {
-                if (child.Element.Display == Display.None) continue;
-                if (child.Element.Position == Position.Absolute) continue;
+                if (child.Element.Display.Value == Display.None) continue;
+                if (child.Element.Position.Value == Position.Absolute) continue;
                 child.X = containerMainSize - child.X - child.Width;
             }
         }
@@ -273,8 +273,8 @@ internal sealed class WrappedFlexLayoutStrategy
         for (var i = 0; i < children.Count; i++)
         {
             var child = children[i];
-            if (child.Element.Display == Display.None) continue;
-            if (child.Element.Position == Position.Absolute) continue;
+            if (child.Element.Display.Value == Display.None) continue;
+            if (child.Element.Position.Value == Position.Absolute) continue;
 
             // Use flex basis clamped by min/max for line-breaking (Yoga: boundAxisWithinMinAndMax)
             var childBasis = LayoutHelpers.ResolveFlexBasis(child.Element, child, isColumn, context);
@@ -282,7 +282,8 @@ internal sealed class WrappedFlexLayoutStrategy
             var childMainSize = LayoutHelpers.ClampSize(childBasis, childMin, childMax);
 
             // Include main-axis margins
-            var childMargin = PaddingParser.Parse(child.Element.Margin, context.ContainerWidth, context.FontSize).ClampNegatives();
+            var childMargin = PaddingParser.Parse(child.Element.Margin.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
+
             var childMarginMain = isColumn ? childMargin.Top + childMargin.Bottom : childMargin.Left + childMargin.Right;
             var childMarginCross = isColumn ? childMargin.Left + childMargin.Right : childMargin.Top + childMargin.Bottom;
 
@@ -333,7 +334,7 @@ internal sealed class WrappedFlexLayoutStrategy
         var lineChildren = new List<LayoutNode>();
         for (var i = line.StartIndex; i < line.StartIndex + line.Count; i++)
         {
-            if (node.Children[i].Element.Display == Display.None) continue;
+            if (node.Children[i].Element.Display.Value == Display.None) continue;
             lineChildren.Add(node.Children[i]);
         }
 
@@ -348,7 +349,7 @@ internal sealed class WrappedFlexLayoutStrategy
         var totalMarginMain = 0f;
         for (var i = 0; i < itemCount; i++)
         {
-            var childMargin = PaddingParser.Parse(lineChildren[i].Element.Margin, context.ContainerWidth, context.FontSize).ClampNegatives();
+            var childMargin = PaddingParser.Parse(lineChildren[i].Element.Margin.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
             totalMarginMain += isColumn ? childMargin.Top + childMargin.Bottom : childMargin.Left + childMargin.Right;
         }
 
@@ -464,13 +465,13 @@ internal sealed class WrappedFlexLayoutStrategy
         float mainStart = isColumn ? padding.Top : padding.Left;
         var lineGap = mainGap;
 
-        var effectiveJustify = freeSpace < 0 ? flex.Justify switch
+        var effectiveJustify = freeSpace < 0 ? flex.Justify.Value switch
         {
             JustifyContent.SpaceBetween => JustifyContent.Start,
             JustifyContent.SpaceAround => JustifyContent.Start,
             JustifyContent.SpaceEvenly => JustifyContent.Start,
-            _ => flex.Justify
-        } : flex.Justify;
+            _ => flex.Justify.Value
+        } : flex.Justify.Value;
 
         switch (effectiveJustify)
         {
@@ -506,7 +507,7 @@ internal sealed class WrappedFlexLayoutStrategy
         for (var i = 0; i < itemCount; i++)
         {
             var child = lineChildren[i];
-            var childMargin = PaddingParser.Parse(child.Element.Margin, context.ContainerWidth, context.FontSize).ClampNegatives();
+            var childMargin = PaddingParser.Parse(child.Element.Margin.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
 
             if (isColumn)
             {

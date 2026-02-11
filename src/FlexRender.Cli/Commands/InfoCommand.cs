@@ -75,7 +75,7 @@ public static partial class InfoCommand
         Console.WriteLine($"  Fixed dimension: {template.Canvas.Fixed}");
         Console.WriteLine($"  Width: {template.Canvas.Width}px");
         Console.WriteLine($"  Height: {template.Canvas.Height}px");
-        Console.WriteLine($"  Background: {template.Canvas.Background}");
+        Console.WriteLine($"  Background: {template.Canvas.Background.Value}");
         Console.WriteLine();
 
         Console.WriteLine("Elements:");
@@ -129,7 +129,7 @@ public static partial class InfoCommand
         {
             if (element is TextElement textElement)
             {
-                var matches = pattern.Matches(textElement.Content);
+                var matches = pattern.Matches(textElement.Content.Value);
                 foreach (Match match in matches)
                 {
                     variables.Add(match.Groups[1].Value.Trim());

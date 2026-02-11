@@ -34,7 +34,7 @@ public static class BorderParser
     public static BorderValues Resolve(TemplateElement element, float parentSize, float fontSize)
     {
         // Step 1: Start from shorthand (applies to all sides)
-        var baseSide = ParseShorthand(element.Border, parentSize, fontSize);
+        var baseSide = ParseShorthand(element.Border.Value, parentSize, fontSize);
 
         var top = baseSide;
         var right = baseSide;
@@ -42,18 +42,18 @@ public static class BorderParser
         var left = baseSide;
 
         // Step 2: Apply individual property overrides (borderWidth, borderColor, borderStyle)
-        if (!string.IsNullOrEmpty(element.BorderWidth) ||
-            !string.IsNullOrEmpty(element.BorderColor) ||
-            !string.IsNullOrEmpty(element.BorderStyle))
+        if (!string.IsNullOrEmpty(element.BorderWidth.Value) ||
+            !string.IsNullOrEmpty(element.BorderColor.Value) ||
+            !string.IsNullOrEmpty(element.BorderStyle.Value))
         {
-            var overrideWidth = !string.IsNullOrEmpty(element.BorderWidth)
-                ? ResolveWidth(element.BorderWidth, parentSize, fontSize)
+            var overrideWidth = !string.IsNullOrEmpty(element.BorderWidth.Value)
+                ? ResolveWidth(element.BorderWidth.Value, parentSize, fontSize)
                 : (float?)null;
 
-            var overrideColor = element.BorderColor;
+            var overrideColor = element.BorderColor.Value;
 
-            var overrideStyle = !string.IsNullOrEmpty(element.BorderStyle)
-                ? ParseStyle(element.BorderStyle)
+            var overrideStyle = !string.IsNullOrEmpty(element.BorderStyle.Value)
+                ? ParseStyle(element.BorderStyle.Value)
                 : (BorderLineStyle?)null;
 
             top = ApplyOverrides(top, overrideWidth, overrideStyle, overrideColor);
@@ -63,17 +63,17 @@ public static class BorderParser
         }
 
         // Step 3: Apply per-side overrides
-        if (!string.IsNullOrEmpty(element.BorderTop))
-            top = ParseShorthand(element.BorderTop, parentSize, fontSize);
+        if (!string.IsNullOrEmpty(element.BorderTop.Value))
+            top = ParseShorthand(element.BorderTop.Value, parentSize, fontSize);
 
-        if (!string.IsNullOrEmpty(element.BorderRight))
-            right = ParseShorthand(element.BorderRight, parentSize, fontSize);
+        if (!string.IsNullOrEmpty(element.BorderRight.Value))
+            right = ParseShorthand(element.BorderRight.Value, parentSize, fontSize);
 
-        if (!string.IsNullOrEmpty(element.BorderBottom))
-            bottom = ParseShorthand(element.BorderBottom, parentSize, fontSize);
+        if (!string.IsNullOrEmpty(element.BorderBottom.Value))
+            bottom = ParseShorthand(element.BorderBottom.Value, parentSize, fontSize);
 
-        if (!string.IsNullOrEmpty(element.BorderLeft))
-            left = ParseShorthand(element.BorderLeft, parentSize, fontSize);
+        if (!string.IsNullOrEmpty(element.BorderLeft.Value))
+            left = ParseShorthand(element.BorderLeft.Value, parentSize, fontSize);
 
         // Quick path: if all sides are none, return Zero
         if (!top.IsVisible && !right.IsVisible && !bottom.IsVisible && !left.IsVisible &&

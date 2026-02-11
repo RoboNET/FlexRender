@@ -20,8 +20,7 @@ internal sealed class SvgRenderingEngine
 
     private readonly ResourceLimits _limits;
     private readonly float _baseFontSize;
-    private readonly TemplateExpander _expander;
-    private readonly SvgPreprocessor _preprocessor;
+    private readonly TemplatePipeline _pipeline;
     private readonly LayoutEngine _layoutEngine;
     private readonly IContentProvider<QrElement>? _qrProvider;
     private readonly IContentProvider<BarcodeElement>? _barcodeProvider;
@@ -34,8 +33,7 @@ internal sealed class SvgRenderingEngine
     /// Initializes a new instance of the <see cref="SvgRenderingEngine"/> class.
     /// </summary>
     /// <param name="limits">The resource limits to enforce.</param>
-    /// <param name="expander">The template expander for control flow expansion.</param>
-    /// <param name="preprocessor">The SVG preprocessor for expression resolution.</param>
+    /// <param name="pipeline">The template pipeline for expand, resolve, and materialize.</param>
     /// <param name="layoutEngine">The layout engine for computing element positions.</param>
     /// <param name="baseFontSize">The base font size in pixels.</param>
     /// <param name="options">Optional rendering options for path resolution.</param>
@@ -46,8 +44,7 @@ internal sealed class SvgRenderingEngine
     /// <param name="svgElementSvgProvider">Optional SVG-native SVG element provider.</param>
     internal SvgRenderingEngine(
         ResourceLimits limits,
-        TemplateExpander expander,
-        SvgPreprocessor preprocessor,
+        TemplatePipeline pipeline,
         LayoutEngine layoutEngine,
         float baseFontSize,
         FlexRenderOptions? options = null,
@@ -58,12 +55,10 @@ internal sealed class SvgRenderingEngine
         ISvgContentProvider<SvgElement>? svgElementSvgProvider = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
-        ArgumentNullException.ThrowIfNull(expander);
-        ArgumentNullException.ThrowIfNull(preprocessor);
+        ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(layoutEngine);
         _limits = limits;
-        _expander = expander;
-        _preprocessor = preprocessor;
+        _pipeline = pipeline;
         _layoutEngine = layoutEngine;
         _baseFontSize = baseFontSize;
         _options = options;
@@ -85,8 +80,7 @@ internal sealed class SvgRenderingEngine
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(data);
 
-        var expandedTemplate = _expander.Expand(template, data);
-        var processedTemplate = _preprocessor.Process(expandedTemplate, data);
+        var processedTemplate = _pipeline.Process(template, data);
 
         // Build font family map and font face declarations from the template.
         // Returned as local variables to ensure thread safety when RenderToSvg is called concurrently.
@@ -124,7 +118,7 @@ internal sealed class SvgRenderingEngine
         }
 
         // Canvas background
-        var bgColor = processedTemplate.Canvas.Background;
+        var bgColor = processedTemplate.Canvas.Background.Value;
         if (!string.IsNullOrEmpty(bgColor))
         {
             sb.Append("<rect width=\"100%\" height=\"100%\" fill=\"");
@@ -157,7 +151,7 @@ internal sealed class SvgRenderingEngine
                 $"Maximum render depth ({_limits.MaxRenderDepth}) exceeded. Template may be too deeply nested.");
         }
 
-        if (node.Element.Display == Display.None)
+        if (node.Element.Display.Value == Display.None)
         {
             return;
         }
@@ -166,15 +160,15 @@ internal sealed class SvgRenderingEngine
         var y = node.Y + offsetY;
 
         // Check if rotation is needed
-        var rotation = RotationHelper.ParseRotation(node.Element.Rotate);
+        var rotation = RotationHelper.ParseRotation(node.Element.Rotate.Value);
         var hasRotation = RotationHelper.HasRotation(rotation);
 
         // Check if overflow:hidden clipping is needed
-        var needsClip = node.Element is FlexElement { Overflow: Overflow.Hidden };
+        var needsClip = node.Element is FlexElement fe && fe.Overflow.Value == Overflow.Hidden;
         var clipId = needsClip ? $"clip-{depth}-{x:F0}-{y:F0}" : null;
 
         // Wrap in group with transform if rotation or clipping needed
-        var needsGroup = hasRotation || needsClip || node.Element.Opacity < 1.0f;
+        var needsGroup = hasRotation || needsClip || node.Element.Opacity.Value < 1.0f;
         if (needsGroup)
         {
             sb.Append("<g");
@@ -187,9 +181,9 @@ internal sealed class SvgRenderingEngine
                 sb.Append(',').Append(F(cx)).Append(',').Append(F(cy)).Append(")\"");
             }
 
-            if (node.Element.Opacity < 1.0f)
+            if (node.Element.Opacity.Value < 1.0f)
             {
-                sb.Append(" opacity=\"").Append(F(node.Element.Opacity)).Append('"');
+                sb.Append(" opacity=\"").Append(F(node.Element.Opacity.Value)).Append('"');
             }
 
             if (needsClip && clipId != null)
@@ -239,12 +233,12 @@ internal sealed class SvgRenderingEngine
         var borderRadius = ResolveBorderRadius(element, width, height);
 
         // Draw background
-        if (!string.IsNullOrEmpty(element.Background))
+        if (!string.IsNullOrEmpty(element.Background.Value))
         {
             sb.Append("<rect x=\"").Append(F(x)).Append("\" y=\"").Append(F(y));
             sb.Append("\" width=\"").Append(F(width));
             sb.Append("\" height=\"").Append(F(height)).Append('"');
-            sb.Append(" fill=\"").Append(EscapeXml(element.Background)).Append('"');
+            sb.Append(" fill=\"").Append(EscapeXml(element.Background.Value)).Append('"');
 
             if (borderRadius > 0f)
             {
@@ -325,13 +319,13 @@ internal sealed class SvgRenderingEngine
         IReadOnlyList<string>? precomputedLines = null,
         float precomputedLineHeight = 0f)
     {
-        if (string.IsNullOrEmpty(text.Content))
+        if (string.IsNullOrEmpty(text.Content.Value))
         {
             return;
         }
 
         // Determine text-anchor from alignment
-        var anchor = text.Align switch
+        var anchor = text.Align.Value switch
         {
             TextAlign.Center => "middle",
             TextAlign.Right => "end",
@@ -341,7 +335,7 @@ internal sealed class SvgRenderingEngine
         };
 
         // Compute text x position based on alignment
-        var textX = text.Align switch
+        var textX = text.Align.Value switch
         {
             TextAlign.Center => x + width / 2,
             TextAlign.Right => x + width,
@@ -351,17 +345,17 @@ internal sealed class SvgRenderingEngine
         };
 
         // Parse font size
-        var fontSize = ParseFontSize(text.Size);
+        var fontSize = ParseFontSize(text.Size.Value);
 
         // Resolve font name to actual CSS font family name
-        var fontFamily = ResolveFontFamily(text.Font, fontFamilyMap);
+        var fontFamily = ResolveFontFamily(text.Font.Value, fontFamilyMap);
 
         sb.Append("<text");
         sb.Append(" x=\"").Append(F(textX)).Append('"');
         sb.Append(" y=\"").Append(F(y + fontSize)).Append('"'); // baseline offset
         sb.Append(" font-family=\"").Append(EscapeXml(fontFamily)).Append('"');
         sb.Append(" font-size=\"").Append(F(fontSize)).Append('"');
-        sb.Append(" fill=\"").Append(EscapeXml(text.Color)).Append('"');
+        sb.Append(" fill=\"").Append(EscapeXml(text.Color.Value)).Append('"');
 
         if (anchor != "start")
         {
@@ -385,7 +379,7 @@ internal sealed class SvgRenderingEngine
         }
         else
         {
-            lines = text.Content.Split('\n');
+            lines = text.Content.Value.Split('\n');
             effectiveLineHeight = fontSize * 1.2f;
         }
 
@@ -417,7 +411,7 @@ internal sealed class SvgRenderingEngine
     {
         float x1, y1, x2, y2;
 
-        if (separator.Orientation == SeparatorOrientation.Horizontal)
+        if (separator.Orientation.Value == SeparatorOrientation.Horizontal)
         {
             var cy = y + height / 2;
             x1 = x;
@@ -436,10 +430,10 @@ internal sealed class SvgRenderingEngine
 
         sb.Append("<line x1=\"").Append(F(x1)).Append("\" y1=\"").Append(F(y1));
         sb.Append("\" x2=\"").Append(F(x2)).Append("\" y2=\"").Append(F(y2)).Append('"');
-        sb.Append(" stroke=\"").Append(EscapeXml(separator.Color)).Append('"');
-        sb.Append(" stroke-width=\"").Append(F(separator.Thickness)).Append('"');
+        sb.Append(" stroke=\"").Append(EscapeXml(separator.Color.Value)).Append('"');
+        sb.Append(" stroke-width=\"").Append(F(separator.Thickness.Value)).Append('"');
 
-        switch (separator.Style)
+        switch (separator.Style.Value)
         {
             case SeparatorStyle.Dashed:
                 sb.Append(" stroke-dasharray=\"6,3\"");
@@ -460,7 +454,7 @@ internal sealed class SvgRenderingEngine
         float width,
         float height)
     {
-        var href = ResolveImageSrc(image.Src);
+        var href = ResolveImageSrc(image.Src.Value);
 
         sb.Append("<image x=\"").Append(F(x)).Append("\" y=\"").Append(F(y));
         sb.Append("\" width=\"").Append(F(width));
@@ -468,7 +462,7 @@ internal sealed class SvgRenderingEngine
         sb.Append(" href=\"").Append(EscapeXml(href)).Append('"');
         sb.Append(" preserveAspectRatio=\"");
 
-        sb.Append(image.Fit switch
+        sb.Append(image.Fit.Value switch
         {
             ImageFit.Fill => "none",
             ImageFit.Contain => "xMidYMid meet",
@@ -487,18 +481,18 @@ internal sealed class SvgRenderingEngine
         float width,
         float height)
     {
-        if (!string.IsNullOrEmpty(svg.Content))
+        if (!string.IsNullOrEmpty(svg.Content.Value))
         {
             // Inline SVG: embed as nested <svg> element
             sb.Append("<svg x=\"").Append(F(x)).Append("\" y=\"").Append(F(y));
             sb.Append("\" width=\"").Append(F(width));
             sb.Append("\" height=\"").Append(F(height)).Append("\">");
-            sb.Append(SvgFormatting.SanitizeSvgContent(svg.Content));
+            sb.Append(SvgFormatting.SanitizeSvgContent(svg.Content.Value));
             sb.Append("</svg>");
         }
-        else if (!string.IsNullOrEmpty(svg.Src))
+        else if (!string.IsNullOrEmpty(svg.Src.Value))
         {
-            var href = ResolveImageSrc(svg.Src);
+            var href = ResolveImageSrc(svg.Src.Value);
 
             // File-based SVG: render as image reference
             sb.Append("<image x=\"").Append(F(x)).Append("\" y=\"").Append(F(y));
@@ -507,7 +501,7 @@ internal sealed class SvgRenderingEngine
             sb.Append(" href=\"").Append(EscapeXml(href)).Append('"');
             sb.Append(" preserveAspectRatio=\"");
 
-            sb.Append(svg.Fit switch
+            sb.Append(svg.Fit.Value switch
             {
                 ImageFit.Fill => "none",
                 ImageFit.Contain => "xMidYMid meet",
@@ -575,12 +569,12 @@ internal sealed class SvgRenderingEngine
         float borderRadius)
     {
         // Parse the shorthand border property
-        if (string.IsNullOrEmpty(element.Border) &&
-            string.IsNullOrEmpty(element.BorderTop) &&
-            string.IsNullOrEmpty(element.BorderRight) &&
-            string.IsNullOrEmpty(element.BorderBottom) &&
-            string.IsNullOrEmpty(element.BorderLeft) &&
-            string.IsNullOrEmpty(element.BorderWidth))
+        if (string.IsNullOrEmpty(element.Border.Value) &&
+            string.IsNullOrEmpty(element.BorderTop.Value) &&
+            string.IsNullOrEmpty(element.BorderRight.Value) &&
+            string.IsNullOrEmpty(element.BorderBottom.Value) &&
+            string.IsNullOrEmpty(element.BorderLeft.Value) &&
+            string.IsNullOrEmpty(element.BorderWidth.Value))
         {
             return;
         }
@@ -590,41 +584,41 @@ internal sealed class SvgRenderingEngine
         var borderColor = "#000000";
         var borderStyle = "solid";
 
-        if (!string.IsNullOrEmpty(element.Border))
+        if (!string.IsNullOrEmpty(element.Border.Value))
         {
-            ParseBorderShorthand(element.Border, out borderWidth, out borderStyle, out borderColor);
+            ParseBorderShorthand(element.Border.Value, out borderWidth, out borderStyle, out borderColor);
         }
 
         // Apply overrides
-        if (!string.IsNullOrEmpty(element.BorderWidth) &&
-            float.TryParse(element.BorderWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out var bw))
+        if (!string.IsNullOrEmpty(element.BorderWidth.Value) &&
+            float.TryParse(element.BorderWidth.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var bw))
         {
             borderWidth = bw;
         }
 
-        if (!string.IsNullOrEmpty(element.BorderColor))
+        if (!string.IsNullOrEmpty(element.BorderColor.Value))
         {
-            borderColor = element.BorderColor;
+            borderColor = element.BorderColor.Value;
         }
 
-        if (!string.IsNullOrEmpty(element.BorderStyle))
+        if (!string.IsNullOrEmpty(element.BorderStyle.Value))
         {
-            borderStyle = element.BorderStyle;
+            borderStyle = element.BorderStyle.Value;
         }
 
         // Check for per-side borders
-        var hasPerSideBorders = !string.IsNullOrEmpty(element.BorderTop) ||
-                                !string.IsNullOrEmpty(element.BorderRight) ||
-                                !string.IsNullOrEmpty(element.BorderBottom) ||
-                                !string.IsNullOrEmpty(element.BorderLeft);
+        var hasPerSideBorders = !string.IsNullOrEmpty(element.BorderTop.Value) ||
+                                !string.IsNullOrEmpty(element.BorderRight.Value) ||
+                                !string.IsNullOrEmpty(element.BorderBottom.Value) ||
+                                !string.IsNullOrEmpty(element.BorderLeft.Value);
 
         if (hasPerSideBorders)
         {
             // Render individual border lines
-            DrawBorderSide(sb, element.BorderTop, x, y, x + width, y, borderWidth, borderColor, borderStyle);
-            DrawBorderSide(sb, element.BorderRight, x + width, y, x + width, y + height, borderWidth, borderColor, borderStyle);
-            DrawBorderSide(sb, element.BorderBottom, x, y + height, x + width, y + height, borderWidth, borderColor, borderStyle);
-            DrawBorderSide(sb, element.BorderLeft, x, y, x, y + height, borderWidth, borderColor, borderStyle);
+            DrawBorderSide(sb, element.BorderTop.Value, x, y, x + width, y, borderWidth, borderColor, borderStyle);
+            DrawBorderSide(sb, element.BorderRight.Value, x + width, y, x + width, y + height, borderWidth, borderColor, borderStyle);
+            DrawBorderSide(sb, element.BorderBottom.Value, x, y + height, x + width, y + height, borderWidth, borderColor, borderStyle);
+            DrawBorderSide(sb, element.BorderLeft.Value, x, y, x, y + height, borderWidth, borderColor, borderStyle);
         }
         else if (borderWidth > 0)
         {
@@ -720,12 +714,12 @@ internal sealed class SvgRenderingEngine
 
     private float ResolveBorderRadius(TemplateElement element, float width, float height)
     {
-        if (string.IsNullOrEmpty(element.BorderRadius))
+        if (string.IsNullOrEmpty(element.BorderRadius.Value))
         {
             return 0f;
         }
 
-        var unit = UnitParser.Parse(element.BorderRadius);
+        var unit = UnitParser.Parse(element.BorderRadius.Value);
         return unit.Resolve(_baseFontSize, Math.Min(width, height)) ?? 0f;
     }
 

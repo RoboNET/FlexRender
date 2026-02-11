@@ -40,7 +40,7 @@ public sealed class ConditionOperatorTests
 
     private static string GetResultContent(Template result)
     {
-        return ((TextElement)result.Elements[0]).Content;
+        return ((TextElement)result.Elements[0]).Content.Value;
     }
 
     // === In Operator Tests ===

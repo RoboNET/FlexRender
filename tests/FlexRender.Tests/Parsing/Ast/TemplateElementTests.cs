@@ -9,7 +9,7 @@ public class TemplateElementTests
     public void Background_DefaultsToNull()
     {
         var element = new TextElement();
-        Assert.Null(element.Background);
+        Assert.Null(element.Background.Value);
     }
 
     [Fact]

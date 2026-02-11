@@ -54,13 +54,13 @@ public sealed class ImageProvider
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        if (string.IsNullOrEmpty(element.Src))
+        if (string.IsNullOrEmpty(element.Src.Value))
         {
             throw new ArgumentException("Image source cannot be empty.", nameof(element));
         }
 
         // Check pre-loaded cache first (used when IImageLoader is available)
-        if (imageCache is not null && imageCache.TryGetValue(element.Src, out var cached))
+        if (imageCache is not null && imageCache.TryGetValue(element.Src.Value, out var cached))
         {
             // Clone because ProcessImage caller disposes the source
             var clone = cached.Copy();
@@ -74,7 +74,7 @@ public sealed class ImageProvider
             }
         }
 
-        var sourceBitmap = LoadImage(element.Src);
+        var sourceBitmap = LoadImage(element.Src.Value);
 
         try
         {
@@ -192,16 +192,16 @@ public sealed class ImageProvider
     /// <returns>The processed bitmap.</returns>
     private static SKBitmap ProcessImage(SKBitmap source, ImageElement element, bool antialiasing, int? layoutWidth = null, int? layoutHeight = null)
     {
-        var targetWidth = layoutWidth ?? element.ImageWidth ?? source.Width;
-        var targetHeight = layoutHeight ?? element.ImageHeight ?? source.Height;
+        var targetWidth = layoutWidth ?? element.ImageWidth.Value ?? source.Width;
+        var targetHeight = layoutHeight ?? element.ImageHeight.Value ?? source.Height;
 
-        if (element.Fit == ImageFit.None)
+        if (element.Fit.Value == ImageFit.None)
         {
             // Return a copy at the target size, centered
             return CreateCenteredCopy(source, targetWidth, targetHeight);
         }
 
-        var (sourceRect, destRect) = CalculateFitRects(source, targetWidth, targetHeight, element.Fit);
+        var (sourceRect, destRect) = CalculateFitRects(source, targetWidth, targetHeight, element.Fit.Value);
 
         var result = new SKBitmap(targetWidth, targetHeight);
         using var canvas = new SKCanvas(result);

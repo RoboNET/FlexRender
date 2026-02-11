@@ -8,6 +8,7 @@ using FlexRender.Svg.Rendering;
 using FlexRender.TemplateEngine;
 using Xunit;
 
+
 namespace FlexRender.Tests.Snapshots;
 
 /// <summary>
@@ -80,13 +81,12 @@ public abstract class SvgSnapshotTestBase
 
         var limits = new ResourceLimits();
         var expander = new TemplateExpander(limits);
-        var preprocessor = new SvgPreprocessor(new TemplateProcessor(limits));
+        var pipeline = new TemplatePipeline(expander, new TemplateProcessor(limits));
         var layoutEngine = new LayoutEngine(limits);
 
         _engine = new SvgRenderingEngine(
             limits,
-            expander,
-            preprocessor,
+            pipeline,
             layoutEngine,
             baseFontSize: 16f,
             qrSvgProvider: new QrSvgProvider(),

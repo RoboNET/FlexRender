@@ -1,4 +1,5 @@
 using FlexRender.Layout;
+using FlexRender.TemplateEngine;
 
 namespace FlexRender.Parsing.Ast;
 
@@ -72,128 +73,214 @@ public abstract class TemplateElement
     /// <summary>
     /// Rotation of the element.
     /// </summary>
-    public string Rotate { get; set; } = "none";
+    public ExprValue<string> Rotate { get; set; } = "none";
 
     /// <summary>
     /// Background color in hex format (e.g., "#000000"). Null means transparent.
     /// </summary>
-    public string? Background { get; set; }
+    public ExprValue<string> Background { get; set; }
 
     /// <summary>
     /// Padding inside the element (px, %, em). Default is "0".
     /// </summary>
-    public string Padding { get; set; } = "0";
+    public ExprValue<string> Padding { get; set; } = "0";
 
     /// <summary>
     /// Margin outside the element (px, %, em). Default is "0".
     /// </summary>
-    public string Margin { get; set; } = "0";
+    public ExprValue<string> Margin { get; set; } = "0";
 
     /// <summary>
     /// Display mode. None removes the element from layout flow.
     /// </summary>
-    public Display Display { get; set; } = Display.Flex;
+    public ExprValue<Display> Display { get; set; } = Layout.Display.Flex;
 
     // Flex item properties (when this element is inside a flex container)
 
     /// <summary>Flex grow factor.</summary>
-    public float Grow { get; set; }
+    public ExprValue<float> Grow { get; set; }
 
     /// <summary>Flex shrink factor.</summary>
-    public float Shrink { get; set; } = 1f;
+    public ExprValue<float> Shrink { get; set; } = 1f;
 
     /// <summary>Flex basis (px, %, em, auto).</summary>
-    public string Basis { get; set; } = "auto";
+    public ExprValue<string> Basis { get; set; } = "auto";
 
     /// <summary>Self alignment override.</summary>
-    public AlignSelf AlignSelf { get; set; } = AlignSelf.Auto;
+    public ExprValue<AlignSelf> AlignSelf { get; set; } = Layout.AlignSelf.Auto;
 
     /// <summary>Display order.</summary>
-    public int Order { get; set; }
+    public ExprValue<int> Order { get; set; }
 
     /// <summary>Width (px, %, em, auto).</summary>
-    public string? Width { get; set; }
+    public ExprValue<string> Width { get; set; }
 
     /// <summary>Height (px, %, em, auto).</summary>
-    public string? Height { get; set; }
+    public ExprValue<string> Height { get; set; }
 
     /// <summary>Minimum width constraint (px, %, em).</summary>
-    public string? MinWidth { get; set; }
+    public ExprValue<string> MinWidth { get; set; }
 
     /// <summary>Maximum width constraint (px, %, em).</summary>
-    public string? MaxWidth { get; set; }
+    public ExprValue<string> MaxWidth { get; set; }
 
     /// <summary>Minimum height constraint (px, %, em).</summary>
-    public string? MinHeight { get; set; }
+    public ExprValue<string> MinHeight { get; set; }
 
     /// <summary>Maximum height constraint (px, %, em).</summary>
-    public string? MaxHeight { get; set; }
+    public ExprValue<string> MaxHeight { get; set; }
 
     /// <summary>Positioning mode.</summary>
-    public Position Position { get; set; } = Position.Static;
+    public ExprValue<Position> Position { get; set; } = Layout.Position.Static;
 
     /// <summary>Top inset for positioned elements.</summary>
-    public string? Top { get; set; }
+    public ExprValue<string> Top { get; set; }
 
     /// <summary>Right inset for positioned elements.</summary>
-    public string? Right { get; set; }
+    public ExprValue<string> Right { get; set; }
 
     /// <summary>Bottom inset for positioned elements.</summary>
-    public string? Bottom { get; set; }
+    public ExprValue<string> Bottom { get; set; }
 
     /// <summary>Left inset for positioned elements.</summary>
-    public string? Left { get; set; }
+    public ExprValue<string> Left { get; set; }
 
     /// <summary>Aspect ratio (width / height). When one dimension is known, the other is computed.</summary>
-    public float? AspectRatio { get; set; }
+    public ExprValue<float?> AspectRatio { get; set; }
 
     // Border properties
 
     /// <summary>Border shorthand: "width style color" (e.g., "2 solid #333"). Applies to all sides.</summary>
-    public string? Border { get; set; }
+    public ExprValue<string> Border { get; set; }
 
     /// <summary>Border width (px, em). Overrides shorthand width on all sides.</summary>
-    public string? BorderWidth { get; set; }
+    public ExprValue<string> BorderWidth { get; set; }
 
     /// <summary>Border color in hex format. Overrides shorthand color on all sides.</summary>
-    public string? BorderColor { get; set; }
+    public ExprValue<string> BorderColor { get; set; }
 
     /// <summary>Border style: solid, dashed, dotted, none. Overrides shorthand style on all sides.</summary>
-    public string? BorderStyle { get; set; }
+    public ExprValue<string> BorderStyle { get; set; }
 
     /// <summary>Per-side border shorthand for the top side: "width style color".</summary>
-    public string? BorderTop { get; set; }
+    public ExprValue<string> BorderTop { get; set; }
 
     /// <summary>Per-side border shorthand for the right side: "width style color".</summary>
-    public string? BorderRight { get; set; }
+    public ExprValue<string> BorderRight { get; set; }
 
     /// <summary>Per-side border shorthand for the bottom side: "width style color".</summary>
-    public string? BorderBottom { get; set; }
+    public ExprValue<string> BorderBottom { get; set; }
 
     /// <summary>Per-side border shorthand for the left side: "width style color".</summary>
-    public string? BorderLeft { get; set; }
+    public ExprValue<string> BorderLeft { get; set; }
 
     /// <summary>Border radius for corner rounding (px, em, %).</summary>
-    public string? BorderRadius { get; set; }
+    public ExprValue<string> BorderRadius { get; set; }
 
     /// <summary>
     /// Text direction override. Null means inherit from parent/canvas.
     /// </summary>
-    public TextDirection? TextDirection { get; set; }
+    public ExprValue<TextDirection?> TextDirection { get; set; }
 
     /// <summary>
     /// Opacity of the element (0.0 = fully transparent, 1.0 = fully opaque).
     /// Affects the entire element including children (CSS behavior).
     /// Only allocates an offscreen buffer when less than 1.0.
     /// </summary>
-    public float Opacity { get; set; } = 1.0f;
+    public ExprValue<float> Opacity { get; set; } = 1.0f;
 
     /// <summary>
     /// Box shadow definition: "offsetX offsetY blurRadius color".
     /// Example: "4 4 8 rgba(0,0,0,0.3)".
     /// Null means no shadow.
     /// </summary>
-    public string? BoxShadow { get; set; }
+    public ExprValue<string> BoxShadow { get; set; }
+
+    /// <summary>
+    /// Resolves template expressions in all <see cref="ExprValue{T}"/> properties on this element.
+    /// Override in derived classes to resolve subclass-specific properties.
+    /// </summary>
+    /// <param name="resolver">Function that resolves a raw template string to a concrete string value.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    public virtual void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
+    {
+        Rotate = Rotate.Resolve(resolver, data);
+        Background = Background.Resolve(resolver, data);
+        Padding = Padding.Resolve(resolver, data);
+        Margin = Margin.Resolve(resolver, data);
+        Grow = Grow.Resolve(resolver, data);
+        Shrink = Shrink.Resolve(resolver, data);
+        Basis = Basis.Resolve(resolver, data);
+        Order = Order.Resolve(resolver, data);
+        Display = Display.Resolve(resolver, data);
+        AlignSelf = AlignSelf.Resolve(resolver, data);
+        Opacity = Opacity.Resolve(resolver, data);
+        Width = Width.Resolve(resolver, data);
+        Height = Height.Resolve(resolver, data);
+        MinWidth = MinWidth.Resolve(resolver, data);
+        MaxWidth = MaxWidth.Resolve(resolver, data);
+        MinHeight = MinHeight.Resolve(resolver, data);
+        MaxHeight = MaxHeight.Resolve(resolver, data);
+        Position = Position.Resolve(resolver, data);
+        Top = Top.Resolve(resolver, data);
+        Right = Right.Resolve(resolver, data);
+        Bottom = Bottom.Resolve(resolver, data);
+        Left = Left.Resolve(resolver, data);
+        AspectRatio = AspectRatio.Resolve(resolver, data);
+        TextDirection = TextDirection.Resolve(resolver, data);
+        BoxShadow = BoxShadow.Resolve(resolver, data);
+        Border = Border.Resolve(resolver, data);
+        BorderWidth = BorderWidth.Resolve(resolver, data);
+        BorderColor = BorderColor.Resolve(resolver, data);
+        BorderStyle = BorderStyle.Resolve(resolver, data);
+        BorderTop = BorderTop.Resolve(resolver, data);
+        BorderRight = BorderRight.Resolve(resolver, data);
+        BorderBottom = BorderBottom.Resolve(resolver, data);
+        BorderLeft = BorderLeft.Resolve(resolver, data);
+        BorderRadius = BorderRadius.Resolve(resolver, data);
+    }
+
+    /// <summary>
+    /// Materializes all resolved <see cref="ExprValue{T}"/> properties into typed values.
+    /// Override in derived classes to materialize subclass-specific properties.
+    /// </summary>
+    public virtual void Materialize()
+    {
+        Rotate = Rotate.Materialize(nameof(Rotate));
+        Background = Background.Materialize(nameof(Background), ValueKind.Color);
+        Padding = Padding.Materialize(nameof(Padding), ValueKind.Size);
+        Margin = Margin.Materialize(nameof(Margin), ValueKind.Size);
+        Grow = Grow.Materialize(nameof(Grow));
+        Shrink = Shrink.Materialize(nameof(Shrink));
+        Basis = Basis.Materialize(nameof(Basis));
+        Order = Order.Materialize(nameof(Order));
+        Display = Display.Materialize(nameof(Display));
+        AlignSelf = AlignSelf.Materialize(nameof(AlignSelf));
+        Opacity = Opacity.Materialize(nameof(Opacity));
+        Width = Width.Materialize(nameof(Width), ValueKind.Size);
+        Height = Height.Materialize(nameof(Height), ValueKind.Size);
+        MinWidth = MinWidth.Materialize(nameof(MinWidth), ValueKind.Size);
+        MaxWidth = MaxWidth.Materialize(nameof(MaxWidth), ValueKind.Size);
+        MinHeight = MinHeight.Materialize(nameof(MinHeight), ValueKind.Size);
+        MaxHeight = MaxHeight.Materialize(nameof(MaxHeight), ValueKind.Size);
+        Position = Position.Materialize(nameof(Position));
+        Top = Top.Materialize(nameof(Top), ValueKind.Size);
+        Right = Right.Materialize(nameof(Right), ValueKind.Size);
+        Bottom = Bottom.Materialize(nameof(Bottom), ValueKind.Size);
+        Left = Left.Materialize(nameof(Left), ValueKind.Size);
+        AspectRatio = AspectRatio.Materialize(nameof(AspectRatio));
+        TextDirection = TextDirection.Materialize(nameof(TextDirection));
+        BoxShadow = BoxShadow.Materialize(nameof(BoxShadow));
+        Border = Border.Materialize(nameof(Border));
+        BorderWidth = BorderWidth.Materialize(nameof(BorderWidth));
+        BorderColor = BorderColor.Materialize(nameof(BorderColor), ValueKind.Color);
+        BorderStyle = BorderStyle.Materialize(nameof(BorderStyle));
+        BorderTop = BorderTop.Materialize(nameof(BorderTop));
+        BorderRight = BorderRight.Materialize(nameof(BorderRight));
+        BorderBottom = BorderBottom.Materialize(nameof(BorderBottom));
+        BorderLeft = BorderLeft.Materialize(nameof(BorderLeft));
+        BorderRadius = BorderRadius.Materialize(nameof(BorderRadius));
+    }
 
     /// <summary>
     /// Copies all base flex-item and positioning properties from source to target element.

@@ -8,6 +8,7 @@ using FlexRender.Svg.Rendering;
 using FlexRender.TemplateEngine;
 using Xunit;
 
+
 namespace FlexRender.Tests.Rendering;
 
 /// <summary>
@@ -86,13 +87,12 @@ public sealed class SvgQrRenderingTests
     {
         var limits = new ResourceLimits();
         var expander = new TemplateExpander(limits);
-        var preprocessor = new SvgPreprocessor(new TemplateProcessor(limits));
+        var pipeline = new TemplatePipeline(expander, new TemplateProcessor(limits));
         var layoutEngine = new LayoutEngine(limits);
 
         return new SvgRenderingEngine(
             limits,
-            expander,
-            preprocessor,
+            pipeline,
             layoutEngine,
             baseFontSize: 16f,
             qrSvgProvider: svgProvider);
@@ -102,13 +102,12 @@ public sealed class SvgQrRenderingTests
     {
         var limits = new ResourceLimits();
         var expander = new TemplateExpander(limits);
-        var preprocessor = new SvgPreprocessor(new TemplateProcessor(limits));
+        var pipeline = new TemplatePipeline(expander, new TemplateProcessor(limits));
         var layoutEngine = new LayoutEngine(limits);
 
         return new SvgRenderingEngine(
             limits,
-            expander,
-            preprocessor,
+            pipeline,
             layoutEngine,
             baseFontSize: 16f,
             qrProvider: rasterProvider);
@@ -123,7 +122,7 @@ public sealed class SvgQrRenderingTests
         {
             Data = data,
             Foreground = foreground,
-            Background = background,
+            Background = background!,
             Width = "100",
             Height = "100"
         };
