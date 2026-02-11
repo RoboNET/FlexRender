@@ -359,6 +359,137 @@ public sealed class ComparisonExpressionEvaluatorTests
 
     #endregion
 
+    #region Logical OR (||)
+
+    [Fact]
+    public void LogicalOr_LeftTruthy_ReturnsLeft()
+    {
+        var data = new ObjectValue { ["name"] = "John" };
+        var result = Eval("name || 'Guest'", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("John", str.Value);
+    }
+
+    [Fact]
+    public void LogicalOr_LeftNull_ReturnsRight()
+    {
+        var data = new ObjectValue();
+        var result = Eval("name || 'Guest'", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("Guest", str.Value);
+    }
+
+    [Fact]
+    public void LogicalOr_LeftEmptyString_ReturnsRight()
+    {
+        var data = new ObjectValue { ["name"] = "" };
+        var result = Eval("name || 'Guest'", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("Guest", str.Value);
+    }
+
+    [Fact]
+    public void LogicalOr_LeftZero_ReturnsRight()
+    {
+        var data = new ObjectValue { ["count"] = 0m };
+        var result = Eval("count || 42", data);
+        var num = Assert.IsType<NumberValue>(result);
+        Assert.Equal(42m, num.Value);
+    }
+
+    [Fact]
+    public void LogicalOr_LeftFalse_ReturnsRight()
+    {
+        var data = new ObjectValue { ["active"] = false };
+        var result = Eval("active || true", data);
+        var b = Assert.IsType<BoolValue>(result);
+        Assert.True(b.Value);
+    }
+
+    [Fact]
+    public void LogicalOr_Chain_ReturnsFirstTruthy()
+    {
+        var data = new ObjectValue { ["c"] = "found" };
+        var result = Eval("a || b || c", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("found", str.Value);
+    }
+
+    [Fact]
+    public void LogicalOr_LeftTruthy_DoesNotEvaluateRight()
+    {
+        // If right were evaluated, the missing filter would throw "No filter registry"
+        var evaluator = new InlineExpressionEvaluator(); // no filter registry
+        var ast = InlineExpressionParser.Parse("a || (b | upper)");
+        var data = new ObjectValue { ["a"] = "truthy" };
+        var context = new TemplateContext(data);
+        var result = evaluator.Evaluate(ast, context);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("truthy", str.Value); // short-circuited, no filter error
+    }
+
+    #endregion
+
+    #region Logical AND (&&)
+
+    [Fact]
+    public void LogicalAnd_BothTruthy_ReturnsRight()
+    {
+        var data = new ObjectValue { ["a"] = "yes", ["b"] = "also yes" };
+        var result = Eval("a && b", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("also yes", str.Value);
+    }
+
+    [Fact]
+    public void LogicalAnd_LeftFalsy_ReturnsLeft()
+    {
+        var data = new ObjectValue { ["a"] = "", ["b"] = "yes" };
+        var result = Eval("a && b", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("", str.Value);
+    }
+
+    [Fact]
+    public void LogicalAnd_LeftNull_ReturnsNull()
+    {
+        var data = new ObjectValue { ["b"] = "yes" };
+        var result = Eval("a && b", data);
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void LogicalAnd_LeftZero_ReturnsZero()
+    {
+        var data = new ObjectValue { ["a"] = 0m, ["b"] = 42m };
+        var result = Eval("a && b", data);
+        var num = Assert.IsType<NumberValue>(result);
+        Assert.Equal(0m, num.Value);
+    }
+
+    [Fact]
+    public void LogicalAnd_Chain_AllTruthy_ReturnsLast()
+    {
+        var data = new ObjectValue { ["a"] = "x", ["b"] = "y", ["c"] = "z" };
+        var result = Eval("a && b && c", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("z", str.Value);
+    }
+
+    [Fact]
+    public void LogicalAnd_LeftFalsy_DoesNotEvaluateRight()
+    {
+        // If right were evaluated, the missing filter would throw "No filter registry"
+        var evaluator = new InlineExpressionEvaluator(); // no filter registry
+        var ast = InlineExpressionParser.Parse("a && (b | upper)");
+        var data = new ObjectValue(); // a is null (falsy)
+        var context = new TemplateContext(data);
+        var result = evaluator.Evaluate(ast, context);
+        Assert.IsType<NullValue>(result); // short-circuited, no filter error
+    }
+
+    #endregion
+
     #region Boolean and Null Literal Comparisons
 
     [Fact]

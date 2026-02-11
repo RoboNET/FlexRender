@@ -683,13 +683,15 @@ Expressions within `{{ }}` support arithmetic, comparison, logical NOT, null coa
 - `{{price * quantity}}` -- arithmetic (`+`, `-`, `*`, `/`, unary `-`)
 - `{{total > 1000}}` -- comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`)
 - `{{!active}}` -- logical NOT (inverts truthiness)
+- `{{name || 'Guest'}}` -- truthy coalescing / logical OR (fallback for null, "", 0, false)
+- `{{a && b}}` -- logical AND (returns first falsy or last value)
 - `{{nickname ?? name ?? 'Guest'}}` -- null coalescing chain
 - `{{price | currency}}` -- filter pipe
 - `{{total * 1.1 | currency}}` -- combined
 - `{{date | format:"dd.MM.yyyy"}}` -- filter with argument
 - Literals: `true`, `false`, `null` (e.g., `{{status == null}}`, `{{active == true}}`)
 
-**Precedence** (highest to lowest): `!`/unary `-`, `*`/`/`, `+`/`-`, `==`/`!=`/`<`/`>`/`<=`/`>=`, `??`, `|`
+**Precedence** (highest to lowest): `!`/unary `-`, `*`/`/`, `+`/`-`, `==`/`!=`/`<`/`>`/`<=`/`>=`, `&&`, `||`, `??`, `|`
 
 **Comparison rules:**
 - Numbers: compared by value
@@ -709,7 +711,7 @@ Text blocks provide control flow inside text `content` values. They are processe
 
 **Conditional:** `{{#if condition}}...{{else}}...{{/if}}`
 - Condition is evaluated for truthiness (non-empty string, non-zero number, true, non-empty array/object = truthy)
-- Supports full expressions: `{{#if status == 'paid'}}...{{/if}}`, `{{#if total > 100}}...{{/if}}`, `{{#if !disabled}}...{{/if}}`
+- Supports full expressions: `{{#if status == 'paid'}}...{{/if}}`, `{{#if total > 100}}...{{/if}}`, `{{#if !disabled}}...{{/if}}`, `{{#if role == 'admin' || role == 'mod'}}...{{/if}}`, `{{#if active && verified}}...{{/if}}`
 
 **Loop:** `{{#each arrayPath}}...{{/each}}`
 - Iterates over an array. Inside the body, current item properties are accessible directly

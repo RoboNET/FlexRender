@@ -6,14 +6,16 @@ namespace FlexRender.TemplateEngine;
 
 /// <summary>
 /// Pratt parser for inline expressions within <c>{{...}}</c> blocks.
-/// Supports arithmetic operators, comparison operators, logical NOT, null coalesce,
-/// filter pipes, and parenthesized grouping.
+/// Supports arithmetic operators, comparison operators, logical NOT, logical OR (<c>||</c>),
+/// logical AND (<c>&amp;&amp;</c>), null coalesce, filter pipes, and parenthesized grouping.
 /// </summary>
 /// <remarks>
 /// <para>Operator precedence (lowest to highest):</para>
 /// <list type="number">
 ///   <item><c>|</c> (filter pipe)</item>
 ///   <item><c>??</c> (null coalesce)</item>
+///   <item><c>||</c> (truthy coalescing / logical OR)</item>
+///   <item><c>&amp;&amp;</c> (logical AND)</item>
 ///   <item><c>==</c>, <c>!=</c>, <c>&lt;</c>, <c>&gt;</c>, <c>&lt;=</c>, <c>&gt;=</c> (comparison)</item>
 ///   <item><c>+</c>, <c>-</c> (add, subtract)</item>
 ///   <item><c>*</c>, <c>/</c> (multiply, divide)</item>
@@ -82,7 +84,7 @@ public sealed partial class InlineExpressionParser
         // Fast check: scan for operator characters
         foreach (var c in content)
         {
-            if (c is '+' or '*' or '/' or '|' or '?' or '(' or ')' or '"' or '\'' or '=' or '<' or '>' or '!')
+            if (c is '+' or '*' or '/' or '|' or '?' or '(' or ')' or '"' or '\'' or '=' or '<' or '>' or '!' or '&')
             {
                 return true;
             }
@@ -310,8 +312,10 @@ public sealed partial class InlineExpressionParser
 
         return c switch
         {
+            '|' when IsDoubleChar('|') => ParseLogicalOr(left),
             '|' when !IsDoubleChar('|') => ParseFilter(left),
             '?' when IsDoubleChar('?') => ParseCoalesce(left),
+            '&' when IsDoubleChar('&') => ParseLogicalAnd(left),
             '=' when IsDoubleChar('=') => ParseComparison(left, ComparisonOperator.Equal, 2),
             '!' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => ParseComparison(left, ComparisonOperator.NotEqual, 2),
             '<' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => ParseComparison(left, ComparisonOperator.LessThanOrEqual, 2),
@@ -363,6 +367,20 @@ public sealed partial class InlineExpressionParser
         _pos += 2; // skip ??
         var right = ParseExpression(Precedence.Coalesce);
         return new CoalesceExpression(left, right);
+    }
+
+    private LogicalOrExpression ParseLogicalOr(InlineExpression left)
+    {
+        _pos += 2; // skip ||
+        var right = ParseExpression(Precedence.LogicalOr);
+        return new LogicalOrExpression(left, right);
+    }
+
+    private LogicalAndExpression ParseLogicalAnd(InlineExpression left)
+    {
+        _pos += 2; // skip &&
+        var right = ParseExpression(Precedence.LogicalAnd);
+        return new LogicalAndExpression(left, right);
     }
 
     private InlineExpression ParseFilter(InlineExpression input)
@@ -629,8 +647,10 @@ public sealed partial class InlineExpressionParser
 
         return c switch
         {
-            '|' when !IsDoubleChar('|') => (Precedence.Filter, false),
+            '|' when IsDoubleChar('|') => (Precedence.LogicalOr, false),
+            '|' => (Precedence.Filter, false),
             '?' when IsDoubleChar('?') => (Precedence.Coalesce, true),
+            '&' when IsDoubleChar('&') => (Precedence.LogicalAnd, false),
             '=' when IsDoubleChar('=') => (Precedence.Comparison, false),
             '!' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => (Precedence.Comparison, false),
             // '<' and '>' match both single-char (<, >) and compound operators (<=, >=).
@@ -661,9 +681,11 @@ public sealed partial class InlineExpressionParser
         None = 0,
         Filter = 1,
         Coalesce = 2,
-        Comparison = 3,
-        Additive = 4,
-        Multiplicative = 5,
-        Unary = 6
+        LogicalOr = 3,
+        LogicalAnd = 4,
+        Comparison = 5,
+        Additive = 6,
+        Multiplicative = 7,
+        Unary = 8
     }
 }

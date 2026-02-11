@@ -122,3 +122,19 @@ public sealed record ComparisonExpression(InlineExpression Left, ComparisonOpera
 /// </summary>
 /// <param name="Operand">The expression to negate logically.</param>
 public sealed record NotExpression(InlineExpression Operand) : InlineExpression;
+
+/// <summary>
+/// A truthy coalescing expression using <c>||</c> (e.g., <c>name || 'Guest'</c>).
+/// Returns <paramref name="Left"/> if truthy, otherwise evaluates and returns <paramref name="Right"/>.
+/// </summary>
+/// <param name="Left">The primary expression.</param>
+/// <param name="Right">The fallback expression.</param>
+public sealed record LogicalOrExpression(InlineExpression Left, InlineExpression Right) : InlineExpression;
+
+/// <summary>
+/// A logical AND expression using <c>&amp;&amp;</c> (e.g., <c>a &amp;&amp; b</c>).
+/// Returns <paramref name="Left"/> if falsy, otherwise evaluates and returns <paramref name="Right"/>.
+/// </summary>
+/// <param name="Left">The left expression.</param>
+/// <param name="Right">The right expression.</param>
+public sealed record LogicalAndExpression(InlineExpression Left, InlineExpression Right) : InlineExpression;
