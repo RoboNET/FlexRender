@@ -156,6 +156,8 @@ Values can use px, %, or em units (e.g., `"10px 5% 2em 20"`).
 - `{{price * quantity}}` -- arithmetic (`+`, `-`, `*`, `/`)
 - `{{total > 1000}}` -- comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`)
 - `{{!active}}` -- logical NOT
+- `{{name || 'Guest'}}` -- truthy coalescing (fallback for null, "", 0, false)
+- `{{a && b}}` -- logical AND (returns first falsy or last value)
 - `{{nickname ?? name ?? 'Guest'}}` -- null coalescing
 - `{{price | currency}}` -- filters (8 built-in: currency, currencySymbol, number, upper, lower, trim, truncate, format)
 - `{{total * 1.1 | currency}}` -- combined arithmetic and filter

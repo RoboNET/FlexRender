@@ -755,6 +755,141 @@ public sealed class InlineExpressionParserTests
 
     #endregion
 
+    #region Logical OR and AND
+
+    [Fact]
+    public void Parse_LogicalOr_ReturnsLogicalOrExpression()
+    {
+        var result = InlineExpressionParser.Parse("a || b");
+        var or = Assert.IsType<LogicalOrExpression>(result);
+        Assert.IsType<PathExpression>(or.Left);
+        Assert.IsType<PathExpression>(or.Right);
+    }
+
+    [Fact]
+    public void Parse_LogicalAnd_ReturnsLogicalAndExpression()
+    {
+        var result = InlineExpressionParser.Parse("a && b");
+        var and = Assert.IsType<LogicalAndExpression>(result);
+        Assert.IsType<PathExpression>(and.Left);
+        Assert.IsType<PathExpression>(and.Right);
+    }
+
+    [Fact]
+    public void Parse_LogicalOrWithStringFallback_Works()
+    {
+        var result = InlineExpressionParser.Parse("name || 'Guest'");
+        var or = Assert.IsType<LogicalOrExpression>(result);
+        Assert.IsType<PathExpression>(or.Left);
+        Assert.IsType<StringLiteral>(or.Right);
+    }
+
+    [Fact]
+    public void Parse_AndBindsTighterThanOr()
+    {
+        // a || b && c should parse as a || (b && c)
+        var result = InlineExpressionParser.Parse("a || b && c");
+        var or = Assert.IsType<LogicalOrExpression>(result);
+        Assert.IsType<PathExpression>(or.Left);
+        var and = Assert.IsType<LogicalAndExpression>(or.Right);
+        Assert.IsType<PathExpression>(and.Left);
+        Assert.IsType<PathExpression>(and.Right);
+    }
+
+    [Fact]
+    public void Parse_OrBindsLooserThanComparison()
+    {
+        // a == b || c == d should parse as (a == b) || (c == d)
+        var result = InlineExpressionParser.Parse("a == b || c == d");
+        var or = Assert.IsType<LogicalOrExpression>(result);
+        Assert.IsType<ComparisonExpression>(or.Left);
+        Assert.IsType<ComparisonExpression>(or.Right);
+    }
+
+    [Fact]
+    public void Parse_AndBindsLooserThanComparison()
+    {
+        // a > 0 && b > 0 should parse as (a > 0) && (b > 0)
+        var result = InlineExpressionParser.Parse("a > 0 && b > 0");
+        var and = Assert.IsType<LogicalAndExpression>(result);
+        Assert.IsType<ComparisonExpression>(and.Left);
+        Assert.IsType<ComparisonExpression>(and.Right);
+    }
+
+    [Fact]
+    public void Parse_OrBindsTighterThanCoalesce()
+    {
+        // a || b ?? c should parse as (a || b) ?? c
+        var result = InlineExpressionParser.Parse("a || b ?? c");
+        var coalesce = Assert.IsType<CoalesceExpression>(result);
+        Assert.IsType<LogicalOrExpression>(coalesce.Left);
+        Assert.IsType<PathExpression>(coalesce.Right);
+    }
+
+    [Fact]
+    public void Parse_ChainedOr_LeftAssociative()
+    {
+        // a || b || c should parse as (a || b) || c
+        var result = InlineExpressionParser.Parse("a || b || c");
+        var outer = Assert.IsType<LogicalOrExpression>(result);
+        Assert.IsType<LogicalOrExpression>(outer.Left);
+        Assert.IsType<PathExpression>(outer.Right);
+    }
+
+    [Fact]
+    public void Parse_ChainedAnd_LeftAssociative()
+    {
+        // a && b && c should parse as (a && b) && c
+        var result = InlineExpressionParser.Parse("a && b && c");
+        var outer = Assert.IsType<LogicalAndExpression>(result);
+        Assert.IsType<LogicalAndExpression>(outer.Left);
+        Assert.IsType<PathExpression>(outer.Right);
+    }
+
+    [Theory]
+    [InlineData("a || b")]
+    [InlineData("a && b")]
+    [InlineData("x || y && z")]
+    public void NeedsFullParsing_LogicalOperators_ReturnsTrue(string content)
+    {
+        Assert.True(InlineExpressionParser.NeedsFullParsing(content));
+    }
+
+    [Fact]
+    public void Parse_FilterThenLogicalOr_CorrectPrecedence()
+    {
+        // name | trim || 'Guest' should parse as (name | trim) || 'Guest'
+        // because filter (1) binds looser than logicalOr (3)... wait,
+        // filter is LOWEST precedence (1), logicalOr is (3), so actually
+        // filter pipe should bind LAST. Let me think...
+        //
+        // Precedence: Filter=1 < Coalesce=2 < LogicalOr=3
+        // Higher number = tighter binding
+        // So || (3) binds tighter than | (1)
+        // "name | trim || 'Guest'" -> name | (trim || 'Guest') -- WRONG
+        //
+        // Actually, in Pratt parsing, the FILTER is special - it's parsed
+        // by ParseFilter which chains. Let's just test what happens.
+        var result = InlineExpressionParser.Parse("name | trim || 'Guest'");
+
+        // Filter has lowest precedence, so it should wrap everything:
+        // (name) | trim should be parsed first as filter has its own chaining,
+        // then || 'Guest' wraps. But filter precedence is 1 (lowest).
+        // In Pratt: we start with name, see |, since Filter(1) >= None, we enter ParseFilter.
+        // ParseFilter reads "trim", then checks next char: ||. IsDoubleChar('|') is true,
+        // so it does NOT chain (line 404 guard). Returns FilterExpression(name, trim).
+        // Back in ParseExpression loop, we see ||, LogicalOr(3) > None, enter ParseInfix.
+        // Result: LogicalOrExpression(FilterExpression(name, trim), StringLiteral('Guest'))
+
+        var or = Assert.IsType<LogicalOrExpression>(result);
+        var filter = Assert.IsType<FilterExpression>(or.Left);
+        Assert.Equal("trim", filter.FilterName);
+        Assert.IsType<PathExpression>(filter.Input);
+        Assert.IsType<StringLiteral>(or.Right);
+    }
+
+    #endregion
+
     #region Boolean and Null Literals
 
     [Theory]

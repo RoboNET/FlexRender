@@ -12,7 +12,9 @@ namespace FlexRender.TemplateEngine;
 ///   <item>Any operand being <see cref="NullValue"/> in arithmetic produces <see cref="NullValue"/>.</item>
 ///   <item>String + number (mixed types) produces <see cref="NullValue"/> (no implicit coercion).</item>
 ///   <item>Division by zero produces <see cref="NullValue"/> (no exception).</item>
-///   <item>Null coalesce: returns right if left is <see cref="NullValue"/>.</item>
+///   <item>Null coalesce (<c>??</c>): returns right if left is <see cref="NullValue"/>.</item>
+///   <item>Logical OR (<c>||</c>): returns left if truthy, otherwise returns right (short-circuit).</item>
+///   <item>Logical AND (<c>&amp;&amp;</c>): returns left if falsy, otherwise returns right (short-circuit).</item>
 ///   <item>Comparison operators (<c>==</c>, <c>!=</c>, <c>&lt;</c>, <c>&gt;</c>, <c>&lt;=</c>, <c>&gt;=</c>)
 ///     produce <see cref="BoolValue"/>. Null compared to null is equal; null compared to non-null
 ///     yields false for all ordered comparisons (SQL NULL semantics).</item>
@@ -81,6 +83,8 @@ public sealed class InlineExpressionEvaluator
             ArithmeticExpression arith => EvaluateArithmetic(arith, context),
             ComparisonExpression comp => EvaluateComparison(comp, context),
             CoalesceExpression coal => EvaluateCoalesce(coal, context),
+            LogicalOrExpression or => EvaluateLogicalOr(or, context),
+            LogicalAndExpression and => EvaluateLogicalAnd(and, context),
             FilterExpression filter => EvaluateFilter(filter, context),
             NegateExpression neg => EvaluateNegate(neg, context),
             NotExpression not => EvaluateNot(not, context),
@@ -115,6 +119,18 @@ public sealed class InlineExpressionEvaluator
     {
         var left = Evaluate(expr.Left, context);
         return left is NullValue ? Evaluate(expr.Right, context) : left;
+    }
+
+    private TemplateValue EvaluateLogicalOr(LogicalOrExpression expr, TemplateContext context)
+    {
+        var left = Evaluate(expr.Left, context);
+        return ExpressionEvaluator.IsTruthy(left) ? left : Evaluate(expr.Right, context);
+    }
+
+    private TemplateValue EvaluateLogicalAnd(LogicalAndExpression expr, TemplateContext context)
+    {
+        var left = Evaluate(expr.Left, context);
+        return ExpressionEvaluator.IsTruthy(left) ? Evaluate(expr.Right, context) : left;
     }
 
     private TemplateValue EvaluateFilter(FilterExpression expr, TemplateContext context)

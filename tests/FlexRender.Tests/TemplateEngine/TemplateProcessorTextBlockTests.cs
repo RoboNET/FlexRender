@@ -443,6 +443,82 @@ public sealed class TemplateProcessorTextBlockTests
 
     #endregion
 
+    #region {{#if}} with Logical OR and AND
+
+    [Fact]
+    public void IfBlock_LogicalOr_EitherTruthy_ShowsThenBlock()
+    {
+        var data = new ObjectValue { ["b"] = new StringValue("yes") };
+        var result = _processor.Process("{{#if a || b}}found{{else}}none{{/if}}", data);
+        Assert.Equal("found", result);
+    }
+
+    [Fact]
+    public void IfBlock_LogicalOr_BothFalsy_ShowsElseBlock()
+    {
+        var data = new ObjectValue();
+        var result = _processor.Process("{{#if a || b}}found{{else}}none{{/if}}", data);
+        Assert.Equal("none", result);
+    }
+
+    [Fact]
+    public void IfBlock_LogicalAnd_BothTruthy_ShowsThenBlock()
+    {
+        var data = new ObjectValue { ["a"] = new StringValue("yes"), ["b"] = new StringValue("yes") };
+        var result = _processor.Process("{{#if a && b}}both{{else}}not both{{/if}}", data);
+        Assert.Equal("both", result);
+    }
+
+    [Fact]
+    public void IfBlock_LogicalAnd_OneFalsy_ShowsElseBlock()
+    {
+        var data = new ObjectValue { ["a"] = new StringValue("yes") };
+        var result = _processor.Process("{{#if a && b}}both{{else}}not both{{/if}}", data);
+        Assert.Equal("not both", result);
+    }
+
+    [Fact]
+    public void IfBlock_CombinedOrAnd_Works()
+    {
+        var data = new ObjectValue { ["role"] = new StringValue("admin"), ["active"] = new BoolValue(true) };
+        var result = _processor.Process("{{#if role == 'admin' && active}}admin{{else}}no{{/if}}", data);
+        Assert.Equal("admin", result);
+    }
+
+    [Fact]
+    public void TruthyCoalesce_EmptyStringFallback()
+    {
+        var data = new ObjectValue { ["name"] = new StringValue("") };
+        var result = _processor.Process("{{name || 'Guest'}}", data);
+        Assert.Equal("Guest", result);
+    }
+
+    [Fact]
+    public void TruthyCoalesce_NonEmptyString_NoFallback()
+    {
+        var data = new ObjectValue { ["name"] = new StringValue("John") };
+        var result = _processor.Process("{{name || 'Guest'}}", data);
+        Assert.Equal("John", result);
+    }
+
+    [Fact]
+    public void TruthyCoalesce_WithFilter_EmptyStringFallback()
+    {
+        var data = new ObjectValue { ["name"] = "  " };
+        var result = _processor.Process("{{name | trim || 'Guest'}}", data);
+        Assert.Equal("Guest", result);
+    }
+
+    [Fact]
+    public void TruthyCoalesce_WithFilter_NonEmptyString()
+    {
+        var data = new ObjectValue { ["name"] = "  John  " };
+        var result = _processor.Process("{{name | trim || 'Guest'}}", data);
+        Assert.Equal("John", result);
+    }
+
+    #endregion
+
     #region Nested {{#if}} Tests
 
     [Fact]

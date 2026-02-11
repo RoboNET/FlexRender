@@ -116,6 +116,41 @@ The `!` operator inverts the truthiness of a value:
 
 The `!` operator evaluates the operand for [truthiness](#conditional-blocks) and returns the opposite boolean value.
 
+### Logical Operators
+
+The `||` and `&&` operators provide JavaScript-style short-circuit logic. They return **values**, not booleans.
+
+| Operator | Description | Returns |
+|----------|-------------|---------|
+| `\|\|` | Logical OR / truthy coalescing | First truthy operand, or last operand |
+| `&&` | Logical AND | First falsy operand, or last operand |
+
+`||` is ideal for providing fallbacks when a value may be empty, null, zero, or false — unlike `??` which only catches null:
+
+```yaml
+# || catches null AND empty string AND zero AND false
+- type: text
+  content: "{{name || 'Guest'}}"         # "" -> "Guest", null -> "Guest"
+
+# ?? catches only null
+- type: text
+  content: "{{name ?? 'Guest'}}"         # "" -> "", null -> "Guest"
+```
+
+`&&` is useful for guarding access or combining conditions:
+
+```yaml
+# Only show value if both conditions met
+- type: text
+  content: "{{#if isPremium && total > 100}}VIP discount!{{/if}}"
+
+# Chain conditions in {{#if}}
+- type: text
+  content: "{{#if role == 'admin' && active}}Admin panel{{/if}}"
+```
+
+Both operators use [truthiness](#conditional-blocks) rules. See the truthiness table for what values are truthy/falsy.
+
 ### Null Coalescing
 
 The `??` operator provides a fallback when the left side is null or missing:
@@ -190,8 +225,10 @@ Operators are evaluated in this order (highest to lowest):
 | 2 | Multiplication, Division (`*`, `/`) |
 | 3 | Addition, Subtraction (`+`, `-`) |
 | 4 | Comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`) |
-| 5 | Null coalescing (`??`) |
-| 6 (lowest) | Filter pipe (`\|`) |
+| 5 | Logical AND (`&&`) |
+| 6 | Logical OR (`\|\|`) |
+| 7 | Null coalescing (`??`) |
+| 8 (lowest) | Filter pipe (`\|`) |
 
 ### Expression Limits
 
@@ -285,6 +322,13 @@ Conditions support full expressions including comparison operators, logical NOT,
 # Logical NOT in conditions
 - type: text
   content: "{{#if !disabled}}Feature enabled{{/if}}"
+
+# Logical operators in conditions
+- type: text
+  content: "{{#if role == 'admin' || role == 'moderator'}}Staff{{else}}User{{/if}}"
+
+- type: text
+  content: "{{#if active && verified}}Full access{{/if}}"
 ```
 
 ### Loop Blocks
