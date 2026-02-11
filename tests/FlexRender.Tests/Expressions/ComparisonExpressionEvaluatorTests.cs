@@ -358,4 +358,48 @@ public sealed class ComparisonExpressionEvaluatorTests
     }
 
     #endregion
+
+    #region Boolean and Null Literal Comparisons
+
+    [Fact]
+    public void Comparison_VariableEqualsTrueLiteral_ReturnsTrue()
+    {
+        var data = new ObjectValue { ["active"] = new BoolValue(true) };
+        var result = Eval("active == true", data);
+
+        var boolResult = Assert.IsType<BoolValue>(result);
+        Assert.True(boolResult.Value);
+    }
+
+    [Fact]
+    public void Comparison_VariableEqualsNullLiteral_WhenNull_ReturnsTrue()
+    {
+        var data = new ObjectValue();
+        var result = Eval("missing == null", data);
+
+        var boolResult = Assert.IsType<BoolValue>(result);
+        Assert.True(boolResult.Value);
+    }
+
+    [Fact]
+    public void Comparison_VariableNotEqualsNull_WhenExists_ReturnsTrue()
+    {
+        var data = new ObjectValue { ["name"] = new StringValue("John") };
+        var result = Eval("name != null", data);
+
+        var boolResult = Assert.IsType<BoolValue>(result);
+        Assert.True(boolResult.Value);
+    }
+
+    [Fact]
+    public void Comparison_VariableEqualsFalseLiteral_ReturnsTrue()
+    {
+        var data = new ObjectValue { ["disabled"] = new BoolValue(false) };
+        var result = Eval("disabled == false", data);
+
+        var boolResult = Assert.IsType<BoolValue>(result);
+        Assert.True(boolResult.Value);
+    }
+
+    #endregion
 }

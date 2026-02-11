@@ -154,9 +154,12 @@ Values can use px, %, or em units (e.g., `"10px 5% 2em 20"`).
 - `{{items[0]}}` -- array index
 - `{{@index}}`, `{{@first}}`, `{{@last}}` -- loop variables (inside `type: each`)
 - `{{price * quantity}}` -- arithmetic (`+`, `-`, `*`, `/`)
+- `{{total > 1000}}` -- comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`)
+- `{{!active}}` -- logical NOT
 - `{{nickname ?? name ?? 'Guest'}}` -- null coalescing
 - `{{price | currency}}` -- filters (8 built-in: currency, currencySymbol, number, upper, lower, trim, truncate, format)
 - `{{total * 1.1 | currency}}` -- combined arithmetic and filter
+- Literals: `true`, `false`, `null` (e.g., `{{status == null}}`, `{{active == true}}`)
 
 ### Culture Support
 
@@ -360,7 +363,7 @@ public class MyService(IFlexRender render)
 var render = new FlexRenderBuilder()
     .WithoutDefaultLoaders()
     .WithoutDefaultFilters()         // Remove all 8 built-in filters (enabled by default)
-    .WithFilter("custom", new MyFilter()) // Register custom filters
+    .WithFilter(new MyFilter())              // Register custom filters
     .WithEmbeddedLoader(typeof(Program).Assembly)
     .WithSkia()
     .Build();

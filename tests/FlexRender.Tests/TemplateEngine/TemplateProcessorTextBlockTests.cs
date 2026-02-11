@@ -417,6 +417,30 @@ public sealed class TemplateProcessorTextBlockTests
         Assert.Equal("Low stock", result);
     }
 
+    [Fact]
+    public void IfBlock_ComparisonWithTrueLiteral_Works()
+    {
+        var data = new ObjectValue { ["active"] = new BoolValue(true) };
+        var result = _processor.Process("{{#if active == true}}yes{{else}}no{{/if}}", data);
+        Assert.Equal("yes", result);
+    }
+
+    [Fact]
+    public void IfBlock_ComparisonWithNullLiteral_Works()
+    {
+        var data = new ObjectValue();
+        var result = _processor.Process("{{#if missing == null}}null{{else}}exists{{/if}}", data);
+        Assert.Equal("null", result);
+    }
+
+    [Fact]
+    public void IfBlock_ComparisonWithFalseLiteral_Works()
+    {
+        var data = new ObjectValue { ["disabled"] = new BoolValue(false) };
+        var result = _processor.Process("{{#if disabled == false}}not disabled{{else}}disabled{{/if}}", data);
+        Assert.Equal("not disabled", result);
+    }
+
     #endregion
 
     #region Nested {{#if}} Tests

@@ -134,7 +134,8 @@ public sealed partial class InlineExpressionParser
         }
 
         // Fast path: simple variable path (no operators, no cache needed)
-        if (!NeedsFullParsing(content) && SimplePathRegex().IsMatch(content))
+        // Keywords (true, false, null) must go through the full parser to produce literal nodes.
+        if (!NeedsFullParsing(content) && !IsKeyword(content) && SimplePathRegex().IsMatch(content))
         {
             return new PathExpression(content);
         }
@@ -155,6 +156,16 @@ public sealed partial class InlineExpressionParser
 
         Cache.TryAdd(content, result);
         return result;
+    }
+
+    /// <summary>
+    /// Determines whether the given content is a keyword literal (<c>true</c>, <c>false</c>, or <c>null</c>).
+    /// </summary>
+    /// <param name="content">The expression content to check.</param>
+    /// <returns><c>true</c> if the content is a keyword literal; otherwise, <c>false</c>.</returns>
+    private static bool IsKeyword(string content)
+    {
+        return content is "true" or "false" or "null";
     }
 
     /// <summary>
@@ -334,6 +345,14 @@ public sealed partial class InlineExpressionParser
 
     private ComparisonExpression ParseComparison(InlineExpression left, ComparisonOperator op, int operatorLength)
     {
+        if (left is ComparisonExpression)
+        {
+            throw new TemplateEngineException(
+                "Chained comparisons are not supported. Use parentheses or logical operators instead (e.g., 'a < b' not 'a < b < c').",
+                position: _pos,
+                expression: _input);
+        }
+
         _pos += operatorLength; // skip operator chars
         var right = ParseExpression(Precedence.Comparison);
         return new ComparisonExpression(left, op, right);
@@ -558,7 +577,7 @@ public sealed partial class InlineExpressionParser
         return new NumberLiteral(value);
     }
 
-    private PathExpression ParsePath()
+    private InlineExpression ParsePath()
     {
         var start = _pos;
 
@@ -587,7 +606,16 @@ public sealed partial class InlineExpressionParser
             break;
         }
 
-        return new PathExpression(_input[start.._pos]);
+        var path = _input[start.._pos];
+
+        // Recognize boolean and null keywords
+        return path switch
+        {
+            "true" => new BoolLiteral(true),
+            "false" => new BoolLiteral(false),
+            "null" => new NullLiteral(),
+            _ => new PathExpression(path)
+        };
     }
 
     private (Precedence precedence, bool isRightAssociative) GetInfixPrecedence()
@@ -605,6 +633,8 @@ public sealed partial class InlineExpressionParser
             '?' when IsDoubleChar('?') => (Precedence.Coalesce, true),
             '=' when IsDoubleChar('=') => (Precedence.Comparison, false),
             '!' when _pos + 1 < _input.Length && _input[_pos + 1] == '=' => (Precedence.Comparison, false),
+            // '<' and '>' match both single-char (<, >) and compound operators (<=, >=).
+            // Disambiguation happens in ParseInfix() where guarded patterns (<=, >=) are checked first.
             '<' => (Precedence.Comparison, false),
             '>' => (Precedence.Comparison, false),
             '+' or '-' => (Precedence.Additive, false),

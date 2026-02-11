@@ -80,12 +80,25 @@ Comparison operators return boolean values and are primarily used in `{{#if}}` c
   content: "{{#if status == 'paid'}}Payment received{{else}}Awaiting payment{{/if}}"
 ```
 
+The expressions support `true`, `false`, and `null` literals:
+
+```yaml
+# Compare with boolean literal
+- type: text
+  content: "{{#if active == true}}Online{{else}}Offline{{/if}}"
+
+# Check for null
+- type: text
+  content: "{{#if email != null}}{{email}}{{else}}No email{{/if}}"
+```
+
 Comparison rules:
 - **Numbers**: compared by value (`100 == 100.0` is true)
 - **Strings**: compared using ordinal (case-sensitive) comparison
-- **Booleans**: only `==` and `!=` supported; ordered comparisons return false
+- **Booleans**: `==` and `!=` supported with `true`/`false` literals; ordered comparisons return false
 - **Null**: `null == null` is true; `null != <anything>` is true; ordered comparisons with null return false
 - **Mixed types** (e.g., string vs number): `==` is false, `!=` is true, ordered comparisons return false
+- **Chained comparisons** (e.g., `a < b < c`) are not supported and will produce a parse error
 
 ### Logical NOT
 
