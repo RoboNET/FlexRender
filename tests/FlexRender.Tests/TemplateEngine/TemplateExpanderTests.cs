@@ -698,4 +698,148 @@ public sealed class TemplateExpanderTests
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal("Hello ", text.Content);
     }
+
+    // === ObjectValue Iteration Tests ===
+
+    [Fact]
+    public void Expand_EachWithObjectValue_IteratesKeyValuePairs()
+    {
+        var data = new ObjectValue
+        {
+            ["specs"] = new ObjectValue
+            {
+                ["Color"] = new StringValue("Red"),
+                ["Size"] = new StringValue("XL")
+            }
+        };
+        var textTemplate = new TextElement { Content = "{{@key}}: {{.}}" };
+        var each = new EachElement(new List<TemplateElement> { textTemplate })
+        {
+            ArrayPath = "specs"
+        };
+        var template = CreateTemplate(each);
+
+        var result = _expander.Expand(template, data);
+
+        Assert.Equal(2, result.Elements.Count);
+        var first = Assert.IsType<TextElement>(result.Elements[0]);
+        Assert.Equal("Color: Red", first.Content.Value);
+        var second = Assert.IsType<TextElement>(result.Elements[1]);
+        Assert.Equal("Size: XL", second.Content.Value);
+    }
+
+    [Fact]
+    public void Expand_EachWithObjectValue_WithAsVariable_BindsValue()
+    {
+        var data = new ObjectValue
+        {
+            ["specs"] = new ObjectValue
+            {
+                ["Color"] = new StringValue("Red")
+            }
+        };
+        var textTemplate = new TextElement { Content = "{{@key}}={{val}}" };
+        var each = new EachElement(new List<TemplateElement> { textTemplate })
+        {
+            ArrayPath = "specs",
+            ItemVariable = "val"
+        };
+        var template = CreateTemplate(each);
+
+        var result = _expander.Expand(template, data);
+
+        Assert.Single(result.Elements);
+        var text = Assert.IsType<TextElement>(result.Elements[0]);
+        Assert.Equal("Color=Red", text.Content.Value);
+    }
+
+    [Fact]
+    public void Expand_EachWithObjectValue_IndexFirstLast()
+    {
+        var data = new ObjectValue
+        {
+            ["items"] = new ObjectValue
+            {
+                ["a"] = new StringValue("1"),
+                ["b"] = new StringValue("2"),
+                ["c"] = new StringValue("3")
+            }
+        };
+        var textTemplate = new TextElement { Content = "{{@index}}-{{@first}}-{{@last}}" };
+        var each = new EachElement(new List<TemplateElement> { textTemplate })
+        {
+            ArrayPath = "items"
+        };
+        var template = CreateTemplate(each);
+
+        var result = _expander.Expand(template, data);
+
+        Assert.Equal(3, result.Elements.Count);
+        Assert.Equal("0-true-false", ((TextElement)result.Elements[0]).Content.Value);
+        Assert.Equal("1-false-false", ((TextElement)result.Elements[1]).Content.Value);
+        Assert.Equal("2-false-true", ((TextElement)result.Elements[2]).Content.Value);
+    }
+
+    [Fact]
+    public void Expand_EachWithObjectValue_NestedValues()
+    {
+        var data = new ObjectValue
+        {
+            ["sections"] = new ObjectValue
+            {
+                ["header"] = new ObjectValue { ["title"] = new StringValue("Hello") }
+            }
+        };
+        var textTemplate = new TextElement { Content = "{{@key}}: {{val.title}}" };
+        var each = new EachElement(new List<TemplateElement> { textTemplate })
+        {
+            ArrayPath = "sections",
+            ItemVariable = "val"
+        };
+        var template = CreateTemplate(each);
+
+        var result = _expander.Expand(template, data);
+
+        Assert.Single(result.Elements);
+        var text = Assert.IsType<TextElement>(result.Elements[0]);
+        Assert.Equal("header: Hello", text.Content.Value);
+    }
+
+    [Fact]
+    public void Expand_EachWithEmptyObjectValue_ReturnsEmpty()
+    {
+        var data = new ObjectValue
+        {
+            ["specs"] = new ObjectValue()
+        };
+        var textTemplate = new TextElement { Content = "{{@key}}" };
+        var each = new EachElement(new List<TemplateElement> { textTemplate })
+        {
+            ArrayPath = "specs"
+        };
+        var template = CreateTemplate(each);
+
+        var result = _expander.Expand(template, data);
+
+        Assert.Empty(result.Elements);
+    }
+
+    [Fact]
+    public void Expand_EachWithStringValue_ReturnsEmpty()
+    {
+        var data = new ObjectValue
+        {
+            ["specs"] = new StringValue("not iterable")
+        };
+        var textTemplate = new TextElement { Content = "{{.}}" };
+        var each = new EachElement(new List<TemplateElement> { textTemplate })
+        {
+            ArrayPath = "specs"
+        };
+        var template = CreateTemplate(each);
+
+        var result = _expander.Expand(template, data);
+
+        Assert.Empty(result.Elements);
+    }
 }
