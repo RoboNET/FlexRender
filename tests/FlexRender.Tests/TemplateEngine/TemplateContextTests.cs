@@ -161,4 +161,36 @@ public class TemplateContextTests
 
         Assert.Null(exception);
     }
+
+    // LoopKey Tests
+    [Fact]
+    public void LoopKey_Default_IsNull()
+    {
+        var context = new TemplateContext(new ObjectValue());
+        Assert.Null(context.LoopKey);
+    }
+
+    [Fact]
+    public void SetLoopKey_SetsValue()
+    {
+        var context = new TemplateContext(new ObjectValue());
+        context.SetLoopKey("myKey");
+        Assert.Equal("myKey", context.LoopKey);
+    }
+
+    [Fact]
+    public void ClearLoopVariables_ClearsLoopKey()
+    {
+        var context = new TemplateContext(new ObjectValue());
+        context.SetLoopKey("myKey");
+        context.ClearLoopVariables();
+        Assert.Null(context.LoopKey);
+    }
+
+    [Fact]
+    public void SetLoopKey_Null_ThrowsArgumentNullException()
+    {
+        var context = new TemplateContext(new ObjectValue());
+        Assert.Throws<ArgumentNullException>(() => context.SetLoopKey(null!));
+    }
 }

@@ -28,6 +28,11 @@ public sealed class TemplateContext
     public bool IsLast { get; private set; }
 
     /// <summary>
+    /// Gets the current loop key when iterating over an ObjectValue, or null if not in an object loop.
+    /// </summary>
+    public string? LoopKey { get; private set; }
+
+    /// <summary>
     /// Initializes a new context with root data.
     /// </summary>
     /// <param name="rootData">The root data object.</param>
@@ -94,6 +99,17 @@ public sealed class TemplateContext
     }
 
     /// <summary>
+    /// Sets the loop key for the current object iteration.
+    /// </summary>
+    /// <param name="key">The current key. Must not be null.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="key"/> is null.</exception>
+    public void SetLoopKey(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        LoopKey = key;
+    }
+
+    /// <summary>
     /// Clears all loop variables.
     /// </summary>
     public void ClearLoopVariables()
@@ -101,5 +117,6 @@ public sealed class TemplateContext
         LoopIndex = null;
         IsFirst = false;
         IsLast = false;
+        LoopKey = null;
     }
 }
