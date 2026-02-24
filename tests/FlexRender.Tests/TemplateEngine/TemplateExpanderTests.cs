@@ -842,4 +842,37 @@ public sealed class TemplateExpanderTests
 
         Assert.Empty(result.Elements);
     }
+
+    [Fact]
+    public void Expand_EachOverObject_WithComputedKeyAccess()
+    {
+        // Scenario: iterate over labels dict, look up values from another dict by @key
+        var data = new ObjectValue
+        {
+            ["labels"] = new ObjectValue
+            {
+                ["name"] = new StringValue("Name"),
+                ["price"] = new StringValue("Price")
+            },
+            ["values"] = new ObjectValue
+            {
+                ["name"] = new StringValue("Widget"),
+                ["price"] = new StringValue("$9.99")
+            }
+        };
+
+        var textTemplate = new TextElement { Content = "{{label}}: {{values[@key]}}" };
+        var each = new EachElement(new List<TemplateElement> { textTemplate })
+        {
+            ArrayPath = "labels",
+            ItemVariable = "label"
+        };
+        var template = CreateTemplate(each);
+
+        var result = _expander.Expand(template, data);
+
+        Assert.Equal(2, result.Elements.Count);
+        Assert.Equal("Name: Widget", ((TextElement)result.Elements[0]).Content.Value);
+        Assert.Equal("Price: $9.99", ((TextElement)result.Elements[1]).Content.Value);
+    }
 }

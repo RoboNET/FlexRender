@@ -13,6 +13,18 @@ public sealed class TemplateContext
     public TemplateValue CurrentScope => _scopeStack.Peek();
 
     /// <summary>
+    /// Gets a read-only view of the scope stack for scope walking during variable resolution.
+    /// The first element is the current (innermost) scope, the last is the root.
+    /// </summary>
+    internal IReadOnlyList<TemplateValue> Scopes => _scopeList;
+
+    /// <summary>
+    /// Cached list view of the scope stack for efficient scope walking.
+    /// Kept in sync with the stack via PushScope/PopScope.
+    /// </summary>
+    private readonly List<TemplateValue> _scopeList = [];
+
+    /// <summary>
     /// Gets the current loop index, or null if not in a loop.
     /// </summary>
     public int? LoopIndex { get; private set; }
@@ -41,6 +53,7 @@ public sealed class TemplateContext
     {
         ArgumentNullException.ThrowIfNull(rootData);
         _scopeStack.Push(rootData);
+        _scopeList.Add(rootData);
     }
 
     /// <summary>
@@ -52,6 +65,7 @@ public sealed class TemplateContext
     {
         ArgumentNullException.ThrowIfNull(scope);
         _scopeStack.Push(scope);
+        _scopeList.Add(scope);
     }
 
     /// <summary>
@@ -65,6 +79,7 @@ public sealed class TemplateContext
             throw new InvalidOperationException("Cannot pop the root scope.");
         }
         _scopeStack.Pop();
+        _scopeList.RemoveAt(_scopeList.Count - 1);
     }
 
     /// <summary>

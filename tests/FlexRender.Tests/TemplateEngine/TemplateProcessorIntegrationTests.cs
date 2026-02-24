@@ -349,4 +349,30 @@ public class TemplateProcessorIntegrationTests
 
         Assert.Equal("0truefalse 1falsetrue ", result);
     }
+
+    /// <summary>
+    /// Verifies that inline {{#each}} over an ObjectValue supports computed key access
+    /// to look up values from another dictionary using <c>@key</c>.
+    /// </summary>
+    [Fact]
+    public void Process_InlineEachOverObject_WithComputedKeyAccess()
+    {
+        var data = new ObjectValue
+        {
+            ["labels"] = new ObjectValue
+            {
+                ["name"] = new StringValue("Name"),
+                ["price"] = new StringValue("Price")
+            },
+            ["values"] = new ObjectValue
+            {
+                ["name"] = new StringValue("Widget"),
+                ["price"] = new StringValue("$9.99")
+            }
+        };
+
+        var result = _processor.Process("{{#each labels}}{{.}}: {{values[@key]}} {{/each}}", data);
+
+        Assert.Equal("Name: Widget Price: $9.99 ", result);
+    }
 }
