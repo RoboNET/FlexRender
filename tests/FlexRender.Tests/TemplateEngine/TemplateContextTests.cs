@@ -193,4 +193,28 @@ public class TemplateContextTests
         var context = new TemplateContext(new ObjectValue());
         Assert.Throws<ArgumentNullException>(() => context.SetLoopKey(null!));
     }
+
+    [Fact]
+    public void SetLoopKey_TrimsWhitespace()
+    {
+        var context = new TemplateContext(new ObjectValue());
+        context.SetLoopKey("  myKey  ");
+        Assert.Equal("myKey", context.LoopKey);
+    }
+
+    [Fact]
+    public void SetLoopKey_TrimsLeadingWhitespace()
+    {
+        var context = new TemplateContext(new ObjectValue());
+        context.SetLoopKey("  myKey");
+        Assert.Equal("myKey", context.LoopKey);
+    }
+
+    [Fact]
+    public void SetLoopKey_TrimsTrailingWhitespace()
+    {
+        var context = new TemplateContext(new ObjectValue());
+        context.SetLoopKey("myKey  ");
+        Assert.Equal("myKey", context.LoopKey);
+    }
 }

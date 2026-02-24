@@ -106,7 +106,7 @@ public sealed class TemplateContext
     public void SetLoopKey(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        LoopKey = key;
+        LoopKey = key.Trim();
     }
 
     /// <summary>
