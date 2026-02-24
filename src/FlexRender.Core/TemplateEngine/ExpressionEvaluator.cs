@@ -68,6 +68,9 @@ public partial class ExpressionEvaluator
                 : NullValue.Instance,
             "@first" => new BoolValue(context.IsFirst),
             "@last" => new BoolValue(context.IsLast),
+            "@key" => context.LoopKey is not null
+                ? new StringValue(context.LoopKey)
+                : NullValue.Instance,
             _ => NullValue.Instance
         };
     }
