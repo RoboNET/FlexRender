@@ -194,4 +194,48 @@ public class ObjectValueTests
         Assert.Contains("name", result);
         Assert.Contains("test", result);
     }
+
+    [Fact]
+    public void Indexer_Set_TrimsKey()
+    {
+        var obj = new ObjectValue();
+        obj["  name  "] = new StringValue("value");
+        Assert.Equal("value", ((StringValue)obj["name"]).Value);
+    }
+
+    [Fact]
+    public void Indexer_Get_TrimsKey()
+    {
+        var obj = new ObjectValue();
+        obj["name"] = new StringValue("value");
+        var result = obj["  name  "];
+        Assert.IsType<StringValue>(result);
+        Assert.Equal("value", ((StringValue)result).Value);
+    }
+
+    [Fact]
+    public void ContainsKey_TrimsKey()
+    {
+        var obj = new ObjectValue();
+        obj["name"] = new StringValue("value");
+        Assert.True(obj.ContainsKey("  name  "));
+    }
+
+    [Fact]
+    public void TryGetValue_TrimsKey()
+    {
+        var obj = new ObjectValue();
+        obj["name"] = new StringValue("value");
+        Assert.True(obj.TryGetValue("  name  ", out var value));
+        Assert.Equal("value", ((StringValue)value!).Value);
+    }
+
+    [Fact]
+    public void Keys_ReturnsTrimmedKeys()
+    {
+        var obj = new ObjectValue();
+        obj["  name  "] = new StringValue("value");
+        Assert.Contains("name", obj.Keys);
+        Assert.DoesNotContain("  name  ", obj.Keys);
+    }
 }
