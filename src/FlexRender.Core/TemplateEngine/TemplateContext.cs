@@ -14,7 +14,7 @@ public sealed class TemplateContext
 
     /// <summary>
     /// Gets a read-only view of the scope stack for scope walking during variable resolution.
-    /// The first element is the current (innermost) scope, the last is the root.
+    /// The first element (index 0) is the root scope, the last element is the current (innermost) scope.
     /// </summary>
     internal IReadOnlyList<TemplateValue> Scopes => _scopeList;
 
