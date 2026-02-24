@@ -7,7 +7,8 @@ namespace FlexRender.TemplateEngine;
 /// <summary>
 /// Pratt parser for inline expressions within <c>{{...}}</c> blocks.
 /// Supports arithmetic operators, comparison operators, logical NOT, logical OR (<c>||</c>),
-/// logical AND (<c>&amp;&amp;</c>), null coalesce, filter pipes, and parenthesized grouping.
+/// logical AND (<c>&amp;&amp;</c>), null coalesce, filter pipes, computed index access (<c>[]</c>),
+/// and parenthesized grouping.
 /// </summary>
 /// <remarks>
 /// <para>Operator precedence (lowest to highest):</para>
@@ -20,6 +21,7 @@ namespace FlexRender.TemplateEngine;
 ///   <item><c>+</c>, <c>-</c> (add, subtract)</item>
 ///   <item><c>*</c>, <c>/</c> (multiply, divide)</item>
 ///   <item>Unary <c>-</c> (negation), <c>!</c> (logical NOT)</item>
+///   <item><c>[]</c> (computed index/key access), <c>.</c> (member access after index)</item>
 ///   <item><c>()</c> (grouping)</item>
 /// </list>
 /// <para>
@@ -92,6 +94,17 @@ public sealed partial class InlineExpressionParser
             // Minus with surrounding spaces indicates subtraction, not a path like "my-var"
             // We need to check the broader context, so we check for any minus
             // and rely on the regex for simple path detection below
+        }
+
+        // Check for computed key access: [non-digit] requires full parsing
+        // Simple numeric indices like items[0] do not need full parsing
+        if (content.Contains('['))
+        {
+            var bracketIdx = content.IndexOf('[');
+            if (bracketIdx + 1 < content.Length && !char.IsDigit(content[bracketIdx + 1]))
+            {
+                return true;
+            }
         }
 
         // Check if it's a simple path (no operators)
@@ -326,6 +339,8 @@ public sealed partial class InlineExpressionParser
             '-' => ParseArithmetic(left, ArithmeticOperator.Subtract),
             '*' => ParseArithmetic(left, ArithmeticOperator.Multiply),
             '/' => ParseArithmetic(left, ArithmeticOperator.Divide),
+            '[' => ParseIndexAccess(left),
+            '.' => ParseMemberAccess(left),
             _ => throw new TemplateEngineException(
                 $"Unexpected operator '{c}'",
                 position: _pos,
@@ -603,7 +618,7 @@ public sealed partial class InlineExpressionParser
         {
             var c = _input[_pos];
 
-            if (char.IsLetterOrDigit(c) || c == '.' || c == '_' || c == '[' || c == ']' || c == '@')
+            if (char.IsLetterOrDigit(c) || c == '.' || c == '_' || c == '@')
             {
                 _pos++;
                 continue;
@@ -659,8 +674,58 @@ public sealed partial class InlineExpressionParser
             '>' => (Precedence.Comparison, false),
             '+' or '-' => (Precedence.Additive, false),
             '*' or '/' => (Precedence.Multiplicative, false),
+            '[' => (Precedence.Postfix, false),
+            '.' when _pos > 0 => (Precedence.Postfix, false),
             _ => (Precedence.None, false)
         };
+    }
+
+    private IndexAccessExpression ParseIndexAccess(InlineExpression left)
+    {
+        _pos++; // skip [
+        var index = ParseExpression(Precedence.None);
+        SkipWhitespace();
+        if (_pos >= _input.Length || _input[_pos] != ']')
+        {
+            throw new TemplateEngineException(
+                "Missing closing bracket ']'",
+                position: _pos,
+                expression: _input);
+        }
+        _pos++; // skip ]
+        return new IndexAccessExpression(left, index);
+    }
+
+    private IndexAccessExpression ParseMemberAccess(InlineExpression left)
+    {
+        _pos++; // skip .
+        var start = _pos;
+        while (_pos < _input.Length)
+        {
+            var c = _input[_pos];
+            if (char.IsLetterOrDigit(c) || c == '_' || c == '@')
+            {
+                _pos++;
+                continue;
+            }
+            // Allow hyphens in property names (same rules as ParsePath)
+            if (c == '-' && _pos + 1 < _input.Length && !char.IsWhiteSpace(_input[_pos + 1])
+                && _pos > start && !char.IsWhiteSpace(_input[_pos - 1]))
+            {
+                _pos++;
+                continue;
+            }
+            break;
+        }
+        if (_pos == start)
+        {
+            throw new TemplateEngineException(
+                "Expected property name after '.'",
+                position: _pos,
+                expression: _input);
+        }
+        var propName = _input[start.._pos];
+        return new IndexAccessExpression(left, new StringLiteral(propName));
     }
 
     private bool IsDoubleChar(char c)
@@ -686,6 +751,7 @@ public sealed partial class InlineExpressionParser
         Comparison = 5,
         Additive = 6,
         Multiplicative = 7,
-        Unary = 8
+        Unary = 8,
+        Postfix = 9
     }
 }

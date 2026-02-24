@@ -88,6 +88,7 @@ public sealed class InlineExpressionEvaluator
             FilterExpression filter => EvaluateFilter(filter, context),
             NegateExpression neg => EvaluateNegate(neg, context),
             NotExpression not => EvaluateNot(not, context),
+            IndexAccessExpression indexAccess => EvaluateIndexAccess(indexAccess, context),
             _ => NullValue.Instance
         };
     }
@@ -223,6 +224,30 @@ public sealed class InlineExpressionEvaluator
             ComparisonOperator.GreaterThanOrEqual => cmp >= 0,
             _ => false
         };
+    }
+
+    private TemplateValue EvaluateIndexAccess(IndexAccessExpression expr, TemplateContext context)
+    {
+        var obj = Evaluate(expr.Target, context);
+        var index = Evaluate(expr.Index, context);
+
+        return (obj, index) switch
+        {
+            (ObjectValue objVal, StringValue strKey) => objVal[strKey.Value],
+            (ObjectValue objVal, NumberValue numKey) => objVal[numKey.Value.ToString("G", CultureInfo.InvariantCulture)],
+            (ArrayValue arrVal, NumberValue numIdx) => EvaluateArrayIndex(arrVal, numIdx),
+            _ => NullValue.Instance
+        };
+    }
+
+    private static TemplateValue EvaluateArrayIndex(ArrayValue array, NumberValue index)
+    {
+        var idx = (int)Math.Truncate(index.Value);
+        if (idx < 0 || idx >= array.Count || idx > ExpressionEvaluator.MaxArrayIndex)
+        {
+            return NullValue.Instance;
+        }
+        return array[idx];
     }
 
     private BoolValue EvaluateNot(NotExpression expr, TemplateContext context)
