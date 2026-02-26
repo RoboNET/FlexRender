@@ -26,6 +26,26 @@ Use `{{variable}}` syntax to insert data values into text and properties:
 # Combined path and index
 - type: text
   content: "{{orders[0].items[2].name}}"
+
+# Computed key access (dynamic key from variable)
+- type: text
+  content: "{{translations[lang]}}"
+
+# String literal key
+- type: text
+  content: "{{translations[\"en\"]}}"
+
+# Chained access
+- type: text
+  content: "{{sections[current].title}}"
+
+# Nested computed access
+- type: text
+  content: "{{dict[keys[0]]}}"
+
+# Expression as key
+- type: text
+  content: "Item: {{arr[base + offset]}}"
 ```
 
 Variables can be used in **all** element properties -- including typed properties like numbers (`opacity`, `maxLines`, `size`), booleans (`wrap`, `showText`), and enums (`align`, `display`, `position`). When a typed property contains `{{`, the value is preserved as an expression during parsing, resolved at render time, and then parsed into the target type.
@@ -243,7 +263,8 @@ Operators are evaluated in this order (highest to lowest):
 
 | Precedence | Operators |
 |------------|-----------|
-| 1 (highest) | Logical NOT (`!x`), Unary minus (`-x`) |
+| 0 (highest) | Index access (`[]`), Member access (`.`) |
+| 1 | Logical NOT (`!x`), Unary minus (`-x`) |
 | 2 | Multiplication, Division (`*`, `/`) |
 | 3 | Addition, Subtraction (`+`, `-`) |
 | 4 | Comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`) |
@@ -364,19 +385,34 @@ Conditions support full expressions including comparison operators, logical NOT,
 {{#each arrayPath}}...{{/each}}
 ```
 
-Iterates over an array. Inside the loop body, the current item's properties are accessible directly. Loop variables:
+Iterates over an array or object. Inside the loop body, the current item's properties are accessible directly. Loop variables:
 
 | Variable | Type | Description |
 |----------|------|-------------|
 | `@index` | number | 0-based iteration index |
 | `@first` | bool | `true` for the first item |
 | `@last` | bool | `true` for the last item |
+| `@key` | string | Key name when iterating over an object (null for arrays) |
 
 ```yaml
 - type: text
   content: "{{#each items}}{{name}}{{#if @last}}.{{else}}, {{/if}}{{/each}}"
 
 # Output with items=[{name:"A"},{name:"B"},{name:"C"}]: "A, B, C."
+```
+
+```yaml
+# Iterate over object key-value pairs
+- type: text
+  content: "{{#each specs}}{{@key}}: {{.}}, {{/each}}"
+
+# Output with specs={"Color":"Red","Size":"XL"}: "Color: Red, Size: XL, "
+
+# Access nested properties during object iteration
+- type: text
+  content: "{{#each people}}{{@key}} is {{age}}, {{/each}}"
+
+# Output with people={"alice":{"age":30},"bob":{"age":25}}: "alice is 30, bob is 25, "
 ```
 
 ### Nesting
@@ -443,7 +479,7 @@ var data = new ObjectValue
 
 ## Loops (type: each)
 
-The `each` element iterates over an array in the data, creating child elements for each item.
+The `each` element iterates over an array or object in the data, creating child elements for each item.
 
 ```yaml
 - type: each
@@ -458,7 +494,7 @@ The `each` element iterates over an array in the data, creating child elements f
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `array` | string | Yes | Path to array in data (e.g., `"items"`, `"order.lines"`) |
+| `array` | string | Yes | Path to array or object in data (e.g., `"items"`, `"order.lines"`) |
 | `as` | string | No | Variable name for each item (default: items are accessible at root) |
 | `children` | element[] | Yes | Template elements to render per item |
 
@@ -471,6 +507,7 @@ Inside `each` children, these special variables are available:
 | `{{@index}}` | int | Zero-based index of current item |
 | `{{@first}}` | bool | `true` for the first item |
 | `{{@last}}` | bool | `true` for the last item |
+| `{{@key}}` | string | Key name when iterating over an object (`null` for arrays) |
 
 ### Loop Examples
 
@@ -532,6 +569,51 @@ Inside `each` children, these special variables are available:
           content: "{{line.product}}"
         - type: text
           content: "{{line.qty}} x {{line.unitPrice}}"
+```
+
+**Dictionary iteration (object key-value pairs):**
+
+```yaml
+# Data: {"specs": {"Color": "Red", "Size": "XL", "Material": "Cotton"}}
+
+- type: each
+  array: specs
+  as: val
+  children:
+    - type: flex
+      direction: row
+      children:
+        - type: text
+          content: "{{@key}}:"
+        - type: text
+          content: "{{val}}"
+```
+
+**Cross-dictionary lookup with @key:**
+
+```yaml
+# Data: {"labels": {"name": "Name", "price": "Price"}, "values": {"name": "Widget", "price": "$9.99"}}
+
+- type: each
+  array: labels
+  as: label
+  children:
+    - type: text
+      content: "{{label}}: {{values[@key]}}"
+```
+
+**Nested object values:**
+
+```yaml
+# Data: {"sections": {"header": {"title": "Hello", "color": "#000"}}}
+
+- type: each
+  array: sections
+  as: section
+  children:
+    - type: text
+      content: "{{@key}}: {{section.title}}"
+      color: "{{section.color}}"
 ```
 
 ---

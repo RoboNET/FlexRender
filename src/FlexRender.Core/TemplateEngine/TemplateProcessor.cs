@@ -256,6 +256,22 @@ public sealed class TemplateProcessor
                 context.PopScope();
             }
         }
+        else if (arrayValue is ObjectValue obj)
+        {
+            var keys = obj.Keys.ToList();
+            for (var i = 0; i < keys.Count; i++)
+            {
+                context.PushScope(obj[keys[i]]);
+                context.SetLoopVariables(i, keys.Count);
+                context.SetLoopKey(keys[i]);
+
+                // bodyTokens is reused across iterations - ProcessTokens only reads the list
+                result.Append(ProcessTokens(bodyTokens, context, newDepth));
+
+                context.ClearLoopVariables();
+                context.PopScope();
+            }
+        }
 
         return endIndex + 1;
     }

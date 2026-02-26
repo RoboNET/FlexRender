@@ -432,6 +432,186 @@ public sealed class InlineExpressionEvaluatorTests
             () => Evaluator.Evaluate(ast, context));
     }
 
+    // === Index Access (Computed Key) ===
+
+    [Fact]
+    public void Evaluate_IndexAccess_StringKey_ReturnsValue()
+    {
+        var data = new ObjectValue
+        {
+            ["dict"] = new ObjectValue { ["en"] = new StringValue("Hello"), ["ru"] = new StringValue("Привет") },
+            ["lang"] = new StringValue("ru")
+        };
+        var result = Evaluate("dict[lang]", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("Привет", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_StringLiteral_ReturnsValue()
+    {
+        var data = new ObjectValue
+        {
+            ["dict"] = new ObjectValue { ["key"] = new StringValue("value") }
+        };
+        var result = Evaluate("dict[\"key\"]", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("value", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_NumericIndex_ReturnsArrayItem()
+    {
+        var data = new ObjectValue
+        {
+            ["arr"] = new ArrayValue(new List<TemplateValue> { new StringValue("a"), new StringValue("b"), new StringValue("c") }),
+            ["idx"] = new NumberValue(1)
+        };
+        var result = Evaluate("arr[idx]", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("b", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_MissingKey_ReturnsNull()
+    {
+        var data = new ObjectValue
+        {
+            ["dict"] = new ObjectValue { ["a"] = new StringValue("1") },
+            ["key"] = new StringValue("missing")
+        };
+        var result = Evaluate("dict[key]", data);
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_NullKey_ReturnsNull()
+    {
+        var data = new ObjectValue
+        {
+            ["dict"] = new ObjectValue { ["a"] = new StringValue("1") }
+        };
+        var result = Evaluate("dict[key]", data);
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_BoolKey_ReturnsNull()
+    {
+        var data = new ObjectValue
+        {
+            ["dict"] = new ObjectValue { ["a"] = new StringValue("1") },
+            ["flag"] = new BoolValue(true)
+        };
+        var result = Evaluate("dict[flag]", data);
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_NumberKeyOnObject_ConvertsToString()
+    {
+        var data = new ObjectValue
+        {
+            ["dict"] = new ObjectValue { ["42"] = new StringValue("answer") },
+            ["num"] = new NumberValue(42)
+        };
+        var result = Evaluate("dict[num]", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("answer", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_StringKeyOnArray_ReturnsNull()
+    {
+        var data = new ObjectValue
+        {
+            ["arr"] = new ArrayValue(new List<TemplateValue> { new StringValue("a") }),
+            ["key"] = new StringValue("notAnIndex")
+        };
+        var result = Evaluate("arr[key]", data);
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_OnStringValue_ReturnsNull()
+    {
+        var data = new ObjectValue
+        {
+            ["str"] = new StringValue("hello"),
+            ["key"] = new StringValue("x")
+        };
+        var result = Evaluate("str[key]", data);
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_Chained_Works()
+    {
+        var data = new ObjectValue
+        {
+            ["sections"] = new ObjectValue
+            {
+                ["header"] = new ObjectValue { ["title"] = new StringValue("Hello") }
+            },
+            ["current"] = new StringValue("header")
+        };
+        var result = Evaluate("sections[current].title", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("Hello", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_Nested_Works()
+    {
+        var data = new ObjectValue
+        {
+            ["dict"] = new ObjectValue { ["en"] = new StringValue("Hello") },
+            ["keys"] = new ArrayValue(new List<TemplateValue> { new StringValue("en"), new StringValue("ru") })
+        };
+        var result = Evaluate("dict[keys[0]]", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("Hello", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_WithArithmeticExpression_Works()
+    {
+        var data = new ObjectValue
+        {
+            ["arr"] = new ArrayValue(new List<TemplateValue> { new StringValue("zero"), new StringValue("one"), new StringValue("two") }),
+            ["base"] = new NumberValue(1),
+            ["offset"] = new NumberValue(1)
+        };
+        var result = Evaluate("arr[base + offset]", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("two", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_FractionalIndex_TruncatesToInt()
+    {
+        var data = new ObjectValue
+        {
+            ["arr"] = new ArrayValue(new List<TemplateValue> { new StringValue("zero"), new StringValue("one") }),
+            ["idx"] = new NumberValue(1.7m)
+        };
+        var result = Evaluate("arr[idx]", data);
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("one", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_IndexAccess_NegativeIndex_ReturnsNull()
+    {
+        var data = new ObjectValue
+        {
+            ["arr"] = new ArrayValue(new List<TemplateValue> { new StringValue("a") }),
+            ["idx"] = new NumberValue(-1)
+        };
+        var result = Evaluate("arr[idx]", data);
+        Assert.IsType<NullValue>(result);
+    }
+
     // === Named filter parameters ===
 
     [Fact]

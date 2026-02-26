@@ -13,6 +13,18 @@ public sealed class TemplateContext
     public TemplateValue CurrentScope => _scopeStack.Peek();
 
     /// <summary>
+    /// Gets a read-only view of the scope stack for scope walking during variable resolution.
+    /// The first element (index 0) is the root scope, the last element is the current (innermost) scope.
+    /// </summary>
+    internal IReadOnlyList<TemplateValue> Scopes => _scopeList;
+
+    /// <summary>
+    /// Cached list view of the scope stack for efficient scope walking.
+    /// Kept in sync with the stack via PushScope/PopScope.
+    /// </summary>
+    private readonly List<TemplateValue> _scopeList = [];
+
+    /// <summary>
     /// Gets the current loop index, or null if not in a loop.
     /// </summary>
     public int? LoopIndex { get; private set; }
@@ -28,6 +40,11 @@ public sealed class TemplateContext
     public bool IsLast { get; private set; }
 
     /// <summary>
+    /// Gets the current loop key when iterating over an ObjectValue, or null if not in an object loop.
+    /// </summary>
+    public string? LoopKey { get; private set; }
+
+    /// <summary>
     /// Initializes a new context with root data.
     /// </summary>
     /// <param name="rootData">The root data object.</param>
@@ -36,6 +53,7 @@ public sealed class TemplateContext
     {
         ArgumentNullException.ThrowIfNull(rootData);
         _scopeStack.Push(rootData);
+        _scopeList.Add(rootData);
     }
 
     /// <summary>
@@ -47,6 +65,7 @@ public sealed class TemplateContext
     {
         ArgumentNullException.ThrowIfNull(scope);
         _scopeStack.Push(scope);
+        _scopeList.Add(scope);
     }
 
     /// <summary>
@@ -60,6 +79,7 @@ public sealed class TemplateContext
             throw new InvalidOperationException("Cannot pop the root scope.");
         }
         _scopeStack.Pop();
+        _scopeList.RemoveAt(_scopeList.Count - 1);
     }
 
     /// <summary>
@@ -94,6 +114,17 @@ public sealed class TemplateContext
     }
 
     /// <summary>
+    /// Sets the loop key for the current object iteration.
+    /// </summary>
+    /// <param name="key">The current key. Must not be null.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="key"/> is null.</exception>
+    public void SetLoopKey(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        LoopKey = key.Trim();
+    }
+
+    /// <summary>
     /// Clears all loop variables.
     /// </summary>
     public void ClearLoopVariables()
@@ -101,5 +132,6 @@ public sealed class TemplateContext
         LoopIndex = null;
         IsFirst = false;
         IsLast = false;
+        LoopKey = null;
     }
 }

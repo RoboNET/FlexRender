@@ -137,45 +137,85 @@ public sealed class TemplateExpander
 
         var arrayValue = ExpressionEvaluator.Resolve(each.ArrayPath, context);
 
-        if (arrayValue is not ArrayValue array)
+        if (arrayValue is ArrayValue array)
         {
-            yield break;
-        }
-
-        var count = array.Count;
-        for (var i = 0; i < count; i++)
-        {
-            var item = array[i];
-
-            // Push item scope
-            if (each.ItemVariable != null)
+            // Existing array iteration logic
+            var count = array.Count;
+            for (var i = 0; i < count; i++)
             {
-                // Create a new scope with the item variable
-                var scopeData = new ObjectValue
+                var item = array[i];
+
+                // Push item scope
+                if (each.ItemVariable != null)
                 {
-                    [each.ItemVariable] = item
-                };
-                context.PushScope(scopeData);
-            }
-            else
-            {
-                context.PushScope(item);
-            }
+                    // Create a new scope with the item variable
+                    var scopeData = new ObjectValue
+                    {
+                        [each.ItemVariable] = item
+                    };
+                    context.PushScope(scopeData);
+                }
+                else
+                {
+                    context.PushScope(item);
+                }
 
-            context.SetLoopVariables(i, count);
+                context.SetLoopVariables(i, count);
 
-            // Expand children
-            var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth);
+                // Expand children
+                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth);
 
-            // Pop scope
-            context.ClearLoopVariables();
-            context.PopScope();
+                // Pop scope
+                context.ClearLoopVariables();
+                context.PopScope();
 
-            foreach (var child in expandedChildren)
-            {
-                yield return child;
+                foreach (var child in expandedChildren)
+                {
+                    yield return child;
+                }
             }
         }
+        else if (arrayValue is ObjectValue obj)
+        {
+            // Object iteration: iterate over key-value pairs with @key support
+            var keys = obj.Keys.ToList();
+            var count = keys.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var key = keys[i];
+                var value = obj[key];
+
+                // Push item scope
+                if (each.ItemVariable != null)
+                {
+                    var scopeData = new ObjectValue
+                    {
+                        [each.ItemVariable] = value
+                    };
+                    context.PushScope(scopeData);
+                }
+                else
+                {
+                    context.PushScope(value);
+                }
+
+                context.SetLoopVariables(i, count);
+                context.SetLoopKey(key);
+
+                // Expand children
+                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth);
+
+                // Pop scope
+                context.ClearLoopVariables();
+                context.PopScope();
+
+                foreach (var child in expandedChildren)
+                {
+                    yield return child;
+                }
+            }
+        }
+        // else: not array or object -- yield nothing (implicit yield break)
     }
 
     private void ValidateNestedDepth(IReadOnlyList<TemplateElement> elements, int depth)

@@ -270,4 +270,109 @@ public class TemplateProcessorIntegrationTests
 
         Assert.Equal("Welcome guest", result);
     }
+
+    /// <summary>
+    /// Verifies that inline {{#each}} iterates over ObjectValue key-value pairs,
+    /// exposing <c>@key</c> and <c>.</c> (current scope) for each entry.
+    /// </summary>
+    [Fact]
+    public void Process_InlineEachOverObject_IteratesKeyValuePairs()
+    {
+        var data = new ObjectValue
+        {
+            ["specs"] = new ObjectValue
+            {
+                ["Color"] = new StringValue("Red"),
+                ["Size"] = new StringValue("XL")
+            }
+        };
+
+        var result = _processor.Process("{{#each specs}}{{@key}}:{{.}} {{/each}}", data);
+
+        Assert.Equal("Color:Red Size:XL ", result);
+    }
+
+    /// <summary>
+    /// Verifies that inline {{#each}} over an ObjectValue allows accessing nested
+    /// properties on each value when values are themselves objects.
+    /// </summary>
+    [Fact]
+    public void Process_InlineEachOverObject_NestedProperty()
+    {
+        var data = new ObjectValue
+        {
+            ["people"] = new ObjectValue
+            {
+                ["alice"] = new ObjectValue { ["age"] = new NumberValue(30) },
+                ["bob"] = new ObjectValue { ["age"] = new NumberValue(25) }
+            }
+        };
+
+        var result = _processor.Process("{{#each people}}{{@key}}={{age}} {{/each}}", data);
+
+        Assert.Equal("alice=30 bob=25 ", result);
+    }
+
+    /// <summary>
+    /// Verifies that inline {{#each}} over an empty ObjectValue produces no output.
+    /// </summary>
+    [Fact]
+    public void Process_InlineEachOverObject_Empty_ReturnsEmpty()
+    {
+        var data = new ObjectValue
+        {
+            ["obj"] = new ObjectValue()
+        };
+
+        var result = _processor.Process("before{{#each obj}}{{@key}}{{/each}}after", data);
+
+        Assert.Equal("beforeafter", result);
+    }
+
+    /// <summary>
+    /// Verifies that inline {{#each}} over an ObjectValue correctly sets
+    /// <c>@index</c>, <c>@first</c>, and <c>@last</c> loop variables.
+    /// </summary>
+    [Fact]
+    public void Process_InlineEachOverObject_IndexFirstLast()
+    {
+        var data = new ObjectValue
+        {
+            ["items"] = new ObjectValue
+            {
+                ["a"] = new StringValue("1"),
+                ["b"] = new StringValue("2")
+            }
+        };
+
+        var result = _processor.Process("{{#each items}}{{@index}}{{@first}}{{@last}} {{/each}}", data);
+
+        Assert.Equal("0truefalse 1falsetrue ", result);
+    }
+
+    /// <summary>
+    /// Verifies that inline {{#each}} over an ObjectValue supports computed key access
+    /// to look up values from another dictionary using <c>@key</c>.
+    /// </summary>
+    [Fact]
+    public void Process_InlineEachOverObject_WithComputedKeyAccess()
+    {
+        var data = new ObjectValue
+        {
+            ["labels"] = new ObjectValue
+            {
+                ["name"] = new StringValue("Name"),
+                ["price"] = new StringValue("Price")
+            },
+            ["values"] = new ObjectValue
+            {
+                ["name"] = new StringValue("Widget"),
+                ["price"] = new StringValue("$9.99")
+            }
+        };
+
+        var result = _processor.Process("{{#each labels}}{{.}}: {{values[@key]}} {{/each}}", data);
+
+        Assert.Equal("Name: Widget Price: $9.99 ", result);
+    }
 }

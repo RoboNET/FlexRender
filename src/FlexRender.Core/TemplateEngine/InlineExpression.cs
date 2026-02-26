@@ -152,3 +152,12 @@ public sealed record LogicalOrExpression(InlineExpression Left, InlineExpression
 /// <param name="Left">The left expression.</param>
 /// <param name="Right">The right expression.</param>
 public sealed record LogicalAndExpression(InlineExpression Left, InlineExpression Right) : InlineExpression;
+
+/// <summary>
+/// A computed index/key access expression (e.g., <c>dict[lang]</c>, <c>arr[idx]</c>).
+/// Evaluates <see cref="Index"/> and uses the result as a key (for <see cref="ObjectValue"/>)
+/// or numeric index (for <see cref="ArrayValue"/>).
+/// </summary>
+/// <param name="Target">The expression being indexed (the object or array).</param>
+/// <param name="Index">The expression whose result is used as the key or index.</param>
+public sealed record IndexAccessExpression(InlineExpression Target, InlineExpression Index) : InlineExpression;
