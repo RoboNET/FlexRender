@@ -397,7 +397,45 @@ public sealed partial class InlineExpressionParser
             argument = ReadFilterArgument();
         }
 
-        var filterExpr = new FilterExpression(input, filterName, argument);
+        // Parse named arguments and flags after positional argument
+        List<FilterNamedArgument>? namedArgs = null;
+        SkipWhitespace();
+        while (_pos < _input.Length && _input[_pos] != '|' && _input[_pos] != '}')
+        {
+            // Must start with a letter (identifier for named param or flag)
+            if (!char.IsLetter(_input[_pos]))
+            {
+                break;
+            }
+
+            // Read the identifier name
+            var nameStart = _pos;
+            while (_pos < _input.Length && (char.IsLetterOrDigit(_input[_pos]) || _input[_pos] == '_'))
+            {
+                _pos++;
+            }
+
+            var paramName = _input[nameStart.._pos];
+
+            if (_pos < _input.Length && _input[_pos] == ':')
+            {
+                // Named parameter with value: key:value
+                _pos++; // skip :
+                var paramValue = ReadFilterArgument();
+                namedArgs ??= [];
+                namedArgs.Add(new FilterNamedArgument(paramName, paramValue));
+            }
+            else
+            {
+                // Boolean flag: just a name
+                namedArgs ??= [];
+                namedArgs.Add(new FilterNamedArgument(paramName, null));
+            }
+
+            SkipWhitespace();
+        }
+
+        var filterExpr = new FilterExpression(input, filterName, argument, namedArgs);
 
         // Allow chaining: {{name | trim | upper}}
         SkipWhitespace();

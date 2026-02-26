@@ -21,7 +21,7 @@ public sealed class NumberFilter : ITemplateFilter
     public string Name => "number";
 
     /// <inheritdoc />
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture)
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
     {
         if (input is not NumberValue num)
         {
@@ -29,7 +29,7 @@ public sealed class NumberFilter : ITemplateFilter
         }
 
         var decimals = 0;
-        if (argument is StringValue argStr &&
+        if (arguments.Positional is StringValue argStr &&
             int.TryParse(argStr.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
         {
             decimals = Math.Clamp(parsed, 0, MaxDecimalPlaces);

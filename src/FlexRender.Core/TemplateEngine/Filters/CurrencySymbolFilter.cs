@@ -172,7 +172,7 @@ public sealed class CurrencySymbolFilter : ITemplateFilter
     public string Name => "currencySymbol";
 
     /// <inheritdoc />
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture)
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
     {
         if (input is StringValue str)
         {

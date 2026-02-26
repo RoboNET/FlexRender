@@ -16,7 +16,7 @@ public sealed class CurrencyFilter : ITemplateFilter
     public string Name => "currency";
 
     /// <inheritdoc />
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture)
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
     {
         if (input is NumberValue num)
         {
