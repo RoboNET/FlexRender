@@ -779,5 +779,5 @@ file sealed class StubFilter : ITemplateFilter
 
     public StubFilter(string name) => Name = name;
 
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture) => input;
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture) => input;
 }

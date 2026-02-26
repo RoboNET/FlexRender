@@ -188,12 +188,21 @@ The `??` operator provides a fallback when the left side is null or missing:
 
 ### Filters
 
-Filters transform values using the pipe (`|`) syntax. Filters can take an optional argument after a colon:
+Filters transform values using the pipe (`|`) syntax. Filters support a positional argument, named parameters (`key:value`), and boolean flags:
 
 ```yaml
 {{value | filterName}}
 {{value | filterName:argument}}
+{{value | filterName:positional key1:value1 key2:'string' flag}}
+{{value | filterName key1:value1 flag}}
 ```
+
+**Three modes:**
+- Positional only: `{{value | truncate:30}}`
+- Named only: `{{value | truncate length:30 suffix:'…'}}`
+- Mixed: `{{value | truncate:30 suffix:'…' fromEnd}}`
+
+Named parameters use `key:value` syntax. Boolean flags are just the key name without a value.
 
 #### Built-in Filters
 
@@ -206,7 +215,7 @@ All 8 built-in filters are enabled by default. Use `WithoutDefaultFilters()` on 
 | `upper` | -- | Convert string to uppercase | `{{name \| upper}}` -> `"JOHN"` |
 | `lower` | -- | Convert string to lowercase | `{{name \| lower}}` -> `"john"` |
 | `trim` | -- | Remove leading/trailing whitespace | `{{input \| trim}}` |
-| `truncate` | max length (default: 50) | Truncate string with "..." suffix | `{{desc \| truncate:20}}` |
+| `truncate` | `length` (positional, default: 50), `suffix` (default: "..."), `fromEnd` (flag) | Truncate string with configurable suffix and direction | `{{desc \| truncate:20}}`, `{{path \| truncate:20 fromEnd suffix:'…'}}` |
 | `format` | format string | Format number or date with .NET format string | `{{date \| format:"dd.MM.yyyy"}}` |
 | `currencySymbol` | -- | Convert ISO 4217 currency code (alphabetic or numeric) to symbol | `{{currency \| currencySymbol}}` -> `"$"`, `{{840 \| currencySymbol}}` -> `"$"` |
 
@@ -234,6 +243,18 @@ All 8 built-in filters are enabled by default. Use `WithoutDefaultFilters()` on 
 # Truncated description
 - type: text
   content: "{{product.description | truncate:50}}"
+
+# Truncated description with custom suffix
+- type: text
+  content: "{{product.description | truncate:30 suffix:'…'}}"
+
+# Keep last 20 chars of file path
+- type: text
+  content: "{{file.path | truncate:20 fromEnd}}"
+
+# Truncate with all named parameters
+- type: text
+  content: "{{text | truncate length:25 suffix:'...' fromEnd}}"
 ```
 
 ### Expression Precedence
@@ -288,9 +309,14 @@ Custom filters implement `ITemplateFilter`:
 public interface ITemplateFilter
 {
     string Name { get; }
-    TemplateValue Apply(TemplateValue input, TemplateValue? argument);
+    TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture);
 }
 ```
+
+The `FilterArguments` class provides:
+- `Positional` -- the first (unnamed) argument, or null
+- `GetNamed(name, defaultValue)` -- get a named parameter by key
+- `HasFlag(name)` -- check if a boolean flag is present
 
 ---
 

@@ -15,7 +15,7 @@ public sealed class LowerFilter : ITemplateFilter
     public string Name => "lower";
 
     /// <inheritdoc />
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture)
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
     {
         if (input is StringValue str)
         {

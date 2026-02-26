@@ -1055,4 +1055,115 @@ public sealed class InlineExpressionParserTests
     }
 
     #endregion
+
+    #region Named Filter Parameters
+
+    [Fact]
+    public void Parse_FilterWithNamedParam_ProducesFilterExpression()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate length:30");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.Equal("truncate", filter.FilterName);
+        Assert.Null(filter.Argument);
+        Assert.NotNull(filter.NamedArguments);
+        Assert.Single(filter.NamedArguments);
+        Assert.Equal("length", filter.NamedArguments[0].Name);
+        Assert.Equal("30", filter.NamedArguments[0].Value);
+    }
+
+    [Fact]
+    public void Parse_FilterWithFlag_ProducesFilterExpression()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate:30 fromEnd");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.Equal("30", filter.Argument);
+        Assert.NotNull(filter.NamedArguments);
+        Assert.Single(filter.NamedArguments);
+        Assert.Equal("fromEnd", filter.NamedArguments[0].Name);
+        Assert.Null(filter.NamedArguments[0].Value);
+    }
+
+    [Fact]
+    public void Parse_FilterWithMixedArgs_ProducesFilterExpression()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate:30 suffix:'\u2026' fromEnd");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.Equal("30", filter.Argument);
+        Assert.NotNull(filter.NamedArguments);
+        Assert.Equal(2, filter.NamedArguments.Count);
+        Assert.Equal("suffix", filter.NamedArguments[0].Name);
+        Assert.Equal("\u2026", filter.NamedArguments[0].Value);
+        Assert.Equal("fromEnd", filter.NamedArguments[1].Name);
+        Assert.Null(filter.NamedArguments[1].Value);
+    }
+
+    [Fact]
+    public void Parse_FilterWithAllNamedParams_ProducesFilterExpression()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate length:30 suffix:'\u2026'");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.Null(filter.Argument);
+        Assert.NotNull(filter.NamedArguments);
+        Assert.Equal(2, filter.NamedArguments.Count);
+    }
+
+    [Fact]
+    public void Parse_FilterNamedQuotedString_ProducesFilterExpression()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate:30 suffix:\"...\"");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.NotNull(filter.NamedArguments);
+        Assert.Equal("...", filter.NamedArguments[0].Value);
+    }
+
+    [Fact]
+    public void Parse_FilterEmptyStringValue_ProducesFilterExpression()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate:30 suffix:''");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.NotNull(filter.NamedArguments);
+        Assert.Equal("", filter.NamedArguments[0].Value);
+    }
+
+    [Fact]
+    public void Parse_FilterChainWithNamedParams_Works()
+    {
+        var expr = InlineExpressionParser.Parse("x | trim | truncate:30 fromEnd");
+        var outer = Assert.IsType<FilterExpression>(expr);
+        Assert.Equal("truncate", outer.FilterName);
+        Assert.NotNull(outer.NamedArguments);
+        var inner = Assert.IsType<FilterExpression>(outer.Input);
+        Assert.Equal("trim", inner.FilterName);
+    }
+
+    [Fact]
+    public void Parse_FilterWithoutNamedParams_BackwardCompatible()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate:30");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.Equal("30", filter.Argument);
+        Assert.Null(filter.NamedArguments);
+    }
+
+    [Fact]
+    public void Parse_FilterNoArgs_BackwardCompatible()
+    {
+        var expr = InlineExpressionParser.Parse("x | upper");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.Null(filter.Argument);
+        Assert.Null(filter.NamedArguments);
+    }
+
+    [Fact]
+    public void Parse_PositionalAndSameNamedParam_BothPresent()
+    {
+        var expr = InlineExpressionParser.Parse("x | truncate:30 length:20");
+        var filter = Assert.IsType<FilterExpression>(expr);
+        Assert.Equal("30", filter.Argument);
+        Assert.NotNull(filter.NamedArguments);
+        Assert.Equal("length", filter.NamedArguments[0].Name);
+        Assert.Equal("20", filter.NamedArguments[0].Value);
+    }
+
+    #endregion
 }
