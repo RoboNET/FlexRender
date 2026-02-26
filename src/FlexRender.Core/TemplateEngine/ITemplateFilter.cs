@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 
 namespace FlexRender.TemplateEngine;
@@ -7,10 +8,18 @@ namespace FlexRender.TemplateEngine;
 /// </summary>
 public sealed class FilterArguments
 {
+    private static readonly IReadOnlyDictionary<string, TemplateValue?> EmptyNamed =
+        new ReadOnlyDictionary<string, TemplateValue?>(new Dictionary<string, TemplateValue?>());
+
     /// <summary>
     /// Empty arguments instance. Used when a filter has no arguments.
     /// </summary>
-    public static readonly FilterArguments Empty = new(null, new Dictionary<string, TemplateValue?>());
+    public static readonly FilterArguments Empty = new(null, EmptyNamed);
+
+    /// <summary>
+    /// Gets a shared empty named-arguments dictionary for reuse when no named arguments are present.
+    /// </summary>
+    internal static IReadOnlyDictionary<string, TemplateValue?> EmptyNamedDictionary => EmptyNamed;
 
     private readonly IReadOnlyDictionary<string, TemplateValue?> _named;
 
@@ -39,6 +48,7 @@ public sealed class FilterArguments
     /// <returns>The named argument value if present and non-null; otherwise, <paramref name="defaultValue"/>.</returns>
     public TemplateValue GetNamed(string name, TemplateValue defaultValue)
     {
+        ArgumentNullException.ThrowIfNull(name);
         if (_named.TryGetValue(name, out var value) && value is not null)
         {
             return value;
@@ -54,6 +64,7 @@ public sealed class FilterArguments
     /// <returns>True if the flag is present (key exists with null value); otherwise, false.</returns>
     public bool HasFlag(string name)
     {
+        ArgumentNullException.ThrowIfNull(name);
         return _named.TryGetValue(name, out var value) && value is null;
     }
 }

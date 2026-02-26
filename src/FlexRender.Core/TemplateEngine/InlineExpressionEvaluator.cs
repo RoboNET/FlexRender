@@ -164,7 +164,7 @@ public sealed class InlineExpressionEvaluator
         else
         {
             arguments = positional is not null
-                ? new FilterArguments(positional, new Dictionary<string, TemplateValue?>())
+                ? new FilterArguments(positional, FilterArguments.EmptyNamedDictionary)
                 : FilterArguments.Empty;
         }
 
