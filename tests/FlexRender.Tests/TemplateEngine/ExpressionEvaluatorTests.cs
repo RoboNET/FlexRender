@@ -326,4 +326,42 @@ public class ExpressionEvaluatorTests
 
         Assert.Same(data, result);
     }
+
+    [Fact]
+    public void Resolve_LoopKey_ReturnsStringValue()
+    {
+        var data = new ObjectValue { ["x"] = "test" };
+        var context = new TemplateContext(data);
+        context.SetLoopVariables(0, 3);
+        context.SetLoopKey("myKey");
+
+        var result = ExpressionEvaluator.Resolve("@key", context);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("myKey", str.Value);
+    }
+
+    [Fact]
+    public void Resolve_LoopKey_OutsideLoop_ReturnsNullValue()
+    {
+        var data = new ObjectValue { ["x"] = "test" };
+        var context = new TemplateContext(data);
+
+        var result = ExpressionEvaluator.Resolve("@key", context);
+
+        Assert.IsType<NullValue>(result);
+    }
+
+    [Fact]
+    public void Resolve_LoopKey_InArrayLoop_ReturnsNullValue()
+    {
+        var data = new ObjectValue { ["x"] = "test" };
+        var context = new TemplateContext(data);
+        context.SetLoopVariables(0, 3);
+        // LoopKey not set — simulates array iteration
+
+        var result = ExpressionEvaluator.Resolve("@key", context);
+
+        Assert.IsType<NullValue>(result);
+    }
 }

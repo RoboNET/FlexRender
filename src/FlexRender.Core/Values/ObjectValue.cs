@@ -16,8 +16,8 @@ public sealed class ObjectValue : TemplateValue
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null on set.</exception>
     public TemplateValue this[string key]
     {
-        get => _properties.GetValueOrDefault(key, NullValue.Instance);
-        set => _properties[key] = value ?? throw new ArgumentNullException(nameof(value));
+        get => _properties.GetValueOrDefault(key.Trim(), NullValue.Instance);
+        set => _properties[key.Trim()] = value ?? throw new ArgumentNullException(nameof(value));
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ public sealed class ObjectValue : TemplateValue
     /// </summary>
     /// <param name="key">The key to check.</param>
     /// <returns>True if the property exists; otherwise, false.</returns>
-    public bool ContainsKey(string key) => _properties.ContainsKey(key);
+    public bool ContainsKey(string key) => _properties.ContainsKey(key.Trim());
 
     /// <summary>
     /// Tries to get the value of a property.
@@ -45,7 +45,7 @@ public sealed class ObjectValue : TemplateValue
     /// <returns>True if the property was found; otherwise, false.</returns>
     public bool TryGetValue(string key, out TemplateValue? value)
     {
-        return _properties.TryGetValue(key, out value);
+        return _properties.TryGetValue(key.Trim(), out value);
     }
 
     /// <inheritdoc />

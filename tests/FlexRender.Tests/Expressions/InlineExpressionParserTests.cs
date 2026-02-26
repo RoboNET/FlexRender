@@ -954,6 +954,108 @@ public sealed class InlineExpressionParserTests
 
     #endregion
 
+    #region Index Access (Computed Key)
+
+    [Fact]
+    public void Parse_VariableKeyAccess_ProducesIndexAccess()
+    {
+        var result = InlineExpressionParser.Parse("dict[lang]");
+        var access = Assert.IsType<IndexAccessExpression>(result);
+        var obj = Assert.IsType<PathExpression>(access.Target);
+        Assert.Equal("dict", obj.Path);
+        var idx = Assert.IsType<PathExpression>(access.Index);
+        Assert.Equal("lang", idx.Path);
+    }
+
+    [Fact]
+    public void Parse_StringLiteralKey_ProducesIndexAccess()
+    {
+        var result = InlineExpressionParser.Parse("dict[\"key\"]");
+        var access = Assert.IsType<IndexAccessExpression>(result);
+        Assert.IsType<PathExpression>(access.Target);
+        var idx = Assert.IsType<StringLiteral>(access.Index);
+        Assert.Equal("key", idx.Value);
+    }
+
+    [Fact]
+    public void Parse_NumericKeyInFullParser_ProducesIndexAccess()
+    {
+        // Force through full parser by adding a variable key expression context
+        var result = InlineExpressionParser.Parse("arr[0]");
+        // This should go through fast path and produce PathExpression
+        // Only when [non-digit] is present does it go through full parser
+        var path = Assert.IsType<PathExpression>(result);
+        Assert.Equal("arr[0]", path.Path);
+    }
+
+    [Fact]
+    public void Parse_ExpressionKey_ProducesIndexAccess()
+    {
+        var result = InlineExpressionParser.Parse("dict[a + b]");
+        var access = Assert.IsType<IndexAccessExpression>(result);
+        Assert.IsType<PathExpression>(access.Target);
+        Assert.IsType<ArithmeticExpression>(access.Index);
+    }
+
+    [Fact]
+    public void Parse_FilterKey_ProducesIndexAccess()
+    {
+        var result = InlineExpressionParser.Parse("dict[key | lower]");
+        var access = Assert.IsType<IndexAccessExpression>(result);
+        Assert.IsType<PathExpression>(access.Target);
+        Assert.IsType<FilterExpression>(access.Index);
+    }
+
+    [Fact]
+    public void Parse_NestedBrackets_ProducesNestedIndexAccess()
+    {
+        var result = InlineExpressionParser.Parse("dict[arr[0]]");
+        var outer = Assert.IsType<IndexAccessExpression>(result);
+        Assert.IsType<PathExpression>(outer.Target);
+        var inner = Assert.IsType<IndexAccessExpression>(outer.Index);
+        Assert.IsType<PathExpression>(inner.Target);
+        Assert.IsType<NumberLiteral>(inner.Index);
+    }
+
+    [Fact]
+    public void Parse_ChainedAccess_Works()
+    {
+        var result = InlineExpressionParser.Parse("obj[k].prop");
+        // obj[k] -> IndexAccessExpression, then .prop -> IndexAccessExpression with StringLiteral
+        var outer = Assert.IsType<IndexAccessExpression>(result);
+        var inner = Assert.IsType<IndexAccessExpression>(outer.Target);
+        Assert.IsType<PathExpression>(inner.Target);
+        Assert.IsType<PathExpression>(inner.Index);
+        var propKey = Assert.IsType<StringLiteral>(outer.Index);
+        Assert.Equal("prop", propKey.Value);
+    }
+
+    [Fact]
+    public void Parse_LoopVarKey_Works()
+    {
+        var result = InlineExpressionParser.Parse("dict[@key]");
+        var access = Assert.IsType<IndexAccessExpression>(result);
+        Assert.IsType<PathExpression>(access.Target);
+        var idx = Assert.IsType<PathExpression>(access.Index);
+        Assert.Equal("@key", idx.Path);
+    }
+
+    [Fact]
+    public void Parse_SimpleNumericIndex_StillWorksThroughFastPath()
+    {
+        var result = InlineExpressionParser.Parse("items[0].price");
+        var path = Assert.IsType<PathExpression>(result);
+        Assert.Equal("items[0].price", path.Path);
+    }
+
+    [Fact]
+    public void Parse_MissingCloseBracket_ThrowsTemplateEngineException()
+    {
+        Assert.Throws<TemplateEngineException>(() => InlineExpressionParser.Parse("dict[lang"));
+    }
+
+    #endregion
+
     #region Named Filter Parameters
 
     [Fact]

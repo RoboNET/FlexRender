@@ -56,7 +56,18 @@ public partial class ExpressionEvaluator
             return ResolveLoopVariable(path, context);
         }
 
-        return ResolvePath(path, context.CurrentScope);
+        // Try current scope first, then walk up parent scopes
+        var scopes = context.Scopes;
+        for (var i = scopes.Count - 1; i >= 0; i--)
+        {
+            var result = ResolvePath(path, scopes[i]);
+            if (result is not NullValue)
+            {
+                return result;
+            }
+        }
+
+        return NullValue.Instance;
     }
 
     private static TemplateValue ResolveLoopVariable(string path, TemplateContext context)
@@ -68,6 +79,9 @@ public partial class ExpressionEvaluator
                 : NullValue.Instance,
             "@first" => new BoolValue(context.IsFirst),
             "@last" => new BoolValue(context.IsLast),
+            "@key" => context.LoopKey is not null
+                ? new StringValue(context.LoopKey)
+                : NullValue.Instance,
             _ => NullValue.Instance
         };
     }
