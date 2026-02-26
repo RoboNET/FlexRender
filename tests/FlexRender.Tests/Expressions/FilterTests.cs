@@ -838,6 +838,46 @@ public sealed class FilterTests
         Assert.Same(custom, retrieved);
     }
 
+    // === End-to-end: parser + evaluator + filter ===
+
+    [Theory]
+    [InlineData("x | truncate:5", "Hello, World!", "He...")]
+    [InlineData("x | truncate:5 suffix:'…'", "Hello, World!", "Hell…")]
+    [InlineData("x | truncate:5 fromEnd", "Hello, World!", "...d!")]
+    [InlineData("x | truncate:5 fromEnd suffix:'…'", "Hello, World!", "…rld!")]
+    [InlineData("x | truncate:10", "Short", "Short")]
+    [InlineData("x | truncate length:5", "Hello, World!", "He...")]
+    [InlineData("x | truncate:30 length:5", "Hello, World!", "He...")] // named overrides positional
+    [InlineData("x | truncate:5 suffix:''", "Hello, World!", "Hello")]
+    [InlineData("x | trim | truncate:8", "  Hello, World!  ", "Hello...")]
+    public void TruncateFilter_E2E_FullPipeline(string expression, string inputValue, string expected)
+    {
+        var registry = FilterRegistry.CreateDefault();
+        var evaluator = new InlineExpressionEvaluator(registry);
+        var context = new TemplateContext(new ObjectValue { ["x"] = new StringValue(inputValue) });
+
+        var parsed = InlineExpressionParser.Parse(expression);
+        var result = evaluator.Evaluate(parsed, context);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(expected, str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_E2E_NumberInput()
+    {
+        var registry = FilterRegistry.CreateDefault();
+        var evaluator = new InlineExpressionEvaluator(registry);
+        var context = new TemplateContext(new ObjectValue { ["x"] = new NumberValue(123456.789m) });
+
+        var parsed = InlineExpressionParser.Parse("x | truncate:8");
+        var result = evaluator.Evaluate(parsed, context);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(8, str.Value.Length);
+        Assert.EndsWith("...", str.Value);
+    }
+
     private static FilterArguments Args(string? positional = null) =>
         positional is not null
             ? new FilterArguments(new StringValue(positional), new Dictionary<string, TemplateValue?>())
