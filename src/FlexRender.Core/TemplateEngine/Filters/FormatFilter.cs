@@ -29,9 +29,9 @@ public sealed class FormatFilter : ITemplateFilter
     public string Name => "format";
 
     /// <inheritdoc />
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture)
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
     {
-        if (argument is not StringValue formatStr || string.IsNullOrEmpty(formatStr.Value))
+        if (arguments.Positional is not StringValue formatStr || string.IsNullOrEmpty(formatStr.Value))
         {
             return input;
         }

@@ -15,7 +15,7 @@ public sealed class TrimFilter : ITemplateFilter
     public string Name => "trim";
 
     /// <inheritdoc />
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture)
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
     {
         if (input is StringValue str)
         {

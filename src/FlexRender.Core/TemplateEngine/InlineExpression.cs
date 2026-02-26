@@ -70,13 +70,27 @@ public sealed record ArithmeticExpression(InlineExpression Left, ArithmeticOpera
 public sealed record CoalesceExpression(InlineExpression Left, InlineExpression Right) : InlineExpression;
 
 /// <summary>
-/// A filter pipe expression (e.g., <c>price | currency</c>, <c>name | truncate:30</c>).
+/// A named argument for a filter (e.g., <c>suffix:'...'</c>). A null <paramref name="Value"/>
+/// indicates a boolean flag (e.g., <c>fromEnd</c>).
+/// </summary>
+/// <param name="Name">The argument name.</param>
+/// <param name="Value">The argument value, or null for boolean flags.</param>
+public sealed record FilterNamedArgument(string Name, string? Value);
+
+/// <summary>
+/// A filter pipe expression (e.g., <c>price | currency</c>, <c>name | truncate:30 suffix:'...' fromEnd</c>).
 /// Applies a named filter to the input expression.
 /// </summary>
 /// <param name="Input">The expression whose result is passed to the filter.</param>
 /// <param name="FilterName">The name of the filter to apply.</param>
-/// <param name="Argument">An optional string argument to the filter (after the colon).</param>
-public sealed record FilterExpression(InlineExpression Input, string FilterName, string? Argument) : InlineExpression;
+/// <param name="Argument">An optional positional string argument (after the colon).</param>
+/// <param name="NamedArguments">Optional named arguments and flags.</param>
+public sealed record FilterExpression(
+    InlineExpression Input,
+    string FilterName,
+    string? Argument,
+    IReadOnlyList<FilterNamedArgument>? NamedArguments = null
+) : InlineExpression;
 
 /// <summary>
 /// A unary negation expression (e.g., <c>-price</c>).

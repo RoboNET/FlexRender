@@ -3,6 +3,7 @@
 // Compilation status: WILL NOT COMPILE until InlineExpressionEvaluator,
 // InlineExpressionParser, and InlineExpression AST nodes are implemented.
 
+using System.Globalization;
 using FlexRender.TemplateEngine;
 using Xunit;
 
@@ -429,5 +430,51 @@ public sealed class InlineExpressionEvaluatorTests
 
         Assert.Throws<TemplateEngineException>(
             () => Evaluator.Evaluate(ast, context));
+    }
+
+    // === Named filter parameters ===
+
+    [Fact]
+    public void Evaluate_FilterWithNamedParam_PassesToFilter()
+    {
+        var registry = new FilterRegistry();
+        registry.Register(new TestNamedParamFilter());
+        var evaluator = new InlineExpressionEvaluator(registry);
+        var context = new TemplateContext(new ObjectValue { ["x"] = new StringValue("hello") });
+
+        var expr = InlineExpressionParser.Parse("x | testnamed:5 label:'world'");
+        var result = evaluator.Evaluate(expr, context);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("hello|5|world", str.Value);
+    }
+
+    [Fact]
+    public void Evaluate_FilterWithFlag_PassesToFilter()
+    {
+        var registry = new FilterRegistry();
+        registry.Register(new TestNamedParamFilter());
+        var evaluator = new InlineExpressionEvaluator(registry);
+        var context = new TemplateContext(new ObjectValue { ["x"] = new StringValue("hello") });
+
+        var expr = InlineExpressionParser.Parse("x | testnamed:5 reverse");
+        var result = evaluator.Evaluate(expr, context);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("hello|5|reversed", str.Value);
+    }
+
+    private sealed class TestNamedParamFilter : ITemplateFilter
+    {
+        public string Name => "testnamed";
+
+        public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
+        {
+            var inputStr = input is StringValue sv ? sv.Value : "null";
+            var pos = arguments.Positional is StringValue ps ? ps.Value : "none";
+            var label = arguments.GetNamed("label", NullValue.Instance) is StringValue ls ? ls.Value : "none";
+            var reversed = arguments.HasFlag("reverse") ? "reversed" : label;
+            return new StringValue($"{inputStr}|{pos}|{reversed}");
+        }
     }
 }
