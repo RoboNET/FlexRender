@@ -339,6 +339,150 @@ public sealed class FilterTests
         Assert.Equal("truncate", filter.Name);
     }
 
+    [Fact]
+    public void TruncateFilter_CustomSuffix_UsesSuffix()
+    {
+        var filter = new TruncateFilter();
+        var named = new Dictionary<string, TemplateValue?> { ["suffix"] = new StringValue("\u2026") };
+        var args = new FilterArguments(new StringValue("10"), named);
+        var result = filter.Apply(new StringValue("Hello, World!"), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(10, str.Value.Length);
+        Assert.EndsWith("\u2026", str.Value);
+        Assert.Equal("Hello, Wo\u2026", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_FromEnd_KeepsLastChars()
+    {
+        var filter = new TruncateFilter();
+        var named = new Dictionary<string, TemplateValue?> { ["fromEnd"] = null };
+        var args = new FilterArguments(new StringValue("8"), named);
+        var result = filter.Apply(new StringValue("Hello, World!"), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(8, str.Value.Length);
+        Assert.Equal("...orld!", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_FromEndWithCustomSuffix_Works()
+    {
+        var filter = new TruncateFilter();
+        var named = new Dictionary<string, TemplateValue?>
+        {
+            ["fromEnd"] = null,
+            ["suffix"] = new StringValue("\u2026")
+        };
+        var args = new FilterArguments(new StringValue("8"), named);
+        var result = filter.Apply(new StringValue("Hello, World!"), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(8, str.Value.Length);
+        Assert.Equal("\u2026 World!", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_EmptySuffix_NoSuffix()
+    {
+        var filter = new TruncateFilter();
+        var named = new Dictionary<string, TemplateValue?> { ["suffix"] = new StringValue("") };
+        var args = new FilterArguments(new StringValue("5"), named);
+        var result = filter.Apply(new StringValue("Hello, World!"), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("Hello", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_NamedLength_OverridesPositional()
+    {
+        var filter = new TruncateFilter();
+        var named = new Dictionary<string, TemplateValue?> { ["length"] = new StringValue("5") };
+        var args = new FilterArguments(new StringValue("30"), named);
+        var result = filter.Apply(new StringValue("Hello, World!"), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(5, str.Value.Length);
+    }
+
+    [Fact]
+    public void TruncateFilter_NumberInput_ConvertedToString()
+    {
+        var filter = new TruncateFilter();
+        var args = new FilterArguments(new StringValue("5"), new Dictionary<string, TemplateValue?>());
+        var result = filter.Apply(new NumberValue(12345.678m), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(5, str.Value.Length);
+    }
+
+    [Fact]
+    public void TruncateFilter_BoolInput_ConvertedToString()
+    {
+        var filter = new TruncateFilter();
+        var args = new FilterArguments(new StringValue("2"), new Dictionary<string, TemplateValue?>());
+        var result = filter.Apply(new BoolValue(true), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("..", str.Value); // "true" len 4 > 2, suffix "..." truncated to 2
+    }
+
+    [Fact]
+    public void TruncateFilter_NullInput_ReturnsEmptyString()
+    {
+        var filter = new TruncateFilter();
+        var result = filter.Apply(NullValue.Instance, FilterArguments.Empty, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("", str.Value);
+    }
+
+    [Fact]
+    public void TruncateFilter_ArrayInput_ReturnsAsIs()
+    {
+        var filter = new TruncateFilter();
+        var input = new ArrayValue([new StringValue("a")]);
+        var result = filter.Apply(input, FilterArguments.Empty, CultureInfo.InvariantCulture);
+
+        Assert.IsType<ArrayValue>(result);
+    }
+
+    [Fact]
+    public void TruncateFilter_ObjectInput_ReturnsAsIs()
+    {
+        var filter = new TruncateFilter();
+        var input = new ObjectValue { ["k"] = new StringValue("v") };
+        var result = filter.Apply(input, FilterArguments.Empty, CultureInfo.InvariantCulture);
+
+        Assert.IsType<ObjectValue>(result);
+    }
+
+    [Fact]
+    public void TruncateFilter_SuffixTooLong_ClampedTo100()
+    {
+        var filter = new TruncateFilter();
+        var longSuffix = new string('.', 200);
+        var named = new Dictionary<string, TemplateValue?> { ["suffix"] = new StringValue(longSuffix) };
+        var args = new FilterArguments(new StringValue("50"), named);
+        var result = filter.Apply(new StringValue(new string('A', 200)), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal(50, str.Value.Length);
+    }
+
+    [Fact]
+    public void TruncateFilter_LengthShorterThanSuffix_SuffixTruncated()
+    {
+        var filter = new TruncateFilter();
+        var args = new FilterArguments(new StringValue("2"), new Dictionary<string, TemplateValue?>());
+        var result = filter.Apply(new StringValue("Hello"), args, CultureInfo.InvariantCulture);
+
+        var str = Assert.IsType<StringValue>(result);
+        Assert.Equal("..", str.Value);
+    }
+
     // === FormatFilter ===
 
     [Fact]
