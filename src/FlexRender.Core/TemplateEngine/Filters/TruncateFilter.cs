@@ -25,7 +25,7 @@ public sealed class TruncateFilter : ITemplateFilter
     public string Name => "truncate";
 
     /// <inheritdoc />
-    public TemplateValue Apply(TemplateValue input, TemplateValue? argument, CultureInfo culture)
+    public TemplateValue Apply(TemplateValue input, FilterArguments arguments, CultureInfo culture)
     {
         if (input is not StringValue str)
         {
@@ -33,7 +33,7 @@ public sealed class TruncateFilter : ITemplateFilter
         }
 
         var maxLen = 50; // default
-        if (argument is StringValue argStr &&
+        if (arguments.Positional is StringValue argStr &&
             int.TryParse(argStr.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
         {
             maxLen = Math.Clamp(parsed, 0, MaxLength);

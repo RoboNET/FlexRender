@@ -146,11 +146,15 @@ public sealed class InlineExpressionEvaluator
         var filter = _filterRegistry.Get(expr.FilterName)
             ?? throw new TemplateEngineException($"Unknown filter '{expr.FilterName}'");
 
-        TemplateValue? argument = expr.Argument is not null
+        var positional = expr.Argument is not null
             ? new StringValue(expr.Argument)
             : null;
 
-        return filter.Apply(input, argument, _culture);
+        var arguments = positional is not null
+            ? new FilterArguments(positional, new Dictionary<string, TemplateValue?>())
+            : FilterArguments.Empty;
+
+        return filter.Apply(input, arguments, _culture);
     }
 
     private TemplateValue EvaluateNegate(NegateExpression expr, TemplateContext context)
