@@ -150,9 +150,23 @@ public sealed class InlineExpressionEvaluator
             ? new StringValue(expr.Argument)
             : null;
 
-        var arguments = positional is not null
-            ? new FilterArguments(positional, new Dictionary<string, TemplateValue?>())
-            : FilterArguments.Empty;
+        FilterArguments arguments;
+        if (expr.NamedArguments is { Count: > 0 })
+        {
+            var named = new Dictionary<string, TemplateValue?>(expr.NamedArguments.Count, StringComparer.Ordinal);
+            foreach (var arg in expr.NamedArguments)
+            {
+                named[arg.Name] = arg.Value is not null ? new StringValue(arg.Value) : null;
+            }
+
+            arguments = new FilterArguments(positional, named);
+        }
+        else
+        {
+            arguments = positional is not null
+                ? new FilterArguments(positional, new Dictionary<string, TemplateValue?>())
+                : FilterArguments.Empty;
+        }
 
         return filter.Apply(input, arguments, _culture);
     }
