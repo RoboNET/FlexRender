@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -26,7 +25,7 @@ layout:
         children:
           - type: text
             content: "Solid"
-            font: bold
+            fontWeight: bold
             size: 14px
             color: "#3498db"
             align: center
@@ -45,7 +44,7 @@ layout:
         children:
           - type: text
             content: "Dashed"
-            font: bold
+            fontWeight: bold
             size: 14px
             color: "#e74c3c"
             align: center
@@ -64,7 +63,7 @@ layout:
         children:
           - type: text
             content: "Dotted"
-            font: bold
+            fontWeight: bold
             size: 14px
             color: "#2ecc71"
             align: center

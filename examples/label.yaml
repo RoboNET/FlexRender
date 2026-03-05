@@ -13,7 +13,7 @@ canvas:
 layout:
   - type: text
     content: "{{productName}}"
-    font: bold
+    fontWeight: bold
     size: 1.1em
     align: center
     maxLines: 2
@@ -28,7 +28,7 @@ layout:
 
   - type: text
     content: "{{price}} $"
-    font: bold
+    fontWeight: bold
     size: 1.3em
     color: "#cc0000"
     align: center

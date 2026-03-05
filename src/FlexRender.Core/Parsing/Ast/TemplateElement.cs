@@ -56,7 +56,12 @@ public enum ElementType
     /// <summary>
     /// An SVG element for rendering vector graphics content.
     /// </summary>
-    Svg
+    Svg,
+
+    /// <summary>
+    /// A content element that expands formatted text into a subtree.
+    /// </summary>
+    Content
 }
 
 /// <summary>

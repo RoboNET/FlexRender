@@ -43,6 +43,8 @@ src/FlexRender.ImageSharp.Render/ # ImageSharp renderer (-> Core + SixLabors.Ima
 src/FlexRender.ImageSharp/      # ImageSharp backend meta-package (renderer + providers)
 src/FlexRender.Svg.Render/      # SVG output renderer (-> Core)
 src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers)
+src/FlexRender.Content.Markdown/  # Markdown content parser (-> Core + Markdig)
+src/FlexRender.Content.Html/      # HTML content parser (-> Core + HtmlAgilityPack)
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
 src/FlexRender.MetaPackage/     # Meta-package (core + all backends + DI)
 
@@ -72,16 +74,17 @@ Ten element types, each a sealed class extending `TemplateElement`:
 
 | Type | Key Properties |
 |------|---------------|
-| **text** | content, font, size, color, align (left/center/right/start/end), wrap, overflow (ellipsis/clip/visible), maxLines, lineHeight |
+| **text** | content, font, fontFamily, fontWeight (thin/light/normal/medium/semi-bold/bold/extra-bold/black or 100-900), fontStyle (normal/italic/oblique), size, color, align (left/center/right/start/end), wrap, overflow (ellipsis/clip/visible), maxLines, lineHeight |
 | **flex** | direction (row/column), wrap, gap, rowGap, columnGap, justify, align, alignContent, overflow, children |
 | **image** | src, width, height, fit (fill/contain/cover/none) |
 | **qr** | data, size, errorCorrection (L/M/Q/H), foreground -- requires `FlexRender.QrCode.*` (Skia/Svg/ImageSharp) |
 | **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground -- requires `FlexRender.Barcode.*` (Skia/Svg/ImageSharp) |
 | **svg** | src, content, width, height, fit (fill/contain/cover/none) -- requires `FlexRender.SvgElement.*` (Skia/Svg) |
 | **separator** | orientation (horizontal/vertical), style (dotted/dashed/solid), thickness, color |
-| **table** | array, as, columns (key/label/width/grow/align/format), rows, headerFont/headerColor/headerSize/headerBackground -- expands to flex tree |
+| **table** | array, as, columns (key/label/width/grow/align/format), rows, headerFont/headerFontWeight/headerFontStyle/headerFontFamily/headerColor/headerSize/headerBackground -- expands to flex tree |
 | **each** | array, as, children -- iteration over data arrays |
 | **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
+| **content** | source, format -- embeds formatted text (Markdown/HTML) parsed into AST subtree at render time. Requires content parser: `.WithMarkdown()` or `.WithHtml()` |
 
 All elements share common properties from `TemplateElement`: padding, margin, background, opacity, box-shadow, rotate, display (flex/none), position, top, right, bottom, left, aspectRatio, minWidth, maxWidth, minHeight, maxHeight, text-direction, border, border-top, border-right, border-bottom, border-left, border-width, border-color, border-style, border-radius.
 
@@ -135,6 +138,31 @@ All elements (except flex containers) have flex-item properties: grow, shrink, b
 - Column layout is unaffected by direction
 - HarfBuzz text shaping: optional `FlexRender.HarfBuzz` package provides proper Arabic/Hebrew glyph shaping via `.WithHarfBuzz()` on the Skia builder
 - Arabic font support: use an Arabic-capable font (e.g., Noto Sans Arabic) in the `fonts` section for Arabic text rendering. Combine with `text-direction: rtl` and HarfBuzz for full Arabic support
+
+## Fonts
+
+**Two registration formats** in the `fonts:` YAML section:
+
+- **Dictionary format** (legacy): `fonts: { default: "path.ttf", heading: "path.ttf" }`
+- **List format** (recommended): `fonts: [ "path.ttf", { path: "path.ttf", name: heading, fallback: "Arial" } ]`
+  - First unnamed font automatically becomes `default`/`main`
+  - Simple strings and objects with `path`/`name`/`fallback` can be mixed
+
+**Text element font properties:**
+
+- `font`: registered font name (default: `main`)
+- `fontFamily`: CSS-like family name -- searches registered fonts by FamilyName, then system fonts
+- `fontWeight`: `thin`(100), `extra-light`(200), `light`(300), `normal`(400), `medium`(500), `semi-bold`(600), `bold`(700), `extra-bold`(800), `black`(900), or numeric 100-900
+- `fontStyle`: `normal`, `italic`, `oblique`
+
+**Resolution priority:** `font` (registered name) > `fontFamily` (family name) > fallback (default)
+
+**Automatic sibling discovery:** when `fontWeight`/`fontStyle` is used, scans the font file's directory for `.ttf`/`.otf` siblings with matching family name and weight/style (within +/-100 units)
+
+**Table header font properties:** `headerFont`, `headerFontWeight`, `headerFontStyle`, `headerFontFamily` (aliases: `header-font`, `header-fontWeight`, `header-fontStyle`, `header-fontFamily`)
+
+- Variable fonts are NOT supported (SkiaSharp 3.x limitation) -- use separate static font files per weight
+- System fonts are used when no custom font is registered
 
 ## Non-Uniform Padding
 
@@ -235,6 +263,16 @@ Operators: truthy (no key), `equals`, `notEquals`, `in`, `notIn`, `contains`, `g
   else: [...]
 ```
 
+### Content Embedding
+```yaml
+- type: content
+  source: "{{body}}"     # text with formatting (from data)
+  format: markdown       # or "html" -- must match registered parser
+```
+
+Requires content parser registration: `.WithMarkdown()` (Markdig) or `.WithHtml()` (HtmlAgilityPack).
+Converts formatted text into FlexRender AST elements at render time (bold → FontWeight.Bold, italic → FontStyle.Italic, headings, lists, etc.).
+
 ## Supported Units
 
 - `px` -- pixels (default when no unit specified)
@@ -250,9 +288,9 @@ template:
   version: 1
   culture: "ru-RU"            # optional: culture for number/date formatting
 
-fonts:
-  default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
+fonts:                          # list format (recommended) or dictionary format
+  - "assets/fonts/Inter-Regular.ttf"    # first unnamed = default/main
+  - "assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width          # width | height | both | none
@@ -313,6 +351,8 @@ var render = new FlexRenderBuilder()
     })
     .WithBasePath("./templates")
     .WithLimits(limits => limits.MaxRenderDepth = 200)
+    .WithMarkdown()   // optional: Markdown content parsing
+    .WithHtml()       // optional: HTML content parsing
     .WithSkia(skia => skia
         .WithQr()
         .WithBarcode()
@@ -440,6 +480,8 @@ Reference these YAML files for real-world template patterns. Each file is a comp
 | `examples/showcase.yaml` | Full feature showcase | All element types, 14 sections, HTTP images |
 | `examples/showcase-capabilities.yaml` | Renderer comparison | Conditional rendering per backend (`type: if` with `renderer`) |
 | `examples/showcase-all-features.yaml` | All features showcase | Every supported feature in one template |
+| `examples/markdown-content.yaml` | Markdown content demo | `type: content` with `format: markdown`, dynamic body |
+| `examples/html-content.yaml` | HTML content demo | `type: content` with `format: html`, inline styles |
 
 ### Per-Feature Examples (examples/visual-docs/)
 
@@ -515,6 +557,8 @@ Minimal, focused templates -- one feature per file:
 | FlexRender.Svg | Svg.Render + providers | (none) |
 | FlexRender.DependencyInjection | Core | Microsoft.Extensions.DI |
 | FlexRender.MetaPackage | All | -- |
+| FlexRender.Content.Markdown | Core | Markdig 1.1.1 |
+| FlexRender.Content.Html | Core | HtmlAgilityPack 1.12.4 |
 | flexrender-cli | All | System.CommandLine |
 
 **Linux/Docker:** SkiaSharp requires native libraries. Add `SkiaSharp.NativeAssets.Linux` (or `.NoDependencies` for minimal containers) to your executable project to avoid `DllNotFoundException: libSkiaSharp`. When using `FlexRender.HarfBuzz`, also add `HarfBuzzSharp.NativeAssets.Linux` to avoid `DllNotFoundException: libHarfBuzzSharp`.

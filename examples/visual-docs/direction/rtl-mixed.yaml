@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
   arabic: "../../assets/fonts/NotoSansArabic-Regular.ttf"
 
 canvas:
@@ -40,7 +39,7 @@ layout:
         children:
           - type: text
             content: "LTR Section"
-            font: bold
+            fontWeight: bold
             size: 14px
             color: "#3498db"
           - type: text

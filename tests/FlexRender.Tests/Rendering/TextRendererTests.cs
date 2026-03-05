@@ -2,6 +2,7 @@ using FlexRender.Parsing.Ast;
 using FlexRender.Rendering;
 using SkiaSharp;
 using Xunit;
+using AstFontStyle = global::FlexRender.Parsing.Ast.FontStyle;
 
 namespace FlexRender.Tests.Rendering;
 
@@ -305,5 +306,89 @@ public class TextRendererTests : IDisposable
             _textRenderer.DrawText(_canvas, element, new SKRect(0, 0, 200, 100), baseFontSize: 12f));
 
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public void DrawText_WithBoldFontWeight_DoesNotThrow()
+    {
+        var element = new TextElement
+        {
+            Content = "Bold text",
+            Size = "16",
+            FontWeight = FontWeight.Bold
+        };
+
+        var exception = Record.Exception(() =>
+            _textRenderer.DrawText(_canvas, element, new SKRect(0, 0, 200, 100), baseFontSize: 12f));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void DrawText_WithItalicFontStyle_DoesNotThrow()
+    {
+        var element = new TextElement
+        {
+            Content = "Italic text",
+            Size = "16",
+            FontStyle = AstFontStyle.Italic
+        };
+
+        var exception = Record.Exception(() =>
+            _textRenderer.DrawText(_canvas, element, new SKRect(0, 0, 200, 100), baseFontSize: 12f));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void DrawText_WithBoldItalic_DoesNotThrow()
+    {
+        var element = new TextElement
+        {
+            Content = "Bold italic text",
+            Size = "16",
+            FontWeight = FontWeight.Bold,
+            FontStyle = AstFontStyle.Italic
+        };
+
+        var exception = Record.Exception(() =>
+            _textRenderer.DrawText(_canvas, element, new SKRect(0, 0, 200, 100), baseFontSize: 12f));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void MeasureText_WithBoldWeight_ReturnsNonZeroSize()
+    {
+        var element = new TextElement
+        {
+            Content = "Bold",
+            Size = "16",
+            FontWeight = FontWeight.Bold
+        };
+
+        var size = _textRenderer.MeasureText(element, maxWidth: 200f, baseFontSize: 12f);
+
+        Assert.True(size.Width > 0);
+        Assert.True(size.Height > 0);
+    }
+
+    [Fact]
+    public void MeasureText_WithDefaultWeightAndStyle_MatchesPlainText()
+    {
+        var plain = new TextElement { Content = "Test", Size = "16" };
+        var explicit_ = new TextElement
+        {
+            Content = "Test",
+            Size = "16",
+            FontWeight = FontWeight.Normal,
+            FontStyle = AstFontStyle.Normal
+        };
+
+        var plainSize = _textRenderer.MeasureText(plain, maxWidth: 200f, baseFontSize: 12f);
+        var explicitSize = _textRenderer.MeasureText(explicit_, maxWidth: 200f, baseFontSize: 12f);
+
+        Assert.Equal(plainSize.Width, explicitSize.Width, precision: 1);
+        Assert.Equal(plainSize.Height, explicitSize.Height, precision: 1);
     }
 }

@@ -8,7 +8,6 @@ template:
 
 fonts:
   default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -29,7 +28,7 @@ layout:
         children:
           - type: text
             content: "{{shopName}}"
-            font: bold
+            fontWeight: bold
             size: 1.5em
             align: center
             color: "#1a1a1a"
@@ -106,12 +105,12 @@ layout:
         children:
           - type: text
             content: "TOTAL"
-            font: bold
+            fontWeight: bold
             size: 1.2em
             color: "#1a1a1a"
           - type: text
             content: "{{total}} $"
-            font: bold
+            fontWeight: bold
             size: 1.2em
             color: "#1a1a1a"
             align: right

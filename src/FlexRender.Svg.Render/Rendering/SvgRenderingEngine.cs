@@ -355,6 +355,22 @@ internal sealed class SvgRenderingEngine
         sb.Append(" y=\"").Append(F(y + fontSize)).Append('"'); // baseline offset
         sb.Append(" font-family=\"").Append(EscapeXml(fontFamily)).Append('"');
         sb.Append(" font-size=\"").Append(F(fontSize)).Append('"');
+
+        if (text.FontWeight.Value != FontWeight.Normal)
+        {
+            sb.Append(" font-weight=\"").Append((int)text.FontWeight.Value).Append('"');
+        }
+
+        if (text.FontStyle.Value != FontStyle.Normal)
+        {
+            sb.Append(" font-style=\"").Append(text.FontStyle.Value switch
+            {
+                FontStyle.Italic => "italic",
+                FontStyle.Oblique => "oblique",
+                _ => "normal"
+            }).Append('"');
+        }
+
         sb.Append(" fill=\"").Append(EscapeXml(text.Color.Value)).Append('"');
 
         if (anchor != "start")

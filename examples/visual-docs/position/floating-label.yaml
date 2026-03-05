@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -20,7 +19,7 @@ layout:
       # Title
       - type: text
         content: "Floating Label Pattern"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#333333"
 

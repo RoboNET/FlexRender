@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -20,7 +19,7 @@ layout:
       # Title
       - type: text
         content: "Badge Pattern"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#333333"
 
@@ -47,14 +46,14 @@ layout:
           # Product name
           - type: text
             content: "Premium Widget"
-            font: bold
+            fontWeight: bold
             size: 16px
             color: "#333333"
 
           # Price
           - type: text
             content: "$49.99"
-            font: bold
+            fontWeight: bold
             size: 18px
             color: "#2ecc71"
 

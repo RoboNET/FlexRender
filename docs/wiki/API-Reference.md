@@ -79,6 +79,9 @@ Builder for configuring and creating `IFlexRender` instances. Defined in `FlexRe
 | `WithFilter(ITemplateFilter)` | Register a custom template filter for inline expressions. Works alongside built-in filters (enabled by default) |
 | `WithoutDefaultLoaders()` | Remove default File and Base64 loaders (sandboxed mode) |
 | `WithoutDefaultFilters()` | Remove all 8 built-in filters (enabled by default), leaving only custom-registered filters |
+| `WithContentParser(IContentParser)` | Register a content parser for `type: content` elements |
+| `WithMarkdown()` | Enable Markdown content parsing (`format: markdown`) |
+| `WithHtml()` | Enable HTML content parsing (`format: html`) |
 | `Build()` | Create the configured `IFlexRender` instance |
 
 ### Usage
@@ -102,6 +105,13 @@ var render = new FlexRenderBuilder()
     .WithSkia(skia => skia
         .WithQr()
         .WithBarcode())
+    .Build();
+
+// With content parsers
+var render = new FlexRenderBuilder()
+    .WithMarkdown()
+    .WithHtml()
+    .WithSkia(skia => skia.WithQr().WithBarcode())
     .Build();
 
 // Sandboxed (no file system access)

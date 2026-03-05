@@ -182,6 +182,7 @@ internal sealed class ElementParsers
         {
             Content = GetStringValue(node, "content", ""),
             Font = GetExprStringValue(node, "font", "main"),
+            FontFamily = GetExprStringValueOptional(node, "fontFamily", "font-family"),
             Size = GetExprStringValue(node, "size", "1em"),
             Color = GetExprStringValue(node, "color", "#000000"),
             Wrap = GetExprBoolValue(node, "wrap", true),
@@ -224,6 +225,44 @@ internal sealed class ElementParsers
                 "clip" => TextOverflow.Clip,
                 "visible" => TextOverflow.Visible,
                 _ => TextOverflow.Ellipsis
+            };
+        }
+
+        var fontWeightStr = GetStringValue(node, "fontWeight", "normal");
+        if (ContainsExpression(fontWeightStr))
+        {
+            text.FontWeight = ExprValue<FontWeight>.Expression(fontWeightStr);
+        }
+        else
+        {
+            text.FontWeight = fontWeightStr.ToLowerInvariant() switch
+            {
+                "thin" or "100" => FontWeight.Thin,
+                "extralight" or "extra-light" or "200" => FontWeight.ExtraLight,
+                "light" or "300" => FontWeight.Light,
+                "normal" or "regular" or "400" => FontWeight.Normal,
+                "medium" or "500" => FontWeight.Medium,
+                "semibold" or "semi-bold" or "600" => FontWeight.SemiBold,
+                "bold" or "700" => FontWeight.Bold,
+                "extrabold" or "extra-bold" or "800" => FontWeight.ExtraBold,
+                "black" or "900" => FontWeight.Black,
+                _ => FontWeight.Normal
+            };
+        }
+
+        var fontStyleStr = GetStringValue(node, "fontStyle", "normal");
+        if (ContainsExpression(fontStyleStr))
+        {
+            text.FontStyle = ExprValue<FontStyle>.Expression(fontStyleStr);
+        }
+        else
+        {
+            text.FontStyle = fontStyleStr.ToLowerInvariant() switch
+            {
+                "normal" => FontStyle.Normal,
+                "italic" => FontStyle.Italic,
+                "oblique" => FontStyle.Oblique,
+                _ => FontStyle.Normal
             };
         }
 
@@ -331,6 +370,26 @@ internal sealed class ElementParsers
 
         ApplyFlexItemProperties(node, flex);
         return flex;
+    }
+
+    /// <summary>
+    /// Parses a content element from YAML.
+    /// </summary>
+    /// <param name="node">The YAML node containing the content element definition.</param>
+    /// <returns>The parsed content element.</returns>
+    internal static TemplateElement ParseContentElement(YamlMappingNode node)
+    {
+        var content = new ContentElement
+        {
+            Source = GetExprStringValue(node, "source", ""),
+            Format = GetExprStringValue(node, "format", ""),
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
+        };
+
+        ApplyFlexItemProperties(node, content);
+        return content;
     }
 
     /// <summary>
@@ -745,6 +804,9 @@ internal sealed class ElementParsers
             RowGap = GetStringValue(node, "rowGap") ?? GetStringValue(node, "row-gap"),
             ColumnGap = GetStringValue(node, "columnGap") ?? GetStringValue(node, "column-gap"),
             HeaderFont = GetStringValue(node, "headerFont") ?? GetStringValue(node, "header-font"),
+            HeaderFontWeight = ParseOptionalFontWeight(node, "headerFontWeight", "header-fontWeight"),
+            HeaderFontStyle = ParseOptionalFontStyle(node, "headerFontStyle", "header-fontStyle"),
+            HeaderFontFamily = GetStringValue(node, "headerFontFamily") ?? GetStringValue(node, "header-fontFamily"),
             HeaderColor = GetStringValue(node, "headerColor") ?? GetStringValue(node, "header-color"),
             HeaderSize = GetStringValue(node, "headerSize") ?? GetStringValue(node, "header-size"),
             HeaderBorderBottom = GetStringValue(node, "headerBorderBottom") ?? GetStringValue(node, "header-border-bottom"),
@@ -842,6 +904,54 @@ internal sealed class ElementParsers
         }
 
         return rows;
+    }
+
+    /// <summary>
+    /// Parses an optional font weight value from a YAML mapping node, trying two key variants.
+    /// </summary>
+    /// <param name="node">The YAML mapping node to read from.</param>
+    /// <param name="key1">The primary key (camelCase).</param>
+    /// <param name="key2">The alternate key (kebab-case).</param>
+    /// <returns>The parsed <see cref="FontWeight"/>, or <c>null</c> if the key is absent or unrecognized.</returns>
+    private static FontWeight? ParseOptionalFontWeight(YamlMappingNode node, string key1, string key2)
+    {
+        var raw = GetStringValue(node, key1) ?? GetStringValue(node, key2);
+        if (raw is null) return null;
+
+        return raw.ToLowerInvariant() switch
+        {
+            "thin" or "100" => FontWeight.Thin,
+            "extralight" or "extra-light" or "200" => FontWeight.ExtraLight,
+            "light" or "300" => FontWeight.Light,
+            "normal" or "regular" or "400" => FontWeight.Normal,
+            "medium" or "500" => FontWeight.Medium,
+            "semibold" or "semi-bold" or "600" => FontWeight.SemiBold,
+            "bold" or "700" => FontWeight.Bold,
+            "extrabold" or "extra-bold" or "800" => FontWeight.ExtraBold,
+            "black" or "900" => FontWeight.Black,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Parses an optional font style value from a YAML node, trying two key variants.
+    /// </summary>
+    /// <param name="node">The YAML mapping node to read from.</param>
+    /// <param name="key1">The primary key name (camelCase).</param>
+    /// <param name="key2">The secondary key name (kebab-case).</param>
+    /// <returns>The parsed <see cref="FontStyle"/> value, or <c>null</c> if not present or unrecognized.</returns>
+    private static FontStyle? ParseOptionalFontStyle(YamlMappingNode node, string key1, string key2)
+    {
+        var raw = GetStringValue(node, key1) ?? GetStringValue(node, key2);
+        if (raw is null) return null;
+
+        return raw.ToLowerInvariant() switch
+        {
+            "normal" => FontStyle.Normal,
+            "italic" => FontStyle.Italic,
+            "oblique" => FontStyle.Oblique,
+            _ => null
+        };
     }
 
     /// <summary>

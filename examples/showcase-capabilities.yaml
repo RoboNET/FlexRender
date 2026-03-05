@@ -7,8 +7,6 @@ template:
 
 fonts:
   default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
-  semibold: "assets/fonts/Inter-SemiBold.ttf"
 
 canvas:
   fixed: width
@@ -35,7 +33,7 @@ layout:
             children:
               - type: text
                 content: "{{rendererName}}"
-                font: bold
+                fontWeight: bold
                 size: 1.4em
                 color: "#ffffff"
                 align: center
@@ -57,7 +55,7 @@ layout:
               children:
                 - type: text
                   content: "{{rendererName}}"
-                  font: bold
+                  fontWeight: bold
                   size: 1.4em
                   color: "#ffffff"
                   align: center
@@ -76,7 +74,7 @@ layout:
               children:
                 - type: text
                   content: "{{rendererName}}"
-                  font: bold
+                  fontWeight: bold
                   size: 1.4em
                   color: "#ffffff"
                   align: center
@@ -96,7 +94,7 @@ layout:
         children:
           - type: text
             content: "Common Features"
-            font: semibold
+            fontWeight: semi-bold
             size: 1em
             color: "#495057"
           - type: flex
@@ -160,7 +158,7 @@ layout:
         children:
           - type: text
             content: "QR Code + Barcode"
-            font: semibold
+            fontWeight: semi-bold
             size: 1em
             color: "#495057"
           - type: flex
@@ -209,7 +207,7 @@ layout:
             children:
               - type: text
                 content: "Visual Effects (Skia exclusive)"
-                font: semibold
+                fontWeight: semi-bold
                 size: 1em
                 color: "#495057"
               - type: flex
@@ -225,7 +223,7 @@ layout:
                     children:
                       - type: text
                         content: "Gradient"
-                        font: semibold
+                        fontWeight: semi-bold
                         size: 0.8em
                         color: "#ffffff"
                         align: center
@@ -238,7 +236,7 @@ layout:
                     children:
                       - type: text
                         content: "Shadow"
-                        font: semibold
+                        fontWeight: semi-bold
                         size: 0.8em
                         color: "#ffffff"
                         align: center
@@ -250,7 +248,7 @@ layout:
                     children:
                       - type: text
                         content: "Radial"
-                        font: semibold
+                        fontWeight: semi-bold
                         size: 0.8em
                         color: "#7c3aed"
                         align: center
@@ -305,7 +303,7 @@ layout:
             children:
               - type: text
                 content: "SVG Element Rendering"
-                font: bold
+                fontWeight: bold
                 size: 14
                 color: "#1a1a2e"
               - type: text
@@ -378,7 +376,7 @@ layout:
         children:
           - type: text
             content: "Feature List (dynamic loop)"
-            font: semibold
+            fontWeight: semi-bold
             size: 1em
             color: "#495057"
           - type: each
@@ -405,7 +403,7 @@ layout:
                         content: "{{@index + 1}}"
                         size: 0.65em
                         color: "#ffffff"
-                        font: semibold
+                        fontWeight: semi-bold
                         align: center
                   - type: flex
                     grow: 1
@@ -413,7 +411,7 @@ layout:
                     children:
                       - type: text
                         content: "{{item.name}}"
-                        font: semibold
+                        fontWeight: semi-bold
                         size: 0.85em
                         color: "#212529"
                       - type: text

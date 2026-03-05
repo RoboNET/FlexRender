@@ -7,8 +7,6 @@ template:
   version: 1
 fonts:
   default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
-  semibold: "assets/fonts/Inter-SemiBold.ttf"
 canvas:
   fixed: width
   width: 800
@@ -22,7 +20,7 @@ layout:
     children:
       - type: text
         content: "{{title}}"
-        font: bold
+        fontWeight: bold
         size: 2em
         color: "#ffffff"
         align: center
@@ -45,7 +43,7 @@ layout:
     children:
       - type: text
         content: "Separator Styles"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -140,7 +138,7 @@ layout:
     children:
       - type: text
         content: "Text Features"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -160,7 +158,7 @@ layout:
             children:
               - type: text
                 content: "Left Aligned"
-                font: semibold
+                fontWeight: semi-bold
                 size: 12px
                 align: left
               - type: text
@@ -177,7 +175,7 @@ layout:
             children:
               - type: text
                 content: "Center Aligned"
-                font: semibold
+                fontWeight: semi-bold
                 size: 12px
                 align: center
               - type: text
@@ -194,7 +192,7 @@ layout:
             children:
               - type: text
                 content: "Right Aligned"
-                font: semibold
+                fontWeight: semi-bold
                 size: 12px
                 align: right
               - type: text
@@ -216,7 +214,7 @@ layout:
             children:
               - type: text
                 content: "maxLines: 2, overflow: ellipsis"
-                font: semibold
+                fontWeight: semi-bold
                 size: 10px
                 color: "#e65100"
               - type: text
@@ -234,7 +232,7 @@ layout:
             children:
               - type: text
                 content: "lineHeight: 2.0"
-                font: semibold
+                fontWeight: semi-bold
                 size: 10px
                 color: "#1b5e20"
               - type: text
@@ -257,7 +255,7 @@ layout:
     children:
       - type: text
         content: "Flex Basics -- Justify, Align, Grow"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -356,7 +354,7 @@ layout:
     children:
       - type: text
         content: "Flex Sizing -- Shrink, Basis, Min/Max Constraints"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -486,7 +484,7 @@ layout:
     children:
       - type: text
         content: "Flex Wrapping + AlignContent"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -710,7 +708,7 @@ layout:
     children:
       - type: text
         content: "AlignSelf + Auto Margins"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -845,7 +843,7 @@ layout:
     children:
       - type: text
         content: "Positioning -- Relative + Absolute"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -920,7 +918,7 @@ layout:
             children:
               - type: text
                 content: "NEW"
-                font: bold
+                fontWeight: bold
                 size: 9px
                 color: "#ffffff"
           # Bottom-left badge
@@ -933,7 +931,7 @@ layout:
             children:
               - type: text
                 content: "v1.0"
-                font: bold
+                fontWeight: bold
                 size: 9px
                 color: "#ffffff"
           # Overflows right edge -- clipped by overflow: hidden
@@ -962,7 +960,7 @@ layout:
     children:
       - type: text
         content: "Dashboard Card Grid"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -986,12 +984,12 @@ layout:
             children:
               - type: text
                 content: "Revenue"
-                font: bold
+                fontWeight: bold
                 size: 12px
                 color: "#1a1a2e"
               - type: text
                 content: "{{dashboard.revenue}}"
-                font: bold
+                fontWeight: bold
                 size: 24px
                 color: "#0f3460"
               - type: text
@@ -1010,12 +1008,12 @@ layout:
             children:
               - type: text
                 content: "Users"
-                font: bold
+                fontWeight: bold
                 size: 12px
                 color: "#1a1a2e"
               - type: text
                 content: "{{dashboard.users}}"
-                font: bold
+                fontWeight: bold
                 size: 24px
                 color: "#0f3460"
               - type: text
@@ -1034,12 +1032,12 @@ layout:
             children:
               - type: text
                 content: "Orders"
-                font: bold
+                fontWeight: bold
                 size: 12px
                 color: "#1a1a2e"
               - type: text
                 content: "{{dashboard.orders}}"
-                font: bold
+                fontWeight: bold
                 size: 24px
                 color: "#0f3460"
               - type: text
@@ -1058,12 +1056,12 @@ layout:
             children:
               - type: text
                 content: "Uptime"
-                font: bold
+                fontWeight: bold
                 size: 12px
                 color: "#1a1a2e"
               - type: text
                 content: "{{dashboard.uptime}}"
-                font: bold
+                fontWeight: bold
                 size: 24px
                 color: "#0f3460"
               - type: text
@@ -1082,12 +1080,12 @@ layout:
             children:
               - type: text
                 content: "Latency"
-                font: bold
+                fontWeight: bold
                 size: 12px
                 color: "#1a1a2e"
               - type: text
                 content: "{{dashboard.latency}}"
-                font: bold
+                fontWeight: bold
                 size: 24px
                 color: "#0f3460"
               - type: text
@@ -1106,12 +1104,12 @@ layout:
             children:
               - type: text
                 content: "Errors"
-                font: bold
+                fontWeight: bold
                 size: 12px
                 color: "#1a1a2e"
               - type: text
                 content: "{{dashboard.errors}}"
-                font: bold
+                fontWeight: bold
                 size: 24px
                 color: "#e74c3c"
               - type: text
@@ -1132,7 +1130,7 @@ layout:
     children:
       - type: text
         content: "Loop Metadata -- @index, @first, @last"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -1163,13 +1161,13 @@ layout:
                     children:
                       - type: text
                         content: "{{@index}}"
-                        font: bold
+                        fontWeight: bold
                         size: 11px
                         color: "#ffffff"
                         align: center
                   - type: text
                     content: "{{feature.name}}"
-                    font: semibold
+                    fontWeight: semi-bold
                     size: 11px
                     color: "#1a1a2e"
                   - type: text
@@ -1201,13 +1199,13 @@ layout:
                     children:
                       - type: text
                         content: "{{@index}}"
-                        font: bold
+                        fontWeight: bold
                         size: 11px
                         color: "#ffffff"
                         align: center
                   - type: text
                     content: "{{feature.name}}"
-                    font: semibold
+                    fontWeight: semi-bold
                     size: 11px
                     color: "#1a1a2e"
                   - type: text
@@ -1244,13 +1242,13 @@ layout:
                         children:
                           - type: text
                             content: "{{@index}}"
-                            font: bold
+                            fontWeight: bold
                             size: 11px
                             color: "#ffffff"
                             align: center
                       - type: text
                         content: "{{feature.name}}"
-                        font: semibold
+                        fontWeight: semi-bold
                         size: 11px
                         color: "#1a1a2e"
                       - type: text
@@ -1272,7 +1270,7 @@ layout:
     children:
       - type: text
         content: "Conditional Chains -- if / else-if / else"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -1299,7 +1297,7 @@ layout:
                 children:
                   - type: text
                     content: "Active"
-                    font: bold
+                    fontWeight: bold
                     size: 12px
                     color: "#ffffff"
               - type: text
@@ -1321,7 +1319,7 @@ layout:
                   children:
                     - type: text
                       content: "Pending"
-                      font: bold
+                      fontWeight: bold
                       size: 12px
                       color: "#ffffff"
                 - type: text
@@ -1340,7 +1338,7 @@ layout:
                 children:
                   - type: text
                     content: "Unknown"
-                    font: bold
+                    fontWeight: bold
                     size: 12px
                     color: "#ffffff"
               - type: text
@@ -1372,7 +1370,7 @@ layout:
                 children:
                   - type: text
                     content: "Active"
-                    font: bold
+                    fontWeight: bold
                     size: 11px
                     color: "#ffffff"
           - type: flex
@@ -1391,7 +1389,7 @@ layout:
                 children:
                   - type: text
                     content: "Pending"
-                    font: bold
+                    fontWeight: bold
                     size: 11px
                     color: "#ffffff"
           - type: flex
@@ -1410,7 +1408,7 @@ layout:
                 children:
                   - type: text
                     content: "Unknown"
-                    font: bold
+                    fontWeight: bold
                     size: 11px
                     color: "#ffffff"
 
@@ -1427,7 +1425,7 @@ layout:
     children:
       - type: text
         content: "QR Code + Barcode Formats"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -1560,7 +1558,7 @@ layout:
     children:
       - type: text
         content: "Image Features and Rotation"
-        font: bold
+        fontWeight: bold
         size: 14px
         color: "#1a1a2e"
       - type: text
@@ -1619,7 +1617,7 @@ layout:
                 align: center
               - type: text
                 content: "ROTATED"
-                font: bold
+                fontWeight: bold
                 size: 20px
                 color: "#e74c3c"
                 rotate: "15"
@@ -1642,7 +1640,7 @@ layout:
         children:
           - type: text
             content: "FlexRender"
-            font: bold
+            fontWeight: bold
             size: 1em
             color: "#ffffff"
           - type: text

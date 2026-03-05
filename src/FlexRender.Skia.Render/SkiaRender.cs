@@ -61,6 +61,7 @@ public sealed class SkiaRender : IFlexRender
     /// <param name="resourceLoaders">Collection of resource loaders for images and other assets.</param>
     /// <param name="skiaBuilder">Skia-specific configuration including content providers.</param>
     /// <param name="filterRegistry">Optional filter registry for expression filter evaluation.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="limits"/>, <paramref name="options"/>,
     /// <paramref name="resourceLoaders"/>, or <paramref name="skiaBuilder"/> is null.
@@ -70,7 +71,8 @@ public sealed class SkiaRender : IFlexRender
         FlexRenderOptions options,
         IReadOnlyList<IResourceLoader> resourceLoaders,
         SkiaBuilder skiaBuilder,
-        FilterRegistry? filterRegistry = null)
+        FilterRegistry? filterRegistry = null,
+        ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(options);
@@ -104,7 +106,8 @@ public sealed class SkiaRender : IFlexRender
             _legacyDeterministicRendering,
             options,
             svgProvider,
-            filterRegistry);
+            filterRegistry,
+            contentParserRegistry);
 
         _renderer.BaseFontSize = options.BaseFontSize;
     }

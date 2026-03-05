@@ -1,6 +1,6 @@
 # Template Syntax
 
-FlexRender templates are YAML files that define image layouts using a tree of typed elements. This page covers the template structure, all 10 element types, common properties, and supported units.
+FlexRender templates are YAML files that define image layouts using a tree of typed elements. This page covers the template structure, all 11 element types, common properties, and supported units.
 
 For template expressions (variables, loops, conditionals), see [[Template-Expressions]].
 For flexbox layout properties, see [[Flexbox-Layout]].
@@ -15,9 +15,9 @@ template:                     # Required: metadata
   version: 1                  # Template version (int)
   culture: "ru-RU"            # Culture for number/date formatting (optional)
 
-fonts:                        # Optional: font definitions
-  default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
+fonts:                        # Optional: font definitions (list or dictionary)
+  - "assets/fonts/Inter-Regular.ttf"       # First unnamed = "default"/"main"
+  - "assets/fonts/Inter-Bold.ttf"
 
 canvas:                       # Required: canvas configuration
   fixed: width                # Which dimension is fixed
@@ -70,15 +70,164 @@ Rotation is applied **after** rendering. For thermal printers: use `"right"` to 
 
 ## Fonts
 
-Fonts are defined as key-value pairs. The key is a reference name used in `font:` properties, and the value is the font source:
+FlexRender supports two formats for font registration: **dictionary format** (legacy) and **list format** (recommended). Supported file types: `.ttf` and `.otf`. Font sources can be local file paths, `embedded://` resources, or `http://` URLs.
+
+### Dictionary Format (Legacy)
+
+Key-value pairs where the key is a reference name used in `font:` properties:
 
 ```yaml
 fonts:
-  default: "assets/fonts/Inter-Regular.ttf"     # Local file
-  bold: "assets/fonts/Inter-Bold.ttf"            # Local file
-  icon: "embedded://MyApp.Fonts.icons.ttf"       # Embedded resource
-  remote: "https://example.com/font.ttf"         # HTTP URL
+  default: "assets/fonts/Inter-Regular.ttf"
+  heading: "assets/fonts/Roboto-Regular.ttf"
+  icon: "embedded://MyApp.Fonts.icons.ttf"
+  remote: "https://example.com/font.ttf"
 ```
+
+### List Format (Recommended)
+
+An array of font entries. Simple strings and objects with `path`/`name`/`fallback` can be mixed freely:
+
+```yaml
+fonts:
+  # Simple strings -- first unnamed font automatically becomes "default" (and "main")
+  - "assets/fonts/Inter-Regular.ttf"
+  - "assets/fonts/Inter-Bold.ttf"
+  - "assets/fonts/Inter-Italic.ttf"
+
+  # With optional name and fallback
+  - path: "assets/fonts/Roboto-Regular.ttf"
+    name: heading
+    fallback: "Arial"
+```
+
+**Rules:**
+- The first unnamed font automatically becomes `default` (and `main`)
+- Fonts can be mixed: simple strings and objects with `path`/`name`/`fallback`
+- Named fonts are referenced via `font:` on elements (e.g., `font: heading`)
+
+### Font Properties on Text Elements
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `font` | string | `main` | Reference to a registered font name |
+| `fontFamily` | string | (empty) | CSS-like font family name -- searches registered fonts by FamilyName, then system fonts |
+| `fontWeight` | string/number | `normal` | Font weight: `thin`(100), `extra-light`(200), `light`(300), `normal`(400), `medium`(500), `semi-bold`(600), `bold`(700), `extra-bold`(800), `black`(900), or numeric |
+| `fontStyle` | string | `normal` | Font style: `normal`, `italic`, `oblique` |
+
+### Font Resolution Priority
+
+```
+font (registered name) > fontFamily (family name) > fallback (default)
+```
+
+- If `font` is set to a non-default value, resolve by registered name
+- If `fontFamily` is set, search registered fonts by FamilyName metadata, then system fonts
+- Otherwise, use the default font (`main`)
+
+For weight/style variants: **automatic sibling discovery** scans the same directory as the base font file for `.ttf`/`.otf` files with matching family name and weight/style.
+
+### Automatic Sibling Font Discovery
+
+You only need to register the regular/default font for each family. When `fontWeight` or `fontStyle` is used on a text element, FlexRender automatically scans the same directory for font files with a matching family name and weight/style (within +/-100 units for weight, case-insensitive).
+
+**Convention:** Place all weight/style variants of a font family in the same directory:
+
+```
+assets/fonts/
+  Inter-Regular.ttf      # weight 400, upright
+  Inter-Bold.ttf         # weight 700, upright
+  Inter-SemiBold.ttf     # weight 600, upright
+  Inter-Italic.ttf       # weight 400, italic
+  Inter-BoldItalic.ttf   # weight 700, italic
+```
+
+Then `fontWeight: bold` on a text element will automatically use `Inter-Bold.ttf` without any extra font registration.
+
+### Table Header Font Properties
+
+Tables support font properties on the header row:
+
+| Property | Aliases | Description |
+|----------|---------|-------------|
+| `headerFont` | `header-font` | Font name for header cells |
+| `headerFontWeight` | `header-fontWeight` | Font weight for headers |
+| `headerFontStyle` | `header-fontStyle` | Font style for headers (normal, italic, oblique) |
+| `headerFontFamily` | `header-fontFamily` | CSS-like font family for headers |
+
+### fontWeight Values
+
+| Value | Numeric |
+|-------|---------|
+| `thin` | 100 |
+| `extra-light` | 200 |
+| `light` | 300 |
+| `normal` (default) | 400 |
+| `medium` | 500 |
+| `semi-bold` | 600 |
+| `bold` | 700 |
+| `extra-bold` | 800 |
+| `black` | 900 |
+
+Numeric values (100-900) are also accepted directly: `fontWeight: 600`.
+
+### fontStyle Values
+
+`normal` (default), `italic`, `oblique`.
+
+### Examples
+
+**Minimal (system fonts only, no registration):**
+
+```yaml
+layout:
+  - type: text
+    content: "Hello"
+    fontFamily: "Arial"
+    fontWeight: bold
+```
+
+**List registration with fontWeight/fontStyle:**
+
+```yaml
+fonts:
+  - "assets/fonts/Inter-Regular.ttf"
+  - "assets/fonts/Inter-Bold.ttf"
+  - "assets/fonts/Inter-Italic.ttf"
+
+layout:
+  - type: text
+    content: "Bold text"
+    fontWeight: bold
+  - type: text
+    content: "Italic text"
+    fontStyle: italic
+```
+
+**Mixed: named + unnamed, font + fontFamily:**
+
+```yaml
+fonts:
+  - "assets/fonts/Inter-Regular.ttf"
+  - path: "assets/fonts/NotoSansArabic-Regular.ttf"
+    name: arabic
+
+layout:
+  - type: text
+    content: "Inter bold"
+    fontWeight: bold
+  - type: text
+    content: "System Georgia"
+    fontFamily: "Georgia"
+  - type: text
+    content: "Arabic"
+    font: arabic
+```
+
+### Limitations
+
+- **Variable fonts are NOT supported** -- SkiaSharp 3.x does not expose an API for font variation axes. Use separate static font files per weight/style instead.
+- Sibling discovery relies on font file metadata (family name, weight, slant). If files use non-standard naming, register them explicitly.
 
 ## Color Format
 
@@ -112,6 +261,7 @@ Renders text content with font, size, color, alignment, and wrapping options.
 |----------|------|---------|-------------|
 | `content` | string | `""` | Text content, may contain `{{variable}}` expressions |
 | `font` | string | `"main"` | Font reference name from `fonts` section |
+| `fontFamily` | string | `""` | CSS-like font family name -- searches registered fonts by FamilyName, then system fonts |
 | `size` | string | `"1em"` | Font size (px, em, %) |
 | `color` | string | `"#000000"` | Text color in hex |
 | `align` | TextAlign | `left` | Text alignment: `left`, `center`, `right`, `start` (logical), `end` (logical) |
@@ -119,6 +269,8 @@ Renders text content with font, size, color, alignment, and wrapping options.
 | `overflow` | TextOverflow | `ellipsis` | Overflow handling: `ellipsis`, `clip`, `visible` |
 | `maxLines` | int? | `null` | Maximum number of lines (null = unlimited) |
 | `lineHeight` | string | `""` | Line height for multi-line text |
+| `fontWeight` | FontWeight | `normal` | Font weight: `thin`, `extra-light`, `light`, `normal`, `medium`, `semi-bold`, `bold`, `extra-bold`, `black`, or numeric 100-900 |
+| `fontStyle` | FontStyle | `normal` | Font style: `normal`, `italic`, `oblique` |
 
 **lineHeight values:**
 
@@ -321,6 +473,9 @@ Renders tabular data with configurable columns, optional headers, and support fo
 | `columns` | column[] | required | Column definitions |
 | `rows` | row[] | `[]` | Static rows (alternative to `array`) |
 | `headerFont` | string? | `null` | Font for header row |
+| `headerFontWeight` | string? | `null` | Font weight for header row |
+| `headerFontStyle` | string? | `null` | Font style for header row (normal, italic, oblique) |
+| `headerFontFamily` | string? | `null` | CSS-like font family for header row |
 | `headerColor` | string? | `null` | Text color for header row |
 | `headerSize` | string? | `null` | Font size for header row |
 | `headerBackground` | string? | `null` | Background color for header row |
@@ -347,6 +502,25 @@ Renders tabular data with configurable columns, optional headers, and support fo
 | `font` | string? | `null` | Font override for this row |
 | `color` | string? | `null` | Text color override |
 | `size` | string? | `null` | Font size override |
+
+---
+
+### content
+
+Embeds dynamically formatted text (Markdown, HTML, etc.) from template data using pluggable content parsers. Like `each` and `if`, this is a control-flow element expanded at render time.
+
+```yaml
+- type: content
+  source: "{{body}}"
+  format: markdown
+```
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `source` | string | `""` | The formatted text to parse. Usually bound to a `{{variable}}`. |
+| `format` | string | `""` | Content format: `markdown`, `html`, or any registered parser name. |
+
+See [[Element-Reference#content-element-control-flow]] for full details, element mapping, and examples.
 
 ---
 

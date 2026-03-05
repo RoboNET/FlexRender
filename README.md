@@ -88,6 +88,10 @@ dotnet add package FlexRender.QrCode
 dotnet add package FlexRender.Barcode
 dotnet add package FlexRender.SvgElement
 
+# Content parsers (optional)
+dotnet add package FlexRender.Content.Markdown
+dotnet add package FlexRender.Content.Html
+
 # CLI tool
 dotnet tool install -g flexrender-cli
 ```

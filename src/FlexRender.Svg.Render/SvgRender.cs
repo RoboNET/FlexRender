@@ -44,6 +44,7 @@ public sealed class SvgRender : IFlexRender
     /// <param name="qrSvgProvider">Optional SVG-native QR code provider for vector QR code embedding.</param>
     /// <param name="barcodeSvgProvider">Optional SVG-native barcode provider for vector barcode embedding.</param>
     /// <param name="svgElementSvgProvider">Optional SVG-native SVG element provider.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
     internal SvgRender(
         ResourceLimits limits,
         FlexRenderOptions options,
@@ -52,7 +53,8 @@ public sealed class SvgRender : IFlexRender
         IContentProvider<BarcodeElement>? barcodeProvider = null,
         ISvgContentProvider<QrElement>? qrSvgProvider = null,
         ISvgContentProvider<BarcodeElement>? barcodeSvgProvider = null,
-        ISvgContentProvider<SvgElement>? svgElementSvgProvider = null)
+        ISvgContentProvider<SvgElement>? svgElementSvgProvider = null,
+        ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(options);
@@ -60,7 +62,7 @@ public sealed class SvgRender : IFlexRender
         _rasterRenderer = rasterRenderer;
 
         var templateProcessor = new TemplateProcessor(limits);
-        var expander = new TemplateExpander(limits);
+        var expander = new TemplateExpander(limits, contentParserRegistry);
         var pipeline = new TemplatePipeline(expander, templateProcessor);
         var layoutEngine = new LayoutEngine(limits);
         layoutEngine.TextShaper = new ApproximateTextShaper();

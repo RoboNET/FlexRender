@@ -45,6 +45,8 @@ public static class SvgBuilderSkiaExtensions
             b.Limits,
             b.Options,
             b.ResourceLoaders,
-            skiaBuilder));
+            skiaBuilder,
+            b.FilterRegistry,
+            b.ContentParserRegistry));
     }
 }
