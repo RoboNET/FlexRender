@@ -7,8 +7,6 @@ template:
 
 fonts:
   default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
-  semibold: "assets/fonts/Inter-SemiBold.ttf"
 
 canvas:
   fixed: width
@@ -24,7 +22,7 @@ layout:
       # Title
       - type: text
         content: "Visual Effects"
-        font: bold
+        fontWeight: bold
         size: 1.3em
         color: "#1a1a1a"
         align: center
@@ -39,7 +37,7 @@ layout:
         children:
           - type: text
             content: "Box Shadow"
-            font: semibold
+            fontWeight: semi-bold
             size: 1em
             color: "#333333"
           - type: text
@@ -57,7 +55,7 @@ layout:
         children:
           - type: text
             content: "Deeper Shadow"
-            font: semibold
+            fontWeight: semi-bold
             size: 1em
             color: "#333333"
           - type: text
@@ -74,7 +72,7 @@ layout:
         children:
           - type: text
             content: "Linear Gradient"
-            font: bold
+            fontWeight: bold
             size: 1.1em
             color: "#ffffff"
           - type: text
@@ -91,7 +89,7 @@ layout:
         children:
           - type: text
             content: "Radial Gradient"
-            font: bold
+            fontWeight: bold
             size: 1.1em
             color: "#7c3aed"
           - type: text
@@ -105,7 +103,7 @@ layout:
         children:
           - type: text
             content: "Opacity Levels"
-            font: semibold
+            fontWeight: semi-bold
             size: 0.95em
             color: "#333333"
 
@@ -125,7 +123,7 @@ layout:
                     content: "100%"
                     size: 0.8em
                     color: "#ffffff"
-                    font: semibold
+                    fontWeight: semi-bold
                     align: center
 
               - type: flex
@@ -140,7 +138,7 @@ layout:
                     content: "70%"
                     size: 0.8em
                     color: "#ffffff"
-                    font: semibold
+                    fontWeight: semi-bold
                     align: center
 
               - type: flex
@@ -155,7 +153,7 @@ layout:
                     content: "40%"
                     size: 0.8em
                     color: "#ffffff"
-                    font: semibold
+                    fontWeight: semi-bold
                     align: center
 
               - type: flex
@@ -170,7 +168,7 @@ layout:
                     content: "15%"
                     size: 0.8em
                     color: "#ffffff"
-                    font: semibold
+                    fontWeight: semi-bold
                     align: center
 
       # Combined: gradient + shadow + opacity
@@ -184,7 +182,7 @@ layout:
         children:
           - type: text
             content: "Combined Effects"
-            font: bold
+            fontWeight: bold
             size: 1em
             color: "#ffffff"
           - type: text

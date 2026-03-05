@@ -310,4 +310,184 @@ public class TemplateParserFontTests
         var textElement = Assert.IsType<TextElement>(template.Elements[0]);
         Assert.Equal("main", textElement.Font);
     }
+
+    // ── List format tests ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Verifies that a simple list of font paths is parsed, with the first becoming "default".
+    /// </summary>
+    [Fact]
+    public void Parse_FontsList_SimpleStrings_FirstBecomesDefault()
+    {
+        const string yaml = """
+            fonts:
+              - "assets/fonts/Inter-Regular.ttf"
+              - "assets/fonts/Inter-Bold.ttf"
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        Assert.Equal(2, template.Fonts.Count);
+        Assert.True(template.Fonts.ContainsKey("default"));
+        Assert.Equal("assets/fonts/Inter-Regular.ttf", template.Fonts["default"].Path);
+        Assert.True(template.Fonts.ContainsKey("__font_1"));
+        Assert.Equal("assets/fonts/Inter-Bold.ttf", template.Fonts["__font_1"].Path);
+    }
+
+    /// <summary>
+    /// Verifies that object entries with explicit name are registered under that name.
+    /// </summary>
+    [Fact]
+    public void Parse_FontsList_ObjectWithName_UsesProvidedName()
+    {
+        const string yaml = """
+            fonts:
+              - path: "assets/fonts/Roboto-Regular.ttf"
+                name: heading
+                fallback: "Arial"
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        Assert.Single(template.Fonts);
+        Assert.True(template.Fonts.ContainsKey("heading"));
+        Assert.Equal("assets/fonts/Roboto-Regular.ttf", template.Fonts["heading"].Path);
+        Assert.Equal("Arial", template.Fonts["heading"].Fallback);
+    }
+
+    /// <summary>
+    /// Verifies that mixed string and object entries are parsed correctly in list format.
+    /// </summary>
+    [Fact]
+    public void Parse_FontsList_MixedEntries_ParsesAllCorrectly()
+    {
+        const string yaml = """
+            fonts:
+              - "assets/fonts/Inter-Regular.ttf"
+              - "assets/fonts/Inter-Bold.ttf"
+              - path: "assets/fonts/Roboto-Regular.ttf"
+                name: heading
+                fallback: "Arial"
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        Assert.Equal(3, template.Fonts.Count);
+        Assert.Equal("assets/fonts/Inter-Regular.ttf", template.Fonts["default"].Path);
+        Assert.Null(template.Fonts["default"].Fallback);
+        Assert.Equal("assets/fonts/Inter-Bold.ttf", template.Fonts["__font_1"].Path);
+        Assert.Equal("assets/fonts/Roboto-Regular.ttf", template.Fonts["heading"].Path);
+        Assert.Equal("Arial", template.Fonts["heading"].Fallback);
+    }
+
+    /// <summary>
+    /// Verifies that when a font is explicitly named "default", no auto-default is assigned.
+    /// </summary>
+    [Fact]
+    public void Parse_FontsList_ExplicitDefault_NoAutoDefault()
+    {
+        const string yaml = """
+            fonts:
+              - "assets/fonts/Inter-Regular.ttf"
+              - path: "assets/fonts/Roboto-Regular.ttf"
+                name: default
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        // The first string got auto-assigned "default", then the explicit "default" overwrites it
+        Assert.Equal("assets/fonts/Roboto-Regular.ttf", template.Fonts["default"].Path);
+    }
+
+    /// <summary>
+    /// Verifies that an empty list results in an empty fonts dictionary.
+    /// </summary>
+    [Fact]
+    public void Parse_FontsList_EmptyList_ReturnsEmptyDictionary()
+    {
+        const string yaml = """
+            fonts: []
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        Assert.NotNull(template.Fonts);
+        Assert.Empty(template.Fonts);
+    }
+
+    /// <summary>
+    /// Verifies that entries with empty paths are skipped.
+    /// </summary>
+    [Fact]
+    public void Parse_FontsList_EmptyPath_SkipsEntry()
+    {
+        const string yaml = """
+            fonts:
+              - ""
+              - "assets/fonts/Inter-Regular.ttf"
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        Assert.Single(template.Fonts);
+        Assert.True(template.Fonts.ContainsKey("default"));
+        Assert.Equal("assets/fonts/Inter-Regular.ttf", template.Fonts["default"].Path);
+    }
+
+    /// <summary>
+    /// Verifies that font list names are case-insensitive.
+    /// </summary>
+    [Fact]
+    public void Parse_FontsList_NamesCaseInsensitive()
+    {
+        const string yaml = """
+            fonts:
+              - path: "assets/fonts/Roboto-Regular.ttf"
+                name: Heading
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        Assert.True(template.Fonts.ContainsKey("heading"));
+        Assert.True(template.Fonts.ContainsKey("Heading"));
+        Assert.True(template.Fonts.ContainsKey("HEADING"));
+    }
+
+    /// <summary>
+    /// Verifies that the original dictionary format still works after adding list support.
+    /// </summary>
+    [Fact]
+    public void Parse_FontsDictionaryFormat_StillWorks()
+    {
+        const string yaml = """
+            fonts:
+              main: "assets/fonts/Roboto-Regular.ttf"
+              heading:
+                path: "assets/fonts/OpenSans-Bold.ttf"
+                fallback: "Helvetica"
+            canvas:
+              width: 300
+            """;
+
+        var template = _parser.Parse(yaml);
+
+        Assert.Equal(2, template.Fonts.Count);
+        Assert.Equal("assets/fonts/Roboto-Regular.ttf", template.Fonts["main"].Path);
+        Assert.Equal("assets/fonts/OpenSans-Bold.ttf", template.Fonts["heading"].Path);
+        Assert.Equal("Helvetica", template.Fonts["heading"].Fallback);
+    }
 }

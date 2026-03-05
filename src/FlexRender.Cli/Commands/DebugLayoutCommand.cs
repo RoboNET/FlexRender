@@ -118,7 +118,7 @@ public static class DebugLayoutCommand
             var templateData = data ?? new ObjectValue();
 
             // Create renderer (has TextMeasurer configured)
-            using var renderer = new SkiaRenderer();
+            using var renderer = Program.CreateSkiaRenderer();
 
             // Register extra fonts from --fonts dir
             if (fontsDir is not null)

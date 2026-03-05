@@ -51,6 +51,7 @@ public sealed class FlexRenderBuilder
     private bool _defaultLoadersAdded;
     private bool _built;
     private FilterRegistry? _filterRegistry;
+    private ContentParserRegistry? _contentParserRegistry;
     private bool _useDefaultFilters = true;
 
     /// <summary>
@@ -80,6 +81,11 @@ public sealed class FlexRenderBuilder
     /// Gets the configured filter registry, or <c>null</c> if no filters have been registered.
     /// </summary>
     internal FilterRegistry? FilterRegistry => _filterRegistry;
+
+    /// <summary>
+    /// Gets the configured content parser registry, or <c>null</c> if no content parsers have been registered.
+    /// </summary>
+    internal ContentParserRegistry? ContentParserRegistry => _contentParserRegistry;
 
     /// <summary>
     /// Sets the renderer factory function that creates the <see cref="IFlexRender"/> implementation.
@@ -196,6 +202,21 @@ public sealed class FlexRenderBuilder
             ? FilterRegistry.CreateDefault()
             : new FilterRegistry();
         _filterRegistry.Register(filter);
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a content parser for expanding <c>type: content</c> elements.
+    /// </summary>
+    /// <param name="parser">The content parser to register.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parser"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a parser for this format is already registered.</exception>
+    public FlexRenderBuilder WithContentParser(IContentParser parser)
+    {
+        ArgumentNullException.ThrowIfNull(parser);
+        _contentParserRegistry ??= new ContentParserRegistry();
+        _contentParserRegistry.Register(parser);
         return this;
     }
 

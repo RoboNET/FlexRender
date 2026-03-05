@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -29,7 +28,7 @@ layout:
           - type: text
             content: "1"
             color: "#ffffff"
-            font: bold
+            fontWeight: bold
             size: 20px
             align: center
       - type: flex
@@ -43,7 +42,7 @@ layout:
           - type: text
             content: "2"
             color: "#ffffff"
-            font: bold
+            fontWeight: bold
             size: 20px
             align: center
       - type: flex
@@ -57,7 +56,7 @@ layout:
           - type: text
             content: "3"
             color: "#ffffff"
-            font: bold
+            fontWeight: bold
             size: 20px
             align: center
       - type: flex
@@ -71,7 +70,7 @@ layout:
           - type: text
             content: "4"
             color: "#ffffff"
-            font: bold
+            fontWeight: bold
             size: 20px
             align: center
       - type: flex
@@ -85,7 +84,7 @@ layout:
           - type: text
             content: "5"
             color: "#ffffff"
-            font: bold
+            fontWeight: bold
             size: 20px
             align: center
       - type: flex
@@ -99,6 +98,6 @@ layout:
           - type: text
             content: "6"
             color: "#ffffff"
-            font: bold
+            fontWeight: bold
             size: 20px
             align: center

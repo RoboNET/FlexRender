@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -20,7 +19,7 @@ layout:
       # Title
       - type: text
         content: "position: absolute (bottom/right)"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#333333"
 
@@ -49,7 +48,7 @@ layout:
               - type: text
                 content: "Normal flow"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 14px
 
           - type: flex
@@ -63,7 +62,7 @@ layout:
               - type: text
                 content: "Normal flow"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 14px
 
           # Absolute positioned box
@@ -81,6 +80,6 @@ layout:
               - type: text
                 content: "Absolute"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 11px
                 align: center

@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -23,7 +22,7 @@ layout:
         children:
           - type: text
             content: "Solid Border"
-            font: bold
+            fontWeight: bold
             size: 16px
             color: "#333333"
           - type: text

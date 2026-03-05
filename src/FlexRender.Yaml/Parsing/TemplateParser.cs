@@ -63,7 +63,8 @@ public sealed class TemplateParser : ITemplateParser
             ["each"] = _parsers.ParseEachElement,
             ["if"] = _parsers.ParseIfElement,
             ["table"] = ElementParsers.ParseTableElement,
-            ["svg"] = ElementParsers.ParseSvgElement
+            ["svg"] = ElementParsers.ParseSvgElement,
+            ["content"] = ElementParsers.ParseContentElement
         };
     }
 
@@ -121,10 +122,17 @@ public sealed class TemplateParser : ITemplateParser
             template.Culture = GetStringValue(templateNode, "culture");
         }
 
-        // Parse fonts section (optional)
-        if (TryGetMapping(root, "fonts", out var fontsNode))
+        // Parse fonts section (optional) — supports both mapping and list formats
+        var fontsKey = new YamlScalarNode("fonts");
+        if (root.Children.TryGetValue(fontsKey, out var fontsYamlNode))
         {
-            template.Fonts = ParseFonts(fontsNode);
+            template.Fonts = fontsYamlNode switch
+            {
+                YamlMappingNode fontsMapping => ParseFonts(fontsMapping),
+                YamlSequenceNode fontsSequence => ParseFontsList(fontsSequence),
+                _ => throw new TemplateParseException(
+                    "Invalid 'fonts' section. Expected a mapping (name: path) or a list of font entries.")
+            };
         }
 
         // Parse canvas (required)
@@ -281,6 +289,72 @@ public sealed class TemplateParser : ITemplateParser
             }
 
             fonts[fontName] = fontDef;
+        }
+
+        return fonts;
+    }
+
+    /// <summary>
+    /// Parses the fonts section when provided as a YAML sequence (list format).
+    /// Supports two item formats:
+    /// - Simple string: <c>- "path/to/font.ttf"</c>
+    /// - Object: <c>- { path: "...", name: "heading", fallback: "Arial" }</c>
+    /// The first font in the list automatically becomes "default" if no font is explicitly named "default".
+    /// </summary>
+    /// <param name="node">The YAML sequence node containing font entries.</param>
+    /// <returns>A dictionary mapping font names to their definitions.</returns>
+    private static Dictionary<string, FontDefinition> ParseFontsList(YamlSequenceNode node)
+    {
+        var fonts = new Dictionary<string, FontDefinition>(StringComparer.OrdinalIgnoreCase);
+        var index = 0;
+        var hasDefault = false;
+
+        foreach (var item in node.Children)
+        {
+            string? name = null;
+            string path;
+            string? fallback = null;
+
+            switch (item)
+            {
+                // Simple string: - "path/to/font.ttf"
+                case YamlScalarNode scalar:
+                    path = scalar.Value ?? string.Empty;
+                    break;
+
+                // Object: - { path: "...", name: "heading", fallback: "Arial" }
+                case YamlMappingNode mapping:
+                    path = GetStringValue(mapping, "path") ?? string.Empty;
+                    name = GetStringValue(mapping, "name");
+                    fallback = GetStringValue(mapping, "fallback");
+                    break;
+
+                default:
+                    continue;
+            }
+
+            if (string.IsNullOrEmpty(path))
+                continue;
+
+            // Auto-assign name if not provided
+            if (string.IsNullOrEmpty(name))
+            {
+                // First unnamed font becomes "default"
+                if (!hasDefault && !fonts.ContainsKey("default"))
+                {
+                    name = "default";
+                }
+                else
+                {
+                    name = $"__font_{index}";
+                }
+            }
+
+            if (string.Equals(name, "default", StringComparison.OrdinalIgnoreCase))
+                hasDefault = true;
+
+            fonts[name] = new FontDefinition(path, fallback);
+            index++;
         }
 
         return fonts;

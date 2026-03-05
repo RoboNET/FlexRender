@@ -85,7 +85,7 @@ public sealed class SkiaTextShaper : ITextShaper
     /// </summary>
     private SKFont CreateFont(TextElement element, float fontSize)
     {
-        var typeface = _fontManager.GetTypeface(element.Font.Value);
+        var typeface = _fontManager.GetTypeface(element.Font.Value, element.FontFamily.Value, element.FontWeight.Value, element.FontStyle.Value);
         var font = new SKFont(typeface, fontSize)
         {
             Subpixel = _defaultRenderOptions.SubpixelText,

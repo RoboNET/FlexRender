@@ -55,6 +55,44 @@ public enum TextOverflow
 }
 
 /// <summary>
+/// Font weight values following CSS font-weight specification.
+/// </summary>
+public enum FontWeight
+{
+    /// <summary>Thin (100).</summary>
+    Thin = 100,
+    /// <summary>Extra-light (200).</summary>
+    ExtraLight = 200,
+    /// <summary>Light (300).</summary>
+    Light = 300,
+    /// <summary>Normal/Regular (400). Default.</summary>
+    Normal = 400,
+    /// <summary>Medium (500).</summary>
+    Medium = 500,
+    /// <summary>Semi-bold (600).</summary>
+    SemiBold = 600,
+    /// <summary>Bold (700).</summary>
+    Bold = 700,
+    /// <summary>Extra-bold (800).</summary>
+    ExtraBold = 800,
+    /// <summary>Black (900).</summary>
+    Black = 900
+}
+
+/// <summary>
+/// Font style values following CSS font-style specification.
+/// </summary>
+public enum FontStyle
+{
+    /// <summary>Normal upright text. Default.</summary>
+    Normal,
+    /// <summary>Italic text using a dedicated italic typeface.</summary>
+    Italic,
+    /// <summary>Oblique text (mechanically slanted).</summary>
+    Oblique
+}
+
+/// <summary>
 /// A text element in the template.
 /// </summary>
 public sealed class TextElement : TemplateElement
@@ -71,6 +109,22 @@ public sealed class TextElement : TemplateElement
     /// Font name reference.
     /// </summary>
     public ExprValue<string> Font { get; set; } = "main";
+
+    /// <summary>
+    /// CSS-like font family name. Searched in registered fonts by FamilyName, then system fonts.
+    /// When set and <see cref="Font"/> is at its default value, this takes precedence.
+    /// </summary>
+    public ExprValue<string> FontFamily { get; set; } = "";
+
+    /// <summary>
+    /// Font weight (100-900 or named: thin, light, normal, bold, black). Default: normal (400).
+    /// </summary>
+    public ExprValue<FontWeight> FontWeight { get; set; } = Ast.FontWeight.Normal;
+
+    /// <summary>
+    /// Font style (normal, italic, oblique). Default: normal.
+    /// </summary>
+    public ExprValue<FontStyle> FontStyle { get; set; } = Ast.FontStyle.Normal;
 
     /// <summary>
     /// Font size (pixels, em, or percentage).
@@ -116,6 +170,9 @@ public sealed class TextElement : TemplateElement
         base.ResolveExpressions(resolver, data);
         Content = Content.Resolve(resolver, data);
         Font = Font.Resolve(resolver, data);
+        FontFamily = FontFamily.Resolve(resolver, data);
+        FontWeight = FontWeight.Resolve(resolver, data);
+        FontStyle = FontStyle.Resolve(resolver, data);
         Size = Size.Resolve(resolver, data);
         Color = Color.Resolve(resolver, data);
         Align = Align.Resolve(resolver, data);
@@ -131,6 +188,9 @@ public sealed class TextElement : TemplateElement
         base.Materialize();
         Content = Content.Materialize(nameof(Content));
         Font = Font.Materialize(nameof(Font));
+        FontFamily = FontFamily.Materialize(nameof(FontFamily));
+        FontWeight = FontWeight.Materialize(nameof(FontWeight));
+        FontStyle = FontStyle.Materialize(nameof(FontStyle));
         Size = Size.Materialize(nameof(Size), ValueKind.Size);
         Color = Color.Materialize(nameof(Color), ValueKind.Color);
         Align = Align.Materialize(nameof(Align));

@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: both
@@ -21,7 +20,7 @@ layout:
     children:
       - type: text
         content: "TOP"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#1a1a2e"
         align: center
@@ -47,7 +46,7 @@ layout:
               - type: text
                 content: ">"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 28px
                 align: center
 
@@ -58,7 +57,7 @@ layout:
 
       - type: text
         content: "BOTTOM"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#cccccc"
         align: center

@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: height
@@ -19,7 +18,7 @@ layout:
     children:
       - type: text
         content: "fixed: height"
-        font: bold
+        fontWeight: bold
         size: 18px
         color: "#1a1a2e"
 

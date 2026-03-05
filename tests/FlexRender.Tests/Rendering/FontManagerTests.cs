@@ -1,5 +1,8 @@
+using FlexRender.Parsing.Ast;
 using FlexRender.Rendering;
+using SkiaSharp;
 using Xunit;
+using AstFontStyle = global::FlexRender.Parsing.Ast.FontStyle;
 
 namespace FlexRender.Tests.Rendering;
 
@@ -158,5 +161,134 @@ public class FontManagerTests : IDisposable
         var typeface = _fontManager.GetTypeface("");
 
         Assert.NotNull(typeface);
+    }
+
+    [Fact]
+    public void GetTypeface_WithDefaultWeightAndStyle_ReturnsSameAsBasic()
+    {
+        var basic = _fontManager.GetTypeface("main");
+        var withDefaults = _fontManager.GetTypeface("main", FontWeight.Normal, AstFontStyle.Normal);
+
+        // Default weight+style should delegate to the basic overload and return the same instance
+        Assert.Same(basic, withDefaults);
+    }
+
+    [Fact]
+    public void GetTypeface_WithBoldWeight_ReturnsNonNull()
+    {
+        var typeface = _fontManager.GetTypeface("main", FontWeight.Bold, AstFontStyle.Normal);
+
+        Assert.NotNull(typeface);
+    }
+
+    [Fact]
+    public void GetTypeface_WithItalicStyle_ReturnsNonNull()
+    {
+        var typeface = _fontManager.GetTypeface("main", FontWeight.Normal, AstFontStyle.Italic);
+
+        Assert.NotNull(typeface);
+    }
+
+    [Fact]
+    public void GetTypeface_WithBoldItalic_ReturnsNonNull()
+    {
+        var typeface = _fontManager.GetTypeface("main", FontWeight.Bold, AstFontStyle.Italic);
+
+        Assert.NotNull(typeface);
+    }
+
+    [Fact]
+    public void GetTypeface_WithObliqueStyle_ReturnsNonNull()
+    {
+        var typeface = _fontManager.GetTypeface("main", FontWeight.Normal, AstFontStyle.Oblique);
+
+        Assert.NotNull(typeface);
+    }
+
+    [Theory]
+    [InlineData(FontWeight.Thin)]
+    [InlineData(FontWeight.ExtraLight)]
+    [InlineData(FontWeight.Light)]
+    [InlineData(FontWeight.Medium)]
+    [InlineData(FontWeight.SemiBold)]
+    [InlineData(FontWeight.ExtraBold)]
+    [InlineData(FontWeight.Black)]
+    public void GetTypeface_AllWeights_ReturnNonNull(FontWeight weight)
+    {
+        var typeface = _fontManager.GetTypeface("main", weight, AstFontStyle.Normal);
+
+        Assert.NotNull(typeface);
+    }
+
+    [Fact]
+    public void GetTypeface_SameVariantTwice_ReturnsSameInstance()
+    {
+        var first = _fontManager.GetTypeface("main", FontWeight.Bold, AstFontStyle.Italic);
+        var second = _fontManager.GetTypeface("main", FontWeight.Bold, AstFontStyle.Italic);
+
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public void GetTypeface_DifferentVariants_MayReturnDifferentInstances()
+    {
+        var normal = _fontManager.GetTypeface("main", FontWeight.Normal, AstFontStyle.Normal);
+        var bold = _fontManager.GetTypeface("main", FontWeight.Bold, AstFontStyle.Normal);
+
+        // Both should be non-null; they may or may not be different typefaces
+        // depending on system fonts, but they should not throw
+        Assert.NotNull(normal);
+        Assert.NotNull(bold);
+    }
+
+    [Fact]
+    public void GetTypeface_VariantCaseInsensitive_ReturnsSameInstance()
+    {
+        var lower = _fontManager.GetTypeface("main", FontWeight.Bold, AstFontStyle.Normal);
+        var upper = _fontManager.GetTypeface("MAIN", FontWeight.Bold, AstFontStyle.Normal);
+
+        Assert.Same(lower, upper);
+    }
+
+    [Fact]
+    public void ToSkFontStyle_NormalDefaults_ReturnsUpright400()
+    {
+        var skStyle = FontManager.ToSkFontStyle(FontWeight.Normal, AstFontStyle.Normal);
+
+        Assert.Equal((int)SKFontStyleWeight.Normal, skStyle.Weight);
+        Assert.Equal(SKFontStyleSlant.Upright, skStyle.Slant);
+    }
+
+    [Fact]
+    public void ToSkFontStyle_Bold_ReturnsWeight700()
+    {
+        var skStyle = FontManager.ToSkFontStyle(FontWeight.Bold, AstFontStyle.Normal);
+
+        Assert.Equal(700, skStyle.Weight);
+        Assert.Equal(SKFontStyleSlant.Upright, skStyle.Slant);
+    }
+
+    [Fact]
+    public void ToSkFontStyle_Italic_ReturnsItalicSlant()
+    {
+        var skStyle = FontManager.ToSkFontStyle(FontWeight.Normal, AstFontStyle.Italic);
+
+        Assert.Equal(SKFontStyleSlant.Italic, skStyle.Slant);
+    }
+
+    [Fact]
+    public void ToSkFontStyle_Oblique_ReturnsObliqueSlant()
+    {
+        var skStyle = FontManager.ToSkFontStyle(FontWeight.Normal, AstFontStyle.Oblique);
+
+        Assert.Equal(SKFontStyleSlant.Oblique, skStyle.Slant);
+    }
+
+    [Fact]
+    public void ToSkFontStyle_Black_ReturnsWeight900()
+    {
+        var skStyle = FontManager.ToSkFontStyle(FontWeight.Black, AstFontStyle.Normal);
+
+        Assert.Equal(900, skStyle.Weight);
     }
 }

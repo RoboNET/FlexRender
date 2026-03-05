@@ -111,7 +111,7 @@ internal sealed class ImageSharpTextRenderer
     private Font CreateFont(TextElement element, float baseFontSize)
     {
         var fontSize = FontSizeResolver.Resolve(element.Size.Value, baseFontSize);
-        return _fontManager.GetFont(element.Font.Value, fontSize);
+        return _fontManager.GetFont(element.Font.Value, fontSize, element.FontWeight.Value, element.FontStyle.Value);
     }
 
     private static float ResolveLineHeight(string? lineHeight, Font font)

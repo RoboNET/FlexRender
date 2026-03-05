@@ -54,7 +54,8 @@ public static class ImageSharpFlexRenderBuilderExtensions
             b.Options,
             b.ResourceLoaders,
             imageSharpBuilder,
-            b.FilterRegistry));
+            b.FilterRegistry,
+            b.ContentParserRegistry));
 
         return builder;
     }
@@ -89,6 +90,7 @@ public static class ImageSharpFlexRenderBuilderExtensions
             b.Options,
             b.ResourceLoaders,
             imageSharpBuilder,
-            b.FilterRegistry);
+            b.FilterRegistry,
+            b.ContentParserRegistry);
     }
 }

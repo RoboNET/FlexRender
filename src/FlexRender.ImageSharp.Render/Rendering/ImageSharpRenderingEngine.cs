@@ -76,13 +76,15 @@ internal sealed class ImageSharpRenderingEngine
     /// Optional pre-processed template from image preloading. When provided, the
     /// expand+preprocess steps are skipped to avoid redundant work.
     /// </param>
+    /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
     /// <returns>A new image containing the rendered template. Caller owns disposal.</returns>
     internal Image<Rgba32> RenderToImage(
         Template template,
         ObjectValue data,
         FilterRegistry? filterRegistry = null,
         IReadOnlyDictionary<string, Image<Rgba32>>? imageCache = null,
-        Template? preprocessedTemplate = null)
+        Template? preprocessedTemplate = null,
+        ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(data);
@@ -97,8 +99,8 @@ internal sealed class ImageSharpRenderingEngine
         {
             // Expand, resolve, and materialize template via the Core pipeline
             var expander = filterRegistry is not null
-                ? new TemplateExpander(_limits, filterRegistry)
-                : new TemplateExpander(_limits);
+                ? new TemplateExpander(_limits, filterRegistry, contentParserRegistry)
+                : new TemplateExpander(_limits, contentParserRegistry);
             var templateProcessor = filterRegistry is not null
                 ? new TemplateProcessor(_limits, filterRegistry)
                 : new TemplateProcessor(_limits);

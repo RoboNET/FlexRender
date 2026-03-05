@@ -1,0 +1,140 @@
+# Font Showcase
+# Demonstrates: fontWeight, fontStyle, fontFamily, list-based font registration
+
+template:
+  name: "font-showcase"
+  version: 1
+
+fonts:
+  - "assets/fonts/Inter-Regular.ttf"
+  - "assets/fonts/Inter-Bold.ttf"
+  - "assets/fonts/Inter-SemiBold.ttf"
+  - "assets/fonts/Inter-Italic.ttf"
+  - "assets/fonts/Inter-BoldItalic.ttf"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "24 20"
+    gap: 16
+    children:
+      # Header
+      - type: text
+        content: "Font Showcase"
+        fontWeight: bold
+        size: 1.8em
+        color: "#1a1a1a"
+
+      - type: separator
+        color: "#e0e0e0"
+
+      # fontWeight section
+      - type: text
+        content: "fontWeight"
+        fontWeight: bold
+        size: 0.85em
+        color: "#888888"
+
+      - type: flex
+        gap: 4
+        children:
+          - type: text
+            content: "Normal (400)"
+            size: 1.1em
+            color: "#333333"
+
+          - type: text
+            content: "Semi-bold (600)"
+            fontWeight: semi-bold
+            size: 1.1em
+            color: "#333333"
+
+          - type: text
+            content: "Bold (700)"
+            fontWeight: bold
+            size: 1.1em
+            color: "#333333"
+
+      - type: separator
+        color: "#e0e0e0"
+
+      # fontStyle section
+      - type: text
+        content: "fontStyle"
+        fontWeight: bold
+        size: 0.85em
+        color: "#888888"
+
+      - type: flex
+        gap: 4
+        children:
+          - type: text
+            content: "Normal style"
+            size: 1.1em
+            color: "#333333"
+
+          - type: text
+            content: "Italic style"
+            fontStyle: italic
+            size: 1.1em
+            color: "#333333"
+
+          - type: text
+            content: "Bold + Italic"
+            fontWeight: bold
+            fontStyle: italic
+            size: 1.1em
+            color: "#333333"
+
+      - type: separator
+        color: "#e0e0e0"
+
+      # fontFamily section
+      - type: text
+        content: "fontFamily (system fonts)"
+        fontWeight: bold
+        size: 0.85em
+        color: "#888888"
+
+      - type: flex
+        gap: 4
+        children:
+          - type: text
+            content: "Arial — the classic"
+            fontFamily: "Arial"
+            size: 1.1em
+            color: "#333333"
+
+          - type: text
+            content: "Georgia — a serif font"
+            fontFamily: "Georgia"
+            size: 1.1em
+            color: "#333333"
+
+          - type: text
+            content: "Courier New — monospace"
+            fontFamily: "Courier New"
+            size: 1.1em
+            color: "#333333"
+
+          - type: text
+            content: "Arial Bold Italic"
+            fontFamily: "Arial"
+            fontWeight: bold
+            fontStyle: italic
+            size: 1.1em
+            color: "#333333"
+
+      - type: separator
+        color: "#e0e0e0"
+
+      # Footer
+      - type: text
+        content: "Inter loaded from files, system fonts via fontFamily"
+        size: 0.75em
+        color: "#999999"
+        align: center

@@ -172,7 +172,7 @@ public sealed class TextRenderer
     /// <returns>A configured <see cref="SKFont"/> instance. Caller must dispose.</returns>
     private SKFont CreateFont(TextElement element, float baseFontSize, RenderOptions renderOptions)
     {
-        var typeface = _fontManager.GetTypeface(element.Font.Value);
+        var typeface = _fontManager.GetTypeface(element.Font.Value, element.FontFamily.Value, element.FontWeight.Value, element.FontStyle.Value);
         var fontSize = FontSizeResolver.Resolve(element.Size.Value, baseFontSize);
 
         var font = new SKFont(typeface, fontSize)

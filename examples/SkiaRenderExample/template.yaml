@@ -19,7 +19,7 @@ layout:
         size: 1.5em
         align: center
         color: "#1a1a1a"
-        bold: true
+        fontWeight: bold
 
       # Separator
       - type: separator
@@ -35,12 +35,12 @@ layout:
             content: "Item"
             size: 0.85em
             color: "#666666"
-            bold: true
+            fontWeight: bold
           - type: text
             content: "Price"
             size: 0.85em
             color: "#666666"
-            bold: true
+            fontWeight: bold
 
       # Item rows
       - type: each
@@ -75,12 +75,12 @@ layout:
             content: "Total"
             size: 1.1em
             color: "#000000"
-            bold: true
+            fontWeight: bold
           - type: text
             content: "{{total}}"
             size: 1.1em
             color: "#000000"
-            bold: true
+            fontWeight: bold
 
       # Spacer
       - type: flex

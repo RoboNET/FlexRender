@@ -67,6 +67,24 @@ public sealed class TableElement : TemplateElement
     public string? HeaderFont { get; set; }
 
     /// <summary>
+    /// Gets or sets the font weight for header cells (e.g., bold, semi-bold).
+    /// When set, overrides the default font weight for all header cells.
+    /// </summary>
+    public FontWeight? HeaderFontWeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the font style for header cells (e.g., italic, oblique).
+    /// When set, overrides the default font style for all header cells.
+    /// </summary>
+    public FontStyle? HeaderFontStyle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the CSS-like font family name for header cells.
+    /// When set, overrides the default font family for all header cells.
+    /// </summary>
+    public string? HeaderFontFamily { get; set; }
+
+    /// <summary>
     /// Gets or sets the text color for header cells.
     /// </summary>
     public string? HeaderColor { get; set; }

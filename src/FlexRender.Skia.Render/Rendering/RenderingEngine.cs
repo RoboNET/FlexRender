@@ -27,6 +27,7 @@ internal sealed class RenderingEngine
     private readonly ResourceLimits _limits;
     private readonly float _baseFontSize;
     private readonly FilterRegistry? _filterRegistry;
+    private readonly ContentParserRegistry? _contentParserRegistry;
     private readonly FontManager? _fontManager;
     private readonly FlexRenderOptions? _renderingOptions;
 
@@ -46,6 +47,7 @@ internal sealed class RenderingEngine
     /// <param name="filterRegistry">Optional filter registry for per-call culture resolution.</param>
     /// <param name="fontManager">Optional font manager for creating culture-aware pipelines.</param>
     /// <param name="renderingOptions">Optional rendering options for creating culture-aware pipelines.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
     internal RenderingEngine(
         TextRenderer textRenderer,
         IContentProvider<QrElement>? qrProvider,
@@ -59,7 +61,8 @@ internal sealed class RenderingEngine
         float baseFontSize,
         FilterRegistry? filterRegistry = null,
         FontManager? fontManager = null,
-        FlexRenderOptions? renderingOptions = null)
+        FlexRenderOptions? renderingOptions = null,
+        ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(textRenderer);
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -77,6 +80,7 @@ internal sealed class RenderingEngine
         _limits = limits;
         _baseFontSize = baseFontSize;
         _filterRegistry = filterRegistry;
+        _contentParserRegistry = contentParserRegistry;
         _fontManager = fontManager;
         _renderingOptions = renderingOptions;
     }
@@ -863,7 +867,7 @@ internal sealed class RenderingEngine
             return _pipeline;
         }
 
-        var expander = new TemplateExpander(_limits, _filterRegistry, effectiveCulture);
+        var expander = new TemplateExpander(_limits, _filterRegistry, effectiveCulture, _contentParserRegistry);
         var processor = new TemplateProcessor(_limits, _filterRegistry, effectiveCulture);
 
         return new TemplatePipeline(expander, processor);

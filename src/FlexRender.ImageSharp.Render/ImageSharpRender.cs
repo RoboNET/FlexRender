@@ -37,6 +37,7 @@ public sealed class ImageSharpRender : IFlexRender
     private readonly ImageSharpFontManager _fontManager;
     private readonly IReadOnlyList<IResourceLoader> _resourceLoaders;
     private readonly FilterRegistry? _filterRegistry;
+    private readonly ContentParserRegistry? _contentParserRegistry;
     private readonly ResourceLimits _limits;
     private readonly FlexRenderOptions _options;
     private readonly RenderOptions _defaultRenderOptions;
@@ -50,6 +51,7 @@ public sealed class ImageSharpRender : IFlexRender
     /// <param name="resourceLoaders">Collection of resource loaders for assets.</param>
     /// <param name="builder">ImageSharp-specific configuration.</param>
     /// <param name="filterRegistry">Optional filter registry for expression filter evaluation.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="limits"/>, <paramref name="options"/>,
     /// <paramref name="resourceLoaders"/>, or <paramref name="builder"/> is null.
@@ -59,7 +61,8 @@ public sealed class ImageSharpRender : IFlexRender
         FlexRenderOptions options,
         IReadOnlyList<IResourceLoader> resourceLoaders,
         ImageSharpBuilder builder,
-        FilterRegistry? filterRegistry = null)
+        FilterRegistry? filterRegistry = null,
+        ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(options);
@@ -71,6 +74,7 @@ public sealed class ImageSharpRender : IFlexRender
         _defaultRenderOptions = options.DefaultRenderOptions;
         _resourceLoaders = resourceLoaders;
         _filterRegistry = filterRegistry;
+        _contentParserRegistry = contentParserRegistry;
 
         _fontManager = new ImageSharpFontManager();
         var textRenderer = new ImageSharpTextRenderer(_fontManager);
@@ -186,7 +190,7 @@ public sealed class ImageSharpRender : IFlexRender
         try
         {
             using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate);
+                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
 
             var encoder = new PngEncoder();
             await image.SaveAsync(output, encoder, cancellationToken).ConfigureAwait(false);
@@ -237,7 +241,7 @@ public sealed class ImageSharpRender : IFlexRender
         try
         {
             using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate);
+                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
 
             var encoder = new JpegEncoder { Quality = effectiveOptions.Quality };
             await image.SaveAsync(output, encoder, cancellationToken).ConfigureAwait(false);
@@ -287,7 +291,7 @@ public sealed class ImageSharpRender : IFlexRender
         try
         {
             using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate);
+                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
 
             var encoder = new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel32 };
             await image.SaveAsync(output, encoder, cancellationToken).ConfigureAwait(false);
@@ -335,7 +339,7 @@ public sealed class ImageSharpRender : IFlexRender
         try
         {
             using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate);
+                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
 
             // Write raw RGBA pixel data
             var pixelCount = checked(image.Width * image.Height);
@@ -377,8 +381,8 @@ public sealed class ImageSharpRender : IFlexRender
 
         // Expand, resolve, and materialize template to resolve expressions in image src attributes
         var expander = _filterRegistry is not null
-            ? new TemplateExpander(_limits, _filterRegistry)
-            : new TemplateExpander(_limits);
+            ? new TemplateExpander(_limits, _filterRegistry, _contentParserRegistry)
+            : new TemplateExpander(_limits, _contentParserRegistry);
         var templateProcessor = _filterRegistry is not null
             ? new TemplateProcessor(_limits, _filterRegistry)
             : new TemplateProcessor(_limits);

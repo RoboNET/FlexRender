@@ -75,6 +75,8 @@ jobs:
             src/FlexRender.QrCode/FlexRender.QrCode.csproj \
             src/FlexRender.Barcode/FlexRender.Barcode.csproj \
             src/FlexRender.SvgElement/FlexRender.SvgElement.csproj \
+            src/FlexRender.Content.Markdown/FlexRender.Content.Markdown.csproj \
+            src/FlexRender.Content.Html/FlexRender.Content.Html.csproj \
             src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj \
             src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj; do
             dotnet pack "$project" \

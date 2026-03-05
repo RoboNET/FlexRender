@@ -30,7 +30,7 @@ layout:
         size: 1.5em
         color: "#212529"
         align: center
-        bold: true
+        fontWeight: bold
 
       # Separator
       - type: separator
@@ -61,7 +61,7 @@ layout:
                 content: "{{price}}"
                 size: 1.3em
                 color: "#198754"
-                bold: true
+                fontWeight: bold
 
           # QR code
           - type: qr

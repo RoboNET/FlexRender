@@ -7,9 +7,10 @@ template:
   version: 1
 
 fonts:
-  default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
-  semibold: "assets/fonts/Inter-SemiBold.ttf"
+  - "assets/fonts/Inter-Regular.ttf"
+  - "assets/fonts/Inter-Bold.ttf"
+  - "assets/fonts/Inter-SemiBold.ttf"
+  - "assets/fonts/Inter-Italic.ttf"
 
 canvas:
   fixed: width
@@ -29,7 +30,7 @@ layout:
         children:
           - type: text
             content: "{{companyName}}"
-            font: bold
+            fontWeight: bold
             size: 1.4em
             align: center
             color: "#1a1a1a"
@@ -60,7 +61,8 @@ layout:
         color: "#333333"
         row-gap: "2"
         column-gap: "8"
-        header-font: semibold
+        header-fontWeight: semi-bold
+        header-fontStyle: italic
         header-color: "#1a1a1a"
         header-size: 0.85em
         header-border-bottom: dashed
@@ -80,7 +82,7 @@ layout:
             label: "Total"
             width: "60"
             align: right
-            font: semibold
+            fontWeight: semi-bold
 
       - type: separator
         style: solid
@@ -106,7 +108,7 @@ layout:
             value: "{{tax}}"
           - label: "TOTAL"
             value: "{{total}}"
-            font: bold
+            fontWeight: bold
             color: "#1a1a1a"
             size: "1.1em"
 

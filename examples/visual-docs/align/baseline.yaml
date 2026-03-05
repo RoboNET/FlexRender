@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -22,21 +21,21 @@ layout:
       - type: text
         content: "Small"
         color: "#3498db"
-        font: bold
+        fontWeight: bold
         size: 14px
         background: "#e3f2fd"
         padding: "4 8"
       - type: text
         content: "Large"
         color: "#e74c3c"
-        font: bold
+        fontWeight: bold
         size: 28px
         background: "#ffebee"
         padding: "4 8"
       - type: text
         content: "Medium"
         color: "#2ecc71"
-        font: bold
+        fontWeight: bold
         size: 18px
         background: "#e8f5e9"
         padding: "4 8"

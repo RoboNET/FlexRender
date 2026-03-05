@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -20,7 +19,7 @@ layout:
       # Title
       - type: text
         content: "Text Overlay Pattern"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#333333"
 
@@ -54,7 +53,7 @@ layout:
               # Article title
               - type: text
                 content: "Article Title"
-                font: bold
+                fontWeight: bold
                 size: 16px
                 color: "#ffffff"
 

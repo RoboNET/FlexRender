@@ -6,7 +6,11 @@ using FlexRender.Configuration;
 using FlexRender.Http;
 using FlexRender.QrCode;
 using FlexRender.QrCode.ImageSharp;
+using FlexRender.Content.Html;
+using FlexRender.Content.Markdown;
+using FlexRender.Rendering;
 using FlexRender.SvgElement;
+using FlexRender.TemplateEngine;
 
 namespace FlexRender.Cli;
 
@@ -71,7 +75,9 @@ public sealed class Program
         string rasterBackend = "skia")
     {
         var builder = new FlexRenderBuilder()
-            .WithHttpLoader();
+            .WithHttpLoader()
+            .WithMarkdown()
+            .WithHtml();
 
         switch (backend)
         {
@@ -111,6 +117,24 @@ public sealed class Program
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Creates a configured <see cref="SkiaRenderer"/> with content parsers registered.
+    /// Used by commands that need direct Skia API access (e.g., debug-layout).
+    /// </summary>
+    /// <returns>A configured <see cref="SkiaRenderer"/> instance. The caller is responsible for disposing it.</returns>
+    internal static SkiaRenderer CreateSkiaRenderer()
+    {
+        var registry = new ContentParserRegistry();
+        registry.Register(new MarkdownContentParser());
+        registry.Register(new HtmlContentParser());
+        return new SkiaRenderer(
+            new ResourceLimits(),
+            qrProvider: null,
+            barcodeProvider: null,
+            imageLoader: null,
+            contentParserRegistry: registry);
     }
 
     /// <summary>
