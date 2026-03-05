@@ -41,7 +41,7 @@ public sealed class HtmlContentParser : IContentParser
     public string FormatName => "html";
 
     /// <inheritdoc />
-    public IReadOnlyList<TemplateElement> Parse(string text)
+    public IReadOnlyList<TemplateElement> Parse(string text, ContentParserContext context, IReadOnlyDictionary<string, object>? options = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         if (string.IsNullOrWhiteSpace(text)) return [];
@@ -49,9 +49,9 @@ public sealed class HtmlContentParser : IContentParser
         var doc = new HtmlDocument();
         doc.LoadHtml(text);
 
-        var context = new InlineContext();
+        var inlineContext = new InlineContext();
         var elements = new List<TemplateElement>();
-        ProcessNodes(doc.DocumentNode.ChildNodes, elements, context, depth: 0);
+        ProcessNodes(doc.DocumentNode.ChildNodes, elements, inlineContext, depth: 0);
         return elements;
     }
 

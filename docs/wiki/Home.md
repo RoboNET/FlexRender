@@ -14,7 +14,7 @@ A modular .NET library for rendering images from YAML templates with a full CSS 
 - **RTL Support** -- right-to-left layout with `text-direction: rtl`, logical alignment (`start`/`end`), HarfBuzz text shaping for Arabic/Hebrew
 - **Template engine** -- variables (`{{name}}`), inline expressions (`{{price * qty | currency}}`), loops (`type: each`), conditionals (`type: if` with 13 operators)
 - **Inline expressions** -- arithmetic (`+`, `-`, `*`, `/`), null coalescing (`??`), 8 built-in filters enabled by default (`currency`, `currencySymbol`, `number`, `upper`, `lower`, `trim`, `truncate`, `format`)
-- **Rich content types** -- text, images, SVG, QR codes, barcodes, separators, tables
+- **Rich content types** -- text, images, SVG, QR codes, barcodes, separators, tables, NDC receipts
 - **Visual effects** -- opacity, box-shadow, linear and radial gradient backgrounds
 - **Multiple output formats** -- PNG, JPEG, BMP (6 color modes), Raw pixels, with per-call format options
 - **AOT-ready** -- no reflection, no `dynamic`, works with Native AOT publishing
@@ -91,8 +91,8 @@ byte[] png = await render.RenderFile("template.yaml", data);
 | Page | Description |
 |------|-------------|
 | [[Getting-Started]] | Installation, first template, rendering approaches |
-| [[Template-Syntax]] | Canvas, all 10 element types, common properties, units |
-| [[Element-Reference]] | Complete property reference for all 10 element types with examples |
+| [[Template-Syntax]] | Canvas, all 11 element types, common properties, units |
+| [[Element-Reference]] | Complete property reference for all 11 element types with examples |
 | [[Visual-Reference]] | Interactive visual examples for all properties and elements |
 | [[Template-Expressions]] | Variables, loops, conditionals with 13 operators |
 | [[Flexbox-Layout]] | Direction, justify, align, wrapping, grow/shrink, positioning |

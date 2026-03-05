@@ -9,7 +9,7 @@ public sealed class TextShaperTests
     public void TextShapingResult_StoresLinesAndMetrics()
     {
         var lines = new List<string> { "Hello", "World" };
-        var result = new TextShapingResult(lines, new LayoutSize(100f, 40f), 20f);
+        var result = new TextShapingResult(lines, new LayoutSize(100f, 40f), 20f, 17f);
 
         Assert.Equal(2, result.Lines.Count);
         Assert.Equal("Hello", result.Lines[0]);
@@ -25,6 +25,7 @@ public sealed class TextShaperTests
         var result = new TextShapingResult(
             Array.Empty<string>(),
             new LayoutSize(0f, 0f),
+            0f,
             0f);
 
         Assert.Empty(result.Lines);
@@ -38,7 +39,8 @@ public sealed class TextShaperTests
         var result = new TextShapingResult(
             new[] { "Single line" },
             new LayoutSize(80f, 20f),
-            20f);
+            20f,
+            17f);
 
         Assert.Single(result.Lines);
         Assert.Equal("Single line", result.Lines[0]);

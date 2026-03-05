@@ -20,6 +20,18 @@ public sealed class ContentElement : TemplateElement
     /// </summary>
     public ExprValue<string> Format { get; set; } = "";
 
+    /// <summary>
+    /// Gets or sets parser-specific options (e.g., charset mappings, encoding settings).
+    /// Parsed from the YAML <c>options</c> block. May be <c>null</c> if no options specified.
+    /// </summary>
+    /// <remarks>
+    /// This dictionary is passed through directly to
+    /// <see cref="Abstractions.IContentParser.Parse"/> as the <c>options</c> parameter.
+    /// Each content parser defines its own supported keys and value types. Refer to
+    /// the specific parser documentation for the available options.
+    /// </remarks>
+    public IReadOnlyDictionary<string, object>? Options { get; set; }
+
     /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {

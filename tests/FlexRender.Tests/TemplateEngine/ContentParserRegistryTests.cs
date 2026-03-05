@@ -62,6 +62,6 @@ public sealed class ContentParserRegistryTests
     private sealed class StubContentParser(string formatName) : IContentParser
     {
         public string FormatName => formatName;
-        public IReadOnlyList<TemplateElement> Parse(string text) => [];
+        public IReadOnlyList<TemplateElement> Parse(string text, ContentParserContext context, IReadOnlyDictionary<string, object>? options = null) => [];
     }
 }

@@ -87,6 +87,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     /// <param name="svgProvider">Optional SVG content provider for rendering SVG elements.</param>
     /// <param name="filterRegistry">Optional filter registry for expression filter evaluation.</param>
     /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for resolving file-based content sources.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="limits"/> is null.</exception>
     public SkiaRenderer(
         ResourceLimits limits,
@@ -97,7 +98,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         FlexRenderOptions? options = null,
         IContentProvider<SvgElement>? svgProvider = null,
         FilterRegistry? filterRegistry = null,
-        ContentParserRegistry? contentParserRegistry = null)
+        ContentParserRegistry? contentParserRegistry = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
@@ -106,8 +108,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? new TemplateProcessor(limits, filterRegistry)
             : new TemplateProcessor(limits);
         var expander = filterRegistry is not null
-            ? new TemplateExpander(limits, filterRegistry, contentParserRegistry)
-            : new TemplateExpander(limits, contentParserRegistry);
+            ? new TemplateExpander(limits, filterRegistry, contentParserRegistry, resourceLoaders)
+            : new TemplateExpander(limits, contentParserRegistry, resourceLoaders);
         _fontManager = new FontManager();
         _defaultRenderOptions = deterministicRendering ? RenderOptions.Deterministic : RenderOptions.Default;
         _textRenderer = new TextRenderer(_fontManager);
@@ -132,7 +134,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             filterRegistry,
             _fontManager,
             options,
-            contentParserRegistry);
+            contentParserRegistry,
+            resourceLoaders);
     }
 
     /// <summary>
@@ -276,6 +279,9 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
             : null;
 
+        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        _renderingEngine.SetSvgContentCache(svgContentCache);
+
         try
         {
             // Measure returns the final size after rotation
@@ -294,6 +300,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         }
         finally
         {
+            _renderingEngine.SetSvgContentCache(null);
             if (imageCache is not null)
             {
                 foreach (var bmp in imageCache.Values)
@@ -329,12 +336,16 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
             : null;
 
+        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        _renderingEngine.SetSvgContentCache(svgContentCache);
+
         try
         {
             _renderingEngine.RenderToBitmapCore(bitmap, layoutTemplate, data, offset, imageCache);
         }
         finally
         {
+            _renderingEngine.SetSvgContentCache(null);
             if (imageCache is not null)
             {
                 foreach (var bmp in imageCache.Values)
@@ -372,6 +383,9 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
             : null;
 
+        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        _renderingEngine.SetSvgContentCache(svgContentCache);
+
         try
         {
             // Measure returns the final size after rotation
@@ -386,6 +400,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         }
         finally
         {
+            _renderingEngine.SetSvgContentCache(null);
             if (imageCache is not null)
             {
                 foreach (var bmp in imageCache.Values)
@@ -430,6 +445,9 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
             : null;
 
+        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        _renderingEngine.SetSvgContentCache(svgContentCache);
+
         try
         {
             // Measure returns the final size after rotation
@@ -444,6 +462,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         }
         finally
         {
+            _renderingEngine.SetSvgContentCache(null);
             if (imageCache is not null)
             {
                 foreach (var bmp in imageCache.Values)
@@ -481,6 +500,9 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
             : null;
 
+        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        _renderingEngine.SetSvgContentCache(svgContentCache);
+
         try
         {
             // Measure returns the final size after rotation
@@ -493,6 +515,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         }
         finally
         {
+            _renderingEngine.SetSvgContentCache(null);
             if (imageCache is not null)
             {
                 foreach (var bmp in imageCache.Values)
@@ -528,6 +551,9 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
             : null;
 
+        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        _renderingEngine.SetSvgContentCache(svgContentCache);
+
         try
         {
             // Measure returns the final size after rotation
@@ -542,6 +568,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         }
         finally
         {
+            _renderingEngine.SetSvgContentCache(null);
             if (imageCache is not null)
             {
                 foreach (var bmp in imageCache.Values)

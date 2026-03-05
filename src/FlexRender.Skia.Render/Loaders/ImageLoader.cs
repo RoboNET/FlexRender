@@ -74,6 +74,25 @@ public sealed class ImageLoader : IImageLoader
         return null;
     }
 
+    /// <inheritdoc />
+    public Task<SKBitmap?> Preload(string key, Stream stream, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(stream);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        ValidateStreamSize(stream, key);
+
+        var bitmap = SKBitmap.Decode(stream);
+        if (bitmap is null)
+        {
+            throw new InvalidOperationException($"Failed to decode image from preloaded data: {key}");
+        }
+
+        return Task.FromResult<SKBitmap?>(bitmap);
+    }
+
     /// <summary>
     /// Validates that the stream size does not exceed the maximum allowed image size.
     /// </summary>

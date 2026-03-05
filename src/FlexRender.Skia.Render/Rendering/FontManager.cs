@@ -383,6 +383,24 @@ public sealed class FontManager : IFontManager, IDisposable
     }
 
     /// <summary>
+    /// Returns the registered font names and their file paths for diagnostic purposes.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> RegisteredFontPaths =>
+        new Dictionary<string, string>(_fontPaths, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Gets the resolved typeface info (family name, fixed-pitch) for a registered font.
+    /// Returns null if the font is not registered or cannot be loaded.
+    /// </summary>
+    /// <param name="fontName">The registered font name.</param>
+    /// <returns>Tuple of (FamilyName, IsFixedPitch) or null.</returns>
+    public (string FamilyName, bool IsFixedPitch)? GetTypefaceInfo(string fontName)
+    {
+        var typeface = GetTypeface(fontName);
+        return (typeface.FamilyName, typeface.IsFixedPitch);
+    }
+
+    /// <summary>
     /// Sets the default fallback font family name.
     /// </summary>
     /// <param name="fontFamily">The font family name (e.g., "Arial", "Helvetica").</param>

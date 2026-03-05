@@ -295,6 +295,7 @@ internal sealed class ColumnFlexLayoutStrategy
                         AlignItems.Center => padding.Left + (crossAxisSize - child.Width - mLeft - mRight) / 2,
                         AlignItems.End => padding.Left + crossAxisSize - child.Width - mLeft - mRight,
                         AlignItems.Stretch => padding.Left,
+                        AlignItems.Baseline => padding.Left,
                         _ => padding.Left
                     };
 
@@ -367,6 +368,7 @@ internal sealed class ColumnFlexLayoutStrategy
                 AlignItems.Center => padding.Left + (crossAxisSize - child.Width) / 2,
                 AlignItems.End => padding.Left + crossAxisSize - child.Width,
                 AlignItems.Stretch => padding.Left,
+                AlignItems.Baseline => padding.Left,
                 _ => padding.Left
             };
 
@@ -432,6 +434,7 @@ internal sealed class ColumnFlexLayoutStrategy
                         AlignItems.Center => childPadding.Top + (newCrossAxisSize - grandchild.Height - mTop - mBottom) / 2,
                         AlignItems.End => childPadding.Top + newCrossAxisSize - grandchild.Height - mTop - mBottom,
                         AlignItems.Stretch => childPadding.Top,
+                        AlignItems.Baseline => childPadding.Top,
                         _ => childPadding.Top
                     } : childPadding.Top);
 

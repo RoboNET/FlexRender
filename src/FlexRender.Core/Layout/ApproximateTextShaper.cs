@@ -38,6 +38,7 @@ public sealed class ApproximateTextShaper : ITextShaper
             return new TextShapingResult(
                 Array.Empty<string>(),
                 new LayoutSize(0f, 0f),
+                0f,
                 0f);
         }
 
@@ -59,7 +60,8 @@ public sealed class ApproximateTextShaper : ITextShaper
             return new TextShapingResult(
                 Array.Empty<string>(),
                 new LayoutSize(0f, 0f),
-                lineHeight);
+                lineHeight,
+                0f);
         }
 
         var maxLineWidth = 0f;
@@ -70,8 +72,9 @@ public sealed class ApproximateTextShaper : ITextShaper
         }
 
         var totalHeight = lines.Count * lineHeight;
+        var baseline = fontSize * 0.85f;
 
-        return new TextShapingResult(lines, new LayoutSize(maxLineWidth, totalHeight), lineHeight);
+        return new TextShapingResult(lines, new LayoutSize(maxLineWidth, totalHeight), lineHeight, baseline);
     }
 
     private static List<string> GetLines(string text, bool wrap, float maxWidth, float charWidth,

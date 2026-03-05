@@ -358,4 +358,55 @@ internal static class YamlPropertyHelpers
 
         return defaultValue;
     }
+
+    /// <summary>
+    /// Recursively converts a YAML mapping node to a string-keyed dictionary.
+    /// </summary>
+    /// <param name="mapping">The YAML mapping node to convert.</param>
+    /// <param name="depth">Current recursion depth (max 10).</param>
+    /// <returns>A case-insensitive dictionary representing the mapping contents.</returns>
+    internal static IReadOnlyDictionary<string, object> ConvertMappingToDictionary(YamlMappingNode mapping, int depth = 0)
+    {
+        if (depth > 10)
+            throw new InvalidOperationException("Options nesting depth exceeded (max 10).");
+
+        var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (keyNode, valueNode) in mapping.Children)
+        {
+            var key = ((YamlScalarNode)keyNode).Value!;
+            dict[key] = valueNode switch
+            {
+                YamlScalarNode scalar => scalar.Value ?? string.Empty,
+                YamlMappingNode nested => ConvertMappingToDictionary(nested, depth + 1),
+                YamlSequenceNode seq => ConvertSequenceToList(seq, depth + 1),
+                _ => string.Empty
+            };
+        }
+        return dict;
+    }
+
+    /// <summary>
+    /// Recursively converts a YAML sequence node to a list of objects.
+    /// </summary>
+    /// <param name="sequence">The YAML sequence node to convert.</param>
+    /// <param name="depth">Current recursion depth.</param>
+    /// <returns>A list of objects representing the sequence contents.</returns>
+    private static List<object> ConvertSequenceToList(YamlSequenceNode sequence, int depth = 0)
+    {
+        if (depth > 10)
+            throw new InvalidOperationException("Options nesting depth exceeded (max 10).");
+
+        var list = new List<object>(sequence.Children.Count);
+        foreach (var child in sequence.Children)
+        {
+            list.Add(child switch
+            {
+                YamlScalarNode scalar => scalar.Value ?? string.Empty,
+                YamlMappingNode nested => ConvertMappingToDictionary(nested, depth + 1),
+                YamlSequenceNode seq => ConvertSequenceToList(seq, depth + 1),
+                _ => string.Empty
+            });
+        }
+        return list;
+    }
 }

@@ -35,6 +35,7 @@
   <Folder Name="/src/Content/">
     <Project Path="src/FlexRender.Content.Markdown/FlexRender.Content.Markdown.csproj" />
     <Project Path="src/FlexRender.Content.Html/FlexRender.Content.Html.csproj" />
+    <Project Path="src/FlexRender.Content.Ndc/FlexRender.Content.Ndc.csproj" />
   </Folder>
   <Folder Name="/src/SvgElement/">
     <Project Path="src/FlexRender.SvgElement.Skia.Render/FlexRender.SvgElement.Skia.Render.csproj" />

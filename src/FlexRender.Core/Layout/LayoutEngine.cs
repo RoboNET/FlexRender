@@ -145,10 +145,14 @@ public sealed class LayoutEngine
 
         var context = new LayoutContext(width, contextHeight, BaseFontSize, intrinsicSizes, canvas.TextDirection);
 
-        // Process top-level elements
+        // Process top-level elements.
+        // IMPORTANT: must call PreAdjustStretchWidth for each child so that margin-reduced
+        // width is used during internal layout (e.g. fit-content). See the matching call
+        // inside LayoutFlexElement for nested children — both MUST stay in sync.
         foreach (var element in template.Elements)
         {
-            var childNode = LayoutElement(element, context);
+            var childContext = PreAdjustStretchWidth(element, rootElement, context, isColumn: true);
+            var childNode = LayoutElement(element, childContext);
             root.AddChild(childNode);
         }
 
@@ -237,6 +241,27 @@ public sealed class LayoutEngine
 
         var isColumn = flex.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse;
 
+        // Resolve font-size on container: propagate to children if explicitly set
+        if (!string.IsNullOrEmpty(flex.FontSize.Value))
+        {
+            var flexFontSize = FontSizeResolver.Resolve(flex.FontSize.Value, context.FontSize);
+            if (FontSizeResolver.IsFitContent(flexFontSize))
+            {
+                flexFontSize = ComputeFitContentFontSize(flex, innerContext, effectivePadding, gap);
+                // Scale intrinsic sizes proportionally for the new font size so that
+                // row children get correct relative widths instead of equal shares.
+                var scaledIntrinsics = ScaleIntrinsicSizes(context.IntrinsicSizes, flexFontSize, context.FontSize);
+                innerContext = new LayoutContext(innerContext.ContainerWidth, innerContext.ContainerHeight,
+                    flexFontSize, intrinsicSizes: scaledIntrinsics, innerContext.Direction);
+            }
+            else
+            {
+                innerContext = innerContext.WithFontSize(flexFontSize);
+            }
+        }
+
+        node.ComputedFontSize = innerContext.FontSize;
+
         // Layout children
         foreach (var child in flex.Children)
         {
@@ -297,6 +322,11 @@ public sealed class LayoutEngine
                         innerContext.ContainerHeight);
                 }
             }
+
+            // Pre-adjust available width for column children that will be stretched.
+            // IMPORTANT: must match the PreAdjustStretchWidth call in ComputeLayout for
+            // top-level elements — both call sites MUST stay in sync.
+            childContext = PreAdjustStretchWidth(child, flex, childContext, isColumn);
 
             var flowChildNode = LayoutElement(child, childContext);
 
@@ -469,6 +499,8 @@ public sealed class LayoutEngine
         float contentHeight;
         IReadOnlyList<string>? textLines = null;
         float computedLineHeight = 0f;
+        float textBaseline = 0f;
+        float resolvedFontSize = context.FontSize;
 
         // If height is explicitly specified, use it (but still compute lines if shaper available)
         if (!string.IsNullOrEmpty(text.Height.Value))
@@ -479,18 +511,25 @@ public sealed class LayoutEngine
             if (TextShaper != null && !string.IsNullOrEmpty(text.Content.Value))
             {
                 var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
+                if (FontSizeResolver.IsFitContent(fontSize))
+                    fontSize = ResolveFitContent(text, contentWidth, context);
+                resolvedFontSize = fontSize;
                 var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
                     ? Math.Min(contentWidth, context.ContainerWidth)
                     : float.MaxValue;
                 var shaped = TextShaper.ShapeText(text, fontSize, measureWidth);
                 textLines = shaped.Lines;
                 computedLineHeight = shaped.LineHeight;
+                textBaseline = shaped.Baseline;
             }
         }
         else if (TextShaper != null && !string.IsNullOrEmpty(text.Content.Value))
         {
             // Use TextShaper for accurate height and pre-computed lines
             var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
+            if (FontSizeResolver.IsFitContent(fontSize))
+                fontSize = ResolveFitContent(text, contentWidth, context);
+            resolvedFontSize = fontSize;
             var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
                 ? Math.Min(contentWidth, context.ContainerWidth)
                 : float.MaxValue;
@@ -498,24 +537,33 @@ public sealed class LayoutEngine
             contentHeight = shaped.TotalSize.Height;
             textLines = shaped.Lines;
             computedLineHeight = shaped.LineHeight;
+            textBaseline = shaped.Baseline;
         }
 #pragma warning disable CS0618 // TextMeasurer is obsolete but still supported for backward compatibility
         else if (TextMeasurer != null && !string.IsNullOrEmpty(text.Content.Value))
         {
             // Backward compatibility: use TextMeasurer delegate for height only
             var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
+            if (FontSizeResolver.IsFitContent(fontSize))
+                fontSize = ResolveFitContent(text, contentWidth, context);
+            resolvedFontSize = fontSize;
             var measureWidth = MayWrapOrContainsNewlines(text, contentWidth, context)
                 ? Math.Min(contentWidth, context.ContainerWidth)
                 : float.MaxValue;
             var measured = TextMeasurer(text, fontSize, measureWidth);
             contentHeight = measured.Height;
+            textBaseline = fontSize * 0.85f;
         }
 #pragma warning restore CS0618
         else
         {
             // Fallback when no TextShaper or TextMeasurer available
             var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
+            if (FontSizeResolver.IsFitContent(fontSize))
+                fontSize = ResolveFitContent(text, contentWidth, context);
+            resolvedFontSize = fontSize;
             contentHeight = LineHeightResolver.Resolve(text.LineHeight.Value, fontSize, fontSize * LineHeightResolver.DefaultMultiplier);
+            textBaseline = fontSize * 0.85f;
         }
 
         // Handle empty content with shaper: set empty lines
@@ -532,7 +580,22 @@ public sealed class LayoutEngine
         var node = new LayoutNode(text, 0, 0, totalWidth, totalHeight);
         node.TextLines = textLines;
         node.ComputedLineHeight = computedLineHeight;
+        node.Baseline = padding.Top + border.Top.Width + textBaseline;
+        node.ComputedFontSize = resolvedFontSize;
         return node;
+    }
+
+    private float ResolveFitContent(TextElement text, float contentWidth, LayoutContext context)
+    {
+        if (TextShaper != null && !string.IsNullOrEmpty(text.Content.Value))
+        {
+            const float refSize = 100f;
+            var refShaped = TextShaper.ShapeText(text, refSize, float.MaxValue);
+            var measuredWidth = refShaped.TotalSize.Width;
+            var availableWidth = Math.Min(contentWidth, context.ContainerWidth);
+            return measuredWidth > 0 ? refSize * availableWidth / measuredWidth : context.FontSize;
+        }
+        return context.FontSize;
     }
 
     /// <summary>
@@ -580,7 +643,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(qr, 0, 0, totalWidth, totalHeight);
+        return new LayoutNode(qr, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
     }
 
     /// <summary>
@@ -600,7 +663,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(barcode, 0, 0, totalWidth, totalHeight);
+        return new LayoutNode(barcode, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
     }
 
     /// <summary>
@@ -619,7 +682,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(image, 0, 0, totalWidth, totalHeight);
+        return new LayoutNode(image, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
     }
 
     /// <summary>
@@ -637,7 +700,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(svg, 0, 0, totalWidth, totalHeight);
+        return new LayoutNode(svg, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
     }
 
     /// <summary>
@@ -667,7 +730,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(separator, 0, 0, totalWidth, totalHeight);
+        return new LayoutNode(separator, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
     }
 
     /// <summary>
@@ -700,5 +763,173 @@ public sealed class LayoutEngine
             if (child.Element.Position.Value == Position.Absolute) continue;
             child.X = node.Width - padding.Right - (child.X - padding.Left) - child.Width;
         }
+    }
+
+    private static Dictionary<TemplateElement, IntrinsicSize>? ScaleIntrinsicSizes(
+        IReadOnlyDictionary<TemplateElement, IntrinsicSize>? original,
+        float newFontSize,
+        float oldFontSize)
+    {
+        if (original is null || oldFontSize <= 0f)
+            return null;
+
+        var scale = newFontSize / oldFontSize;
+        var scaled = new Dictionary<TemplateElement, IntrinsicSize>(original.Count, ReferenceEqualityComparer.Instance);
+        foreach (var kvp in original)
+        {
+            scaled[kvp.Key] = new IntrinsicSize(
+                kvp.Value.MinWidth * scale,
+                kvp.Value.MaxWidth * scale,
+                kvp.Value.MinHeight * scale,
+                kvp.Value.MaxHeight * scale);
+        }
+        return scaled;
+    }
+
+    /// <summary>
+    /// Pre-adjusts the layout context width for a child that will be stretched on the cross axis.
+    /// In CSS flexbox, a stretched child's cross-axis size equals the container's inner size minus
+    /// the child's margins. This adjustment must happen BEFORE the child's internal layout so that
+    /// width-dependent calculations (e.g. <c>font-size: fit-content</c>) use the correct width.
+    /// Without this, the child is laid out at full container width, then post-hoc shrunk by the
+    /// flex strategy — but internal measurements already used the wider value.
+    /// </summary>
+    /// <remarks>
+    /// Called from two places that MUST stay in sync:
+    /// <list type="bullet">
+    /// <item><see cref="ComputeLayout"/> — for top-level template elements</item>
+    /// <item><see cref="LayoutFlexElement"/> — for nested flex children</item>
+    /// </list>
+    /// </remarks>
+    private static LayoutContext PreAdjustStretchWidth(
+        TemplateElement child, FlexElement parentFlex, LayoutContext childContext, bool isColumn)
+    {
+        if (!isColumn || LayoutHelpers.HasExplicitWidth(child))
+            return childContext;
+
+        var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child, parentFlex.Align.Value);
+        if (effectiveAlign != AlignItems.Stretch)
+            return childContext;
+
+        var childMargin = PaddingParser.Parse(child.Margin.Value, childContext.ContainerWidth, childContext.FontSize).ClampNegatives();
+        var stretchWidth = childContext.ContainerWidth - childMargin.Left - childMargin.Right;
+        if (stretchWidth > 0 && stretchWidth < childContext.ContainerWidth)
+        {
+            return childContext.WithSize(stretchWidth, childContext.ContainerHeight);
+        }
+
+        return childContext;
+    }
+
+    private float ComputeFitContentFontSize(FlexElement flex, LayoutContext innerContext, PaddingValues effectivePadding, float gap)
+    {
+        const float refSize = 100f;
+        // Create a fresh context without intrinsic sizes — those were computed at the default
+        // font size and would give incorrect widths at the reference font size
+        var measureContext = new LayoutContext(float.MaxValue, innerContext.ContainerHeight, refSize,
+            intrinsicSizes: null, innerContext.Direction);
+
+        var isColumn = flex.Direction.Value is FlexDirection.Column or FlexDirection.ColumnReverse;
+
+        var maxWidth = 0f;
+        var sumWidth = 0f;
+        var childCount = 0;
+        foreach (var child in flex.Children)
+        {
+            if (child.Display.Value == Display.None)
+                continue;
+            var contentWidth = MeasureContentWidth(child, measureContext);
+            if (contentWidth > maxWidth)
+                maxWidth = contentWidth;
+            sumWidth += contentWidth;
+            childCount++;
+        }
+
+        if (childCount == 0)
+            return innerContext.FontSize;
+
+        float totalMeasured;
+        if (isColumn)
+        {
+            // Column: widest child must fit
+            totalMeasured = maxWidth;
+        }
+        else
+        {
+            // Row: sum of all children + gaps must fit
+            totalMeasured = sumWidth + gap * (childCount - 1);
+        }
+
+        var availableWidth = innerContext.ContainerWidth;
+        if (totalMeasured <= 0)
+            return innerContext.FontSize;
+
+        // Floor to 0.1px to avoid rounding errors where text barely exceeds container width
+        // due to non-linear font scaling (hinting, glyph rounding)
+        var computed = refSize * availableWidth / totalMeasured;
+        return MathF.Floor(computed * 10f) / 10f;
+    }
+
+    private float MeasureContentWidth(TemplateElement element, LayoutContext context)
+    {
+        // For flex containers: measure children and compute content width based on direction
+        if (element is FlexElement flexChild)
+        {
+            var isChildRow = flexChild.Direction.Value is FlexDirection.Row or FlexDirection.RowReverse;
+            var childGap = UnitParser.Parse(flexChild.Gap.Value).Resolve(context.ContainerWidth, context.FontSize) ?? 0f;
+
+            var maxW = 0f;
+            var sumW = 0f;
+            var count = 0;
+            foreach (var grandchild in flexChild.Children)
+            {
+                if (grandchild.Display.Value == Display.None)
+                    continue;
+                var w = MeasureContentWidth(grandchild, context);
+                if (w > maxW)
+                    maxW = w;
+                sumW += w;
+                count++;
+            }
+
+            if (count == 0)
+                return 0f;
+
+            return isChildRow
+                ? sumW + childGap * (count - 1)
+                : maxW;
+        }
+
+        // Separators stretch to fill — they don't constrain the fit-content calculation
+        if (element is SeparatorElement)
+            return 0f;
+
+        // For text elements: measure natural width using shaper/measurer
+        if (element is TextElement text && !string.IsNullOrEmpty(text.Content.Value))
+        {
+            var fontSize = FontSizeResolver.Resolve(text.Size.Value, context.FontSize);
+            if (FontSizeResolver.IsFitContent(fontSize))
+                fontSize = context.FontSize;
+
+            if (TextShaper != null)
+            {
+                var shaped = TextShaper.ShapeText(text, fontSize, float.MaxValue);
+                return shaped.TotalSize.Width;
+            }
+#pragma warning disable CS0618
+            if (TextMeasurer != null)
+            {
+                var measured = TextMeasurer(text, fontSize, float.MaxValue);
+                return measured.Width;
+            }
+#pragma warning restore CS0618
+
+            // Fallback: estimate from char count and font size
+            return text.Content.Value.Length * fontSize * 0.6f;
+        }
+
+        // For other elements: layout and return width
+        var node = LayoutElement(element, context);
+        return node.Width;
     }
 }

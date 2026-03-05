@@ -274,6 +274,22 @@ internal sealed class RowFlexLayoutStrategy
                     break;
             }
 
+            // Compute max baseline for AlignItems.Baseline alignment
+            var maxBaseline = 0f;
+            if (flex.Align.Value == AlignItems.Baseline)
+            {
+                foreach (var child in node.Children)
+                {
+                    if (child.Element.Display.Value == Display.None) continue;
+                    if (child.Element.Position.Value == Position.Absolute) continue;
+                    var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
+                    if (effectiveAlign != AlignItems.Baseline) continue;
+
+                    var childBaseline = child.Baseline > 0 ? child.Baseline : child.Height;
+                    if (childBaseline > maxBaseline) maxBaseline = childBaseline;
+                }
+            }
+
             foreach (var child in node.Children)
             {
                 if (child.Element.Display.Value == Display.None) continue;
@@ -304,6 +320,7 @@ internal sealed class RowFlexLayoutStrategy
                         AlignItems.Center => padding.Top + (crossAxisSize - child.Height - mTop - mBottom) / 2,
                         AlignItems.End => padding.Top + crossAxisSize - child.Height - mTop - mBottom,
                         AlignItems.Stretch => padding.Top,
+                        AlignItems.Baseline => padding.Top + (maxBaseline - (child.Baseline > 0 ? child.Baseline : child.Height)),
                         _ => padding.Top
                     } : padding.Top);
 
@@ -365,7 +382,7 @@ internal sealed class RowFlexLayoutStrategy
         }
         else
         {
-            // Normal align-items / align-self logic
+            // Normal align-items / align-self logic (Baseline falls back to Start when auto margins are present)
             var effectiveAlign = LayoutHelpers.GetEffectiveAlign(child.Element, flex.Align.Value);
             child.Y = margin.Top.ResolvedPixels + (crossAxisSize > 0 ? effectiveAlign switch
             {
@@ -373,6 +390,7 @@ internal sealed class RowFlexLayoutStrategy
                 AlignItems.Center => padding.Top + (crossAxisSize - child.Height) / 2,
                 AlignItems.End => padding.Top + crossAxisSize - child.Height,
                 AlignItems.Stretch => padding.Top,
+                AlignItems.Baseline => padding.Top,
                 _ => padding.Top
             } : padding.Top);
 
@@ -437,6 +455,7 @@ internal sealed class RowFlexLayoutStrategy
                         AlignItems.Center => childPadding.Left + (newCrossAxisSize - grandchild.Width - mLeft - mRight) / 2,
                         AlignItems.End => childPadding.Left + newCrossAxisSize - grandchild.Width - mLeft - mRight,
                         AlignItems.Stretch => childPadding.Left,
+                        AlignItems.Baseline => childPadding.Left,
                         _ => childPadding.Left
                     };
 

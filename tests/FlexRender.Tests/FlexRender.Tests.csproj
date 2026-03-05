@@ -36,10 +36,14 @@
     <ProjectReference Include="..\..\src\FlexRender.SvgElement\FlexRender.SvgElement.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
     <ProjectReference Include="..\..\src\FlexRender.QrCode.ImageSharp.Render\FlexRender.QrCode.ImageSharp.Render.csproj" />
+    <ProjectReference Include="..\..\src\FlexRender.Content.Ndc\FlexRender.Content.Ndc.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Snapshots\Fonts\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Ndc\TestData\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

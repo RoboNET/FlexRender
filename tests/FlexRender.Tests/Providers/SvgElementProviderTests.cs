@@ -145,10 +145,12 @@ public class SvgElementProviderTests : IDisposable
     // ========================================================================
 
     /// <summary>
-    /// Verifies that Generate loads SVG from a base64 data URI through resource loaders.
+    /// Verifies that Generate loads SVG from a base64 data URI through the pre-loaded SVG content cache.
+    /// In the real pipeline, the async pre-loading phase resolves data URIs via resource loaders
+    /// and populates the cache before the sync rendering phase.
     /// </summary>
     [Fact]
-    public void Generate_WithBase64DataUri_LoadsThroughResourceLoaders()
+    public void Generate_WithBase64DataUri_LoadsFromSvgContentCache()
     {
         // Arrange
         var svgBytes = System.Text.Encoding.UTF8.GetBytes(MinimalSvg);
@@ -156,6 +158,13 @@ public class SvgElementProviderTests : IDisposable
         var dataUri = $"data:image/svg+xml;base64,{base64}";
 
         var provider = CreateProviderWithLoaders();
+
+        // Simulate async pre-loading phase by setting the SVG content cache
+        provider.SetSvgContentCache(new Dictionary<string, string>
+        {
+            [dataUri] = MinimalSvg
+        });
+
         var element = new SvgAstElement
         {
             Src = dataUri,

@@ -62,6 +62,7 @@ internal static class LayoutHelpers
             AlignSelf.Center => AlignItems.Center,
             AlignSelf.End => AlignItems.End,
             AlignSelf.Stretch => AlignItems.Stretch,
+            AlignSelf.Baseline => AlignItems.Baseline,
             _ => parentAlign
         };
     }

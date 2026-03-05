@@ -164,6 +164,7 @@ internal sealed class WrappedFlexLayoutStrategy
                         AlignItems.Center => crossLead + (lineHeight - child.Width - childMargin.Left - childMargin.Right) / 2,
                         AlignItems.End => crossLead + lineHeight - child.Width - childMargin.Left - childMargin.Right,
                         AlignItems.Stretch => crossLead,
+                        AlignItems.Baseline => crossLead,
                         _ => crossLead
                     };
 
@@ -182,6 +183,7 @@ internal sealed class WrappedFlexLayoutStrategy
                         AlignItems.Center => crossLead + (lineHeight - child.Height - childMargin.Top - childMargin.Bottom) / 2,
                         AlignItems.End => crossLead + lineHeight - child.Height - childMargin.Top - childMargin.Bottom,
                         AlignItems.Stretch => crossLead,
+                        AlignItems.Baseline => crossLead,
                         _ => crossLead
                     };
 

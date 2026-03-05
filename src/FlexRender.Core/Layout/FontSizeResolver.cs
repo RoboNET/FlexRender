@@ -11,17 +11,35 @@ namespace FlexRender.Layout;
 public static class FontSizeResolver
 {
     /// <summary>
-    /// Resolves a font size specification to an absolute pixel value.
+    /// Sentinel value returned when font size is "fit-content".
+    /// Callers must detect this value and compute the actual size based on available width.
     /// </summary>
-    /// <param name="size">The font size string (e.g., "16", "48px", "1.5em", "150%"). Null or empty means use default.</param>
+    public const float FitContent = float.NaN;
+
+    /// <summary>
+    /// Returns true if the resolved font size is the fit-content sentinel.
+    /// </summary>
+    /// <param name="fontSize">The resolved font size to check.</param>
+    /// <returns><c>true</c> if the value represents fit-content; otherwise, <c>false</c>.</returns>
+    public static bool IsFitContent(float fontSize) => float.IsNaN(fontSize);
+
+    /// <summary>
+    /// Resolves a font size specification to an absolute pixel value.
+    /// Returns <see cref="FitContent"/> when the value is "fit-content".
+    /// </summary>
+    /// <param name="size">The font size string (e.g., "16", "48px", "1.5em", "150%", "fit-content"). Null or empty means use default.</param>
     /// <param name="baseFontSize">The parent/inherited font size in pixels, used for em and percentage resolution and as fallback.</param>
-    /// <returns>The resolved font size in pixels.</returns>
+    /// <returns>The resolved font size in pixels, or <see cref="FitContent"/> for fit-content.</returns>
     public static float Resolve(string? size, float baseFontSize)
     {
         if (string.IsNullOrWhiteSpace(size))
             return baseFontSize;
 
         var value = size.Trim();
+
+        // fit-content — caller must compute actual size from available width
+        if (string.Equals(value, "fit-content", StringComparison.OrdinalIgnoreCase))
+            return FitContent;
 
         // px units — absolute value
         if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))

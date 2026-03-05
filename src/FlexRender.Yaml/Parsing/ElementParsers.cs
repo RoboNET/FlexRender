@@ -283,7 +283,8 @@ internal sealed class ElementParsers
             Padding = GetExprStringValue(node, "padding", "0"),
             Margin = GetExprStringValue(node, "margin", "0"),
             Background = GetStringValue(node, "background")!,
-            Rotate = GetExprStringValue(node, "rotate", "none")
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            FontSize = GetExprStringValueOptional(node, "font_size", "font-size")
         };
 
         var directionStr = GetStringValue(node, "direction", "column");
@@ -387,6 +388,12 @@ internal sealed class ElementParsers
             Padding = GetExprStringValue(node, "padding", "0"),
             Margin = GetExprStringValue(node, "margin", "0")
         };
+
+        // Parse optional 'options' block as a nested dictionary
+        if (TryGetMapping(node, "options", out var optionsNode))
+        {
+            content.Options = YamlPropertyHelpers.ConvertMappingToDictionary(optionsNode);
+        }
 
         ApplyFlexItemProperties(node, content);
         return content;
