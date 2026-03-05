@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -20,7 +19,7 @@ layout:
       # Title
       - type: text
         content: "position: absolute (centered)"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#333333"
 
@@ -70,6 +69,6 @@ layout:
               - type: text
                 content: "Centered"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 16px
                 align: center

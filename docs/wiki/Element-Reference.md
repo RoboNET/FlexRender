@@ -12,7 +12,7 @@ For rendering options (antialiasing, format settings), see [[Render-Options]].
 
 ## Common Properties (TemplateElement)
 
-All 10 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `table`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
+All 11 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `table`, `content`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
 
 > **Expression support:** All properties on all element types accept `{{expressions}}`. This includes typed properties like `opacity` (float), `grow`/`shrink` (float), `order` (int), `wrap` (bool on text, FlexWrap on flex), and enum properties like `display`, `position`, `align`. See [[Template-Expressions]] for details.
 
@@ -739,6 +739,7 @@ Renders text content with font styling, alignment, wrapping, overflow handling, 
 |----------|-----------|------|---------|--------------|----------|-------------|
 | Content | `content` | string | `""` | Any string, may contain `{{variable}}` expressions | No | The text to render. |
 | Font | `font` | string | `"main"` | Any key defined in the `fonts` section | No | Font reference name. Falls back to `"default"` if `"main"` is not defined. |
+| FontFamily | `fontFamily` or `font-family` | string | `""` | Any font family name | No | CSS-like font family name. Searches registered fonts by FamilyName metadata, then system fonts. |
 | Size | `size` | string | `"1em"` | px, em, % | No | Font size. |
 | Color | `color` | string | `"#000000"` | Hex color (#rgb or #rrggbb) | No | Text color. |
 | Align | `align` | TextAlign | `left` | left, center, right, start (logical), end (logical) | No | Horizontal text alignment within the element. `start`/`end` resolve based on text direction. |
@@ -746,6 +747,8 @@ Renders text content with font styling, alignment, wrapping, overflow handling, 
 | Overflow | `overflow` | TextOverflow | `ellipsis` | ellipsis, clip, visible | No | How overflowing text is handled when `maxLines` is reached or `wrap` is `false`. |
 | MaxLines | `maxLines` | int? | `null` | Any positive integer, or null for unlimited | No | Maximum number of lines. Text beyond this limit is truncated per `overflow`. |
 | LineHeight | `lineHeight` | string | `""` | Multiplier, px, em, or empty string | No | Line spacing for multi-line text. |
+| FontWeight | `fontWeight` or `font-weight` | FontWeight | `Normal` | `thin` (100), `extra-light` (200), `light` (300), `normal` (400), `medium` (500), `semi-bold` (600), `bold` (700), `extra-bold` (800), `black` (900), or numeric 100-900 | No | Font weight for selecting font variant. CSS-compatible values. |
+| FontStyle | `fontStyle` or `font-style` | FontStyle | `Normal` | `normal`, `italic`, `oblique` | No | Font style for selecting font variant. |
 
 ```yaml
 # Font size in pixels
@@ -833,6 +836,30 @@ Renders text content with font styling, alignment, wrapping, overflow handling, 
   content: "Double-spaced text using em units."
   wrap: true
 ```
+
+**fontWeight and fontStyle examples:**
+
+```yaml
+# Font weight and style variants
+- type: text
+  content: "Bold text"
+  fontWeight: bold
+
+- type: text
+  content: "Italic text"
+  fontStyle: italic
+
+- type: text
+  content: "Light italic"
+  fontWeight: light
+  fontStyle: italic
+
+- type: text
+  content: "Semi-bold"
+  fontWeight: 600
+```
+
+> **Font resolution priority:** `font` (registered name) > `fontFamily` (family name lookup) > fallback (default). When `fontFamily` is set, FlexRender searches registered fonts by FamilyName metadata, then system fonts. When `fontWeight` or `fontStyle` is set, FlexRender automatically scans the same directory as the resolved font file for sibling files with matching family name and weight/style (within +/-100 units). See [[Template-Syntax#fonts]] for details. Variable fonts are not supported -- use separate static `.ttf`/`.otf` files per weight.
 
 ### Complete Example: Multi-line Truncated Description
 
@@ -1283,6 +1310,9 @@ Renders tabular data with configurable columns, optional header row, and support
 | Columns | `columns` | column[] | -- | Array of column definitions | **Yes** | Column definitions. Must have at least one column. |
 | Rows | `rows` | row[] | `[]` | Array of static row definitions | No | Static rows. Alternative to `array` for fixed data. |
 | HeaderFont | `headerFont` or `header-font` | string? | `null` | Any font name from `fonts` section | No | Font for the header row. |
+| HeaderFontWeight | `headerFontWeight` or `header-fontWeight` | string? | `null` | Font weight name or 100-900 | No | Font weight for the header row. |
+| HeaderFontStyle | `headerFontStyle` or `header-fontStyle` | string? | `null` | normal, italic, oblique | No | Font style for the header row. |
+| HeaderFontFamily | `headerFontFamily` or `header-fontFamily` | string? | `null` | Any font family name | No | CSS-like font family for the header row. |
 | HeaderColor | `headerColor` or `header-color` | string? | `null` | Hex color | No | Text color for the header row. |
 | HeaderSize | `headerSize` or `header-size` | string? | `null` | px, em, % | No | Font size for the header row. |
 | HeaderBackground | `headerBackground` or `header-background` | string? | `null` | Hex color | No | Background color for the header row. |
@@ -1416,6 +1446,110 @@ Renders tabular data with configurable columns, optional header row, and support
           font: bold
           size: 1.2em
 ```
+
+---
+
+## Content Element (Control Flow)
+
+Embeds dynamically formatted text (Markdown, HTML, etc.) from template data. The `source` text is parsed at render time into a subtree of FlexRender elements using pluggable content parsers.
+
+This is a **control-flow element** — like `each` and `if`, it is expanded during template processing and does not appear in the final render tree.
+
+```yaml
+- type: content
+  source: "{{body}}"
+  format: markdown
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Expression | Description |
+|----------|-----------|------|---------|--------------|-----------|-------------|
+| Source | `source` | string | `""` | Any string, typically `{{variable}}` | Yes | The formatted text to parse. Usually bound to a data variable. |
+| Format | `format` | string | `""` | `markdown`, `html`, or any registered parser name | Yes | The content format. Must match a registered `IContentParser.FormatName`. |
+
+### Supported Formats
+
+| Format | Package | Builder Method | Library |
+|--------|---------|----------------|---------|
+| `markdown` | `FlexRender.Content.Markdown` | `.WithMarkdown()` | Markdig |
+| `html` | `FlexRender.Content.Html` | `.WithHtml()` | HtmlAgilityPack |
+
+### Element Mapping
+
+Content parsers convert formatted text into standard FlexRender elements:
+
+| Source Format | Produces |
+|---------------|----------|
+| Bold text (`**bold**` or `<b>`) | `TextElement { FontWeight = Bold }` |
+| Italic text (`*italic*` or `<i>`) | `TextElement { FontStyle = Italic }` |
+| Headings (`# H1` or `<h1>`) | `TextElement { FontWeight = Bold, Size = "2em" }` |
+| Lists (`- item` or `<ul>`) | `FlexElement` with bullet-prefixed children |
+| Blockquote (`>` or `<blockquote>`) | `FlexElement { Padding, Background }` |
+| Horizontal rule (`---` or `<hr>`) | `SeparatorElement` |
+| Image (`![](url)` or `<img>`) | `ImageElement` |
+| Code (`` `code` `` or `<code>`) | `TextElement { Background = "#f0f0f0" }` |
+
+### Example: Markdown Content
+
+```yaml
+template:
+  name: "receipt"
+
+canvas:
+  fixed: width
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: text
+    content: "Order Receipt"
+    fontWeight: bold
+    size: "1.5em"
+    padding: "16"
+
+  - type: content
+    source: "{{orderDetails}}"
+    format: markdown
+    padding: "12 16"
+```
+
+Data:
+```json
+{
+  "orderDetails": "## Items\n\n- Widget A — $9.99\n- **Gadget B** — $24.99\n\n> Total: **$34.98**"
+}
+```
+
+### Example: HTML Content with Inline Styles
+
+```yaml
+- type: content
+  source: "{{productInfo}}"
+  format: html
+  padding: "8"
+```
+
+Data:
+```json
+{
+  "productInfo": "<p>Price: <b style=\"color: #E91E63; font-size: 1.3em;\">$29.99</b></p>"
+}
+```
+
+### Registration
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithMarkdown()   // FlexRender.Content.Markdown
+    .WithHtml()       // FlexRender.Content.Html
+    .WithSkia()
+    .Build();
+```
+
+### Template Caching
+
+The `content` element is expanded at render time (like `each` and `if`), so parsed templates can be safely cached and rendered with different data.
 
 ---
 

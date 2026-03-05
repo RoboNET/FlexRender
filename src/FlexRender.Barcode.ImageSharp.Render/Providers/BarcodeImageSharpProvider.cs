@@ -3,6 +3,7 @@ using FlexRender.Barcode.Code128;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
 using SixLabors.Fonts;
+using SixLaborsFontStyle = SixLabors.Fonts.FontStyle;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
@@ -100,14 +101,14 @@ public sealed class BarcodeImageSharpProvider : IImageSharpContentProvider<Barco
     private static Font ResolveFont(float size)
     {
         if (SystemFonts.TryGet("Arial", out var arialFamily))
-            return arialFamily.CreateFont(size, FontStyle.Regular);
+            return arialFamily.CreateFont(size, SixLaborsFontStyle.Regular);
 
         if (SystemFonts.TryGet("Liberation Sans", out var liberationFamily))
-            return liberationFamily.CreateFont(size, FontStyle.Regular);
+            return liberationFamily.CreateFont(size, SixLaborsFontStyle.Regular);
 
         foreach (var family in SystemFonts.Families)
         {
-            return family.CreateFont(size, FontStyle.Regular);
+            return family.CreateFont(size, SixLaborsFontStyle.Regular);
         }
 
         throw new InvalidOperationException("No system fonts are available for barcode text rendering.");

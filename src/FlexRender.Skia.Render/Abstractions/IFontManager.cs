@@ -1,3 +1,4 @@
+using FlexRender.Parsing.Ast;
 using SkiaSharp;
 
 namespace FlexRender.Abstractions;
@@ -18,6 +19,39 @@ public interface IFontManager
     /// <returns>The requested typeface, or a fallback if not found. Never returns null.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="fontName"/> is null or empty.</exception>
     SKTypeface GetTypeface(string fontName);
+
+    /// <summary>
+    /// Gets a typeface by font name with specific weight and style, using fallback if necessary.
+    /// When both <paramref name="weight"/> and <paramref name="style"/> are their default values
+    /// (<see cref="FontWeight.Normal"/> and <see cref="FontStyle.Normal"/>), this behaves
+    /// identically to <see cref="GetTypeface(string)"/>.
+    /// </summary>
+    /// <param name="fontName">The font family name.</param>
+    /// <param name="weight">The desired font weight (100-900).</param>
+    /// <param name="style">The desired font style (normal, italic, oblique).</param>
+    /// <returns>The requested typeface, or a fallback if not found. Never returns null.</returns>
+    SKTypeface GetTypeface(string fontName, FontWeight weight, FontStyle style);
+
+    /// <summary>
+    /// Gets a typeface by registered font name and optional CSS font family name with specific weight and style.
+    /// Priority: registered font name (if not default) > font family name > fallback.
+    /// </summary>
+    /// <param name="fontName">The registered font name.</param>
+    /// <param name="fontFamily">CSS-like font family name to search registered fonts and system fonts.</param>
+    /// <param name="weight">The desired font weight (100-900).</param>
+    /// <param name="style">The desired font style (normal, italic, oblique).</param>
+    /// <returns>The requested typeface, or a fallback if not found. Never returns null.</returns>
+    SKTypeface GetTypeface(string fontName, string fontFamily, FontWeight weight, FontStyle style);
+
+    /// <summary>
+    /// Gets a typeface by font family name with specific weight and style.
+    /// Searches registered fonts by FamilyName metadata, then system fonts.
+    /// </summary>
+    /// <param name="familyName">The font family name (e.g., "Inter 18pt", "Arial").</param>
+    /// <param name="weight">The desired font weight (100-900).</param>
+    /// <param name="style">The desired font style (normal, italic, oblique).</param>
+    /// <returns>The requested typeface, or a fallback if not found. Never returns null.</returns>
+    SKTypeface GetTypefaceByFamily(string familyName, FontWeight weight, FontStyle style);
 
     /// <summary>
     /// Registers a font with a file path and optional fallback.

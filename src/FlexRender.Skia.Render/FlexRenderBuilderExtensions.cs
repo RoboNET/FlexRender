@@ -63,7 +63,8 @@ public static class FlexRenderBuilderExtensions
             b.Options,
             b.ResourceLoaders,
             skiaBuilder,
-            b.FilterRegistry));
+            b.FilterRegistry,
+            b.ContentParserRegistry));
 
         return builder;
     }

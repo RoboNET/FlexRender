@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -17,7 +16,7 @@ layout:
     content: "align: start (RTL = right-aligned)"
     align: start
     padding: "12"
-    font: bold
+    fontWeight: bold
     size: 14px
     color: "#333333"
   - type: separator
@@ -27,7 +26,7 @@ layout:
     content: "align: end (RTL = left-aligned)"
     align: end
     padding: "12"
-    font: bold
+    fontWeight: bold
     size: 14px
     color: "#333333"
   - type: separator

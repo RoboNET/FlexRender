@@ -24,7 +24,7 @@ layout:
             content: "{{name}}"
             size: 1.6em
             color: "#1a1a2e"
-            bold: true
+            fontWeight: bold
 
           - type: text
             content: "{{title}}"

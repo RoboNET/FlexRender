@@ -77,6 +77,9 @@ src/FlexRender.Svg.Render/      # SVG output renderer (-> Core)
   SvgBuilder.cs                 # Builder for SVG renderer configuration
 src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers)
 
+src/FlexRender.Content.Markdown/  # Markdown content parser (-> Core + Markdig)
+src/FlexRender.Content.Html/      # HTML content parser (-> Core + HtmlAgilityPack)
+
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
   ServiceCollectionExtensions.cs     # AddFlexRender() extension method
 
@@ -135,6 +138,8 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia.Render  FlexRender.ImageSharp.
 | FlexRender.SvgElement | All renderers | -- |
 | FlexRender.Svg.Render | Core | (none) |
 | FlexRender.Svg | Svg.Render + providers | (none) |
+| FlexRender.Content.Markdown | Core | Markdig 1.1.1 |
+| FlexRender.Content.Html | Core | HtmlAgilityPack 1.12.4 |
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |
 
@@ -182,9 +187,9 @@ template:                     # Required: template metadata
   version: 1                  # Template version (int)
   # culture: "ru-RU"          # Optional: culture for number/date formatting
 
-fonts:                                        # Optional: font definitions (key = reference name, value = path)
-  default: "assets/fonts/Inter-Regular.ttf"   # File path, base64, embedded://, or http://
-  bold: "assets/fonts/Inter-Bold.ttf"
+fonts:                                        # Optional: list format (recommended) or dictionary format
+  - "assets/fonts/Inter-Regular.ttf"          # First unnamed = default/main
+  - "assets/fonts/Inter-Bold.ttf"             # File path, embedded://, or http://
 
 canvas:                       # Required: canvas configuration
   fixed: width                # Which dimension is fixed (width|height|both|none)
@@ -422,6 +427,194 @@ The `order` property controls the visual display order of flex items. Items are 
 - Arabic font support: use an Arabic-capable font (e.g., Noto Sans Arabic) in the `fonts` section for Arabic text rendering
 - HarfBuzz text shaping: optional `FlexRender.HarfBuzz` package provides proper Arabic/Hebrew glyph shaping via `.WithHarfBuzz()` on the Skia builder
 
+## Fonts
+
+Fonts are registered in the `fonts:` section of the YAML template. Two formats are supported. Supported file types: `.ttf` and `.otf`. Font sources can be local file paths, `embedded://` resources, or `http://` URLs. System fonts are used when no custom font is registered.
+
+### Font Registration -- Dictionary Format (Legacy)
+
+Key-value pairs where the key is a reference name used in `font:` properties:
+
+```yaml
+fonts:
+  default: "assets/fonts/Inter-Regular.ttf"
+  heading: "assets/fonts/Roboto-Regular.ttf"
+  icon: "embedded://MyApp.Fonts.icons.ttf"
+  remote: "https://example.com/font.ttf"
+```
+
+### Font Registration -- List Format (Recommended)
+
+An array of font entries. Simple strings and objects with `path`/`name`/`fallback` can be mixed:
+
+```yaml
+fonts:
+  # Simple strings -- first unnamed font automatically becomes "default" (and "main")
+  - "assets/fonts/Inter-Regular.ttf"
+  - "assets/fonts/Inter-Bold.ttf"
+  - "assets/fonts/Inter-Italic.ttf"
+
+  # With optional name and fallback
+  - path: "assets/fonts/Roboto-Regular.ttf"
+    name: heading
+    fallback: "Arial"
+```
+
+**Rules:**
+- The first unnamed font automatically becomes `default` (and `main`)
+- Fonts can be mixed: simple strings and objects with `path`/`name`/`fallback`
+- Named fonts are referenced via `font:` on elements (e.g., `font: heading`)
+
+### Font Properties on Text Elements
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `font` | string | `main` | Reference to a registered font name |
+| `fontFamily` | string | (empty) | CSS-like font family name -- searches registered fonts by FamilyName metadata, then system fonts |
+| `fontWeight` | string/number | `normal` | Font weight (see table below), or numeric 100-900 |
+| `fontStyle` | string | `normal` | Font style: `normal`, `italic`, `oblique` |
+
+### Font Resolution Priority
+
+```
+font (registered name) > fontFamily (family name) > fallback (default)
+```
+
+- If `font` is set to a non-default value, resolve by registered name
+- If `fontFamily` is set, search registered fonts by FamilyName metadata, then system fonts
+- Otherwise, use the default font (`main`)
+
+For weight/style variants: **automatic sibling discovery** scans the same directory as the base font file for `.ttf`/`.otf` files with matching family name and weight/style.
+
+### Automatic Sibling Font Discovery
+
+Only the regular/default font file needs to be registered per family. When a text element uses `fontWeight` or `fontStyle`, FlexRender automatically scans the same directory as the registered font for sibling files with a matching family name and weight/style (within +/-100 units for weight, case-insensitive).
+
+**Convention:** Place all weight/style variants of a font family in the same directory:
+
+```
+assets/fonts/
+  Inter-Regular.ttf      # weight 400, upright
+  Inter-Bold.ttf         # weight 700, upright
+  Inter-SemiBold.ttf     # weight 600, upright
+  Inter-Italic.ttf       # weight 400, italic
+  Inter-BoldItalic.ttf   # weight 700, italic
+```
+
+Then in templates:
+
+```yaml
+- type: text
+  content: "Bold text"
+  fontWeight: bold          # uses Inter-Bold.ttf automatically
+
+- type: text
+  content: "Light italic"
+  fontWeight: light
+  fontStyle: italic         # discovers Inter-LightItalic.ttf if present
+```
+
+For multiple font families, register each family's regular font and use `font:` to select:
+
+```yaml
+fonts:
+  - "assets/fonts/Inter-Regular.ttf"
+  - path: "assets/fonts/Roboto-Regular.ttf"
+    name: heading
+```
+
+```yaml
+- type: text
+  font: heading
+  fontWeight: bold          # discovers Roboto-Bold.ttf in the same directory
+  content: "Bold Heading"
+```
+
+### Table Header Font Properties
+
+Tables support font properties on the header row:
+
+| Property | Aliases | Description |
+|----------|---------|-------------|
+| `headerFont` | `header-font` | Font name for header cells |
+| `headerFontWeight` | `header-fontWeight` | Font weight for headers |
+| `headerFontStyle` | `header-fontStyle` | Font style for headers (normal, italic, oblique) |
+| `headerFontFamily` | `header-fontFamily` | CSS-like font family for headers |
+
+### fontWeight Values
+
+| Name | Numeric |
+|------|---------|
+| `thin` | 100 |
+| `extra-light` | 200 |
+| `light` | 300 |
+| `normal` (default) | 400 |
+| `medium` | 500 |
+| `semi-bold` | 600 |
+| `bold` | 700 |
+| `extra-bold` | 800 |
+| `black` | 900 |
+
+Numeric values (100-900) are also accepted: `fontWeight: 600`.
+
+### fontStyle Values
+
+`normal` (default), `italic`, `oblique`.
+
+### Examples
+
+**Minimal (system fonts only, no registration):**
+
+```yaml
+layout:
+  - type: text
+    content: "Hello"
+    fontFamily: "Arial"
+    fontWeight: bold
+```
+
+**List registration with fontWeight/fontStyle:**
+
+```yaml
+fonts:
+  - "assets/fonts/Inter-Regular.ttf"
+  - "assets/fonts/Inter-Bold.ttf"
+  - "assets/fonts/Inter-Italic.ttf"
+
+layout:
+  - type: text
+    content: "Bold text"
+    fontWeight: bold
+  - type: text
+    content: "Italic text"
+    fontStyle: italic
+```
+
+**Mixed: named + unnamed, font + fontFamily:**
+
+```yaml
+fonts:
+  - "assets/fonts/Inter-Regular.ttf"
+  - path: "assets/fonts/NotoSansArabic-Regular.ttf"
+    name: arabic
+
+layout:
+  - type: text
+    content: "Inter bold"
+    fontWeight: bold
+  - type: text
+    content: "System Georgia"
+    fontFamily: "Georgia"
+  - type: text
+    content: "Arabic"
+    font: arabic
+```
+
+### Limitations
+
+- **Variable fonts are NOT supported** -- SkiaSharp 3.x does not expose an API for font variation axes. Use separate static font files per weight/style instead.
+- Sibling discovery relies on font file metadata (family name, weight, slant). If files use non-standard naming, register them explicitly in the `fonts:` section.
+
 ## Flex-Item Properties
 
 All leaf elements (text, image, qr, barcode, separator) and flex containers (when nested) have these flex-item properties:
@@ -442,6 +635,9 @@ All leaf elements (text, image, qr, barcode, separator) and flex containers (whe
 |----------|------|---------|-------------|
 | content | string | "" | Text content, may contain `{{variable}}` expressions |
 | font | string | "main" | Font reference name from `fonts` section |
+| fontFamily | string | "" | CSS-like font family name -- searches registered fonts by FamilyName, then system fonts |
+| fontWeight | string? | null | Font weight: `thin` (100), `extra-light` (200), `light` (300), `normal` (400), `medium` (500), `semi-bold` (600), `bold` (700), `extra-bold` (800), `black` (900), or numeric 100-900 |
+| fontStyle | string? | null | Font style: `normal`, `italic`, `oblique` |
 | size | string | "1em" | Font size (px, em, %) |
 | color | string | "#000000" | Text color in hex format |
 | align | TextAlign | Left | Text alignment: `left`, `center`, `right`, `start` (logical), `end` (logical) |
@@ -546,6 +742,9 @@ Tabular data with configurable columns, optional header, and support for dynamic
 | columns | TableColumn[] | -- | Column definitions (required, at least one) |
 | rows | TableRow[] | [] | Static rows (alternative to array) |
 | headerFont | string? | null | Font for header row |
+| headerFontWeight | string? | null | Font weight for header row |
+| headerFontStyle | string? | null | Font style for header row (normal, italic, oblique) |
+| headerFontFamily | string? | null | CSS-like font family for header row |
 | headerColor | string? | null | Text color for header row |
 | headerSize | string? | null | Font size for header row |
 | headerBackground | string? | null | Background color for header row |
@@ -646,6 +845,24 @@ Renders SVG vector graphics. Supports external files (`src`) or inline markup (`
   width: 48
   height: 48
 ```
+
+## Element Type: content (ContentElement)
+
+Embeds formatted text (Markdown or HTML) that is parsed into an AST subtree at render time. Requires a content parser to be registered.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| source | string | "" | Formatted text content, may contain `{{variable}}` expressions |
+| format | string | "markdown" | Content format: `markdown` or `html` -- must match a registered parser |
+
+```yaml
+- type: content
+  source: "{{body}}"     # text with formatting (from data)
+  format: markdown       # or "html" -- must match registered parser
+```
+
+Requires content parser registration: `.WithMarkdown()` (Markdig) or `.WithHtml()` (HtmlAgilityPack).
+Converts formatted text into FlexRender AST elements at render time (bold -> FontWeight.Bold, italic -> FontStyle.Italic, headings, lists, etc.).
 
 ## Color Format
 
@@ -874,6 +1091,17 @@ Conditional rendering based on data values. Supports 13 operators.
       content: "Unknown"
 ```
 
+### Content Embedding
+
+```yaml
+- type: content
+  source: "{{body}}"     # text with formatting (from data)
+  format: markdown       # or "html" -- must match registered parser
+```
+
+Requires content parser registration: `.WithMarkdown()` (Markdig) or `.WithHtml()` (HtmlAgilityPack).
+Converts formatted text into FlexRender AST elements at render time (bold -> FontWeight.Bold, italic -> FontStyle.Italic, headings, lists, etc.).
+
 ### Processing Layers
 
 1. **AST-Level** (`TemplateExpander`): Expands `type: each` and `type: if` elements into concrete elements based on data. Enables template caching — parse once, expand many times with different data.
@@ -914,6 +1142,8 @@ var render = new FlexRenderBuilder()
     .WithEmbeddedLoader(typeof(Program).Assembly) // Embedded resources
     .WithBasePath("./templates")                  // Base path for files
     .WithLimits(limits => limits.MaxRenderDepth = 200)
+    .WithMarkdown()                               // optional: Markdown content parsing
+    .WithHtml()                                   // optional: HTML content parsing
     .WithSkia(skia => skia
         .WithQr()                                 // QR code support
         .WithBarcode())                           // Barcode support
@@ -989,6 +1219,8 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | `WithEmbeddedLoader(Assembly)` | Add embedded resource loader |
 | `WithHttpLoader(HttpClient?)` | Add HTTP resource loader |
 | `WithFilter(ITemplateFilter)` | Register a custom template filter for inline expressions (works alongside built-in filters) |
+| `WithMarkdown()` | Enable Markdown content parsing (requires FlexRender.Content.Markdown) |
+| `WithHtml()` | Enable HTML content parsing (requires FlexRender.Content.Html) |
 | `WithoutDefaultLoaders()` | Remove File and Base64 loaders |
 | `WithoutDefaultFilters()` | Remove all 8 built-in filters (enabled by default), leaving only custom-registered filters |
 
@@ -1269,6 +1501,8 @@ Reference these YAML files for real-world template patterns. Each file is a comp
 | `examples/showcase.yaml` | Full feature showcase | All element types, 14 sections, HTTP images |
 | `examples/showcase-capabilities.yaml` | Renderer comparison | Conditional rendering per backend (`type: if` with `renderer`) |
 | `examples/showcase-all-features.yaml` | All features showcase | Every supported feature in one template |
+| `examples/markdown-content.yaml` | Markdown content demo | `type: content` with `format: markdown`, dynamic body |
+| `examples/html-content.yaml` | HTML content demo | `type: content` with `format: html`, inline styles |
 
 ### Per-Feature Examples (examples/visual-docs/)
 

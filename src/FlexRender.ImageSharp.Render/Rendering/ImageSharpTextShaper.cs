@@ -76,7 +76,7 @@ internal sealed class ImageSharpTextShaper : ITextShaper
 
     private Font CreateFont(TextElement element, float fontSize)
     {
-        return _fontManager.GetFont(element.Font.Value, fontSize);
+        return _fontManager.GetFont(element.Font.Value, fontSize, element.FontWeight.Value, element.FontStyle.Value);
     }
 
     private static float ResolveLineHeight(string? lineHeight, Font font)

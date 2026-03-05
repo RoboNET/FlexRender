@@ -12,6 +12,7 @@ public sealed class TemplateExpander
 {
     private readonly ResourceLimits _limits;
     private readonly InlineExpressionEvaluator? _expressionEvaluator;
+    private readonly ContentParserRegistry? _contentParserRegistry;
 
     /// <summary>
     /// Creates a new TemplateExpander with default resource limits.
@@ -24,12 +25,14 @@ public sealed class TemplateExpander
     /// Creates a new TemplateExpander with the specified resource limits.
     /// </summary>
     /// <param name="limits">Resource limits for expansion depth protection.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
     /// <exception cref="ArgumentNullException">Thrown when limits is null.</exception>
-    public TemplateExpander(ResourceLimits limits)
+    public TemplateExpander(ResourceLimits limits, ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
         _expressionEvaluator = new InlineExpressionEvaluator();
+        _contentParserRegistry = contentParserRegistry;
     }
 
     /// <summary>
@@ -37,9 +40,11 @@ public sealed class TemplateExpander
     /// </summary>
     /// <param name="limits">Resource limits for expansion depth protection.</param>
     /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
     /// <exception cref="ArgumentNullException">Thrown when limits or filterRegistry is null.</exception>
-    public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry)
-        : this(limits, filterRegistry, CultureInfo.InvariantCulture)
+    public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry,
+        ContentParserRegistry? contentParserRegistry = null)
+        : this(limits, filterRegistry, CultureInfo.InvariantCulture, contentParserRegistry)
     {
     }
 
@@ -49,14 +54,17 @@ public sealed class TemplateExpander
     /// <param name="limits">Resource limits for expansion depth protection.</param>
     /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
     /// <param name="culture">The culture to use for culture-aware filter formatting.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
     /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-    public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry, CultureInfo culture)
+    public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry, CultureInfo culture,
+        ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(filterRegistry);
         ArgumentNullException.ThrowIfNull(culture);
         _limits = limits;
         _expressionEvaluator = new InlineExpressionEvaluator(filterRegistry, culture);
+        _contentParserRegistry = contentParserRegistry;
     }
 
     /// <summary>
@@ -119,6 +127,7 @@ public sealed class TemplateExpander
             IfElement ifEl => ExpandIf(ifEl, context, depth),
             TableElement table => [ExpandTable(table, context, depth)],
             FlexElement flex => [ExpandFlex(flex, context, depth)],
+            ContentElement content => ExpandContent(content, context, depth),
             _ => [CloneWithVariableSubstitution(element, context)]
         };
     }
@@ -597,6 +606,9 @@ public sealed class TemplateExpander
             {
                 Content = SubstituteVariables(col.Label ?? "", context),
                 Font = table.HeaderFont ?? col.Font ?? table.Font,
+                FontWeight = table.HeaderFontWeight ?? FontWeight.Normal,
+                FontStyle = table.HeaderFontStyle ?? FontStyle.Normal,
+                FontFamily = table.HeaderFontFamily ?? "",
                 Color = table.HeaderColor ?? col.Color ?? table.Color,
                 Size = table.HeaderSize ?? col.Size ?? table.Size,
                 Align = col.Align
@@ -745,6 +757,32 @@ public sealed class TemplateExpander
         return clone;
     }
 
+    private IEnumerable<TemplateElement> ExpandContent(ContentElement content, TemplateContext context, int depth)
+    {
+        var childDepth = depth + 1;
+        if (childDepth > _limits.MaxRenderDepth)
+        {
+            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
+        }
+
+        var resolvedSource = SubstituteVariables(content.Source.RawValue ?? content.Source.Value, context);
+        var resolvedFormat = SubstituteVariables(content.Format.RawValue ?? content.Format.Value, context);
+
+        if (_contentParserRegistry is null)
+        {
+            throw new TemplateEngineException(
+                $"ContentElement with format '{resolvedFormat}' cannot be expanded: no content parsers are registered. " +
+                "Register a parser via FlexRenderBuilder.WithContentParser().");
+        }
+
+        var parser = _contentParserRegistry.GetParser(resolvedFormat)
+            ?? throw new TemplateEngineException(
+                $"No content parser registered for format '{resolvedFormat}'. " +
+                "Register a parser via FlexRenderBuilder.WithContentParser().");
+
+        return parser.Parse(resolvedSource ?? string.Empty);
+    }
+
     /// <summary>
     /// Clones an element and substitutes variables in its string properties.
     /// </summary>
@@ -762,6 +800,7 @@ public sealed class TemplateExpander
             BarcodeElement barcode => CloneBarcodeElement(barcode, context),
             SvgElement svg => CloneSvgElement(svg, context),
             SeparatorElement sep => CloneSeparatorElement(sep, context),
+            ContentElement content => CloneContentElement(content, context),
             FlexElement => throw new InvalidOperationException("FlexElement should be handled by ExpandFlex"),
             EachElement => throw new InvalidOperationException("EachElement should be expanded, not cloned"),
             IfElement => throw new InvalidOperationException("IfElement should be expanded, not cloned"),
@@ -847,6 +886,8 @@ public sealed class TemplateExpander
         {
             Content = SubstituteVariables(text.Content.Value, context),
             Font = text.Font,
+            FontWeight = text.FontWeight,
+            FontStyle = text.FontStyle,
             Size = text.Size,
             Color = text.Color,
             Align = text.Align,
@@ -954,6 +995,22 @@ public sealed class TemplateExpander
         };
 
         TemplateElement.CopyBaseProperties(sep, clone);
+        return clone;
+    }
+
+    private ContentElement CloneContentElement(ContentElement content, TemplateContext context)
+    {
+        var clone = new ContentElement
+        {
+            Source = SubstituteVariables(content.Source.RawValue ?? content.Source.Value, context),
+            Format = SubstituteVariables(content.Format.RawValue ?? content.Format.Value, context),
+            Rotate = content.Rotate,
+            Background = SubstituteVariables(content.Background.RawValue ?? content.Background.Value, context),
+            Padding = content.Padding,
+            Margin = content.Margin
+        };
+
+        TemplateElement.CopyBaseProperties(content, clone);
         return clone;
     }
 }

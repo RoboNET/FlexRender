@@ -8,8 +8,6 @@ template:
 
 fonts:
   default: "assets/fonts/Inter-Regular.ttf"
-  bold: "assets/fonts/Inter-Bold.ttf"
-  semibold: "assets/fonts/Inter-SemiBold.ttf"
 
 canvas:
   fixed: width
@@ -25,7 +23,7 @@ layout:
       # Title
       - type: text
         content: "Inline Expressions"
-        font: bold
+        fontWeight: bold
         size: 1.3em
         color: "#1a1a1a"
         align: center
@@ -45,7 +43,7 @@ layout:
         children:
           - type: text
             content: "Arithmetic Expressions"
-            font: semibold
+            fontWeight: semi-bold
             size: 0.95em
             color: "#495057"
 
@@ -61,7 +59,7 @@ layout:
                 content: "{{price + tax}}"
                 size: 0.85em
                 color: "#212529"
-                font: semibold
+                fontWeight: semi-bold
 
           - type: flex
             direction: row
@@ -75,7 +73,7 @@ layout:
                 content: "{{price * quantity}}"
                 size: 0.85em
                 color: "#212529"
-                font: semibold
+                fontWeight: semi-bold
 
           - type: flex
             direction: row
@@ -89,7 +87,7 @@ layout:
                 content: "{{price * quantity * 0.1}}"
                 size: 0.85em
                 color: "#e74c3c"
-                font: semibold
+                fontWeight: semi-bold
 
           - type: flex
             direction: row
@@ -103,7 +101,7 @@ layout:
                 content: "{{total / quantity}}"
                 size: 0.85em
                 color: "#212529"
-                font: semibold
+                fontWeight: semi-bold
 
           - type: flex
             direction: row
@@ -117,7 +115,7 @@ layout:
                 content: "{{-price}}"
                 size: 0.85em
                 color: "#e74c3c"
-                font: semibold
+                fontWeight: semi-bold
 
       # Section: Null Coalesce
       - type: flex
@@ -129,7 +127,7 @@ layout:
         children:
           - type: text
             content: "Null Coalesce (??)"
-            font: semibold
+            fontWeight: semi-bold
             size: 0.95em
             color: "#495057"
 
@@ -174,7 +172,7 @@ layout:
         children:
           - type: text
             content: "Expressions in Conditions"
-            font: semibold
+            fontWeight: semi-bold
             size: 0.95em
             color: "#495057"
 
@@ -221,12 +219,12 @@ layout:
                 content: "Final total:"
                 size: 1em
                 color: "#495057"
-                font: semibold
+                fontWeight: semi-bold
               - type: text
                 content: "${{price * quantity - discount + tax}}"
                 size: 1em
                 color: "#212529"
-                font: bold
+                fontWeight: bold
 
       # Footer
       - type: text

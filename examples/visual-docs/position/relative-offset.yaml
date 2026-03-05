@@ -4,7 +4,6 @@ template:
 
 fonts:
   default: "../../assets/fonts/Inter-Regular.ttf"
-  bold: "../../assets/fonts/Inter-Bold.ttf"
 
 canvas:
   fixed: width
@@ -20,7 +19,7 @@ layout:
       # Title
       - type: text
         content: "position: relative"
-        font: bold
+        fontWeight: bold
         size: 16px
         color: "#333333"
 
@@ -49,7 +48,7 @@ layout:
               - type: text
                 content: "Box 1"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 14px
                 align: center
 
@@ -67,7 +66,7 @@ layout:
               - type: text
                 content: "Box 2"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 14px
                 align: center
 
@@ -82,6 +81,6 @@ layout:
               - type: text
                 content: "Box 3"
                 color: "#ffffff"
-                font: bold
+                fontWeight: bold
                 size: 14px
                 align: center

@@ -86,6 +86,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     /// <param name="options">Optional configuration options for path resolution and other settings.</param>
     /// <param name="svgProvider">Optional SVG content provider for rendering SVG elements.</param>
     /// <param name="filterRegistry">Optional filter registry for expression filter evaluation.</param>
+    /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="limits"/> is null.</exception>
     public SkiaRenderer(
         ResourceLimits limits,
@@ -95,7 +96,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         bool deterministicRendering = false,
         FlexRenderOptions? options = null,
         IContentProvider<SvgElement>? svgProvider = null,
-        FilterRegistry? filterRegistry = null)
+        FilterRegistry? filterRegistry = null,
+        ContentParserRegistry? contentParserRegistry = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
@@ -104,8 +106,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             ? new TemplateProcessor(limits, filterRegistry)
             : new TemplateProcessor(limits);
         var expander = filterRegistry is not null
-            ? new TemplateExpander(limits, filterRegistry)
-            : new TemplateExpander(limits);
+            ? new TemplateExpander(limits, filterRegistry, contentParserRegistry)
+            : new TemplateExpander(limits, contentParserRegistry);
         _fontManager = new FontManager();
         _defaultRenderOptions = deterministicRendering ? RenderOptions.Deterministic : RenderOptions.Default;
         _textRenderer = new TextRenderer(_fontManager);
@@ -129,7 +131,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
             BaseFontSize,
             filterRegistry,
             _fontManager,
-            options);
+            options,
+            contentParserRegistry);
     }
 
     /// <summary>
