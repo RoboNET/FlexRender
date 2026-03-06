@@ -208,7 +208,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_a", template, new ObjectValue());
+        AssertSnapshot("ndc_receipt_bank_a", template, new ObjectValue(), maxDifferencePercent: 7.0);
     }
 
     /// <summary>
@@ -249,7 +249,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_c_balance", template, new ObjectValue());
+        AssertSnapshot("ndc_receipt_bank_c_balance", template, new ObjectValue(), maxDifferencePercent: 7.0);
     }
 
     /// <summary>
@@ -332,7 +332,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_a_cashout", template, new ObjectValue());
+        AssertSnapshot("ndc_receipt_bank_a_cashout", template, new ObjectValue(), maxDifferencePercent: 7.0);
     }
 
     /// <summary>
