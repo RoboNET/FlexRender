@@ -80,8 +80,10 @@ Builder for configuring and creating `IFlexRender` instances. Defined in `FlexRe
 | `WithoutDefaultLoaders()` | Remove default File and Base64 loaders (sandboxed mode) |
 | `WithoutDefaultFilters()` | Remove all 8 built-in filters (enabled by default), leaving only custom-registered filters |
 | `WithContentParser(IContentParser)` | Register a content parser for `type: content` elements |
+| `WithBinaryContentParser(IBinaryContentParser)` | Register a binary content parser for `type: content` elements |
 | `WithMarkdown()` | Enable Markdown content parsing (`format: markdown`) |
 | `WithHtml()` | Enable HTML content parsing (`format: html`) |
+| `WithNdc()` | Enable NDC content parsing (`format: ndc`) |
 | `Build()` | Create the configured `IFlexRender` instance |
 
 ### Usage
@@ -123,6 +125,26 @@ var render = new FlexRenderBuilder()
 ```
 
 The builder can only be built once. Creating a second instance requires a new `FlexRenderBuilder`.
+
+### Data Binding with Binary Content
+
+Content elements support binary data via `BytesValue`:
+
+```csharp
+// String content (for Markdown, HTML parsers)
+var data = new ObjectValue { ["body"] = new StringValue("# Hello") };
+
+// Binary content (for NDC and other IBinaryContentParser implementations)
+var data = new ObjectValue { ["receipt"] = new BytesValue(rawBytes) };
+
+// From Stream
+var data = new ObjectValue { ["receipt"] = BytesValue.FromStream(fileStream) };
+
+// From base64 in YAML source
+// source: "base64:SGVsbG8gV29ybGQ="
+```
+
+`BytesValue` wraps `ReadOnlyMemory<byte>` and is passed directly to `IBinaryContentParser` without encoding conversion. When only `IContentParser` is registered, binary data is decoded as UTF-8.
 
 ---
 
@@ -514,6 +536,11 @@ var obj = new ObjectValue
         ["zip"] = "123456"
     }
 };
+
+// Binary data
+var bytes = new BytesValue(binaryData);                // from byte[]
+var bytes = new BytesValue(readOnlyMemory);             // from ReadOnlyMemory<byte>
+var bytes = BytesValue.FromStream(stream);              // from Stream
 ```
 
 | Type | C# Class | Description |
@@ -524,6 +551,7 @@ var obj = new ObjectValue
 | Null | `NullValue` | Null sentinel (`NullValue.Instance`) |
 | Array | `ArrayValue` | Implements `IReadOnlyList<TemplateValue>` |
 | Object | `ObjectValue` | Dictionary-like, `StringComparer.OrdinalIgnoreCase` |
+| Binary | `BytesValue` | Binary data with optional MIME type |
 
 ---
 

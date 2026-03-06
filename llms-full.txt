@@ -79,6 +79,7 @@ src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers
 
 src/FlexRender.Content.Markdown/  # Markdown content parser (-> Core + Markdig)
 src/FlexRender.Content.Html/      # HTML content parser (-> Core + HtmlAgilityPack)
+src/FlexRender.Content.Ndc/      # NDC (ATM receipt) content parser (-> Core)
 
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
   ServiceCollectionExtensions.cs     # AddFlexRender() extension method
@@ -140,6 +141,7 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia.Render  FlexRender.ImageSharp.
 | FlexRender.Svg | Svg.Render + providers | (none) |
 | FlexRender.Content.Markdown | Core | Markdig 1.1.1 |
 | FlexRender.Content.Html | Core | HtmlAgilityPack 1.12.4 |
+| FlexRender.Content.Ndc | Core | (none) |
 | FlexRender.MetaPackage | All | -- |
 | flexrender-cli | All | System.CommandLine |
 
@@ -848,12 +850,13 @@ Renders SVG vector graphics. Supports external files (`src`) or inline markup (`
 
 ## Element Type: content (ContentElement)
 
-Embeds formatted text (Markdown or HTML) that is parsed into an AST subtree at render time. Requires a content parser to be registered.
+Embeds formatted text (Markdown, HTML, or NDC binary data) that is parsed into an AST subtree at render time. Requires a content parser to be registered.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| source | string | "" | Formatted text content, may contain `{{variable}}` expressions |
-| format | string | "markdown" | Content format: `markdown` or `html` -- must match a registered parser |
+| source | string | "" | Content to parse. Supports plain text, `base64:` binary, `file:` URIs, `text:` prefix, `{{variable}}` bound to `string` or `BytesValue` (`byte[]`) |
+| format | string | "markdown" | Content format: `markdown`, `html`, or `ndc` -- must match a registered parser |
+| options | dict? | null | Parser-specific options (e.g., NDC `columns`, `charsets`). Passed to the content parser. |
 
 ```yaml
 - type: content
@@ -861,8 +864,50 @@ Embeds formatted text (Markdown or HTML) that is parsed into an AST subtree at r
   format: markdown       # or "html" -- must match registered parser
 ```
 
-Requires content parser registration: `.WithMarkdown()` (Markdig) or `.WithHtml()` (HtmlAgilityPack).
+Content source resolution (via ContentSourceResolver):
+- `{{variable}}` -> if variable is BytesValue (byte[]), passes binary directly to IBinaryContentParser
+- `base64:...` -> decodes base64 payload to byte[]
+- `file:path` or `file:///path` -> loads via resource loaders (throws on failure)
+- `text:...` -> forces text interpretation, skips file heuristic
+- File-like strings (paths, extensions) -> tries resource loaders, falls back to text
+- Plain text -> literal string content
+
+Binary data binding:
+```csharp
+// Pass byte[] directly to binary parsers (e.g., NDC)
+var data = new ObjectValue { ["receipt"] = new BytesValue(bytes) };
+var data = new ObjectValue { ["receipt"] = BytesValue.FromStream(stream) };
+```
+
+Requires content parser registration: `.WithMarkdown()` (Markdig), `.WithHtml()` (HtmlAgilityPack), or `.WithNdc()` (built-in).
 Converts formatted text into FlexRender AST elements at render time (bold -> FontWeight.Bold, italic -> FontStyle.Italic, headings, lists, etc.).
+
+### NDC Format
+
+The `ndc` format parses binary NDC (NCR ATM protocol) printer data streams. Supports both text (`IContentParser`) and binary (`IBinaryContentParser`) input.
+
+Key features:
+- Charset switching with per-charset styling (font, color, encoding)
+- QWERTY→JCUKEN character encoding for Russian
+- Embedded barcode support (UPC-A, UPC-E, EAN-13, EAN-8, Code39, Code128, Codabar)
+- Auto font size calculation based on parent width
+- Form feed, line spacing, tab controls
+
+```yaml
+- type: content
+  source: "{{receiptData}}"
+  format: ndc
+  options:
+    columns: 40
+    input_encoding: latin1
+    font_family: "JetBrains Mono"
+    charsets:
+      "1":
+        encoding: "qwerty-jcuken"
+        font_style: bold
+```
+
+Register via `.WithNdc()` (FlexRender.Content.Ndc package, 0 external dependencies).
 
 ## Color Format
 
@@ -1099,7 +1144,7 @@ Conditional rendering based on data values. Supports 13 operators.
   format: markdown       # or "html" -- must match registered parser
 ```
 
-Requires content parser registration: `.WithMarkdown()` (Markdig) or `.WithHtml()` (HtmlAgilityPack).
+Requires content parser registration: `.WithMarkdown()` (Markdig), `.WithHtml()` (HtmlAgilityPack), or `.WithNdc()` (built-in).
 Converts formatted text into FlexRender AST elements at render time (bold -> FontWeight.Bold, italic -> FontStyle.Italic, headings, lists, etc.).
 
 ### Processing Layers
@@ -1144,6 +1189,7 @@ var render = new FlexRenderBuilder()
     .WithLimits(limits => limits.MaxRenderDepth = 200)
     .WithMarkdown()                               // optional: Markdown content parsing
     .WithHtml()                                   // optional: HTML content parsing
+    .WithNdc()                                    // optional: NDC ATM receipt parsing
     .WithSkia(skia => skia
         .WithQr()                                 // QR code support
         .WithBarcode())                           // Barcode support
@@ -1221,6 +1267,8 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | `WithFilter(ITemplateFilter)` | Register a custom template filter for inline expressions (works alongside built-in filters) |
 | `WithMarkdown()` | Enable Markdown content parsing (requires FlexRender.Content.Markdown) |
 | `WithHtml()` | Enable HTML content parsing (requires FlexRender.Content.Html) |
+| `WithNdc()` | Enable NDC content parsing (requires FlexRender.Content.Ndc) |
+| `WithBinaryContentParser(IBinaryContentParser)` | Register a binary content parser |
 | `WithoutDefaultLoaders()` | Remove File and Base64 loaders |
 | `WithoutDefaultFilters()` | Remove all 8 built-in filters (enabled by default), leaving only custom-registered filters |
 
@@ -1378,6 +1426,7 @@ AOT-compatible, no reflection. All are sealed classes with implicit conversions.
 | Null | NullValue | Null sentinel |
 | Array | ArrayValue | Implements `IReadOnlyList<TemplateValue>` |
 | Object | ObjectValue | Dictionary-like with indexer, `StringComparer.OrdinalIgnoreCase` |
+| Bytes | BytesValue | Binary data with optional MIME type |
 
 ### Creating Data
 

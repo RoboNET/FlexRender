@@ -122,5 +122,15 @@ public sealed class SkiaRendererImageLoaderTests : IDisposable
 
             return Task.FromResult<SKBitmap?>(bitmap);
         }
+
+        /// <inheritdoc />
+        public Task<SKBitmap?> Preload(string key, Stream stream, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(key);
+            ArgumentNullException.ThrowIfNull(stream);
+
+            var bitmap = SKBitmap.Decode(stream);
+            return Task.FromResult<SKBitmap?>(bitmap);
+        }
     }
 }

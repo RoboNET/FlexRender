@@ -53,6 +53,26 @@ public sealed class FontSizeResolverTests
         Assert.Equal(16f, FontSizeResolver.Resolve("  16px  ", 12f));
     }
 
+    [Fact]
+    public void Resolve_FitContent_ReturnsNaN()
+    {
+        var result = FontSizeResolver.Resolve("fit-content", 16f);
+        Assert.True(FontSizeResolver.IsFitContent(result));
+    }
+
+    [Fact]
+    public void Resolve_FitContent_CaseInsensitive()
+    {
+        var result = FontSizeResolver.Resolve("FIT-CONTENT", 16f);
+        Assert.True(FontSizeResolver.IsFitContent(result));
+    }
+
+    [Fact]
+    public void IsFitContent_RegularValue_ReturnsFalse()
+    {
+        Assert.False(FontSizeResolver.IsFitContent(16f));
+    }
+
     [Theory]
     [InlineData("1em", 12f, 12f)]
     [InlineData("1em", 16f, 16f)]

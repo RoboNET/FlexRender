@@ -37,6 +37,7 @@ internal sealed class ImageSharpTextShaper : ITextShaper
             return new TextShapingResult(
                 Array.Empty<string>(),
                 new LayoutSize(0f, 0f),
+                0f,
                 0f);
         }
 
@@ -53,6 +54,7 @@ internal sealed class ImageSharpTextShaper : ITextShaper
             return new TextShapingResult(
                 Array.Empty<string>(),
                 new LayoutSize(0f, 0f),
+                0f,
                 0f);
         }
 
@@ -67,11 +69,13 @@ internal sealed class ImageSharpTextShaper : ITextShaper
         maxLineWidth = MathF.Ceiling(maxLineWidth);
         var lineHeight = ResolveLineHeight(element.LineHeight.Value, font);
         var totalHeight = lines.Count * lineHeight;
+        var baseline = font.Size * 0.85f;
 
         return new TextShapingResult(
             lines,
             new LayoutSize(maxLineWidth, totalHeight),
-            lineHeight);
+            lineHeight,
+            baseline);
     }
 
     private Font CreateFont(TextElement element, float fontSize)

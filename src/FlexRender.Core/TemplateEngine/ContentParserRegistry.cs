@@ -8,6 +8,7 @@ namespace FlexRender.TemplateEngine;
 public sealed class ContentParserRegistry
 {
     private readonly Dictionary<string, IContentParser> _parsers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IBinaryContentParser> _binaryParsers = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Registers a content parser for its format name.
@@ -27,6 +28,23 @@ public sealed class ContentParserRegistry
     }
 
     /// <summary>
+    /// Registers a binary content parser for its format name.
+    /// </summary>
+    /// <param name="parser">The binary content parser to register.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parser"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a binary parser for the same format is already registered.</exception>
+    public void RegisterBinary(IBinaryContentParser parser)
+    {
+        ArgumentNullException.ThrowIfNull(parser);
+        ArgumentException.ThrowIfNullOrWhiteSpace(parser.FormatName, nameof(parser));
+        if (!_binaryParsers.TryAdd(parser.FormatName, parser))
+        {
+            throw new InvalidOperationException(
+                $"A binary content parser for format '{parser.FormatName}' is already registered.");
+        }
+    }
+
+    /// <summary>
     /// Gets the content parser for the specified format name.
     /// </summary>
     /// <param name="formatName">The format name to look up.</param>
@@ -37,7 +55,17 @@ public sealed class ContentParserRegistry
     }
 
     /// <summary>
-    /// Gets whether any content parsers are registered.
+    /// Gets the binary content parser for the specified format name.
     /// </summary>
-    internal bool HasParsers => _parsers.Count > 0;
+    /// <param name="formatName">The format name to look up.</param>
+    /// <returns>The binary content parser if found; otherwise, <c>null</c>.</returns>
+    public IBinaryContentParser? GetBinaryParser(string formatName)
+    {
+        return _binaryParsers.GetValueOrDefault(formatName);
+    }
+
+    /// <summary>
+    /// Gets whether any content parsers (text or binary) are registered.
+    /// </summary>
+    internal bool HasParsers => _parsers.Count > 0 || _binaryParsers.Count > 0;
 }

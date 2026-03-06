@@ -1,5 +1,6 @@
 using System.Text;
 using FlexRender.Abstractions;
+using FlexRender.Parsing.Ast;
 using FlexRender.Rendering;
 
 namespace FlexRender.Loaders;
@@ -15,14 +16,14 @@ public static class SvgContentLoader
     public const int MaxSvgContentSize = 10 * 1024 * 1024;
 
     /// <summary>
-    /// Attempts to load SVG content using the configured resource loaders.
+    /// Asynchronously loads SVG content using the configured resource loaders.
     /// Returns null when no loader can handle the URI.
     /// </summary>
     /// <param name="loaders">The resource loader chain.</param>
     /// <param name="uri">The URI to load.</param>
     /// <returns>SVG content string or null if not handled.</returns>
     /// <exception cref="InvalidOperationException">Thrown when content exceeds size limit.</exception>
-    public static string? LoadFromLoaders(IReadOnlyList<IResourceLoader>? loaders, string uri)
+    public static async ValueTask<string?> LoadFromLoaders(IReadOnlyList<IResourceLoader>? loaders, string uri)
     {
         if (loaders is null || loaders.Count == 0)
         {
@@ -36,7 +37,7 @@ public static class SvgContentLoader
                 continue;
             }
 
-            var stream = loader.Load(uri).GetAwaiter().GetResult();
+            var stream = await loader.Load(uri).ConfigureAwait(false);
             if (stream is null)
             {
                 continue;
@@ -50,6 +51,41 @@ public static class SvgContentLoader
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Collects all unique SVG source URIs from the processed template element tree.
+    /// Only collects URIs where <see cref="SvgElement.Src"/> has a value and
+    /// <see cref="SvgElement.Content"/> is empty (content-based SVGs don't need loading).
+    /// </summary>
+    /// <param name="template">The template to collect URIs from.</param>
+    /// <returns>A set of unique SVG source URIs.</returns>
+    public static HashSet<string> CollectSvgUris(Template template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        var uris = new HashSet<string>(StringComparer.Ordinal);
+        CollectSvgUrisFromElements(template.Elements, uris);
+        return uris;
+    }
+
+    /// <summary>
+    /// Recursively collects SVG source URIs from a list of elements.
+    /// </summary>
+    private static void CollectSvgUrisFromElements(IReadOnlyList<TemplateElement> elements, HashSet<string> uris)
+    {
+        foreach (var element in elements)
+        {
+            if (element is SvgElement svg &&
+                !string.IsNullOrEmpty(svg.Src.Value) &&
+                string.IsNullOrEmpty(svg.Content.Value))
+            {
+                uris.Add(svg.Src.Value);
+            }
+            else if (element is FlexElement flex)
+            {
+                CollectSvgUrisFromElements(flex.Children, uris);
+            }
+        }
     }
 
     /// <summary>

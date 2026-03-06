@@ -1,4 +1,5 @@
 using System.Globalization;
+using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Parsing.Ast;
 
@@ -13,6 +14,7 @@ public sealed class TemplateExpander
     private readonly ResourceLimits _limits;
     private readonly InlineExpressionEvaluator? _expressionEvaluator;
     private readonly ContentParserRegistry? _contentParserRegistry;
+    private readonly IReadOnlyList<IResourceLoader>? _resourceLoaders;
 
     /// <summary>
     /// Creates a new TemplateExpander with default resource limits.
@@ -26,13 +28,16 @@ public sealed class TemplateExpander
     /// </summary>
     /// <param name="limits">Resource limits for expansion depth protection.</param>
     /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for resolving file-based content sources.</param>
     /// <exception cref="ArgumentNullException">Thrown when limits is null.</exception>
-    public TemplateExpander(ResourceLimits limits, ContentParserRegistry? contentParserRegistry = null)
+    public TemplateExpander(ResourceLimits limits, ContentParserRegistry? contentParserRegistry = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
         _expressionEvaluator = new InlineExpressionEvaluator();
         _contentParserRegistry = contentParserRegistry;
+        _resourceLoaders = resourceLoaders;
     }
 
     /// <summary>
@@ -41,10 +46,12 @@ public sealed class TemplateExpander
     /// <param name="limits">Resource limits for expansion depth protection.</param>
     /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
     /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for resolving file-based content sources.</param>
     /// <exception cref="ArgumentNullException">Thrown when limits or filterRegistry is null.</exception>
     public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry,
-        ContentParserRegistry? contentParserRegistry = null)
-        : this(limits, filterRegistry, CultureInfo.InvariantCulture, contentParserRegistry)
+        ContentParserRegistry? contentParserRegistry = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
+        : this(limits, filterRegistry, CultureInfo.InvariantCulture, contentParserRegistry, resourceLoaders)
     {
     }
 
@@ -55,9 +62,11 @@ public sealed class TemplateExpander
     /// <param name="filterRegistry">The filter registry for expression evaluation.</param>
     /// <param name="culture">The culture to use for culture-aware filter formatting.</param>
     /// <param name="contentParserRegistry">Optional content parser registry for ContentElement expansion.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for resolving file-based content sources.</param>
     /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
     public TemplateExpander(ResourceLimits limits, FilterRegistry filterRegistry, CultureInfo culture,
-        ContentParserRegistry? contentParserRegistry = null)
+        ContentParserRegistry? contentParserRegistry = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(filterRegistry);
@@ -65,6 +74,7 @@ public sealed class TemplateExpander
         _limits = limits;
         _expressionEvaluator = new InlineExpressionEvaluator(filterRegistry, culture);
         _contentParserRegistry = contentParserRegistry;
+        _resourceLoaders = resourceLoaders;
     }
 
     /// <summary>
@@ -82,7 +92,7 @@ public sealed class TemplateExpander
         ArgumentNullException.ThrowIfNull(data);
 
         var context = new TemplateContext(data);
-        var expandedElements = ExpandElements(template.Elements, context, 0);
+        var expandedElements = ExpandElements(template.Elements, context, 0, template);
 
         var result = new Template
         {
@@ -101,7 +111,42 @@ public sealed class TemplateExpander
         return result;
     }
 
-    private List<TemplateElement> ExpandElements(IReadOnlyList<TemplateElement> elements, TemplateContext context, int depth)
+    /// <summary>
+    /// Asynchronously expands EachElement and IfElement instances into concrete elements based on data.
+    /// Returns a new Template with all control flow elements resolved.
+    /// Uses <c>await</c> for content source resolution instead of blocking synchronously.
+    /// </summary>
+    /// <param name="template">The template containing control flow elements.</param>
+    /// <param name="data">The data for evaluating conditions and iterating arrays.</param>
+    /// <returns>A new Template with expanded elements.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when template or data is null.</exception>
+    /// <exception cref="TemplateEngineException">Thrown when maximum expansion depth is exceeded.</exception>
+    public async Task<Template> ExpandAsync(Template template, ObjectValue data)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(data);
+
+        var context = new TemplateContext(data);
+        var expandedElements = await ExpandElementsAsync(template.Elements, context, 0, template).ConfigureAwait(false);
+
+        var result = new Template
+        {
+            Name = template.Name,
+            Version = template.Version,
+            Canvas = template.Canvas,
+            Elements = expandedElements
+        };
+
+        // Copy fonts
+        foreach (var font in template.Fonts)
+        {
+            result.Fonts[font.Key] = font.Value;
+        }
+
+        return result;
+    }
+
+    private List<TemplateElement> ExpandElements(IReadOnlyList<TemplateElement> elements, TemplateContext context, int depth, Template template, int? parentWidth = null)
     {
         if (depth > _limits.MaxRenderDepth)
         {
@@ -112,27 +157,28 @@ public sealed class TemplateExpander
 
         foreach (var element in elements)
         {
-            var expanded = ExpandElement(element, context, depth);
+            var expanded = ExpandElement(element, context, depth, template, parentWidth);
             result.AddRange(expanded);
         }
 
         return result;
     }
 
-    private IEnumerable<TemplateElement> ExpandElement(TemplateElement element, TemplateContext context, int depth)
+    private IEnumerable<TemplateElement> ExpandElement(TemplateElement element, TemplateContext context, int depth, Template template, int? parentWidth = null)
     {
         return element switch
         {
-            EachElement each => ExpandEach(each, context, depth),
-            IfElement ifEl => ExpandIf(ifEl, context, depth),
-            TableElement table => [ExpandTable(table, context, depth)],
-            FlexElement flex => [ExpandFlex(flex, context, depth)],
-            ContentElement content => ExpandContent(content, context, depth),
+            EachElement each => ExpandEach(each, context, depth, template, parentWidth),
+            IfElement ifEl => ExpandIf(ifEl, context, depth, template, parentWidth),
+            TableElement table => [ExpandTable(table, context, depth, template)],
+            FlexElement flex => [ExpandFlex(flex, context, depth, template)],
+            ContentElement => throw new TemplateEngineException(
+                "Content element expansion requires async processing. Use ExpandAsync() instead of Expand()."),
             _ => [CloneWithVariableSubstitution(element, context)]
         };
     }
 
-    private IEnumerable<TemplateElement> ExpandEach(EachElement each, TemplateContext context, int depth)
+    private IEnumerable<TemplateElement> ExpandEach(EachElement each, TemplateContext context, int depth, Template template, int? parentWidth = null)
     {
         // Check depth limit - Each element increases nesting depth
         var childDepth = depth + 1;
@@ -172,7 +218,7 @@ public sealed class TemplateExpander
                 context.SetLoopVariables(i, count);
 
                 // Expand children
-                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth);
+                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth, template, parentWidth);
 
                 // Pop scope
                 context.ClearLoopVariables();
@@ -212,7 +258,7 @@ public sealed class TemplateExpander
                 context.SetLoopKey(key);
 
                 // Expand children
-                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth);
+                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth, template, parentWidth);
 
                 // Pop scope
                 context.ClearLoopVariables();
@@ -256,7 +302,7 @@ public sealed class TemplateExpander
         }
     }
 
-    private IEnumerable<TemplateElement> ExpandIf(IfElement ifEl, TemplateContext context, int depth)
+    private IEnumerable<TemplateElement> ExpandIf(IfElement ifEl, TemplateContext context, int depth, Template template, int? parentWidth = null)
     {
         // Check depth limit - If element increases nesting depth
         var childDepth = depth + 1;
@@ -275,17 +321,17 @@ public sealed class TemplateExpander
 
         if (EvaluateCondition(ifEl, context))
         {
-            return ExpandElements(ifEl.ThenBranch, context, childDepth);
+            return ExpandElements(ifEl.ThenBranch, context, childDepth, template, parentWidth);
         }
 
         // Check else-if chain
         if (ifEl.ElseIf != null)
         {
-            return ExpandIf(ifEl.ElseIf, context, depth + 1);
+            return ExpandIf(ifEl.ElseIf, context, depth + 1, template, parentWidth);
         }
 
         // Return else branch
-        return ExpandElements(ifEl.ElseBranch, context, childDepth);
+        return ExpandElements(ifEl.ElseBranch, context, childDepth, template, parentWidth);
     }
 
     private bool EvaluateCondition(IfElement ifEl, TemplateContext context)
@@ -492,7 +538,7 @@ public sealed class TemplateExpander
         return -1;
     }
 
-    private FlexElement ExpandTable(TableElement table, TemplateContext context, int depth)
+    private FlexElement ExpandTable(TableElement table, TemplateContext context, int depth, Template template)
     {
         var childDepth = depth + 1;
         if (childDepth > _limits.MaxRenderDepth)
@@ -569,7 +615,7 @@ public sealed class TemplateExpander
             };
 
             // Expand the each element inline
-            var expandedRows = ExpandEach(each, context, childDepth);
+            var expandedRows = ExpandEach(each, context, childDepth, template);
             foreach (var row in expandedRows)
             {
                 outerFlex.AddChild(row);
@@ -726,9 +772,10 @@ public sealed class TemplateExpander
         return rowFlex;
     }
 
-    private FlexElement ExpandFlex(FlexElement flex, TemplateContext context, int depth)
+    private FlexElement ExpandFlex(FlexElement flex, TemplateContext context, int depth, Template template)
     {
-        var expandedChildren = ExpandElements(flex.Children, context, depth + 1);
+        var childParentWidth = TryParsePixelWidth(flex.Width.Value);
+        var expandedChildren = ExpandElements(flex.Children, context, depth + 1, template, childParentWidth);
 
         var clone = new FlexElement
         {
@@ -742,6 +789,7 @@ public sealed class TemplateExpander
             Overflow = flex.Overflow,
             RowGap = flex.RowGap,
             ColumnGap = flex.ColumnGap,
+            FontSize = flex.FontSize,
 
             // Base element properties requiring per-element handling
             Rotate = flex.Rotate,
@@ -757,7 +805,146 @@ public sealed class TemplateExpander
         return clone;
     }
 
-    private IEnumerable<TemplateElement> ExpandContent(ContentElement content, TemplateContext context, int depth)
+    /// <summary>
+    /// Attempts to parse a plain pixel width value from a size string.
+    /// Returns the integer pixel value for plain numeric strings (e.g., "200"),
+    /// or null for percentage, em, auto, or empty/null values.
+    /// </summary>
+    /// <param name="widthValue">The width string from <see cref="TemplateElement.Width"/>.</param>
+    /// <returns>The pixel width if parseable; otherwise, null.</returns>
+    private static int? TryParsePixelWidth(string? widthValue)
+    {
+        if (string.IsNullOrEmpty(widthValue))
+            return null;
+
+        // Skip relative/auto values -- only accept plain numeric pixel widths
+        if (widthValue.Contains('%', StringComparison.Ordinal)
+            || widthValue.Contains("em", StringComparison.OrdinalIgnoreCase)
+            || widthValue.Equals("auto", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return int.TryParse(widthValue, System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out var px) && px > 0
+            ? px
+            : null;
+    }
+
+    private async Task<List<TemplateElement>> ExpandElementsAsync(IReadOnlyList<TemplateElement> elements, TemplateContext context, int depth, Template template, int? parentWidth = null)
+    {
+        if (depth > _limits.MaxRenderDepth)
+        {
+            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
+        }
+
+        var result = new List<TemplateElement>(elements.Count);
+
+        foreach (var element in elements)
+        {
+            var expanded = await ExpandElementAsync(element, context, depth, template, parentWidth).ConfigureAwait(false);
+            result.AddRange(expanded);
+        }
+
+        return result;
+    }
+
+    private async ValueTask<IEnumerable<TemplateElement>> ExpandElementAsync(TemplateElement element, TemplateContext context, int depth, Template template, int? parentWidth = null)
+    {
+        return element switch
+        {
+            EachElement each => await ExpandEachAsync(each, context, depth, template, parentWidth).ConfigureAwait(false),
+            IfElement ifEl => await ExpandIfAsync(ifEl, context, depth, template, parentWidth).ConfigureAwait(false),
+            TableElement table => [ExpandTable(table, context, depth, template)],
+            FlexElement flex => [await ExpandFlexAsync(flex, context, depth, template).ConfigureAwait(false)],
+            ContentElement content => await ExpandContentAsync(content, context, depth, template, parentWidth).ConfigureAwait(false),
+            _ => [CloneWithVariableSubstitution(element, context)]
+        };
+    }
+
+    private async Task<List<TemplateElement>> ExpandEachAsync(EachElement each, TemplateContext context, int depth, Template template, int? parentWidth = null)
+    {
+        // Check depth limit - Each element increases nesting depth
+        var childDepth = depth + 1;
+        if (childDepth > _limits.MaxRenderDepth)
+        {
+            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
+        }
+
+        // Pre-validate nested control flow depth before checking data
+        ValidateNestedDepth(each.ItemTemplate, childDepth);
+
+        var arrayValue = ExpressionEvaluator.Resolve(each.ArrayPath, context);
+        var result = new List<TemplateElement>();
+
+        if (arrayValue is ArrayValue array)
+        {
+            var count = array.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var item = array[i];
+
+                if (each.ItemVariable != null)
+                {
+                    var scopeData = new ObjectValue
+                    {
+                        [each.ItemVariable] = item
+                    };
+                    context.PushScope(scopeData);
+                }
+                else
+                {
+                    context.PushScope(item);
+                }
+
+                context.SetLoopVariables(i, count);
+
+                var expandedChildren = await ExpandElementsAsync(each.ItemTemplate, context, childDepth, template, parentWidth).ConfigureAwait(false);
+
+                context.ClearLoopVariables();
+                context.PopScope();
+
+                result.AddRange(expandedChildren);
+            }
+        }
+        else if (arrayValue is ObjectValue obj)
+        {
+            var keys = obj.Keys.ToList();
+            var count = keys.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var key = keys[i];
+                var value = obj[key];
+
+                if (each.ItemVariable != null)
+                {
+                    var scopeData = new ObjectValue
+                    {
+                        [each.ItemVariable] = value
+                    };
+                    context.PushScope(scopeData);
+                }
+                else
+                {
+                    context.PushScope(value);
+                }
+
+                context.SetLoopVariables(i, count);
+                context.SetLoopKey(key);
+
+                var expandedChildren = await ExpandElementsAsync(each.ItemTemplate, context, childDepth, template, parentWidth).ConfigureAwait(false);
+
+                context.ClearLoopVariables();
+                context.PopScope();
+
+                result.AddRange(expandedChildren);
+            }
+        }
+
+        return result;
+    }
+
+    private async Task<IEnumerable<TemplateElement>> ExpandIfAsync(IfElement ifEl, TemplateContext context, int depth, Template template, int? parentWidth = null)
     {
         var childDepth = depth + 1;
         if (childDepth > _limits.MaxRenderDepth)
@@ -765,7 +952,62 @@ public sealed class TemplateExpander
             throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
         }
 
-        var resolvedSource = SubstituteVariables(content.Source.RawValue ?? content.Source.Value, context);
+        ValidateNestedDepth(ifEl.ThenBranch, childDepth);
+        ValidateNestedDepth(ifEl.ElseBranch, childDepth);
+        if (ifEl.ElseIf != null)
+        {
+            ValidateNestedDepth(new[] { ifEl.ElseIf }, depth);
+        }
+
+        if (EvaluateCondition(ifEl, context))
+        {
+            return await ExpandElementsAsync(ifEl.ThenBranch, context, childDepth, template, parentWidth).ConfigureAwait(false);
+        }
+
+        if (ifEl.ElseIf != null)
+        {
+            return await ExpandIfAsync(ifEl.ElseIf, context, depth + 1, template, parentWidth).ConfigureAwait(false);
+        }
+
+        return await ExpandElementsAsync(ifEl.ElseBranch, context, childDepth, template, parentWidth).ConfigureAwait(false);
+    }
+
+    private async Task<FlexElement> ExpandFlexAsync(FlexElement flex, TemplateContext context, int depth, Template template)
+    {
+        var childParentWidth = TryParsePixelWidth(flex.Width.Value);
+        var expandedChildren = await ExpandElementsAsync(flex.Children, context, depth + 1, template, childParentWidth).ConfigureAwait(false);
+
+        var clone = new FlexElement
+        {
+            Direction = flex.Direction,
+            Wrap = flex.Wrap,
+            Gap = flex.Gap,
+            Justify = flex.Justify,
+            Align = flex.Align,
+            AlignContent = flex.AlignContent,
+            Overflow = flex.Overflow,
+            RowGap = flex.RowGap,
+            ColumnGap = flex.ColumnGap,
+            FontSize = flex.FontSize,
+            Rotate = flex.Rotate,
+            Background = SubstituteVariables(flex.Background.Value, context),
+            Padding = flex.Padding,
+            Margin = flex.Margin,
+            Children = expandedChildren
+        };
+
+        TemplateElement.CopyBaseProperties(flex, clone);
+        return clone;
+    }
+
+    private async Task<IEnumerable<TemplateElement>> ExpandContentAsync(ContentElement content, TemplateContext context, int depth, Template template, int? parentWidth = null)
+    {
+        var childDepth = depth + 1;
+        if (childDepth > _limits.MaxRenderDepth)
+        {
+            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
+        }
+
         var resolvedFormat = SubstituteVariables(content.Format.RawValue ?? content.Format.Value, context);
 
         if (_contentParserRegistry is null)
@@ -775,12 +1017,41 @@ public sealed class TemplateExpander
                 "Register a parser via FlexRenderBuilder.WithContentParser().");
         }
 
-        var parser = _contentParserRegistry.GetParser(resolvedFormat)
+        var parserContext = new ContentParserContext
+        {
+            Canvas = template.Canvas,
+            Template = template,
+            ParentWidth = parentWidth
+        };
+
+        var resolved = await ContentSourceResolver.ResolveAsync(content.Source, context, loaders: _resourceLoaders, SubstituteVariables).ConfigureAwait(false);
+
+        return resolved switch
+        {
+            BinaryContent binary => DispatchBinary(binary, resolvedFormat, parserContext, content.Options),
+            TextContent text => DispatchText(text, resolvedFormat, parserContext, content.Options),
+            _ => throw new TemplateEngineException($"Unexpected content source type: {resolved.GetType().Name}")
+        };
+    }
+
+    private IReadOnlyList<TemplateElement> DispatchBinary(BinaryContent binary, string format, ContentParserContext context, IReadOnlyDictionary<string, object>? options)
+    {
+        var parser = _contentParserRegistry!.GetBinaryParser(format)
             ?? throw new TemplateEngineException(
-                $"No content parser registered for format '{resolvedFormat}'. " +
+                $"No binary content parser registered for format '{format}'. " +
+                "Register a binary parser via FlexRenderBuilder.WithBinaryContentParser().");
+
+        return parser.Parse(binary.Data, context, options);
+    }
+
+    private IReadOnlyList<TemplateElement> DispatchText(TextContent text, string format, ContentParserContext context, IReadOnlyDictionary<string, object>? options)
+    {
+        var parser = _contentParserRegistry!.GetParser(format)
+            ?? throw new TemplateEngineException(
+                $"No content parser registered for format '{format}'. " +
                 "Register a parser via FlexRenderBuilder.WithContentParser().");
 
-        return parser.Parse(resolvedSource ?? string.Empty);
+        return parser.Parse(text.Text, context, options);
     }
 
     /// <summary>
@@ -876,8 +1147,41 @@ public sealed class TemplateExpander
             StringValue s => s.Value,
             NumberValue n => n.Value.ToString("G", CultureInfo.InvariantCulture),
             BoolValue b => b.Value ? "true" : "false",
+            BytesValue bv => $"bytes[{bv.Memory.Length}]",
             _ => string.Empty
         };
+    }
+
+    /// <summary>
+    /// If the source expression is a single variable that resolves to a <see cref="BytesValue"/>,
+    /// converts the binary data to a <c>data:</c> URI with base64 encoding.
+    /// Returns <c>null</c> when the expression is not a single variable or does not resolve to bytes.
+    /// </summary>
+    /// <param name="source">The expression value holding the image source.</param>
+    /// <param name="context">The template context for variable resolution.</param>
+    /// <returns>A <c>data:</c> URI string, or <c>null</c> if not applicable.</returns>
+    private static string? TryResolveBytesAsDataUri(ExprValue<string> source, TemplateContext context)
+    {
+        var raw = source.RawValue ?? source.Value;
+        if (raw is null)
+            return null;
+
+        // Only handle simple {{variable}} expressions, not mixed content
+        if (!raw.StartsWith("{{", StringComparison.Ordinal) || !raw.EndsWith("}}", StringComparison.Ordinal))
+            return null;
+
+        var inner = raw[2..^2].Trim();
+
+        // Reject if there are nested expressions (e.g. "{{a}} + {{b}}")
+        if (inner.Contains("{{", StringComparison.Ordinal))
+            return null;
+
+        var resolved = ExpressionEvaluator.Resolve(inner, context);
+        if (resolved is not BytesValue bytes)
+            return null;
+
+        var mime = bytes.MimeType ?? "application/octet-stream";
+        return $"data:{mime};base64,{Convert.ToBase64String(bytes.Value)}";
     }
 
     private TextElement CloneTextElement(TextElement text, TemplateContext context)
@@ -907,9 +1211,12 @@ public sealed class TemplateExpander
 
     private ImageElement CloneImageElement(ImageElement image, TemplateContext context)
     {
+        var resolvedSrc = TryResolveBytesAsDataUri(image.Src, context)
+                          ?? SubstituteVariables(image.Src.Value, context);
+
         var clone = new ImageElement
         {
-            Src = SubstituteVariables(image.Src.Value, context),
+            Src = resolvedSrc,
             ImageWidth = image.ImageWidth,
             ImageHeight = image.ImageHeight,
             Fit = image.Fit,

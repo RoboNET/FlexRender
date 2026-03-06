@@ -507,7 +507,7 @@ Renders tabular data with configurable columns, optional headers, and support fo
 
 ### content
 
-Embeds dynamically formatted text (Markdown, HTML, etc.) from template data using pluggable content parsers. Like `each` and `if`, this is a control-flow element expanded at render time.
+Embeds dynamically formatted text (Markdown, HTML, NDC, etc.) from template data using pluggable content parsers. Like `each` and `if`, this is a control-flow element expanded at render time.
 
 ```yaml
 - type: content
@@ -518,7 +518,8 @@ Embeds dynamically formatted text (Markdown, HTML, etc.) from template data usin
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `source` | string | `""` | The formatted text to parse. Usually bound to a `{{variable}}`. |
-| `format` | string | `""` | Content format: `markdown`, `html`, or any registered parser name. |
+| `format` | string | `""` | Content format: `markdown`, `html`, `ndc`, or any registered parser name. |
+| `options` | dict? | `null` | Parser-specific options dictionary (used by NDC and custom parsers). |
 
 See [[Element-Reference#content-element-control-flow]] for full details, element mapping, and examples.
 

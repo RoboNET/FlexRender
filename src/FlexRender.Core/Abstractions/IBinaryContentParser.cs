@@ -1,0 +1,34 @@
+using FlexRender.Parsing.Ast;
+
+namespace FlexRender.Abstractions;
+
+/// <summary>
+/// Parses binary content into a subtree of template elements.
+/// </summary>
+public interface IBinaryContentParser
+{
+    /// <summary>
+    /// Gets the format name this parser handles (e.g., "ndc", "escpos").
+    /// </summary>
+    string FormatName { get; }
+
+    /// <summary>
+    /// Parses the binary data into template elements.
+    /// </summary>
+    /// <param name="data">The binary data to parse.</param>
+    /// <param name="context">
+    /// Template metadata and tree context provided by the template expander.
+    /// Gives parsers typed access to canvas settings, template metadata, and parent elements.
+    /// </param>
+    /// <param name="options">
+    /// Optional key-value options from the <c>options:</c> block of the content element.
+    /// Parsers may use these to customize behavior (e.g., column widths, formatting hints).
+    /// When <c>null</c>, the parser should use its default behavior.
+    /// </param>
+    /// <returns>
+    /// A list of renderable template elements (e.g., <see cref="TextElement"/>, <see cref="FlexElement"/>,
+    /// <see cref="SeparatorElement"/>). Must not contain control-flow elements
+    /// (<c>EachElement</c>, <c>IfElement</c>, <c>ContentElement</c>) as they will not be expanded.
+    /// </returns>
+    IReadOnlyList<TemplateElement> Parse(ReadOnlyMemory<byte> data, ContentParserContext context, IReadOnlyDictionary<string, object>? options = null);
+}

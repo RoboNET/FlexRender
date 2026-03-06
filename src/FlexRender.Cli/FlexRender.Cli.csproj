@@ -27,6 +27,7 @@
     <ProjectReference Include="..\FlexRender.Barcode\FlexRender.Barcode.csproj" />
     <ProjectReference Include="..\FlexRender.Content.Markdown\FlexRender.Content.Markdown.csproj" />
     <ProjectReference Include="..\FlexRender.Content.Html\FlexRender.Content.Html.csproj" />
+    <ProjectReference Include="..\FlexRender.Content.Ndc\FlexRender.Content.Ndc.csproj" />
     <ProjectReference Include="..\FlexRender.SvgElement\FlexRender.SvgElement.csproj" />
     <ProjectReference Include="..\FlexRender.Svg.Render\FlexRender.Svg.Render.csproj" />
     <ProjectReference Include="..\FlexRender.ImageSharp.Render\FlexRender.ImageSharp.Render.csproj" />

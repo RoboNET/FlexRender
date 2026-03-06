@@ -10,36 +10,36 @@ namespace FlexRender.Tests.Loaders;
 public sealed class SvgContentLoaderTests
 {
     [Fact]
-    public void LoadFromLoaders_WithNullLoaders_ReturnsNull()
+    public async Task LoadFromLoaders_WithNullLoaders_ReturnsNull()
     {
-        var result = SvgContentLoader.LoadFromLoaders(null, "mem://test");
+        var result = await SvgContentLoader.LoadFromLoaders(null, "mem://test");
         Assert.Null(result);
     }
 
     [Fact]
-    public void LoadFromLoaders_WithNoMatchingLoader_ReturnsNull()
+    public async Task LoadFromLoaders_WithNoMatchingLoader_ReturnsNull()
     {
         var loaders = new IResourceLoader[] { new FakeLoader("mem://", "<svg/>", canHandle: false) };
-        var result = SvgContentLoader.LoadFromLoaders(loaders, "mem://test");
+        var result = await SvgContentLoader.LoadFromLoaders(loaders, "mem://test");
         Assert.Null(result);
     }
 
     [Fact]
-    public void LoadFromLoaders_WithMatchingLoader_ReturnsContent()
+    public async Task LoadFromLoaders_WithMatchingLoader_ReturnsContent()
     {
         var loaders = new IResourceLoader[] { new FakeLoader("mem://", "<svg/>", canHandle: true) };
-        var result = SvgContentLoader.LoadFromLoaders(loaders, "mem://test");
+        var result = await SvgContentLoader.LoadFromLoaders(loaders, "mem://test");
         Assert.Equal("<svg/>", result);
     }
 
     [Fact]
-    public void LoadFromLoaders_WhenContentExceedsLimit_Throws()
+    public async Task LoadFromLoaders_WhenContentExceedsLimit_Throws()
     {
         var oversized = new string('x', SvgContentLoader.MaxSvgContentSize + 1);
         var loaders = new IResourceLoader[] { new FakeLoader("mem://", oversized, canHandle: true) };
 
-        var ex = Assert.Throws<InvalidOperationException>(
-            () => SvgContentLoader.LoadFromLoaders(loaders, "mem://too-big"));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await SvgContentLoader.LoadFromLoaders(loaders, "mem://too-big"));
 
         Assert.Contains("exceeds maximum allowed size", ex.Message);
     }

@@ -86,7 +86,8 @@ public sealed class ImageSharpRender : IFlexRender
             options.BaseFontSize,
             builder.QrProvider,
             builder.BarcodeProvider,
-            options);
+            options,
+            resourceLoaders);
     }
 
     // ========================================================================
@@ -381,14 +382,14 @@ public sealed class ImageSharpRender : IFlexRender
 
         // Expand, resolve, and materialize template to resolve expressions in image src attributes
         var expander = _filterRegistry is not null
-            ? new TemplateExpander(_limits, _filterRegistry, _contentParserRegistry)
-            : new TemplateExpander(_limits, _contentParserRegistry);
+            ? new TemplateExpander(_limits, _filterRegistry, _contentParserRegistry, _resourceLoaders)
+            : new TemplateExpander(_limits, _contentParserRegistry, _resourceLoaders);
         var templateProcessor = _filterRegistry is not null
             ? new TemplateProcessor(_limits, _filterRegistry)
             : new TemplateProcessor(_limits);
 
         var pipeline = new TemplatePipeline(expander, templateProcessor);
-        var processedTemplate = pipeline.Process(template, data);
+        var processedTemplate = await pipeline.ProcessAsync(template, data).ConfigureAwait(false);
 
         var uris = ImageSharpRenderingEngine.CollectImageUris(processedTemplate);
         if (uris.Count == 0)

@@ -31,7 +31,7 @@ namespace FlexRender.SvgElement.Providers;
 /// or the SVG's intrinsic dimensions if not specified.
 /// </para>
 /// </remarks>
-public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement>, IResourceLoaderAware, ISkiaNativeProvider<Parsing.Ast.SvgElement>
+public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement>, IResourceLoaderAware, ISvgContentCacheAware, ISkiaNativeProvider<Parsing.Ast.SvgElement>
 {
     /// <summary>
     /// Default rendering size when neither the element nor the SVG specifies dimensions.
@@ -50,6 +50,12 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
     private IReadOnlyList<IResourceLoader>? _loaders;
 
     /// <summary>
+    /// Pre-loaded SVG content cache populated during the async phase.
+    /// Maps source URIs to sanitized SVG content strings.
+    /// </summary>
+    private IReadOnlyDictionary<string, string>? _svgContentCache;
+
+    /// <summary>
     /// Sets the resource loaders for loading SVG content from URIs.
     /// </summary>
     /// <param name="loaders">The ordered collection of resource loaders.</param>
@@ -58,6 +64,12 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
     {
         ArgumentNullException.ThrowIfNull(loaders);
         _loaders = loaders;
+    }
+
+    /// <inheritdoc />
+    public void SetSvgContentCache(IReadOnlyDictionary<string, string>? cache)
+    {
+        _svgContentCache = cache;
     }
 
     /// <summary>
@@ -131,15 +143,21 @@ public sealed class SvgElementProvider : IContentProvider<Parsing.Ast.SvgElement
         }
         else
         {
-            // Try resource loaders first (supports HTTP, base64, embedded)
-            var svgContent = SvgContentLoader.LoadFromLoaders(_loaders, element.Src.Value!);
+            // Try SVG content cache first (pre-loaded during async phase)
+            string? svgContent = null;
+            if (_svgContentCache is not null &&
+                _svgContentCache.TryGetValue(element.Src.Value!, out var cached))
+            {
+                svgContent = cached;
+            }
+
             if (svgContent is not null)
             {
                 picture = svg.FromSvg(svgContent);
             }
             else
             {
-                // Fallback to direct file loading
+                // Fallback to direct file loading (local files only, no async needed)
                 picture = svg.Load(element.Src.Value!);
             }
         }

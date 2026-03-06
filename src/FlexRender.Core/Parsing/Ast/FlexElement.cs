@@ -42,6 +42,20 @@ public sealed class FlexElement : TemplateElement
     /// <summary>Overflow behavior for content exceeding container bounds.</summary>
     public ExprValue<Overflow> Overflow { get; set; } = Layout.Overflow.Visible;
 
+    /// <summary>Font size for this container and its children (px, em, %, fit-content).</summary>
+    /// <remarks>
+    /// <para>
+    /// When set to <c>"fit-content"</c>, the layout engine auto-calculates the font size so that
+    /// all children fit within the container width. This is particularly useful for dynamic text
+    /// that must not overflow its parent bounds.
+    /// </para>
+    /// <para>
+    /// Used internally by the NDC content parser for receipt rendering, where line widths are
+    /// constrained to a fixed paper width.
+    /// </para>
+    /// </remarks>
+    public ExprValue<string> FontSize { get; set; } = "";
+
     /// <summary>
     /// Gets or sets the child elements.
     /// The getter returns a read-only view; use setter for bulk assignment.
@@ -80,6 +94,7 @@ public sealed class FlexElement : TemplateElement
         Align = Align.Resolve(resolver, data);
         AlignContent = AlignContent.Resolve(resolver, data);
         Overflow = Overflow.Resolve(resolver, data);
+        FontSize = FontSize.Resolve(resolver, data);
         foreach (var child in Children)
             child.ResolveExpressions(resolver, data);
     }
@@ -97,6 +112,7 @@ public sealed class FlexElement : TemplateElement
         Align = Align.Materialize(nameof(Align));
         AlignContent = AlignContent.Materialize(nameof(AlignContent));
         Overflow = Overflow.Materialize(nameof(Overflow));
+        FontSize = FontSize.Materialize(nameof(FontSize), ValueKind.Size);
         foreach (var child in Children)
             child.Materialize();
     }

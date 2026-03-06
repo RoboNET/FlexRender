@@ -1,5 +1,7 @@
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
+using FlexRender.Layout;
+using SkiaSharp;
 using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
@@ -50,6 +52,61 @@ public sealed class SkiaRender : IFlexRender
     /// <see cref="RenderToBmp(Template, ObjectValue?, BmpOptions?, RenderOptions?, CancellationToken)"/>
     /// with <see cref="BmpOptions"/> instead.
     /// </remarks>
+    /// <summary>
+    /// Gets the font manager for registering and resolving fonts.
+    /// Intended for diagnostic and debugging tools.
+    /// </summary>
+    /// <remarks>
+    /// The underlying font cache is backed by a <see cref="System.Collections.Concurrent.ConcurrentDictionary{TKey, TValue}"/>,
+    /// making this property safe to access from multiple threads concurrently.
+    /// </remarks>
+    public FontManager FontManager => _renderer.FontManager;
+
+    /// <summary>
+    /// Computes layout for a template without rendering.
+    /// Intended for diagnostic and debugging tools.
+    /// </summary>
+    /// <param name="template">The parsed template.</param>
+    /// <param name="data">The template data.</param>
+    /// <returns>The root layout node.</returns>
+    /// <remarks>
+    /// This method is intended for debugging and testing only. For production rendering,
+    /// use <see cref="IFlexRender.Render(Template, ObjectValue?, ImageFormat, CancellationToken)"/>
+    /// or one of the format-specific <c>RenderTo*</c> methods instead.
+    /// </remarks>
+    public LayoutNode ComputeLayout(Template template, ObjectValue data) =>
+        _renderer.ComputeLayout(template, data);
+
+    /// <summary>
+    /// Measures the size required to render the template.
+    /// </summary>
+    /// <param name="template">The parsed template.</param>
+    /// <param name="data">The template data.</param>
+    /// <returns>The measured size in pixels.</returns>
+    /// <remarks>
+    /// This method is intended for debugging and testing only. For production rendering,
+    /// use <see cref="IFlexRender.Render(Template, ObjectValue?, ImageFormat, CancellationToken)"/>
+    /// or one of the format-specific <c>RenderTo*</c> methods instead.
+    /// </remarks>
+    public SKSize Measure(Template template, ObjectValue data) =>
+        _renderer.Measure(template, data);
+
+    /// <summary>
+    /// Renders the template to an existing canvas.
+    /// Intended for diagnostic and debugging tools.
+    /// </summary>
+    /// <param name="canvas">The canvas to render to.</param>
+    /// <param name="template">The parsed template.</param>
+    /// <param name="data">The template data.</param>
+    /// <remarks>
+    /// This method is intended for debugging and testing only. For production rendering,
+    /// use <see cref="IFlexRender.Render(Template, ObjectValue?, ImageFormat, CancellationToken)"/>
+    /// or one of the format-specific <c>RenderTo*</c> methods instead.
+    /// </remarks>
+    public void Render(SKCanvas canvas, Template template, ObjectValue data) =>
+        _renderer.Render(canvas, template, data);
+
+    /// <inheritdoc cref="BmpColorMode"/>
     [Obsolete("Use RenderToBmp() with BmpOptions instead. This property will be removed in a future version.")]
     public BmpColorMode BmpColorMode { get; set; } = BmpColorMode.Bgra32;
 
@@ -107,7 +164,8 @@ public sealed class SkiaRender : IFlexRender
             options,
             svgProvider,
             filterRegistry,
-            contentParserRegistry);
+            contentParserRegistry,
+            resourceLoaders);
 
         _renderer.BaseFontSize = options.BaseFontSize;
     }

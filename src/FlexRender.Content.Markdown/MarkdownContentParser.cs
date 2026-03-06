@@ -26,7 +26,7 @@ public sealed class MarkdownContentParser : IContentParser
     public string FormatName => "markdown";
 
     /// <inheritdoc />
-    public IReadOnlyList<TemplateElement> Parse(string text)
+    public IReadOnlyList<TemplateElement> Parse(string text, ContentParserContext context, IReadOnlyDictionary<string, object>? options = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         if (string.IsNullOrWhiteSpace(text)) return [];

@@ -50,6 +50,31 @@ public sealed class TemplatePipeline
     }
 
     /// <summary>
+    /// Asynchronously processes a template through the full pipeline: Expand, Resolve, Materialize.
+    /// Uses <c>await</c> for the expansion phase to support async content source resolution.
+    /// </summary>
+    /// <param name="template">The parsed template to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <returns>The expanded and resolved template with all expressions materialized.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="template"/> or <paramref name="data"/> is null.</exception>
+    public async Task<Template> ProcessAsync(Template template, ObjectValue data)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(data);
+
+        // Phase 1: Expand control flow (#if, #each, table) — async for content loading
+        var expanded = await _expander.ExpandAsync(template, data).ConfigureAwait(false);
+
+        // Phase 2: Resolve expressions in all ExprValue properties
+        ResolveAll(expanded, data);
+
+        // Phase 3: Materialize resolved strings into typed values
+        MaterializeAll(expanded);
+
+        return expanded;
+    }
+
+    /// <summary>
     /// Resolves template expressions in all <see cref="ExprValue{T}"/> properties across the template.
     /// </summary>
     /// <param name="template">The template whose properties to resolve.</param>

@@ -221,6 +221,21 @@ public sealed class FlexRenderBuilder
     }
 
     /// <summary>
+    /// Registers a binary content parser for expanding <c>type: content</c> elements with binary data.
+    /// </summary>
+    /// <param name="parser">The binary content parser to register.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parser"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a parser for this format is already registered.</exception>
+    public FlexRenderBuilder WithBinaryContentParser(IBinaryContentParser parser)
+    {
+        ArgumentNullException.ThrowIfNull(parser);
+        _contentParserRegistry ??= new ContentParserRegistry();
+        _contentParserRegistry.RegisterBinary(parser);
+        return this;
+    }
+
+    /// <summary>
     /// Clears all built-in filters, allowing only explicitly registered custom filters.
     /// </summary>
     /// <returns>This builder instance for method chaining.</returns>
