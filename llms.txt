@@ -45,6 +45,7 @@ src/FlexRender.Svg.Render/      # SVG output renderer (-> Core)
 src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers)
 src/FlexRender.Content.Markdown/  # Markdown content parser (-> Core + Markdig)
 src/FlexRender.Content.Html/      # HTML content parser (-> Core + HtmlAgilityPack)
+src/FlexRender.Content.Ndc/      # NDC (ATM receipt) content parser (-> Core)
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
 src/FlexRender.MetaPackage/     # Meta-package (core + all backends + DI)
 
@@ -84,7 +85,7 @@ Ten element types, each a sealed class extending `TemplateElement`:
 | **table** | array, as, columns (key/label/width/grow/align/format), rows, headerFont/headerFontWeight/headerFontStyle/headerFontFamily/headerColor/headerSize/headerBackground -- expands to flex tree |
 | **each** | array, as, children -- iteration over data arrays |
 | **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
-| **content** | source, format -- embeds formatted text (Markdown/HTML) parsed into AST subtree at render time. Requires content parser: `.WithMarkdown()` or `.WithHtml()` |
+| **content** | source, format, options -- embeds formatted text (Markdown/HTML/NDC) parsed into AST subtree at render time. Requires content parser: `.WithMarkdown()` or `.WithHtml()` or `.WithNdc()` |
 
 All elements share common properties from `TemplateElement`: padding, margin, background, opacity, box-shadow, rotate, display (flex/none), position, top, right, bottom, left, aspectRatio, minWidth, maxWidth, minHeight, maxHeight, text-direction, border, border-top, border-right, border-bottom, border-left, border-width, border-color, border-style, border-radius.
 
@@ -273,6 +274,21 @@ Operators: truthy (no key), `equals`, `notEquals`, `in`, `notIn`, `contains`, `g
 Requires content parser registration: `.WithMarkdown()` (Markdig) or `.WithHtml()` (HtmlAgilityPack).
 Converts formatted text into FlexRender AST elements at render time (bold → FontWeight.Bold, italic → FontStyle.Italic, headings, lists, etc.).
 
+Content source supports: plain text, `base64:` binary, `file:` URI, `text:` prefix, `{{variable}}` bound to `string` or `BytesValue` (`byte[]`/`Stream`).
+Binary sources pass `ReadOnlyMemory<byte>` directly to `IBinaryContentParser` implementations (e.g., NDC parser).
+
+#### NDC Content
+```yaml
+- type: content
+  source: "{{receiptData}}"
+  format: ndc
+  options:
+    columns: 40
+    font_family: "JetBrains Mono"
+```
+
+Requires NDC parser registration: `.WithNdc()` (FlexRender.Content.Ndc). Parses binary NDC ATM printer data streams. Supports charset switching, QWERTY→JCUKEN encoding, embedded barcodes, auto font sizing.
+
 ## Supported Units
 
 - `px` -- pixels (default when no unit specified)
@@ -353,6 +369,7 @@ var render = new FlexRenderBuilder()
     .WithLimits(limits => limits.MaxRenderDepth = 200)
     .WithMarkdown()   // optional: Markdown content parsing
     .WithHtml()       // optional: HTML content parsing
+    .WithNdc()        // optional: NDC ATM receipt parsing
     .WithSkia(skia => skia
         .WithQr()
         .WithBarcode()
@@ -559,6 +576,7 @@ Minimal, focused templates -- one feature per file:
 | FlexRender.MetaPackage | All | -- |
 | FlexRender.Content.Markdown | Core | Markdig 1.1.1 |
 | FlexRender.Content.Html | Core | HtmlAgilityPack 1.12.4 |
+| FlexRender.Content.Ndc | Core | (none) |
 | flexrender-cli | All | System.CommandLine |
 
 **Linux/Docker:** SkiaSharp requires native libraries. Add `SkiaSharp.NativeAssets.Linux` (or `.NoDependencies` for minimal containers) to your executable project to avoid `DllNotFoundException: libSkiaSharp`. When using `FlexRender.HarfBuzz`, also add `HarfBuzzSharp.NativeAssets.Linux` to avoid `DllNotFoundException: libHarfBuzzSharp`.

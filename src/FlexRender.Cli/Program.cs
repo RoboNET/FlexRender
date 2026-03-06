@@ -8,6 +8,7 @@ using FlexRender.QrCode;
 using FlexRender.QrCode.ImageSharp;
 using FlexRender.Content.Html;
 using FlexRender.Content.Markdown;
+using FlexRender.Content.Ndc;
 using FlexRender.Rendering;
 using FlexRender.SvgElement;
 using FlexRender.TemplateEngine;
@@ -77,7 +78,8 @@ public sealed class Program
         var builder = new FlexRenderBuilder()
             .WithHttpLoader()
             .WithMarkdown()
-            .WithHtml();
+            .WithHtml()
+            .WithNdc();
 
         switch (backend)
         {
@@ -120,21 +122,31 @@ public sealed class Program
     }
 
     /// <summary>
-    /// Creates a configured <see cref="SkiaRenderer"/> with content parsers registered.
+    /// Creates a configured <see cref="SkiaRenderer"/> with content parsers and resource loaders registered.
     /// Used by commands that need direct Skia API access (e.g., debug-layout).
     /// </summary>
+    /// <param name="basePath">Optional base path for resolving relative file paths.</param>
     /// <returns>A configured <see cref="SkiaRenderer"/> instance. The caller is responsible for disposing it.</returns>
-    internal static SkiaRenderer CreateSkiaRenderer()
+    internal static SkiaRenderer CreateSkiaRenderer(string? basePath = null)
     {
         var registry = new ContentParserRegistry();
         registry.Register(new MarkdownContentParser());
         registry.Register(new HtmlContentParser());
+        var ndcParser = new NdcContentParser();
+        registry.Register(ndcParser);
+        registry.RegisterBinary(ndcParser);
+        var options = basePath is not null
+            ? new FlexRenderOptions { BasePath = basePath }
+            : new FlexRenderOptions();
+        var loaders = new Abstractions.IResourceLoader[] { new Loaders.FileResourceLoader(options) };
         return new SkiaRenderer(
             new ResourceLimits(),
             qrProvider: null,
             barcodeProvider: null,
             imageLoader: null,
-            contentParserRegistry: registry);
+            options: options,
+            contentParserRegistry: registry,
+            resourceLoaders: loaders);
     }
 
     /// <summary>

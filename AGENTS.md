@@ -56,6 +56,7 @@ src/FlexRender.ImageSharp.Render/ # ImageSharp renderer (-> Core + SixLabors.Ima
 src/FlexRender.ImageSharp/      # ImageSharp backend meta-package (renderer + providers)
 src/FlexRender.Svg.Render/      # SVG output renderer (-> Core)
 src/FlexRender.Svg/             # SVG backend meta-package (renderer + providers)
+src/FlexRender.Content.Ndc/      # NDC (ATM receipt) content parser (-> Core)
 src/FlexRender.DependencyInjection/  # Microsoft.Extensions.DI integration
 src/FlexRender.MetaPackage/     # Meta-package (core + all backends + DI)
 
@@ -167,8 +168,8 @@ byte[] png = await render.Render(_templates["receipt"], data);
 |-------|------------|
 | Configuration | `FlexRenderBuilder`, `SkiaBuilder`, `FlexRenderOptions`, `ResourceLimits` |
 | Abstractions | `IFlexRender`, `IResourceLoader` |
-| Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `TableElement`, `TableColumn`, `TableRow`, `EachElement`, `IfElement` |
-| Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext`, `InlineExpressionParser`, `InlineExpressionEvaluator`, `FilterRegistry`, `ITemplateFilter` |
+| Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `TableElement`, `TableColumn`, `TableRow`, `EachElement`, `IfElement`, `ContentElement` |
+| Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext`, `InlineExpressionParser`, `InlineExpressionEvaluator`, `FilterRegistry`, `ITemplateFilter`, `ContentSourceResolver` |
 | Layout | `LayoutEngine`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize`, `Unit`, `UnitParser`, `MarginValue`, `MarginValues`, `PaddingParser.ParseMargin` |
 | Rendering (Skia) | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder`, `BoxShadowParser`, `GradientParser` |
 | Rendering (ImageSharp) | `ImageSharpRender` (IFlexRender impl), `ImageSharpRenderingEngine`, `ImageSharpTextRenderer`, `ImageSharpFontManager` |
@@ -176,6 +177,7 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | Loaders | `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader` |
 | DI | `ServiceCollectionExtensions.AddFlexRender()` |
 | Values | `TemplateValue` (abstract), `StringValue`, `NumberValue`, `BoolValue`, `NullValue`, `ArrayValue`, `ObjectValue` |
+| Content Parsers | `IContentParser`, `IBinaryContentParser`, `ContentParserRegistry`, `ContentSourceResolver`, `NdcContentParser` |
 
 ## Coding Conventions
 
@@ -317,6 +319,7 @@ The release workflow (`.github/workflows/release.yml`) publishes all packages to
 | QR providers | `FlexRender.QrCode.Skia.Render`, `FlexRender.QrCode.ImageSharp.Render`, `FlexRender.QrCode.Svg.Render` |
 | Barcode providers | `FlexRender.Barcode.Skia.Render`, `FlexRender.Barcode.ImageSharp.Render`, `FlexRender.Barcode.Svg.Render` |
 | SvgElement providers | `FlexRender.SvgElement.Skia.Render`, `FlexRender.SvgElement.Svg.Render` |
+| Content parsers | `FlexRender.Content.Markdown`, `FlexRender.Content.Html`, `FlexRender.Content.Ndc` |
 | Extensions | `FlexRender.HarfBuzz` |
 | Meta (backend) | `FlexRender.Skia`, `FlexRender.ImageSharp`, `FlexRender.Svg` |
 | Meta (feature) | `FlexRender.QrCode`, `FlexRender.Barcode`, `FlexRender.SvgElement` |

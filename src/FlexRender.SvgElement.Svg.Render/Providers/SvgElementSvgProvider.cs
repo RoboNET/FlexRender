@@ -9,9 +9,15 @@ namespace FlexRender.SvgElement.Svg.Providers;
 /// Provides SVG-native rendering for SVG elements.
 /// Loads inline SVG content or resolves SVG sources via resource loaders and returns markup.
 /// </summary>
-public sealed class SvgElementSvgProvider : ISvgContentProvider<Parsing.Ast.SvgElement>, IResourceLoaderAware
+public sealed class SvgElementSvgProvider : ISvgContentProvider<Parsing.Ast.SvgElement>, IResourceLoaderAware, ISvgContentCacheAware
 {
     private IReadOnlyList<IResourceLoader>? _loaders;
+
+    /// <summary>
+    /// Pre-loaded SVG content cache populated during the async phase.
+    /// Maps source URIs to sanitized SVG content strings.
+    /// </summary>
+    private IReadOnlyDictionary<string, string>? _svgContentCache;
 
     /// <summary>
     /// Sets the resource loaders for loading SVG content from URIs.
@@ -22,6 +28,12 @@ public sealed class SvgElementSvgProvider : ISvgContentProvider<Parsing.Ast.SvgE
     {
         ArgumentNullException.ThrowIfNull(loaders);
         _loaders = loaders;
+    }
+
+    /// <inheritdoc />
+    public void SetSvgContentCache(IReadOnlyDictionary<string, string>? cache)
+    {
+        _svgContentCache = cache;
     }
 
     /// <summary>
@@ -57,10 +69,11 @@ public sealed class SvgElementSvgProvider : ISvgContentProvider<Parsing.Ast.SvgE
                 nameof(element));
         }
 
-        var svgContent = SvgContentLoader.LoadFromLoaders(_loaders, element.Src.Value!);
-        if (svgContent is not null)
+        // Try SVG content cache first (pre-loaded during async phase)
+        if (_svgContentCache is not null &&
+            _svgContentCache.TryGetValue(element.Src.Value!, out var cached))
         {
-            return SvgFormatting.SanitizeSvgContent(svgContent);
+            return SvgFormatting.SanitizeSvgContent(cached);
         }
 
         // Fallback to direct file loading if resource loaders were not available.

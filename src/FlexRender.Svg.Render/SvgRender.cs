@@ -45,6 +45,7 @@ public sealed class SvgRender : IFlexRender
     /// <param name="barcodeSvgProvider">Optional SVG-native barcode provider for vector barcode embedding.</param>
     /// <param name="svgElementSvgProvider">Optional SVG-native SVG element provider.</param>
     /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for resolving file-based content sources.</param>
     internal SvgRender(
         ResourceLimits limits,
         FlexRenderOptions options,
@@ -54,7 +55,8 @@ public sealed class SvgRender : IFlexRender
         ISvgContentProvider<QrElement>? qrSvgProvider = null,
         ISvgContentProvider<BarcodeElement>? barcodeSvgProvider = null,
         ISvgContentProvider<SvgElement>? svgElementSvgProvider = null,
-        ContentParserRegistry? contentParserRegistry = null)
+        ContentParserRegistry? contentParserRegistry = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(options);
@@ -62,7 +64,7 @@ public sealed class SvgRender : IFlexRender
         _rasterRenderer = rasterRenderer;
 
         var templateProcessor = new TemplateProcessor(limits);
-        var expander = new TemplateExpander(limits, contentParserRegistry);
+        var expander = new TemplateExpander(limits, contentParserRegistry, resourceLoaders);
         var pipeline = new TemplatePipeline(expander, templateProcessor);
         var layoutEngine = new LayoutEngine(limits);
         layoutEngine.TextShaper = new ApproximateTextShaper();
@@ -78,7 +80,8 @@ public sealed class SvgRender : IFlexRender
             barcodeProvider,
             qrSvgProvider,
             barcodeSvgProvider,
-            svgElementSvgProvider);
+            svgElementSvgProvider,
+            resourceLoaders);
     }
 
     // ========================================================================
@@ -95,7 +98,7 @@ public sealed class SvgRender : IFlexRender
     /// <returns>The SVG markup as a string.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the renderer has been disposed.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="layoutTemplate"/> is null.</exception>
-    public Task<string> RenderToSvg(
+    public async Task<string> RenderToSvg(
         Template layoutTemplate,
         ObjectValue? data = null,
         RenderOptions? renderOptions = null,
@@ -107,9 +110,7 @@ public sealed class SvgRender : IFlexRender
         cancellationToken.ThrowIfCancellationRequested();
 
         var effectiveData = data ?? new ObjectValue();
-        var svg = _svgEngine.RenderToSvg(layoutTemplate, effectiveData);
-
-        return Task.FromResult(svg);
+        return await _svgEngine.RenderToSvgAsync(layoutTemplate, effectiveData, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

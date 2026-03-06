@@ -39,6 +39,37 @@ public sealed class ContentElementTests
     }
 
     /// <summary>
+    /// Verifies that Options defaults to null.
+    /// </summary>
+    [Fact]
+    public void Options_DefaultsToNull()
+    {
+        var element = new ContentElement();
+        Assert.Null(element.Options);
+    }
+
+    /// <summary>
+    /// Verifies that Options can be set to a dictionary with nested values.
+    /// </summary>
+    [Fact]
+    public void Options_CanBeSetToDictionary()
+    {
+        var options = new Dictionary<string, object>
+        {
+            ["input_encoding"] = "cp866",
+            ["charsets"] = new Dictionary<string, object>
+            {
+                ["I"] = new Dictionary<string, object> { ["bold"] = true }
+            }
+        };
+
+        var element = new ContentElement { Options = options };
+
+        Assert.NotNull(element.Options);
+        Assert.Equal("cp866", element.Options["input_encoding"]);
+    }
+
+    /// <summary>
     /// Verifies that ResolveExpressions resolves Source and Format expressions,
     /// and Materialize populates the typed values.
     /// </summary>

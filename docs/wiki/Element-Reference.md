@@ -1451,7 +1451,7 @@ Renders tabular data with configurable columns, optional header row, and support
 
 ## Content Element (Control Flow)
 
-Embeds dynamically formatted text (Markdown, HTML, etc.) from template data. The `source` text is parsed at render time into a subtree of FlexRender elements using pluggable content parsers.
+Embeds dynamically formatted content (Markdown, HTML, NDC binary data, etc.) from template data. The `source` supports multiple input types: plain text, `base64:`-encoded binary data, `file:` URIs, `text:` prefixed strings, and template variables bound to `string` or `byte[]` (`BytesValue`). The source is parsed at render time into a subtree of FlexRender elements using pluggable content parsers.
 
 This is a **control-flow element** — like `each` and `if`, it is expanded during template processing and does not appear in the final render tree.
 
@@ -1465,8 +1465,46 @@ This is a **control-flow element** — like `each` and `if`, it is expanded duri
 
 | Property | YAML Name | Type | Default | Valid Values | Expression | Description |
 |----------|-----------|------|---------|--------------|-----------|-------------|
-| Source | `source` | string | `""` | Any string, typically `{{variable}}` | Yes | The formatted text to parse. Usually bound to a data variable. |
+| Source | `source` | string | `""` | Any string, typically `{{variable}}` | Yes | The content to parse. Supports plain text, `base64:` binary, `file:` URIs, `text:` prefix, and `{{variable}}` expressions resolving to `string` or `BytesValue` (`byte[]`). See [Content Source Resolution](#content-source-resolution) below. |
 | Format | `format` | string | `""` | `markdown`, `html`, or any registered parser name | Yes | The content format. Must match a registered `IContentParser.FormatName`. |
+| Options | `options` | dict? | `null` | Key-value dictionary | No | Parser-specific options (e.g., NDC `columns`, `charsets`). Passed to the content parser. |
+
+### Content Source Resolution
+
+The `source` property is resolved at render time through `ContentSourceResolver`, which supports multiple input types:
+
+| Source Format | Example | Resolved As | Description |
+|---------------|---------|-------------|-------------|
+| Template variable (`BytesValue`) | `source: "{{rawData}}"` | Binary (`byte[]`) | When `{{variable}}` resolves to `BytesValue` in the data context, binary data is passed directly to `IBinaryContentParser`. No string encoding overhead. |
+| `base64:` prefix | `source: "base64:SGVsbG8="` | Binary (`byte[]`) | Base64-encoded payload decoded into bytes. Useful for embedding binary data in JSON/YAML. |
+| `file:` scheme | `source: "file:receipt.bin"` | Binary (`byte[]`) | Loads content via registered resource loaders (file system, HTTP, embedded). Also supports `file:///` URIs. Throws if file not found. |
+| `text:` prefix | `source: "text:# Hello"` | Text (`string`) | Forces text interpretation, skipping file path detection. |
+| File path heuristic | `source: "receipt.md"` | Binary (`byte[]`) | If source looks like a file path (contains `/`, `\`, or a file extension), tries resource loaders first. Falls back to text if no loader matches. |
+| Plain text | `source: "**bold text**"` | Text (`string`) | Default fallback -- treated as literal text content. |
+
+**Resolution order:** The resolver processes sources in the order listed above. The first matching rule wins.
+
+**Binary vs Text parsers:**
+- `IContentParser` receives text (`string`) -- used by Markdown, HTML parsers
+- `IBinaryContentParser` receives binary data (`ReadOnlyMemory<byte>`) -- used by NDC parser
+- When source resolves to binary and the parser implements `IBinaryContentParser`, bytes are passed directly without encoding conversion
+- When source resolves to binary but the parser only implements `IContentParser`, bytes are decoded as UTF-8 text
+
+**Data binding examples:**
+
+```csharp
+// String data -- parsed as text
+var data = new ObjectValue { ["body"] = new StringValue("# Hello World") };
+
+// Binary data -- passed directly to IBinaryContentParser
+var data = new ObjectValue { ["receiptData"] = new BytesValue(ndcBytes) };
+
+// Binary data with MIME type
+var data = new ObjectValue { ["receiptData"] = new BytesValue(ndcBytes, "application/octet-stream") };
+
+// From Stream
+var data = new ObjectValue { ["receiptData"] = BytesValue.FromStream(stream) };
+```
 
 ### Supported Formats
 
@@ -1474,6 +1512,7 @@ This is a **control-flow element** — like `each` and `if`, it is expanded duri
 |--------|---------|----------------|---------|
 | `markdown` | `FlexRender.Content.Markdown` | `.WithMarkdown()` | Markdig |
 | `html` | `FlexRender.Content.Html` | `.WithHtml()` | HtmlAgilityPack |
+| `ndc` | `FlexRender.Content.Ndc` | `.WithNdc()` | (none) |
 
 ### Element Mapping
 
@@ -1489,6 +1528,71 @@ Content parsers convert formatted text into standard FlexRender elements:
 | Horizontal rule (`---` or `<hr>`) | `SeparatorElement` |
 | Image (`![](url)` or `<img>`) | `ImageElement` |
 | Code (`` `code` `` or `<code>`) | `TextElement { Background = "#f0f0f0" }` |
+
+### NDC Format Options
+
+The `ndc` format parses binary NDC (NCR ATM protocol) printer data streams from ATM/banking terminals. It supports both text and binary input via `IContentParser` and `IBinaryContentParser`.
+
+#### Properties
+
+The `content` element with `format: ndc` supports an `options` block:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `columns` | int | 40 | Maximum characters per line (auto-wrapping) |
+| `input_encoding` | string | `"latin1"` | Input byte encoding (`latin1`, `utf-8`, `iso-8859-1`, `ascii`) |
+| `font_family` | string | null | Global font family for all text |
+| `char_width_ratio` | double | 0.6 | Character width as fraction of font size |
+| `charsets` | dict | `{}` | Per-charset style overrides (see below) |
+
+#### Charset Style Properties
+
+Each charset designator (e.g., `"1"`, `"I"`, `">"`) can have individual styling:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `font` | string | null | Font registration name |
+| `font_family` | string | null | Font family (overrides global) |
+| `font_style` | string | null | `"bold"`, `"italic"`, `"bold-italic"`, `"regular"` |
+| `font_size` | int | null | Explicit font size in pixels |
+| `color` | string | null | Hex color (e.g., `"#333333"`) |
+| `encoding` | string | null | Character encoding: `"qwerty-jcuken"`, `"none"`, `"ascii"` |
+| `uppercase` | bool | false | Convert text to uppercase |
+
+#### Example: NDC Receipt
+
+```yaml
+canvas:
+  fixed: width
+  width: 384
+  background: "#ffffff"
+
+fonts:
+  - "assets/fonts/JetBrainsMono-Regular.ttf"
+  - "assets/fonts/JetBrainsMono-Bold.ttf"
+
+layout:
+  - type: content
+    source: "{{receiptData}}"
+    format: ndc
+    options:
+      columns: 40
+      input_encoding: latin1
+      font_family: "JetBrains Mono"
+      charsets:
+        "1":
+          encoding: "qwerty-jcuken"
+          font_style: bold
+```
+
+Data (JSON with base64-encoded NDC binary):
+```json
+{
+  "receiptData": "base64:G1sxfjQwHSgxHQ=="
+}
+```
+
+The NDC parser produces `TextElement`, `BarcodeElement`, and `SeparatorElement` nodes with auto-calculated font sizes based on the parent element width.
 
 ### Example: Markdown Content
 

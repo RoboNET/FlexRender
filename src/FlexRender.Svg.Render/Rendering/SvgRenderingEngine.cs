@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Text;
+using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Layout;
 using FlexRender.Layout.Units;
+using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
 using FlexRender.Rendering;
@@ -27,6 +29,7 @@ internal sealed class SvgRenderingEngine
     private readonly ISvgContentProvider<QrElement>? _qrSvgProvider;
     private readonly ISvgContentProvider<BarcodeElement>? _barcodeSvgProvider;
     private readonly ISvgContentProvider<SvgElement>? _svgElementSvgProvider;
+    private readonly IReadOnlyList<IResourceLoader>? _resourceLoaders;
     private readonly FlexRenderOptions? _options;
 
     /// <summary>
@@ -42,6 +45,7 @@ internal sealed class SvgRenderingEngine
     /// <param name="qrSvgProvider">Optional SVG-native QR code provider for vector QR code embedding.</param>
     /// <param name="barcodeSvgProvider">Optional SVG-native barcode provider for vector barcode embedding.</param>
     /// <param name="svgElementSvgProvider">Optional SVG-native SVG element provider.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for pre-loading SVG content.</param>
     internal SvgRenderingEngine(
         ResourceLimits limits,
         TemplatePipeline pipeline,
@@ -52,7 +56,8 @@ internal sealed class SvgRenderingEngine
         IContentProvider<BarcodeElement>? barcodeProvider = null,
         ISvgContentProvider<QrElement>? qrSvgProvider = null,
         ISvgContentProvider<BarcodeElement>? barcodeSvgProvider = null,
-        ISvgContentProvider<SvgElement>? svgElementSvgProvider = null)
+        ISvgContentProvider<SvgElement>? svgElementSvgProvider = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
     {
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -67,6 +72,59 @@ internal sealed class SvgRenderingEngine
         _qrSvgProvider = qrSvgProvider;
         _barcodeSvgProvider = barcodeSvgProvider;
         _svgElementSvgProvider = svgElementSvgProvider;
+        _resourceLoaders = resourceLoaders;
+    }
+
+    /// <summary>
+    /// Renders a template with data to SVG markup asynchronously,
+    /// pre-loading SVG content from resource loaders during the async phase.
+    /// </summary>
+    /// <param name="template">The template to render.</param>
+    /// <param name="data">The data for variable substitution.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The SVG markup as a string.</returns>
+    internal async Task<string> RenderToSvgAsync(Template template, ObjectValue data, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(data);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Pre-load SVG content from resource loaders during async phase
+        var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
+        var svgUris = SvgContentLoader.CollectSvgUris(processedTemplate);
+        Dictionary<string, string>? svgContentCache = null;
+
+        if (svgUris.Count > 0 && _resourceLoaders is not null && _resourceLoaders.Count > 0)
+        {
+            svgContentCache = new Dictionary<string, string>(svgUris.Count, StringComparer.Ordinal);
+            foreach (var uri in svgUris)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var content = await SvgContentLoader.LoadFromLoaders(_resourceLoaders, uri).ConfigureAwait(false);
+                if (content is not null)
+                {
+                    svgContentCache[uri] = content;
+                }
+            }
+        }
+
+        // Set cache on provider, render sync, then clear
+        if (_svgElementSvgProvider is ISvgContentCacheAware cacheAware)
+        {
+            cacheAware.SetSvgContentCache(svgContentCache);
+        }
+
+        try
+        {
+            return RenderToSvg(template, data);
+        }
+        finally
+        {
+            if (_svgElementSvgProvider is ISvgContentCacheAware cacheAwareCleanup)
+            {
+                cacheAwareCleanup.SetSvgContentCache(null);
+            }
+        }
     }
 
     /// <summary>

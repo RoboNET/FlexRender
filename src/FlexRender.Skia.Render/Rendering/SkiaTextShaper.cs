@@ -43,6 +43,7 @@ public sealed class SkiaTextShaper : ITextShaper
             return new TextShapingResult(
                 Array.Empty<string>(),
                 new LayoutSize(0f, 0f),
+                0f,
                 0f);
         }
 
@@ -59,6 +60,7 @@ public sealed class SkiaTextShaper : ITextShaper
             return new TextShapingResult(
                 Array.Empty<string>(),
                 new LayoutSize(0f, 0f),
+                0f,
                 0f);
         }
 
@@ -73,11 +75,13 @@ public sealed class SkiaTextShaper : ITextShaper
         var defaultLineHeight = Math.Abs(font.Metrics.Top) + font.Metrics.Bottom;
         var lineHeight = LineHeightResolver.Resolve(element.LineHeight.Value, font.Size, defaultLineHeight);
         var totalHeight = lines.Count * lineHeight;
+        var baseline = Math.Abs(font.Metrics.Top);
 
         return new TextShapingResult(
             lines,
             new LayoutSize(maxLineWidth, totalHeight),
-            lineHeight);
+            lineHeight,
+            baseline);
     }
 
     /// <summary>

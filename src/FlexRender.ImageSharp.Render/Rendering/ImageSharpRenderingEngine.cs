@@ -1,3 +1,4 @@
+using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.ImageSharp.Providers;
 using FlexRender.Layout;
@@ -28,6 +29,7 @@ internal sealed class ImageSharpRenderingEngine
     private readonly float _baseFontSize;
     private readonly IImageSharpContentProvider<QrElement>? _qrProvider;
     private readonly IImageSharpContentProvider<BarcodeElement>? _barcodeProvider;
+    private readonly IReadOnlyList<IResourceLoader>? _resourceLoaders;
 
     /// <summary>
     /// Initializes a new instance of the rendering engine.
@@ -39,6 +41,7 @@ internal sealed class ImageSharpRenderingEngine
     /// <param name="qrProvider">Optional QR code provider for ImageSharp rendering.</param>
     /// <param name="barcodeProvider">Optional barcode provider for ImageSharp rendering.</param>
     /// <param name="options">Optional rendering configuration options for path resolution.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for resolving file-based content sources.</param>
     internal ImageSharpRenderingEngine(
         ImageSharpTextRenderer textRenderer,
         ImageSharpFontManager fontManager,
@@ -46,7 +49,8 @@ internal sealed class ImageSharpRenderingEngine
         float baseFontSize,
         IImageSharpContentProvider<QrElement>? qrProvider = null,
         IImageSharpContentProvider<BarcodeElement>? barcodeProvider = null,
-        FlexRenderOptions? options = null)
+        FlexRenderOptions? options = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
     {
         ArgumentNullException.ThrowIfNull(textRenderer);
         ArgumentNullException.ThrowIfNull(fontManager);
@@ -59,6 +63,7 @@ internal sealed class ImageSharpRenderingEngine
         _baseFontSize = baseFontSize;
         _qrProvider = qrProvider;
         _barcodeProvider = barcodeProvider;
+        _resourceLoaders = resourceLoaders;
     }
 
     /// <summary>
@@ -99,8 +104,8 @@ internal sealed class ImageSharpRenderingEngine
         {
             // Expand, resolve, and materialize template via the Core pipeline
             var expander = filterRegistry is not null
-                ? new TemplateExpander(_limits, filterRegistry, contentParserRegistry)
-                : new TemplateExpander(_limits, contentParserRegistry);
+                ? new TemplateExpander(_limits, filterRegistry, contentParserRegistry, _resourceLoaders)
+                : new TemplateExpander(_limits, contentParserRegistry, _resourceLoaders);
             var templateProcessor = filterRegistry is not null
                 ? new TemplateProcessor(_limits, filterRegistry)
                 : new TemplateProcessor(_limits);
@@ -203,7 +208,7 @@ internal sealed class ImageSharpRenderingEngine
         }
 
         // Draw element-specific content
-        DrawElement(ctx, node.Element, x, y, node.Width, node.Height, imageCache);
+        DrawElement(ctx, node, x, y, node.Width, node.Height, imageCache);
 
         // Recursively render children
         foreach (var child in node.Children)
@@ -214,25 +219,27 @@ internal sealed class ImageSharpRenderingEngine
 
     private void DrawElement(
         IImageProcessingContext ctx,
-        TemplateElement element,
+        LayoutNode node,
         float x,
         float y,
         float width,
         float height,
         IReadOnlyDictionary<string, Image<Rgba32>>? imageCache)
     {
+        var element = node.Element;
+        var effectiveFontSize = node.ComputedFontSize > 0 ? node.ComputedFontSize : _baseFontSize;
         var rotation = RotationHelper.ParseRotation(element.Rotate.Value);
 
         if (RotationHelper.HasRotation(rotation))
         {
             DrawWithRotation(ctx, x, y, width, height, rotation, bufferCtx =>
             {
-                DrawElementContent(bufferCtx, element, 0, 0, width, height, imageCache);
+                DrawElementContent(bufferCtx, element, 0, 0, width, height, effectiveFontSize, imageCache);
             });
         }
         else
         {
-            DrawElementContent(ctx, element, x, y, width, height, imageCache);
+            DrawElementContent(ctx, element, x, y, width, height, effectiveFontSize, imageCache);
         }
     }
 
@@ -245,6 +252,7 @@ internal sealed class ImageSharpRenderingEngine
     /// <param name="y">Y position of the element.</param>
     /// <param name="width">Width of the element.</param>
     /// <param name="height">Height of the element.</param>
+    /// <param name="fontSize">The effective font size in pixels for this element.</param>
     /// <param name="imageCache">Optional pre-loaded image cache.</param>
     private void DrawElementContent(
         IImageProcessingContext ctx,
@@ -253,12 +261,13 @@ internal sealed class ImageSharpRenderingEngine
         float y,
         float width,
         float height,
+        float fontSize,
         IReadOnlyDictionary<string, Image<Rgba32>>? imageCache)
     {
         switch (element)
         {
             case TextElement text:
-                _textRenderer.DrawText(ctx, text, x, y, width, height, _baseFontSize);
+                _textRenderer.DrawText(ctx, text, x, y, width, height, fontSize);
                 break;
 
             case SeparatorElement separator:

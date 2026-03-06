@@ -91,7 +91,8 @@ public static class SvgBuilderExtensions
                 svgBuilder.QrSvgProvider,
                 svgBuilder.BarcodeSvgProvider,
                 svgBuilder.SvgElementSvgProvider,
-                b.ContentParserRegistry);
+                b.ContentParserRegistry,
+                b.ResourceLoaders);
         });
 
         return builder;

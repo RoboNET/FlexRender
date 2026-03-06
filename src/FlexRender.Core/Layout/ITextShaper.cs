@@ -3,15 +3,21 @@ using FlexRender.Parsing.Ast;
 namespace FlexRender.Layout;
 
 /// <summary>
-/// Result of text shaping: pre-computed line breaks, total size, and line height.
+/// Result of text shaping: pre-computed line breaks, total size, line height, and baseline.
 /// </summary>
 /// <param name="Lines">The text split into individual lines after wrapping, max-lines, and ellipsis processing.</param>
 /// <param name="TotalSize">The bounding box size of all lines combined.</param>
 /// <param name="LineHeight">The computed line height in pixels used for vertical spacing.</param>
+/// <param name="Baseline">
+/// Distance from the top of the text content area to the first text baseline, in pixels.
+/// Used for <see cref="AlignItems.Baseline"/> alignment.
+/// Zero when no text is present.
+/// </param>
 public readonly record struct TextShapingResult(
     IReadOnlyList<string> Lines,
     LayoutSize TotalSize,
-    float LineHeight);
+    float LineHeight,
+    float Baseline);
 
 /// <summary>
 /// Abstraction for measuring text and computing line breaks.

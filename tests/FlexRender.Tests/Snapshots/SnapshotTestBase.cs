@@ -87,6 +87,15 @@ public abstract class SnapshotTestBase : IDisposable
         var fontPath = Path.Combine(_snapshotsBasePath, "Fonts", "Inter-Regular.ttf");
         _renderer.FontManager.RegisterFont("main", fontPath);
         _renderer.FontManager.RegisterFont("default", fontPath);
+
+        // Register JetBrains Mono for monospaced receipt rendering
+        var monoFontPath = Path.Combine(_snapshotsBasePath, "Fonts", "JetBrainsMono-Regular.ttf");
+        if (File.Exists(monoFontPath))
+            _renderer.FontManager.RegisterFont("jetbrains-mono", monoFontPath);
+
+        var monoBoldFontPath = Path.Combine(_snapshotsBasePath, "Fonts", "JetBrainsMono-Bold.ttf");
+        if (File.Exists(monoBoldFontPath))
+            _renderer.FontManager.RegisterFont("jetbrains-mono-bold", monoBoldFontPath);
     }
 
     /// <summary>

@@ -30,6 +30,7 @@ public sealed class LayoutEngineTextShaperTests
                 return new TextShapingResult(
                     Array.Empty<string>(),
                     new LayoutSize(0f, 0f),
+                    0f,
                     0f);
             }
 
@@ -93,7 +94,8 @@ public sealed class LayoutEngineTextShaperTests
             return new TextShapingResult(
                 lines,
                 new LayoutSize(maxLineWidth, totalHeight),
-                lineHeight);
+                lineHeight,
+                fontSize * 0.85f);
         }
     }
 

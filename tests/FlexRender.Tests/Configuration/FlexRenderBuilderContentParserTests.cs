@@ -46,9 +46,34 @@ public sealed class FlexRenderBuilderContentParserTests
         Assert.Null(builder.ContentParserRegistry);
     }
 
+    [Fact]
+    public void WithBinaryContentParser_RegistersParser()
+    {
+        var builder = new FlexRenderBuilder();
+
+        var result = builder.WithBinaryContentParser(new StubBinaryContentParser("ndc"));
+
+        Assert.Same(builder, result);
+        Assert.NotNull(builder.ContentParserRegistry);
+    }
+
+    [Fact]
+    public void WithBinaryContentParser_NullParser_ThrowsArgumentNull()
+    {
+        var builder = new FlexRenderBuilder();
+
+        Assert.Throws<ArgumentNullException>(() => builder.WithBinaryContentParser(null!));
+    }
+
     private sealed class StubContentParser(string formatName) : IContentParser
     {
         public string FormatName => formatName;
-        public IReadOnlyList<TemplateElement> Parse(string text) => [];
+        public IReadOnlyList<TemplateElement> Parse(string text, ContentParserContext context, IReadOnlyDictionary<string, object>? options = null) => [];
+    }
+
+    private sealed class StubBinaryContentParser(string formatName) : IBinaryContentParser
+    {
+        public string FormatName => formatName;
+        public IReadOnlyList<TemplateElement> Parse(ReadOnlyMemory<byte> data, ContentParserContext context, IReadOnlyDictionary<string, object>? options = null) => [];
     }
 }

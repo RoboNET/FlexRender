@@ -47,6 +47,20 @@ public sealed class LayoutNode
     /// </summary>
     public float ComputedLineHeight { get; set; }
 
+    /// <summary>
+    /// Distance from the top of this node to the first text baseline.
+    /// Used for <see cref="AlignItems.Baseline"/> alignment.
+    /// Zero for non-text elements (they use their height as baseline fallback).
+    /// </summary>
+    public float Baseline { get; set; }
+
+    /// <summary>
+    /// The effective font size in pixels for this node, as resolved during layout.
+    /// Includes inherited font-size from parent containers (e.g., fit-content on FlexElement).
+    /// Used by renderers to draw text at the correct size instead of the global base font size.
+    /// </summary>
+    public float ComputedFontSize { get; set; }
+
     /// <summary>Right edge (X + Width).</summary>
     public float Right => X + Width;
 

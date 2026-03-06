@@ -1,0 +1,26 @@
+## NDC Receipt -- Test Bank B (balance)
+## Usage: flexrender render ndc-receipt-bank-b.yaml -o bank-b.png
+
+fonts:
+  default: "assets/fonts/JetBrainsMono-Regular.ttf"
+  bold: "assets/fonts/JetBrainsMono-Bold.ttf"
+
+canvas:
+  width: 576
+  background: "#ffffff"
+  fixed: width
+
+layout:
+  - type: content
+    source: "file:ndc-data/bank-b-balance.txt"
+    format: ndc
+    options:
+      columns: 40
+      input_encoding: utf-8
+      font_family: JetBrains Mono
+      charsets:
+        I:
+          font: bold
+          font_style: bold
+        "1":
+          font: default

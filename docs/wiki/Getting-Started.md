@@ -48,6 +48,7 @@ Install only what you need:
 | `FlexRender.SvgElement` | SvgElement meta-package (all renderers) | Svg.Skia |
 | `FlexRender.Content.Markdown` | Markdown content parsing for `type: content` | Markdig |
 | `FlexRender.Content.Html` | HTML content parsing for `type: content` | HtmlAgilityPack |
+| `FlexRender.Content.Ndc` | NDC (ATM receipt) content parsing for `type: content` | (none) |
 | `FlexRender.HarfBuzz` | HarfBuzz text shaping for Arabic/Hebrew | SkiaSharp.HarfBuzz |
 | `FlexRender.Http` | HTTP/HTTPS resource loading | None |
 | `FlexRender.DependencyInjection` | Microsoft DI integration | Microsoft.Extensions.DI |
@@ -196,6 +197,7 @@ Native rendering via SkiaSharp. Best quality, widest feature set.
 var render = new FlexRenderBuilder()
     .WithMarkdown()      // Markdown content parsing
     .WithHtml()          // HTML content parsing
+    .WithNdc()           // NDC ATM receipt parsing
     .WithSkia(skia => skia
         .WithQr()        // QR code support
         .WithBarcode()   // Barcode support
@@ -205,7 +207,7 @@ var render = new FlexRenderBuilder()
 
 - **Formats:** PNG, JPEG, BMP, Raw
 - **Requires:** `SkiaSharp.NativeAssets.Linux` on Linux/Docker
-- **Optional:** `.WithHarfBuzz()` for Arabic/Hebrew text shaping, `.WithMarkdown()` / `.WithHtml()` for content parsing
+- **Optional:** `.WithHarfBuzz()` for Arabic/Hebrew text shaping, `.WithMarkdown()` / `.WithHtml()` / `.WithNdc()` for content parsing
 - **Best for:** Desktop apps, servers with native library support
 
 ### ImageSharp Backend

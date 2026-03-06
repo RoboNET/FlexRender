@@ -3,6 +3,7 @@ using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Layout;
 using FlexRender.Layout.Units;
+using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
 using FlexRender.TemplateEngine;
@@ -28,6 +29,7 @@ internal sealed class RenderingEngine
     private readonly float _baseFontSize;
     private readonly FilterRegistry? _filterRegistry;
     private readonly ContentParserRegistry? _contentParserRegistry;
+    private readonly IReadOnlyList<IResourceLoader>? _resourceLoaders;
     private readonly FontManager? _fontManager;
     private readonly FlexRenderOptions? _renderingOptions;
 
@@ -48,6 +50,7 @@ internal sealed class RenderingEngine
     /// <param name="fontManager">Optional font manager for creating culture-aware pipelines.</param>
     /// <param name="renderingOptions">Optional rendering options for creating culture-aware pipelines.</param>
     /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
+    /// <param name="resourceLoaders">Optional resource loaders for resolving file-based content sources.</param>
     internal RenderingEngine(
         TextRenderer textRenderer,
         IContentProvider<QrElement>? qrProvider,
@@ -62,7 +65,8 @@ internal sealed class RenderingEngine
         FilterRegistry? filterRegistry = null,
         FontManager? fontManager = null,
         FlexRenderOptions? renderingOptions = null,
-        ContentParserRegistry? contentParserRegistry = null)
+        ContentParserRegistry? contentParserRegistry = null,
+        IReadOnlyList<IResourceLoader>? resourceLoaders = null)
     {
         ArgumentNullException.ThrowIfNull(textRenderer);
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -81,6 +85,7 @@ internal sealed class RenderingEngine
         _baseFontSize = baseFontSize;
         _filterRegistry = filterRegistry;
         _contentParserRegistry = contentParserRegistry;
+        _resourceLoaders = resourceLoaders;
         _fontManager = fontManager;
         _renderingOptions = renderingOptions;
     }
@@ -283,8 +288,9 @@ internal sealed class RenderingEngine
         var width = node.Width;
         var height = node.Height;
         var direction = node.Direction;
+        var effectiveFontSize = node.ComputedFontSize > 0 ? node.ComputedFontSize : _baseFontSize;
         // Resolve border-radius for background clipping and border rendering
-        var borderRadius = ResolveBorderRadius(element, width, height, _baseFontSize);
+        var borderRadius = ResolveBorderRadius(element, width, height, effectiveFontSize);
 
         // Draw background if specified (supports solid colors and gradients)
         if (!string.IsNullOrEmpty(element.Background.Value))
@@ -293,13 +299,13 @@ internal sealed class RenderingEngine
         }
 
         // Draw borders between background and content
-        DrawBorders(canvas, element, x, y, width, height, borderRadius, _baseFontSize);
+        DrawBorders(canvas, element, x, y, width, height, borderRadius, effectiveFontSize);
 
         switch (element)
         {
             case TextElement text:
                 var bounds = new SKRect(x, y, x + width, y + height);
-                _textRenderer.DrawText(canvas, text, bounds, _baseFontSize, renderOptions, direction, node.TextLines, node.ComputedLineHeight);
+                _textRenderer.DrawText(canvas, text, bounds, effectiveFontSize, renderOptions, direction, node.TextLines, node.ComputedLineHeight);
                 break;
 
             case QrElement qr when _qrProvider is not null:
@@ -649,7 +655,7 @@ internal sealed class RenderingEngine
         ObjectValue data,
         CancellationToken cancellationToken)
     {
-        var processedTemplate = _pipeline.Process(template, data);
+        var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
         var uris = CollectImageUris(processedTemplate);
         var cache = new Dictionary<string, SKBitmap>(uris.Count, StringComparer.Ordinal);
@@ -661,6 +667,47 @@ internal sealed class RenderingEngine
             if (bitmap is not null)
             {
                 cache[uri] = bitmap;
+            }
+        }
+
+        return cache;
+    }
+
+    /// <summary>
+    /// Sets the SVG content cache on the SVG provider if it implements <see cref="ISvgContentCacheAware"/>.
+    /// </summary>
+    /// <param name="cache">The cache to set, or null to clear.</param>
+    internal void SetSvgContentCache(IReadOnlyDictionary<string, string>? cache)
+    {
+        if (_svgProvider is ISvgContentCacheAware cacheAware)
+        {
+            cacheAware.SetSvgContentCache(cache);
+        }
+    }
+
+    /// <summary>
+    /// Pre-loads all SVG content from the template asynchronously using the resource loaders.
+    /// </summary>
+    /// <param name="template">The template containing SVG element references.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A dictionary mapping SVG source URIs to loaded and sanitized SVG content.</returns>
+    internal async Task<Dictionary<string, string>> PreloadSvgContentAsync(
+        Template template,
+        ObjectValue data,
+        CancellationToken cancellationToken)
+    {
+        var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
+        var uris = SvgContentLoader.CollectSvgUris(processedTemplate);
+        var cache = new Dictionary<string, string>(uris.Count, StringComparer.Ordinal);
+
+        foreach (var uri in uris)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var content = await SvgContentLoader.LoadFromLoaders(_resourceLoaders, uri).ConfigureAwait(false);
+            if (content is not null)
+            {
+                cache[uri] = content;
             }
         }
 
@@ -867,7 +914,7 @@ internal sealed class RenderingEngine
             return _pipeline;
         }
 
-        var expander = new TemplateExpander(_limits, _filterRegistry, effectiveCulture, _contentParserRegistry);
+        var expander = new TemplateExpander(_limits, _filterRegistry, effectiveCulture, _contentParserRegistry, _resourceLoaders);
         var processor = new TemplateProcessor(_limits, _filterRegistry, effectiveCulture);
 
         return new TemplatePipeline(expander, processor);

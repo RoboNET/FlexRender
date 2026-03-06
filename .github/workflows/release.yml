@@ -77,6 +77,7 @@ jobs:
             src/FlexRender.SvgElement/FlexRender.SvgElement.csproj \
             src/FlexRender.Content.Markdown/FlexRender.Content.Markdown.csproj \
             src/FlexRender.Content.Html/FlexRender.Content.Html.csproj \
+            src/FlexRender.Content.Ndc/FlexRender.Content.Ndc.csproj \
             src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj \
             src/FlexRender.MetaPackage/FlexRender.MetaPackage.csproj; do
             dotnet pack "$project" \

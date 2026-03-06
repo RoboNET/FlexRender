@@ -42,6 +42,12 @@ public abstract class TemplateValue : IEquatable<TemplateValue>
     public static implicit operator TemplateValue(bool value) => new BoolValue(value);
 
     /// <summary>
+    /// Implicitly converts a byte array to a <see cref="BytesValue"/>.
+    /// </summary>
+    /// <param name="value">The byte array value to convert.</param>
+    public static implicit operator TemplateValue(byte[] value) => new BytesValue(value);
+
+    /// <summary>
     /// Determines whether this value equals another <see cref="TemplateValue"/>.
     /// </summary>
     /// <param name="other">The other value to compare.</param>

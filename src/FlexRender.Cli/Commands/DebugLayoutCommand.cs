@@ -117,8 +117,10 @@ public static class DebugLayoutCommand
 
             var templateData = data ?? new ObjectValue();
 
-            // Create renderer (has TextMeasurer configured)
-            using var renderer = Program.CreateSkiaRenderer();
+            // Use the same builder as the render command for consistent configuration
+            using var flexRender = Program.CreateRenderBuilder(templateFile.DirectoryName).Build();
+            var skiaRender = flexRender as FlexRender.Skia.SkiaRender
+                ?? throw new InvalidOperationException("Debug layout requires Skia backend");
 
             // Register extra fonts from --fonts dir
             if (fontsDir is not null)
@@ -130,12 +132,24 @@ public static class DebugLayoutCommand
                 foreach (var fontPath in fontFiles)
                 {
                     var fontName = Path.GetFileNameWithoutExtension(fontPath);
-                    renderer.FontManager.RegisterFont(fontName, fontPath);
+                    skiaRender.FontManager.RegisterFont(fontName, fontPath);
                 }
             }
 
-            // Compute layout using the renderer (same as actual rendering)
-            var root = renderer.ComputeLayout(template, templateData);
+            // Compute layout using the same renderer as actual rendering
+            var root = skiaRender.ComputeLayout(template, templateData);
+
+            // Print registered fonts
+            Console.WriteLine("Fonts:");
+            foreach (var (fontName, fontPath) in skiaRender.FontManager.RegisteredFontPaths)
+            {
+                var info = skiaRender.FontManager.GetTypefaceInfo(fontName);
+                var typefaceDesc = info.HasValue
+                    ? $"{info.Value.FamilyName}, fixedPitch={info.Value.IsFixedPitch}"
+                    : "not loaded";
+                Console.WriteLine($"  {fontName}: {fontPath} -> {typefaceDesc}");
+            }
+            Console.WriteLine();
 
             // Print layout tree
             Console.WriteLine("Layout Tree:");
@@ -144,7 +158,7 @@ public static class DebugLayoutCommand
             // Optionally render debug image
             if (outputFile is not null)
             {
-                RenderDebugImage(template, root, templateData, outputFile.FullName, renderer);
+                RenderDebugImage(template, root, templateData, outputFile.FullName, skiaRender);
                 Console.WriteLine();
                 Console.WriteLine($"Debug image: {outputFile.FullName}");
             }
@@ -178,8 +192,9 @@ public static class DebugLayoutCommand
         var prefix = new string(' ', indent * 2);
         var elementType = node.Element.GetType().Name;
         var extra = GetElementExtra(node.Element);
+        var computed = GetComputedExtra(node);
 
-        Console.WriteLine($"{prefix}{elementType}: X={node.X:F1}, Y={node.Y:F1}, W={node.Width:F1}, H={node.Height:F1}{extra}");
+        Console.WriteLine($"{prefix}{elementType}: X={node.X:F1}, Y={node.Y:F1}, W={node.Width:F1}, H={node.Height:F1}{extra}{computed}");
 
         foreach (var child in node.Children)
         {
@@ -194,15 +209,68 @@ public static class DebugLayoutCommand
     /// <returns>A string with element-specific information.</returns>
     private static string GetElementExtra(TemplateElement element)
     {
-        return element switch
+        var parts = new List<string>();
+
+        switch (element)
         {
-            FlexElement f => $" [{f.Direction.ToString().ToLowerInvariant()}]",
-            TextElement t => $" \"{Truncate(t.Content.Value, 30)}\"",
-            QrElement => " [qr]",
-            BarcodeElement => " [barcode]",
-            ImageElement => " [image]",
-            _ => ""
-        };
+            case FlexElement f:
+                parts.Add(f.Direction.ToString().ToLowerInvariant());
+                if (!string.IsNullOrEmpty(f.FontSize.Value))
+                    parts.Add($"font-size={f.FontSize.Value}");
+                if (f.Align.Value != FlexRender.Layout.AlignItems.Stretch)
+                    parts.Add($"align={f.Align.Value}");
+                if (f.Justify.Value != FlexRender.Layout.JustifyContent.Start)
+                    parts.Add($"justify={f.Justify.Value}");
+                break;
+            case TextElement t:
+                parts.Add($"\"{Truncate(t.Content.Value, 30)}\"");
+                if (!string.IsNullOrEmpty(t.Size.Value))
+                    parts.Add($"size={t.Size.Value}");
+                if (!string.IsNullOrEmpty(t.Font.Value))
+                    parts.Add($"font={t.Font.Value}");
+                if (!string.IsNullOrEmpty(t.FontFamily.Value))
+                    parts.Add($"family={t.FontFamily.Value}");
+                if (t.FontWeight.Value != FlexRender.Parsing.Ast.FontWeight.Normal)
+                    parts.Add($"weight={t.FontWeight.Value}");
+                if (t.FontStyle.Value != FlexRender.Parsing.Ast.FontStyle.Normal)
+                    parts.Add($"style={t.FontStyle.Value}");
+                if (!string.IsNullOrEmpty(t.Color.Value))
+                    parts.Add($"color={t.Color.Value}");
+                break;
+            case QrElement:
+                parts.Add("qr");
+                break;
+            case BarcodeElement:
+                parts.Add("barcode");
+                break;
+            case ImageElement:
+                parts.Add("image");
+                break;
+        }
+
+        return parts.Count > 0 ? $" [{string.Join(", ", parts)}]" : "";
+    }
+
+    private static string GetComputedExtra(LayoutNode node)
+    {
+        var parts = new List<string>();
+
+        if (node.ComputedFontSize > 0)
+            parts.Add($"fontSize={node.ComputedFontSize:F1}px");
+
+        if (node.Baseline > 0)
+            parts.Add($"baseline={node.Baseline:F1}");
+
+        if (node.ComputedLineHeight > 0)
+            parts.Add($"lineH={node.ComputedLineHeight:F1}");
+
+        if (node.TextLines != null)
+            parts.Add($"lines={node.TextLines.Count}");
+
+        if (node.Direction != TextDirection.Ltr)
+            parts.Add($"dir={node.Direction}");
+
+        return parts.Count > 0 ? $" {{{string.Join(", ", parts)}}}" : "";
     }
 
     /// <summary>
@@ -212,24 +280,24 @@ public static class DebugLayoutCommand
     /// <param name="root">The root layout node.</param>
     /// <param name="data">The template data.</param>
     /// <param name="outputPath">The output file path.</param>
-    /// <param name="renderer">The renderer with fonts already registered.</param>
+    /// <param name="skiaRender">The SkiaRender instance with fonts already registered.</param>
     private static void RenderDebugImage(
         Template template,
         LayoutNode root,
         ObjectValue data,
         string outputPath,
-        SkiaRenderer renderer)
+        FlexRender.Skia.SkiaRender skiaRender)
     {
-        var size = renderer.Measure(template, data);
+        var size = skiaRender.Measure(template, data);
 
         using var bitmap = new SKBitmap((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height));
         using var canvas = new SKCanvas(bitmap);
 
         // Render template normally
-        renderer.Render(canvas, template, data);
+        skiaRender.Render(canvas, template, data);
 
         // Draw debug overlay
-        DrawDebugOverlay(canvas, root, 0, 0);
+        DrawDebugOverlay(canvas, root, 0, 0, skiaRender.FontManager);
 
         // Ensure output directory exists
         var directory = Path.GetDirectoryName(outputPath);
@@ -257,7 +325,8 @@ public static class DebugLayoutCommand
     /// <param name="node">The current layout node.</param>
     /// <param name="offsetX">The X offset from parent.</param>
     /// <param name="offsetY">The Y offset from parent.</param>
-    private static void DrawDebugOverlay(SKCanvas canvas, LayoutNode node, float offsetX, float offsetY)
+    /// <param name="fontManager">The font manager for creating fonts to measure glyph widths.</param>
+    private static void DrawDebugOverlay(SKCanvas canvas, LayoutNode node, float offsetX, float offsetY, FontManager fontManager)
     {
         var x = node.X + offsetX;
         var y = node.Y + offsetY;
@@ -294,10 +363,74 @@ public static class DebugLayoutCommand
 
         canvas.DrawRect(x, y, node.Width, node.Height, strokePaint);
 
+        // Draw per-glyph boundaries for text elements
+        if (node.Element is TextElement text && !string.IsNullOrEmpty(text.Content.Value))
+        {
+            DrawGlyphBoundaries(canvas, text, x, y, node, fontManager);
+        }
+
         // Recursively draw children
         foreach (var child in node.Children)
         {
-            DrawDebugOverlay(canvas, child, x, y);
+            DrawDebugOverlay(canvas, child, x, y, fontManager);
+        }
+    }
+
+    /// <summary>
+    /// Draws per-glyph boundary rectangles for a text element.
+    /// Spaces are highlighted with a distinct color to make whitespace visible.
+    /// </summary>
+    private static void DrawGlyphBoundaries(
+        SKCanvas canvas,
+        TextElement text,
+        float x,
+        float y,
+        LayoutNode node,
+        FontManager fontManager)
+    {
+        var fontSize = node.ComputedFontSize > 0 ? node.ComputedFontSize : 16f;
+        var typeface = fontManager.GetTypeface(text.Font.Value, text.FontFamily.Value, text.FontWeight.Value, text.FontStyle.Value);
+        using var font = new SKFont(typeface, FontSizeResolver.Resolve(text.Size.Value, fontSize));
+
+        var content = text.Content.Value;
+
+        // Compute per-character advance widths using cumulative measurement.
+        // GetGlyphWidths returns ink bounds (visual shape width), not advance width,
+        // so spaces would appear zero-width. Cumulative MeasureText gives correct advances.
+        var advances = new float[content.Length];
+        float prevWidth = 0;
+        for (var i = 0; i < content.Length; i++)
+        {
+            var cumWidth = font.MeasureText(content.AsSpan(0, i + 1));
+            advances[i] = cumWidth - prevWidth;
+            prevWidth = cumWidth;
+        }
+
+        using var glyphStroke = new SKPaint
+        {
+            Color = SKColors.Red.WithAlpha(100),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 0.5f
+        };
+        using var spaceFill = new SKPaint
+        {
+            Color = SKColors.Yellow.WithAlpha(60),
+            Style = SKPaintStyle.Fill
+        };
+
+        var glyphX = x;
+        for (var i = 0; i < advances.Length; i++)
+        {
+            var w = advances[i];
+
+            // Highlight spaces with yellow fill
+            if (content[i] == ' ')
+            {
+                canvas.DrawRect(glyphX, y, w, node.Height, spaceFill);
+            }
+
+            canvas.DrawRect(glyphX, y, w, node.Height, glyphStroke);
+            glyphX += w;
         }
     }
 
