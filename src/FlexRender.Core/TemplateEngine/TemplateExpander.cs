@@ -1345,7 +1345,7 @@ public sealed class TemplateExpander
                         }
                     }
                 }
-                catch
+                catch (Exception)
                 {
                     // Loader failed — continue to next
                 }

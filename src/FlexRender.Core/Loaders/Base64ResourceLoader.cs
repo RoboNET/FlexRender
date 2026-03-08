@@ -50,7 +50,7 @@ public sealed class Base64ResourceLoader : IResourceLoader
         }
 
         return uri.StartsWith(DataPrefix, StringComparison.OrdinalIgnoreCase)
-            || uri.StartsWith(Base64Shorthand, StringComparison.Ordinal);
+            || uri.StartsWith(Base64Shorthand, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />
@@ -70,11 +70,11 @@ public sealed class Base64ResourceLoader : IResourceLoader
         cancellationToken.ThrowIfCancellationRequested();
 
         // Normalize all variants to standard "data:" URI format
-        if (uri.StartsWith(Base64UriPrefix, StringComparison.Ordinal))
+        if (uri.StartsWith(Base64UriPrefix, StringComparison.OrdinalIgnoreCase))
         {
             uri = "data:application/octet-stream;base64," + uri[Base64UriPrefix.Length..];
         }
-        else if (uri.StartsWith(Base64Shorthand, StringComparison.Ordinal))
+        else if (uri.StartsWith(Base64Shorthand, StringComparison.OrdinalIgnoreCase))
         {
             uri = "data:application/octet-stream;base64," + uri[Base64Shorthand.Length..];
         }

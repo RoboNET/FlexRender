@@ -133,6 +133,14 @@ public sealed class FileResourceLoader : IResourceLoader
     /// <exception cref="ArgumentException">Thrown when the path is absolute or contains traversal sequences.</exception>
     private static void ValidatePathSecurity(string path)
     {
+        // Reject URL-encoded characters that could hide traversal sequences
+        if (path.Contains('%'))
+        {
+            throw new ArgumentException(
+                $"URL-encoded characters are not allowed in file paths: {path}",
+                nameof(path));
+        }
+
         if (path.Contains(".."))
         {
             throw new ArgumentException(

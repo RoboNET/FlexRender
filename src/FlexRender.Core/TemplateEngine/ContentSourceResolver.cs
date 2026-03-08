@@ -64,7 +64,7 @@ public sealed class ContentSourceResolver
             }
         }
 
-        // Step 6: No loader handled it — treat as plain text content
+        // Step 5: No loader handled it — treat as plain text content
         return new TextContent(resolvedSource);
     }
 
