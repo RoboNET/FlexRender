@@ -1119,14 +1119,15 @@ public sealed class TemplateExpander
     }
 
     /// <summary>
-    /// If the source expression is a single variable that resolves to a <see cref="BytesValue"/>,
-    /// converts the binary data to a <c>data:</c> URI with base64 encoding.
+    /// If the source expression is a single <c>{{variable}}</c> that resolves to a <see cref="BytesValue"/>,
+    /// returns that value so it can be attached to <see cref="ExprValue{T}.Bytes"/> without
+    /// base64 encoding/decoding overhead.
     /// Returns <c>null</c> when the expression is not a single variable or does not resolve to bytes.
     /// </summary>
-    /// <param name="source">The expression value holding the image source.</param>
+    /// <param name="source">The expression value holding the image/svg source.</param>
     /// <param name="context">The template context for variable resolution.</param>
-    /// <returns>A <c>data:</c> URI string, or <c>null</c> if not applicable.</returns>
-    private static string? TryResolveBytesAsDataUri(ExprValue<string> source, TemplateContext context)
+    /// <returns>The resolved <see cref="BytesValue"/>, or <c>null</c> if not applicable.</returns>
+    private static BytesValue? TryResolveBytesValue(ExprValue<string> source, TemplateContext context)
     {
         var raw = source.RawValue ?? source.Value;
         if (raw is null)
@@ -1143,11 +1144,7 @@ public sealed class TemplateExpander
             return null;
 
         var resolved = ExpressionEvaluator.Resolve(inner, context);
-        if (resolved is not BytesValue bytes)
-            return null;
-
-        var mime = bytes.MimeType ?? "application/octet-stream";
-        return $"data:{mime};base64,{Convert.ToBase64String(bytes.Value)}";
+        return resolved as BytesValue;
     }
 
     private TextElement CloneTextElement(TextElement text, TemplateContext context)
@@ -1177,12 +1174,18 @@ public sealed class TemplateExpander
 
     private ImageElement CloneImageElement(ImageElement image, TemplateContext context)
     {
-        var resolvedSrc = TryResolveBytesAsDataUri(image.Src, context)
-                          ?? SubstituteVariables(image.Src.Value, context);
+        var bytesValue = TryResolveBytesValue(image.Src, context);
+        var resolvedSrc = bytesValue is not null
+            ? image.Src.Value ?? ""
+            : SubstituteVariables(image.Src.Value, context);
+
+        ExprValue<string> srcExpr = resolvedSrc ?? "";
+        if (bytesValue is not null)
+            srcExpr = srcExpr.WithBytes(bytesValue);
 
         var clone = new ImageElement
         {
-            Src = resolvedSrc,
+            Src = srcExpr,
             ImageWidth = image.ImageWidth,
             ImageHeight = image.ImageHeight,
             Fit = image.Fit,
@@ -1198,9 +1201,18 @@ public sealed class TemplateExpander
 
     private SvgElement CloneSvgElement(SvgElement svg, TemplateContext context)
     {
+        var bytesValue = TryResolveBytesValue(svg.Src, context);
+        var resolvedSrc = bytesValue is not null
+            ? svg.Src.Value ?? ""
+            : SubstituteVariables(svg.Src.Value, context);
+
+        ExprValue<string> srcExpr = resolvedSrc ?? "";
+        if (bytesValue is not null)
+            srcExpr = srcExpr.WithBytes(bytesValue);
+
         var clone = new SvgElement
         {
-            Src = SubstituteVariables(svg.Src.Value, context),
+            Src = srcExpr,
             Content = SubstituteVariables(svg.Content.Value, context),
             SvgWidth = svg.SvgWidth,
             SvgHeight = svg.SvgHeight,
