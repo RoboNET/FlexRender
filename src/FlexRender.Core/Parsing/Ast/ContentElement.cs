@@ -33,6 +33,23 @@ public sealed class ContentElement : TemplateElement
     public IReadOnlyDictionary<string, object>? Options { get; set; }
 
     /// <inheritdoc />
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        var clone = new ContentElement
+        {
+            Source = substitutor(Source.RawValue ?? Source.Value) ?? "",
+            Format = substitutor(Format.RawValue ?? Format.Value) ?? "",
+            Options = Options
+        };
+        CopyBasePropertiesTo(clone, substitutor);
+        // ContentElement uses RawValue ?? Value for Background to preserve expression context
+        clone.Background = substitutor(Background.RawValue ?? Background.Value)!;
+        return clone;
+    }
+
+    /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {
         base.ResolveExpressions(resolver, data);

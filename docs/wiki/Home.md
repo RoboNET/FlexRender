@@ -97,6 +97,7 @@ byte[] png = await render.RenderFile("template.yaml", data);
 | [[Template-Expressions]] | Variables, loops, conditionals with 13 operators |
 | [[Flexbox-Layout]] | Direction, justify, align, wrapping, grow/shrink, positioning |
 | [[Render-Options]] | Per-call options: antialiasing, font hinting, format-specific settings |
+| [[Cookbook]] | Copy-paste recipes: receipts, labels, tickets, NDC, conditional content |
 | [[CLI-Reference]] | Commands, options, AOT publishing |
 | [[API-Reference]] | IFlexRender, builder, DI, extension methods, types |
 | [[Contributing]] | Build, test, architecture, coding conventions |

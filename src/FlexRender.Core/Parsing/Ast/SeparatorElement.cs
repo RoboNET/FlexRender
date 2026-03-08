@@ -70,6 +70,22 @@ public sealed class SeparatorElement : TemplateElement
     public ExprValue<string> Color { get; set; } = "#000000";
 
     /// <inheritdoc />
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        var clone = new SeparatorElement
+        {
+            Orientation = Orientation,
+            Style = Style,
+            Thickness = Thickness,
+            Color = Color
+        };
+        CopyBasePropertiesTo(clone, substitutor);
+        return clone;
+    }
+
+    /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {
         base.ResolveExpressions(resolver, data);

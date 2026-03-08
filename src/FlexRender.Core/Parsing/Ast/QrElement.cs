@@ -59,6 +59,22 @@ public sealed class QrElement : TemplateElement
     public ExprValue<string> Foreground { get; set; } = "#000000";
 
     /// <inheritdoc />
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        var clone = new QrElement
+        {
+            Data = substitutor(Data.Value) ?? "",
+            Size = Size,
+            ErrorCorrection = ErrorCorrection,
+            Foreground = Foreground
+        };
+        CopyBasePropertiesTo(clone, substitutor);
+        return clone;
+    }
+
+    /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {
         base.ResolveExpressions(resolver, data);

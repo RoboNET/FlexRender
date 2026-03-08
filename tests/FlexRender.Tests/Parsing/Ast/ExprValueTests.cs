@@ -287,4 +287,44 @@ public sealed class ExprValueTests
         var v = ExprValue<float>.RawLiteral("0.5", 0.5f);
         Assert.Equal("Raw(0.5)=0.5", v.ToString());
     }
+
+    // === BytesValue ===
+
+    [Fact]
+    public void WithBytes_StoresBytesValue()
+    {
+        ExprValue<string> v = "logo.png";
+        var bytes = new BytesValue(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png");
+        var withBytes = v.WithBytes(bytes);
+
+        Assert.Equal("logo.png", withBytes.Value);
+        Assert.NotNull(withBytes.Bytes);
+        Assert.Equal(bytes, withBytes.Bytes);
+    }
+
+    [Fact]
+    public void WithBytes_PreservesAllProperties()
+    {
+        var v = ExprValue<string>.Expression("{{logo}}");
+        var bytes = new BytesValue([0x01, 0x02], "image/png");
+        var withBytes = v.WithBytes(bytes);
+
+        Assert.True(withBytes.IsExpression);
+        Assert.Equal("{{logo}}", withBytes.RawValue);
+        Assert.Same(bytes, withBytes.Bytes);
+    }
+
+    [Fact]
+    public void Default_HasNullBytes()
+    {
+        var v = default(ExprValue<string>);
+        Assert.Null(v.Bytes);
+    }
+
+    [Fact]
+    public void ImplicitConversion_HasNullBytes()
+    {
+        ExprValue<string> v = "hello";
+        Assert.Null(v.Bytes);
+    }
 }

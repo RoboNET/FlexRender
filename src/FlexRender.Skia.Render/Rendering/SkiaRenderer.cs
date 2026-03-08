@@ -220,12 +220,10 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, _defaultRenderOptions).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
-            : null;
+        var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
@@ -253,11 +251,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         finally
         {
             _renderingEngine.SetSvgContentCache(null);
-            if (imageCache is not null)
-            {
-                foreach (var bmp in imageCache.Values)
-                    bmp.Dispose();
-            }
+            foreach (var bmp in imageCache.Values)
+                bmp.Dispose();
         }
     }
 
@@ -286,12 +281,10 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, _defaultRenderOptions).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
-            : null;
+        var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
@@ -304,11 +297,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         finally
         {
             _renderingEngine.SetSvgContentCache(null);
-            if (imageCache is not null)
-            {
-                foreach (var bmp in imageCache.Values)
-                    bmp.Dispose();
-            }
+            foreach (var bmp in imageCache.Values)
+                bmp.Dispose();
         }
     }
 
@@ -339,12 +329,10 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
-            : null;
+        var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
@@ -367,11 +355,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         finally
         {
             _renderingEngine.SetSvgContentCache(null);
-            if (imageCache is not null)
-            {
-                foreach (var bmp in imageCache.Values)
-                    bmp.Dispose();
-            }
+            foreach (var bmp in imageCache.Values)
+                bmp.Dispose();
         }
     }
 
@@ -409,12 +394,10 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
-            : null;
+        var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
@@ -437,11 +420,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         finally
         {
             _renderingEngine.SetSvgContentCache(null);
-            if (imageCache is not null)
-            {
-                foreach (var bmp in imageCache.Values)
-                    bmp.Dispose();
-            }
+            foreach (var bmp in imageCache.Values)
+                bmp.Dispose();
         }
     }
 
@@ -472,12 +452,10 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
-            : null;
+        var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
@@ -498,11 +476,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         finally
         {
             _renderingEngine.SetSvgContentCache(null);
-            if (imageCache is not null)
-            {
-                foreach (var bmp in imageCache.Values)
-                    bmp.Dispose();
-            }
+            foreach (var bmp in imageCache.Values)
+                bmp.Dispose();
         }
     }
 
@@ -531,12 +506,10 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
-            : null;
+        var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
@@ -559,11 +532,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         finally
         {
             _renderingEngine.SetSvgContentCache(null);
-            if (imageCache is not null)
-            {
-                foreach (var bmp in imageCache.Values)
-                    bmp.Dispose();
-            }
+            foreach (var bmp in imageCache.Values)
+                bmp.Dispose();
         }
     }
 

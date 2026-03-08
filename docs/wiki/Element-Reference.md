@@ -1451,7 +1451,7 @@ Renders tabular data with configurable columns, optional header row, and support
 
 ## Content Element (Control Flow)
 
-Embeds dynamically formatted content (Markdown, HTML, NDC binary data, etc.) from template data. The `source` supports multiple input types: plain text, `base64:`-encoded binary data, `file:` URIs, `text:` prefixed strings, and template variables bound to `string` or `byte[]` (`BytesValue`). The source is parsed at render time into a subtree of FlexRender elements using pluggable content parsers.
+Embeds dynamically formatted content (Markdown, HTML, NDC binary data, etc.) from template data. The `source` supports multiple input types: plain text, `data:` URI-encoded binary data, `file:` URIs, `text:` prefixed strings, and template variables bound to `string` or `byte[]` (`BytesValue`). The source is parsed at render time into a subtree of FlexRender elements using pluggable content parsers.
 
 This is a **control-flow element** — like `each` and `if`, it is expanded during template processing and does not appear in the final render tree.
 
@@ -1465,18 +1465,18 @@ This is a **control-flow element** — like `each` and `if`, it is expanded duri
 
 | Property | YAML Name | Type | Default | Valid Values | Expression | Description |
 |----------|-----------|------|---------|--------------|-----------|-------------|
-| Source | `source` | string | `""` | Any string, typically `{{variable}}` | Yes | The content to parse. Supports plain text, `base64:` binary, `file:` URIs, `text:` prefix, and `{{variable}}` expressions resolving to `string` or `BytesValue` (`byte[]`). See [Content Source Resolution](#content-source-resolution) below. |
+| Source | `source` | string | `""` | Any string, typically `{{variable}}` | Yes | The content to parse. Supports plain text, `data:` URI binary, `file:` URIs, `text:` prefix, and `{{variable}}` expressions resolving to `string` or `BytesValue` (`byte[]`). See [Content Source Resolution](#content-source-resolution) below. |
 | Format | `format` | string | `""` | `markdown`, `html`, or any registered parser name | Yes | The content format. Must match a registered `IContentParser.FormatName`. |
 | Options | `options` | dict? | `null` | Key-value dictionary | No | Parser-specific options (e.g., NDC `columns`, `charsets`). Passed to the content parser. |
 
 ### Content Source Resolution
 
-The `source` property is resolved at render time through `ContentSourceResolver`, which supports multiple input types:
+The `source` property is resolved at render time by `TemplateExpander`, which supports multiple input types:
 
 | Source Format | Example | Resolved As | Description |
 |---------------|---------|-------------|-------------|
 | Template variable (`BytesValue`) | `source: "{{rawData}}"` | Binary (`byte[]`) | When `{{variable}}` resolves to `BytesValue` in the data context, binary data is passed directly to `IBinaryContentParser`. No string encoding overhead. |
-| `base64:` prefix | `source: "base64:SGVsbG8="` | Binary (`byte[]`) | Base64-encoded payload decoded into bytes. Useful for embedding binary data in JSON/YAML. |
+| `data:` URI | `source: "data:;base64,SGVsbG8="` | Binary (`byte[]`) | Data URI with base64-encoded payload decoded into bytes. MIME type is optional (e.g., `data:application/octet-stream;base64,...`). Useful for embedding binary data in JSON/YAML. |
 | `file:` scheme | `source: "file:receipt.bin"` | Binary (`byte[]`) | Loads content via registered resource loaders (file system, HTTP, embedded). Also supports `file:///` URIs. Throws if file not found. |
 | `text:` prefix | `source: "text:# Hello"` | Text (`string`) | Forces text interpretation, skipping file path detection. |
 | File path heuristic | `source: "receipt.md"` | Binary (`byte[]`) | If source looks like a file path (contains `/`, `\`, or a file extension), tries resource loaders first. Falls back to text if no loader matches. |
@@ -1585,10 +1585,10 @@ layout:
           font_style: bold
 ```
 
-Data (JSON with base64-encoded NDC binary):
+Data (JSON with data URI-encoded NDC binary):
 ```json
 {
-  "receiptData": "base64:G1sxfjQwHSgxHQ=="
+  "receiptData": "data:application/octet-stream;base64,G1sxfjQwHSgxHQ=="
 }
 ```
 

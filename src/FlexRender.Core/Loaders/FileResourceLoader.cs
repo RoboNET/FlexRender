@@ -13,8 +13,6 @@ namespace FlexRender.Loaders;
 /// </remarks>
 public sealed class FileResourceLoader : IResourceLoader
 {
-    private static readonly string[] UrlPrefixes = ["http://", "https://", "data:", "embedded://"];
-
     private readonly FlexRenderOptions _options;
 
     /// <summary>
@@ -37,7 +35,8 @@ public sealed class FileResourceLoader : IResourceLoader
 
     /// <inheritdoc />
     /// <remarks>
-    /// Returns <c>true</c> for URIs that do not start with http://, https://, data:, or embedded://.
+    /// Returns <c>true</c> for URIs that look like file paths or use the "file:" / "file://" scheme.
+    /// Rejects anything with other URI schemes (e.g., "http://", "data:", "base64:", "embedded://").
     /// </remarks>
     public bool CanHandle(string uri)
     {
@@ -46,9 +45,41 @@ public sealed class FileResourceLoader : IResourceLoader
             return false;
         }
 
-        foreach (var prefix in UrlPrefixes)
+        // Allow "file:" and "file://" scheme — this loader handles local files
+        if (uri.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
         {
-            if (uri.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return true;
+        }
+
+        // Reject any URI with a "://" scheme (e.g., "http://", "data://", "custom://")
+        if (uri.Contains("://", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // Reject scheme-like prefixes without "://" (e.g., "data:", "base64:")
+        // A URI scheme is [a-zA-Z][a-zA-Z0-9+.-]*: (min 2 chars to exclude Windows drive letters like "C:")
+        var colonIndex = uri.IndexOf(':');
+        if (colonIndex > 1 && colonIndex < 20)
+        {
+            var scheme = uri.AsSpan(0, colonIndex);
+            if (char.IsLetter(scheme[0]) && IsValidScheme(scheme))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks whether a span represents a valid URI scheme (letters, digits, +, ., -).
+    /// </summary>
+    private static bool IsValidScheme(ReadOnlySpan<char> scheme)
+    {
+        foreach (var c in scheme)
+        {
+            if (!char.IsLetterOrDigit(c) && c != '+' && c != '.' && c != '-')
             {
                 return false;
             }
@@ -70,9 +101,19 @@ public sealed class FileResourceLoader : IResourceLoader
             return Task.FromResult<Stream?>(null);
         }
 
-        ValidatePathSecurity(uri);
+        // Strip file: scheme prefix if present
+        // Supports: "file:///path" (RFC 8089), "file://path", "file:path"
+        var path = uri;
+        if (path.StartsWith("file:///", StringComparison.OrdinalIgnoreCase))
+            path = path["file:///".Length..];
+        else if (path.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            path = path["file://".Length..];
+        else if (path.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+            path = path["file:".Length..];
 
-        var fullPath = ResolvePath(uri);
+        ValidatePathSecurity(path);
+
+        var fullPath = ResolvePath(path);
 
         if (!File.Exists(fullPath))
         {
@@ -86,37 +127,57 @@ public sealed class FileResourceLoader : IResourceLoader
     }
 
     /// <summary>
-    /// Validates the path for security issues such as path traversal attacks.
+    /// Validates the path for security issues: path traversal and absolute paths.
     /// </summary>
     /// <param name="path">The path to validate.</param>
-    /// <exception cref="ArgumentException">Thrown when path traversal is detected.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is absolute or contains traversal sequences.</exception>
     private static void ValidatePathSecurity(string path)
     {
+        // Reject URL-encoded characters that could hide traversal sequences
+        if (path.Contains('%'))
+        {
+            throw new ArgumentException(
+                $"URL-encoded characters are not allowed in file paths: {path}",
+                nameof(path));
+        }
+
         if (path.Contains(".."))
         {
             throw new ArgumentException(
                 $"Invalid path (path traversal detected): {path}",
                 nameof(path));
         }
+
+        if (Path.IsPathRooted(path))
+        {
+            throw new ArgumentException(
+                $"Absolute paths are not allowed for security reasons: {path}. Use relative paths resolved against BasePath.",
+                nameof(path));
+        }
     }
 
     /// <summary>
-    /// Resolves a relative or absolute path to a full file system path.
+    /// Resolves a relative path against BasePath and validates the result stays within bounds.
     /// </summary>
-    /// <param name="path">The path to resolve.</param>
+    /// <param name="path">The relative path to resolve.</param>
     /// <returns>The fully resolved absolute path.</returns>
+    /// <exception cref="ArgumentException">Thrown when the resolved path escapes the base directory.</exception>
     private string ResolvePath(string path)
     {
-        if (Path.IsPathRooted(path))
+        var basePath = !string.IsNullOrEmpty(_options.BasePath)
+            ? Path.GetFullPath(_options.BasePath)
+            : Path.GetFullPath(".");
+
+        var fullPath = Path.GetFullPath(Path.Combine(basePath, path));
+
+        // Ensure the resolved path is still within the base directory
+        if (!fullPath.StartsWith(basePath, StringComparison.Ordinal))
         {
-            return Path.GetFullPath(path);
+            throw new ArgumentException(
+                $"Path '{path}' resolves outside the base directory.",
+                nameof(path));
         }
 
-        if (!string.IsNullOrEmpty(_options.BasePath))
-        {
-            return Path.GetFullPath(Path.Combine(_options.BasePath, path));
-        }
-
-        return Path.GetFullPath(path);
+        return fullPath;
     }
 }

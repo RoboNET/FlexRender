@@ -13,6 +13,9 @@ namespace FlexRender.Loaders;
 public sealed class Base64ResourceLoader : IResourceLoader
 {
     private const string DataPrefix = "data:";
+    private const string DataUriPrefix = "data://";
+    private const string Base64Shorthand = "base64:";
+    private const string Base64UriPrefix = "base64://";
 
     private readonly FlexRenderOptions _options;
 
@@ -36,7 +39,8 @@ public sealed class Base64ResourceLoader : IResourceLoader
 
     /// <inheritdoc />
     /// <remarks>
-    /// Returns <c>true</c> for URIs that start with "data:".
+    /// Returns <c>true</c> for URIs that start with "data:", "data://", "base64:", or "base64://".
+    /// All shorthand forms are normalized to standard "data:" URI format internally.
     /// </remarks>
     public bool CanHandle(string uri)
     {
@@ -45,7 +49,8 @@ public sealed class Base64ResourceLoader : IResourceLoader
             return false;
         }
 
-        return uri.StartsWith(DataPrefix, StringComparison.OrdinalIgnoreCase);
+        return uri.StartsWith(DataPrefix, StringComparison.OrdinalIgnoreCase)
+            || uri.StartsWith(Base64Shorthand, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />
@@ -63,6 +68,21 @@ public sealed class Base64ResourceLoader : IResourceLoader
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Normalize all variants to standard "data:" URI format
+        if (uri.StartsWith(Base64UriPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            uri = "data:application/octet-stream;base64," + uri[Base64UriPrefix.Length..];
+        }
+        else if (uri.StartsWith(Base64Shorthand, StringComparison.OrdinalIgnoreCase))
+        {
+            uri = "data:application/octet-stream;base64," + uri[Base64Shorthand.Length..];
+        }
+        else if (uri.StartsWith(DataUriPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            // "data://mime;base64,payload" → "data:mime;base64,payload"
+            uri = DataPrefix + uri[DataUriPrefix.Length..];
+        }
 
         var base64Data = ExtractBase64Data(uri);
         ValidateDataSize(base64Data);

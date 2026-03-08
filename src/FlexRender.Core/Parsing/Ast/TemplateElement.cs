@@ -288,6 +288,74 @@ public abstract class TemplateElement
     }
 
     /// <summary>
+    /// Creates a shallow clone with string-valued properties substituted via the provided function.
+    /// Override in derived classes to handle subclass-specific properties.
+    /// </summary>
+    /// <param name="substitutor">Function to substitute template variables in string values.</param>
+    /// <returns>A new element with variables substituted.</returns>
+    public abstract TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor);
+
+    /// <summary>
+    /// Copies base properties from this element to the target, substituting string values where needed.
+    /// Called by <see cref="CloneWithSubstitution"/> implementations.
+    /// </summary>
+    /// <param name="target">The target element to copy properties to.</param>
+    /// <param name="substitutor">Function to substitute template variables in string values.</param>
+    protected void CopyBasePropertiesTo(TemplateElement target, Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        // Properties requiring per-element substitution
+        target.Rotate = Rotate;
+        target.Background = substitutor(Background.Value)!;
+        target.Padding = Padding;
+        target.Margin = Margin;
+
+        // Flex-item properties (copied as-is)
+        target.Grow = Grow;
+        target.Shrink = Shrink;
+        target.Basis = Basis;
+        target.AlignSelf = AlignSelf;
+        target.Order = Order;
+        target.Width = Width;
+        target.Height = Height;
+        target.MinWidth = MinWidth;
+        target.MaxWidth = MaxWidth;
+        target.MinHeight = MinHeight;
+        target.MaxHeight = MaxHeight;
+
+        // Position properties
+        target.Position = Position;
+        target.Top = Top;
+        target.Right = Right;
+        target.Bottom = Bottom;
+        target.Left = Left;
+
+        // Other base properties
+        target.Display = Display;
+        target.AspectRatio = AspectRatio;
+
+        // Border properties
+        target.Border = Border;
+        target.BorderWidth = BorderWidth;
+        target.BorderColor = BorderColor;
+        target.BorderStyle = BorderStyle;
+        target.BorderTop = BorderTop;
+        target.BorderRight = BorderRight;
+        target.BorderBottom = BorderBottom;
+        target.BorderLeft = BorderLeft;
+        target.BorderRadius = BorderRadius;
+
+        // Text direction
+        target.TextDirection = TextDirection;
+
+        // Visual effects
+        target.Opacity = Opacity;
+        target.BoxShadow = BoxShadow;
+    }
+
+    /// <summary>
     /// Copies all base flex-item and positioning properties from source to target element.
     /// Properties that require per-element transformation (Background, Rotate, Padding, Margin)
     /// are intentionally excluded and must be set by each caller.

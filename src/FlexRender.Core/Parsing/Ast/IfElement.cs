@@ -11,6 +11,11 @@ public sealed class IfElement : TemplateElement
     /// </summary>
     public override ElementType Type => ElementType.If;
 
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">Always thrown. IfElement is expanded, not cloned.</exception>
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+        => throw new NotSupportedException("IfElement should be expanded, not cloned.");
+
     /// <summary>
     /// Gets or sets the path to the value used for condition evaluation.
     /// Example: "isPremium" or "order.status".
