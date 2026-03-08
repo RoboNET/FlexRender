@@ -49,6 +49,12 @@ public readonly struct ExprValue<T>
     public bool IsResolved { get; private init; }
 
     /// <summary>
+    /// Gets the resolved binary data when the source expression resolved to a <see cref="BytesValue"/>.
+    /// Allows binary data to flow through the pipeline without base64 encoding/decoding overhead.
+    /// </summary>
+    public BytesValue? Bytes { get; private init; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ExprValue{T}"/> struct from a typed literal.
     /// No expression, value is set directly.
     /// </summary>
@@ -158,6 +164,16 @@ public readonly struct ExprValue<T>
             IsExpression = false,
             IsResolved = true
         };
+    }
+
+    /// <summary>
+    /// Creates a copy of this <see cref="ExprValue{T}"/> with the specified <see cref="BytesValue"/> attached.
+    /// </summary>
+    /// <param name="bytes">The binary data to attach.</param>
+    /// <returns>A new <see cref="ExprValue{T}"/> with <see cref="Bytes"/> set.</returns>
+    public ExprValue<T> WithBytes(BytesValue bytes)
+    {
+        return this with { Bytes = bytes };
     }
 
     private static T ParseRawValue(string? raw, string propertyName)
