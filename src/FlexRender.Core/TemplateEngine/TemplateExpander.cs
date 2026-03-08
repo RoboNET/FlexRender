@@ -990,7 +990,14 @@ public sealed class TemplateExpander
             ParentWidth = parentWidth
         };
 
-        var resolved = await ContentSourceResolver.ResolveAsync(content.Source, context, loaders: _resourceLoaders, SubstituteVariables).ConfigureAwait(false);
+        var source = content.Source;
+        var bytesValue = TryResolveBytesValue(source, context);
+        if (bytesValue is not null)
+        {
+            source = source.WithBytes(bytesValue);
+        }
+
+        var resolved = await ContentSourceResolver.ResolveAsync(source, context, loaders: _resourceLoaders, SubstituteVariables).ConfigureAwait(false);
 
         return resolved switch
         {

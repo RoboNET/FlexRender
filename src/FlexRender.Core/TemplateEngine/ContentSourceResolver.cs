@@ -29,11 +29,10 @@ public sealed class ContentSourceResolver
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        // Step 1: Check if pure {{variable}} resolves to BytesValue
-        var bytesValue = TryResolveBytes(source, context);
-        if (bytesValue is not null)
+        // Step 1: Check if ExprValue already carries resolved bytes
+        if (source.Bytes is not null)
         {
-            return new BinaryContent(bytesValue.Memory, bytesValue.MimeType);
+            return new BinaryContent(source.Bytes.Memory, source.Bytes.MimeType);
         }
 
         // Step 2: Resolve source as string
@@ -104,30 +103,4 @@ public sealed class ContentSourceResolver
         return null;
     }
 
-    /// <summary>
-    /// Attempts to resolve a source expression directly to a <see cref="BytesValue"/>.
-    /// Only matches pure <c>{{variable}}</c> expressions (no mixed text or nested expressions).
-    /// </summary>
-    private static BytesValue? TryResolveBytes(ExprValue<string> source, TemplateContext context)
-    {
-        var raw = source.RawValue ?? source.Value;
-        if (raw is null)
-        {
-            return null;
-        }
-
-        if (!raw.StartsWith("{{", StringComparison.Ordinal) || !raw.EndsWith("}}", StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var inner = raw[2..^2].Trim();
-        if (inner.Contains("{{", StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var resolved = ExpressionEvaluator.Resolve(inner, context);
-        return resolved as BytesValue;
-    }
 }

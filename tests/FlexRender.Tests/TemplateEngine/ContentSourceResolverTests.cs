@@ -22,11 +22,24 @@ public sealed class ContentSourceResolverTests
     public async Task Resolve_BytesVariable_ReturnsBinaryContent()
     {
         var rawBytes = new byte[] { 0x1B, 0x40, 0x48, 0x65, 0x6C, 0x6F };
-        var context = new TemplateContext(new ObjectValue
-        {
-            ["payload"] = new BytesValue(rawBytes, "application/octet-stream")
-        });
-        var source = ExprValue<string>.Expression("{{payload}}");
+        var bytes = new BytesValue(rawBytes, "application/octet-stream");
+        var context = new TemplateContext(new ObjectValue());
+        var source = ExprValue<string>.Expression("{{payload}}").WithBytes(bytes);
+
+        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: null);
+
+        var binary = Assert.IsType<BinaryContent>(result);
+        Assert.Equal(rawBytes, binary.Data.ToArray());
+        Assert.Equal("application/octet-stream", binary.MimeType);
+    }
+
+    [Fact]
+    public async Task Resolve_ExprValueWithBytes_ReturnsBinaryContentDirectly()
+    {
+        var rawBytes = new byte[] { 0x1B, 0x40, 0x48 };
+        var bytes = new BytesValue(rawBytes, "application/octet-stream");
+        var source = new ExprValue<string>("").WithBytes(bytes);
+        var context = new TemplateContext(new ObjectValue());
 
         var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: null);
 
