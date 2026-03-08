@@ -463,11 +463,39 @@ flexrender render table-receipt.yaml -d invoice-data.json -o invoice.jpg --quali
 
 ### Receipt with NDC Content
 
-NDC (NCR Direct Connect) is a binary protocol used by ATM terminals to format printer output. The `content` element with `format: ndc` parses these binary data streams into FlexRender elements. This is useful when rendering ATM receipt images from raw transaction data captured by banking middleware.
+NDC (NCR Direct Connect) is a protocol used by ATM terminals to format printer output. The `content` element with `format: ndc` parses NDC data streams into FlexRender elements. This is useful when rendering ATM receipt images from raw transaction data captured by banking middleware.
 
 The NDC parser requires `FlexRender.Content.Ndc` and `.WithNdc()` on the builder. A monospaced font (such as JetBrains Mono or Courier) is recommended for accurate column alignment.
 
-**Template:**
+The simplest approach is to reference the NDC data file directly in the template using `file:` source. NDC data files are typically `.bin` files containing escape sequences (`ESC` = `0x1B`) for charset switching, text formatting, and layout control.
+
+**NDC data file** (`ndc-data/receipt.bin`):
+
+The file contains raw NDC escape sequences. When viewed in a text editor, it looks like this (escape characters shown as `ESC`):
+
+```
+ESC(2 ESC(I г. москва, ESC(I ул. тестовая, д. 1, корп. 1 Б
+
+ESC(IД ESC(Jата  ESC(IВ ESC(Jремя  ESC(IБ ESC(Jанкомат
+01.01.25  10:00:00  ATM00004
+
+ESC(IК ESC(Jарта: ESC(2 4..0000(Our TESTCARD)
+AID:  A0000000000000 TESTCARD DEBIT
+TVR:  0000000000
+ESC(IК ESC(Jод операции: 000000/000000000000
+
+ESC(I"И ESC(Jнформация о Балансе"
+
+ESC(IВ ESC(Jсего доступно:
+    +12345.67 RUR
+ESC(Jиз них:
+доступный кредитный лимит:
+        +0.00 RUB
+```
+
+The charset designators (`I`, `J`, `2`) control text styling — bold, Cyrillic encoding, and default font respectively.
+
+**Template** (`ndc-receipt.yaml`):
 
 ```yaml
 fonts:
@@ -480,94 +508,63 @@ canvas:
   background: "#ffffff"
 
 layout:
-  # Bank header (static)
-  - type: flex
-    padding: "16 20"
-    gap: 4
-    align: center
-    children:
-      - type: text
-        content: "{{bankName}}"
-        fontWeight: bold
-        size: 1.2em
-        align: center
-      - type: text
-        content: "ATM #{{atmId}}"
-        size: 0.8em
-        color: "#666666"
-        align: center
-
-  - type: separator
-    style: solid
-    color: "#cccccc"
-
-  # NDC receipt body (parsed from binary data)
   - type: content
-    source: "{{receiptData}}"
+    source: "file:ndc-data/receipt.bin"
     format: ndc
     options:
       columns: 40
-      input_encoding: latin1
-      font_family: "JetBrains Mono"
+      font_family: JetBrains Mono
       charsets:
-        "1":
-          encoding: "qwerty-jcuken"
-          font_style: bold
-        "I":
+        I:
           font: bold
+          font_style: bold
+          encoding: qwerty-jcuken
           uppercase: true
-
-  - type: separator
-    style: solid
-    color: "#cccccc"
-
-  # Footer (static)
-  - type: flex
-    padding: "12 20"
-    gap: 2
-    children:
-      - type: text
-        content: "{{date}}"
-        size: 0.75em
-        align: center
-        color: "#999999"
-      - type: text
-        content: "Please retain this receipt"
-        size: 0.75em
-        align: center
-        color: "#999999"
+        J:
+          encoding: qwerty-jcuken
+        "2":
+          font: default
 ```
 
-**Data (C#):**
+**CLI:**
 
-```csharp
-var data = new ObjectValue
-{
-    ["bankName"] = "First National Bank",
-    ["atmId"] = "ATM-0042",
-    ["receiptData"] = new BytesValue(ndcBinaryBytes),
-    ["date"] = "2026-03-08 09:15:33"
-};
+```bash
+flexrender render ndc-receipt.yaml -o receipt.png
+
+# For thermal printer (monochrome BMP)
+flexrender render ndc-receipt.yaml -o receipt.bmp --bmp-color monochrome1
 ```
 
-**Builder setup:**
+**How it works:**
+
+- `source: "file:ndc-data/receipt.bin"` — loads the NDC data from a local file relative to the template location
+- `columns: 40` — receipt width in characters (standard for 80mm thermal printers)
+- `charsets` — defines styling for each charset designator in the NDC stream:
+  - `I` — bold Cyrillic text (QWERTY-JCUKEN encoding, uppercased)
+  - `J` — regular Cyrillic text (QWERTY-JCUKEN encoding)
+  - `2` — default Latin font (digits, punctuation, card numbers)
+- The parser automatically handles line wrapping, charset switching (`ESC(X` sequences), and spacing control codes
+
+**C# API** (for programmatic use):
 
 ```csharp
 var render = new FlexRenderBuilder()
     .WithNdc()
     .WithSkia()
     .Build();
+
+// Load NDC data from file
+var ndcBytes = File.ReadAllBytes("ndc-data/receipt.bin");
+
+var data = new ObjectValue
+{
+    ["receiptData"] = new BytesValue(ndcBytes)
+};
 ```
 
-> **Note:** NDC receipts use binary data (`BytesValue`), so they must be rendered through the C# API. The CLI does not support binary data inputs. For text-based NDC content, you can use `data:` URI format in the JSON data:
->
-> ```json
-> { "receiptData": "data:application/octet-stream;base64,PFN0YXJ0PjxOREMgZGF0YT4..." }
-> ```
->
-> ```bash
-> flexrender render ndc-receipt.yaml -d ndc-data.json -o atm-receipt.png
-> ```
+With the C# API, you can also pass NDC data dynamically via template variables (`source: "{{receiptData}}"`) using `BytesValue` for binary data or `StringValue` for text data.
+
+> **Tip:** Use `flexrender debug-layout ndc-receipt.yaml` to visualize element boundaries and debug charset switching issues.
 
 ---
 
