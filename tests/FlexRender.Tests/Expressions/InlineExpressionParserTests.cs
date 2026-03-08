@@ -11,7 +11,6 @@ namespace FlexRender.Tests.Expressions;
 /// <summary>
 /// Tests for InlineExpressionParser (Pratt parser for arithmetic, coalesce, filters).
 /// </summary>
-[Collection("ExpressionCache")]
 public sealed class InlineExpressionParserTests
 {
     // === Simple path expressions ===
@@ -512,65 +511,7 @@ public sealed class InlineExpressionParserTests
         Assert.Equal(ArithmeticOperator.Subtract, arith.Op);
     }
 
-    // === Expression caching ===
-
-    [Fact]
-    public void Parse_SameComplexExpression_ReturnsCachedInstance()
-    {
-        InlineExpressionParser.ClearCache();
-
-        var first = InlineExpressionParser.Parse("price * quantity");
-        var second = InlineExpressionParser.Parse("price * quantity");
-
-        Assert.Same(first, second);
-    }
-
-    [Fact]
-    public void Parse_DifferentExpressions_ReturnsDifferentInstances()
-    {
-        InlineExpressionParser.ClearCache();
-
-        var a = InlineExpressionParser.Parse("a + b");
-        var b = InlineExpressionParser.Parse("a - b");
-
-        Assert.NotSame(a, b);
-    }
-
-    [Fact]
-    public void Parse_SimplePath_NotCached()
-    {
-        // Simple paths use fast path and bypass cache
-        InlineExpressionParser.ClearCache();
-
-        _ = InlineExpressionParser.Parse("name");
-        _ = InlineExpressionParser.Parse("user.address");
-
-        Assert.Equal(0, InlineExpressionParser.CacheCount);
-    }
-
-    [Fact]
-    public void Parse_ComplexExpression_IncrementsCacheCount()
-    {
-        InlineExpressionParser.ClearCache();
-        var baseline = InlineExpressionParser.CacheCount;
-
-        _ = InlineExpressionParser.Parse("unique_a + unique_b");
-        _ = InlineExpressionParser.Parse("unique_c * unique_d");
-        _ = InlineExpressionParser.Parse("unique_x ?? unique_y");
-
-        // At least 3 new entries should be added (other parallel tests may also add)
-        Assert.True(InlineExpressionParser.CacheCount >= baseline + 3);
-    }
-
-    [Fact]
-    public void ClearCache_ResetsCount()
-    {
-        _ = InlineExpressionParser.Parse("clear_a + clear_b");
-        Assert.True(InlineExpressionParser.CacheCount > 0);
-
-        InlineExpressionParser.ClearCache();
-        Assert.Equal(0, InlineExpressionParser.CacheCount);
-    }
+    // Cache tests moved to InlineExpressionParserCacheTests to avoid parallel execution issues.
 
     #region Comparison Operators
 
@@ -1166,4 +1107,78 @@ public sealed class InlineExpressionParserTests
     }
 
     #endregion
+}
+
+/// <summary>
+/// Marker class for xUnit collection that disables parallel execution.
+/// Used by cache-dependent tests that rely on shared static state.
+/// </summary>
+[CollectionDefinition("ExpressionCache", DisableParallelization = true)]
+public class ExpressionCacheDefinition;
+
+/// <summary>
+/// Tests for InlineExpressionParser caching behavior.
+/// Isolated into a non-parallel collection because these tests depend on
+/// shared static cache state (ClearCache / CacheCount).
+/// </summary>
+[Collection("ExpressionCache")]
+public sealed class InlineExpressionParserCacheTests
+{
+    [Fact]
+    public void Parse_SameComplexExpression_ReturnsCachedInstance()
+    {
+        InlineExpressionParser.ClearCache();
+
+        var first = InlineExpressionParser.Parse("price * quantity");
+        var second = InlineExpressionParser.Parse("price * quantity");
+
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public void Parse_DifferentExpressions_ReturnsDifferentInstances()
+    {
+        InlineExpressionParser.ClearCache();
+
+        var a = InlineExpressionParser.Parse("a + b");
+        var b = InlineExpressionParser.Parse("a - b");
+
+        Assert.NotSame(a, b);
+    }
+
+    [Fact]
+    public void Parse_SimplePath_NotCached()
+    {
+        // Simple paths use fast path and bypass cache
+        InlineExpressionParser.ClearCache();
+
+        _ = InlineExpressionParser.Parse("name");
+        _ = InlineExpressionParser.Parse("user.address");
+
+        Assert.Equal(0, InlineExpressionParser.CacheCount);
+    }
+
+    [Fact]
+    public void Parse_ComplexExpression_IncrementsCacheCount()
+    {
+        InlineExpressionParser.ClearCache();
+        var baseline = InlineExpressionParser.CacheCount;
+
+        _ = InlineExpressionParser.Parse("unique_a + unique_b");
+        _ = InlineExpressionParser.Parse("unique_c * unique_d");
+        _ = InlineExpressionParser.Parse("unique_x ?? unique_y");
+
+        // At least 3 new entries should be added (other parallel tests may also add)
+        Assert.True(InlineExpressionParser.CacheCount >= baseline + 3);
+    }
+
+    [Fact]
+    public void ClearCache_ResetsCount()
+    {
+        _ = InlineExpressionParser.Parse("clear_a + clear_b");
+        Assert.True(InlineExpressionParser.CacheCount > 0);
+
+        InlineExpressionParser.ClearCache();
+        Assert.Equal(0, InlineExpressionParser.CacheCount);
+    }
 }
