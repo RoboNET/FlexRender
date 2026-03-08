@@ -11,7 +11,8 @@ internal static class NdcEncodings
     // QWERTY->JCUKEN mapping table (lowercase ASCII -> lowercase Cyrillic).
     // Source: Bfs.Integration.Ndc/Utils/NdcDisplayControls.RussianUppercaseLettersDict
     // Verified in production for years across multiple banks.
-    // Uppercase is derived via char.ToUpper() on the mapped result.
+    // Only lowercase Latin letters are mapped; uppercase Latin letters are preserved as-is
+    // (they represent actual Latin characters in NDC data, not Cyrillic).
     private static readonly Dictionary<char, char> QwertyToJcukenMap = new()
     {
         ['q'] = 'й', ['w'] = 'ц', ['e'] = 'у', ['r'] = 'к', ['t'] = 'е',
@@ -50,8 +51,7 @@ internal static class NdcEncodings
         var needsMapping = false;
         foreach (var ch in text)
         {
-            if (QwertyToJcukenMap.ContainsKey(ch) ||
-                (char.IsAsciiLetterUpper(ch) && QwertyToJcukenMap.ContainsKey(char.ToLower(ch, CultureInfo.InvariantCulture))))
+            if (QwertyToJcukenMap.ContainsKey(ch))
             {
                 needsMapping = true;
                 break;
@@ -70,18 +70,13 @@ internal static class NdcEncodings
         var sb = new StringBuilder(text.Length);
         foreach (var ch in text)
         {
-            // Try lowercase key first
             if (QwertyToJcukenMap.TryGetValue(ch, out var mapped))
             {
                 sb.Append(uppercase ? char.ToUpper(mapped, CultureInfo.InvariantCulture) : mapped);
             }
-            // Try converting uppercase ASCII to lowercase for lookup
-            else if (char.IsAsciiLetterUpper(ch) && QwertyToJcukenMap.TryGetValue(char.ToLower(ch, CultureInfo.InvariantCulture), out var mappedFromUpper))
-            {
-                sb.Append(uppercase ? char.ToUpper(mappedFromUpper, CultureInfo.InvariantCulture) : mappedFromUpper);
-            }
             else
             {
+                // Uppercase Latin letters and all non-mapped chars preserved as-is
                 sb.Append(uppercase ? char.ToUpper(ch, CultureInfo.InvariantCulture) : ch);
             }
         }

@@ -44,8 +44,23 @@ public sealed class NdcEncodingsTests
     [Fact]
     public void QwertyJcuken_WithoutUppercase_AllLowercase()
     {
-        // Without uppercase flag, uppercase ASCII keys still map to lowercase Cyrillic
         Assert.Equal("банк", NdcEncodings.Decode("~fyr", "qwerty-jcuken"));
+    }
+
+    [Fact]
+    public void QwertyJcuken_UppercaseLatinPreserved()
+    {
+        // Uppercase Latin letters are NOT converted — they represent actual Latin chars in NDC data
+        Assert.Equal("A", NdcEncodings.Decode("A", "qwerty-jcuken"));
+        Assert.Equal("TEST", NdcEncodings.Decode("TEST", "qwerty-jcuken"));
+        Assert.Equal("Aбанк", NdcEncodings.Decode("A~fyr", "qwerty-jcuken"));
+    }
+
+    [Fact]
+    public void QwertyJcuken_UppercaseFlag_PreservesUppercaseLatin()
+    {
+        // With uppercase=true, uppercase Latin stays as-is, mapped chars become uppercase Cyrillic
+        Assert.Equal("AБАНК", NdcEncodings.Decode("A~fyr", "qwerty-jcuken", uppercase: true));
     }
 
     [Fact]
