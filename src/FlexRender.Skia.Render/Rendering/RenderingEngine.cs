@@ -635,7 +635,45 @@ internal sealed class RenderingEngine
     }
 
     /// <summary>
+    /// Recursively walks the element tree and decodes images that already have binary data
+    /// attached via <see cref="ExprValue{T}.Bytes"/>. Decoded bitmaps are added to the cache
+    /// keyed by <see cref="ImageElement.Src"/> value, skipping the image loader chain entirely.
+    /// </summary>
+    /// <param name="elements">The elements to walk.</param>
+    /// <param name="cache">The bitmap cache to populate.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private static void DecodeImagesFromBytes(
+        IReadOnlyList<TemplateElement> elements,
+        Dictionary<string, SKBitmap> cache,
+        CancellationToken cancellationToken)
+    {
+        foreach (var element in elements)
+        {
+            if (element is ImageElement image && image.Src.Bytes is not null)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var key = image.Src.Value;
+                if (!string.IsNullOrEmpty(key) && !cache.ContainsKey(key))
+                {
+                    using var stream = image.Src.Bytes.AsStream();
+                    var bitmap = SKBitmap.Decode(stream);
+                    if (bitmap is not null)
+                    {
+                        cache[key] = bitmap;
+                    }
+                }
+            }
+            else if (element is FlexElement flex)
+            {
+                DecodeImagesFromBytes(flex.Children, cache, cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
     /// Pre-loads all images from the template asynchronously using the image loader.
+    /// Images whose <see cref="ExprValue{T}.Bytes"/> are already populated are decoded
+    /// directly, bypassing the loader chain.
     /// </summary>
     /// <param name="template">The template containing image references.</param>
     /// <param name="data">The data context for expression evaluation.</param>
@@ -651,11 +689,19 @@ internal sealed class RenderingEngine
 
         var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
-        var uris = CollectImageUris(processedTemplate);
-        var cache = new Dictionary<string, SKBitmap>(uris.Count, StringComparer.Ordinal);
 
+        var cache = new Dictionary<string, SKBitmap>(StringComparer.Ordinal);
+
+        // First pass: decode images that already have bytes in ExprValue
+        DecodeImagesFromBytes(processedTemplate.Elements, cache, cancellationToken);
+
+        // Second pass: load remaining URIs via ImageLoader chain
+        var uris = CollectImageUris(processedTemplate);
         foreach (var uri in uris)
         {
+            if (cache.ContainsKey(uri))
+                continue;
+
             cancellationToken.ThrowIfCancellationRequested();
             var bitmap = await _imageLoader.Load(uri, cancellationToken).ConfigureAwait(false);
             if (bitmap is not null)
@@ -670,7 +716,8 @@ internal sealed class RenderingEngine
     /// <summary>
     /// Pre-loads all images from an already-processed template asynchronously using the image loader.
     /// Unlike <see cref="PreloadImagesAsync"/>, this method skips the pipeline processing step
-    /// and works directly with the provided template.
+    /// and works directly with the provided template. Images whose <see cref="ExprValue{T}.Bytes"/>
+    /// are already populated are decoded directly, bypassing the loader chain.
     /// </summary>
     /// <param name="processedTemplate">The already-processed template containing resolved image references.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -682,11 +729,18 @@ internal sealed class RenderingEngine
         if (_imageLoader is null)
             return new Dictionary<string, SKBitmap>(0, StringComparer.Ordinal);
 
-        var uris = CollectImageUris(processedTemplate);
-        var cache = new Dictionary<string, SKBitmap>(uris.Count, StringComparer.Ordinal);
+        var cache = new Dictionary<string, SKBitmap>(StringComparer.Ordinal);
 
+        // First pass: decode images that already have bytes in ExprValue
+        DecodeImagesFromBytes(processedTemplate.Elements, cache, cancellationToken);
+
+        // Second pass: load remaining URIs via ImageLoader chain
+        var uris = CollectImageUris(processedTemplate);
         foreach (var uri in uris)
         {
+            if (cache.ContainsKey(uri))
+                continue;
+
             cancellationToken.ThrowIfCancellationRequested();
             var bitmap = await _imageLoader.Load(uri, cancellationToken).ConfigureAwait(false);
             if (bitmap is not null)
