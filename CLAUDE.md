@@ -26,6 +26,8 @@ When reviewing code changes, verify:
 - [ ] Null checks via `ArgumentNullException.ThrowIfNull()` -- not manual `if (x == null)`
 - [ ] Resource limits preserved -- never remove or weaken `MaxFileSize`, `MaxNestingDepth`, `MaxRenderDepth`
 - [ ] New element types follow the switch-based dispatch pattern (not base class properties)
+- [ ] New YAML properties registered in `KnownProperties.cs` for validation and typo suggestions
+- [ ] Tests using shared static state use `[Collection(..., DisableParallelization = true)]`
 - [ ] XML docs on all public API surface
 - [ ] Snapshot tests added/updated for visual changes (`UPDATE_SNAPSHOTS=true`)
 - [ ] Wiki pages updated -- if code changes affect public API, element properties, YAML syntax, builder methods, or CLI options, update the corresponding `docs/wiki/` pages

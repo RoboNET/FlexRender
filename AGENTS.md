@@ -409,9 +409,10 @@ var sb = new StringBuilder(estimatedCapacity);
 
 1. Create AST model in `Parsing/Ast/` (sealed class extending `TemplateElement`)
 2. Add parser function in `TemplateParser.cs` -- register in `_elementParsers` dictionary
-3. Add flex-item property support via `switch` pattern matching in layout engine
-4. Add rendering in `SkiaRenderer.RenderNode()` or create a provider
-5. Write tests for each step
+3. Register all YAML properties in `KnownProperties.cs` (for YAML validation and typo suggestions)
+4. Add flex-item property support via `switch` pattern matching in layout engine
+5. Add rendering in `SkiaRenderer.RenderNode()` or create a provider
+6. Write tests for each step
 
 ### Add new template expression
 
@@ -424,9 +425,10 @@ var sb = new StringBuilder(estimatedCapacity);
 
 1. Add property to `TemplateElement` in `Parsing/Ast/TemplateElement.cs`
 2. Parse the property in `ElementParsers.cs`
-3. Add the property to `TemplateElement.CopyBaseProperties()` (single source of truth in `Parsing/Ast/TemplateElement.cs`)
-4. If the property contains expressions (e.g., `{{variable}}`), also add `ProcessExpression()` calls in the preprocessors
-5. Write tests to verify the property survives the full rendering pipeline
+3. Add the property name to `KnownProperties.cs` for the corresponding element type (YAML validation)
+4. Add the property to `TemplateElement.CopyBaseProperties()` (single source of truth in `Parsing/Ast/TemplateElement.cs`)
+5. If the property contains expressions (e.g., `{{variable}}`), also add `ProcessExpression()` calls in the preprocessors
+6. Write tests to verify the property survives the full rendering pipeline
 
 ## Important Patterns
 
