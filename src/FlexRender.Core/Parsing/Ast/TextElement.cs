@@ -165,6 +165,30 @@ public sealed class TextElement : TemplateElement
     public ExprValue<string> LineHeight { get; set; } = "";
 
     /// <inheritdoc />
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        var clone = new TextElement
+        {
+            Content = substitutor(Content.Value) ?? "",
+            Font = Font,
+            FontFamily = FontFamily,
+            FontWeight = FontWeight,
+            FontStyle = FontStyle,
+            Size = Size,
+            Color = Color,
+            Align = Align,
+            Wrap = Wrap,
+            MaxLines = MaxLines,
+            Overflow = Overflow,
+            LineHeight = LineHeight
+        };
+        CopyBasePropertiesTo(clone, substitutor);
+        return clone;
+    }
+
+    /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {
         base.ResolveExpressions(resolver, data);

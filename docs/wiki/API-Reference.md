@@ -140,8 +140,8 @@ var data = new ObjectValue { ["receipt"] = new BytesValue(rawBytes) };
 // From Stream
 var data = new ObjectValue { ["receipt"] = BytesValue.FromStream(fileStream) };
 
-// From base64 in YAML source
-// source: "base64:SGVsbG8gV29ybGQ="
+// From data URI in YAML source
+// source: "data:application/octet-stream;base64,SGVsbG8gV29ybGQ="
 ```
 
 `BytesValue` wraps `ReadOnlyMemory<byte>` and is passed directly to `IBinaryContentParser` without encoding conversion. When only `IContentParser` is registered, binary data is decoded as UTF-8.
@@ -583,14 +583,16 @@ Caching works because `type: each` and `type: if` elements are expanded at rende
 
 Resources (images, fonts) are loaded through `IResourceLoader` implementations using chain of responsibility:
 
-| Loader | URI Scheme | Priority | Description |
-|--------|------------|----------|-------------|
-| `Base64ResourceLoader` | `data:` | High (0-99) | Base64-encoded data |
+| Loader | URI Schemes | Priority | Description |
+|--------|-------------|----------|-------------|
+| `Base64ResourceLoader` | `data:`, `data://`, `base64:`, `base64://` | High (0-99) | Base64-encoded data (all normalized to `data:` URI internally) |
 | `EmbeddedResourceLoader` | `embedded://` | High (0-99) | Assembly embedded resources |
-| `FileResourceLoader` | File paths | Normal (100-199) | Local file system |
+| `FileResourceLoader` | `file:`, `file://`, `file:///`, relative paths | Normal (100-199) | Local file system (relative paths only) |
 | `HttpResourceLoader` | `http://`, `https://` | Low (200+) | Remote resources |
 
 File and Base64 loaders are included by default. Use `WithoutDefaultLoaders()` for sandboxed operation. HTTP loader requires `WithHttpLoader()`.
+
+> **Security:** `FileResourceLoader` only allows relative paths resolved against `BasePath`. Absolute paths are rejected with `ArgumentException`. Any unrecognized URI scheme (e.g., `ftp://`) is also rejected.
 
 ## See Also
 

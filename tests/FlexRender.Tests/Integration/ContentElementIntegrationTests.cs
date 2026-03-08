@@ -1,5 +1,6 @@
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
+using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.TemplateEngine;
 using Xunit;
@@ -112,7 +113,9 @@ public sealed class ContentElementIntegrationTests
         var registry = new ContentParserRegistry();
         registry.RegisterBinary(new SimpleBinaryTestParser());
 
-        var expander = new TemplateExpander(new ResourceLimits(), contentParserRegistry: registry);
+        var options = new FlexRenderOptions();
+        IReadOnlyList<IResourceLoader> loaders = [new Base64ResourceLoader(options)];
+        var expander = new TemplateExpander(new ResourceLimits(), contentParserRegistry: registry, resourceLoaders: loaders);
         var processor = new TemplateProcessor(new ResourceLimits());
         var pipeline = new TemplatePipeline(expander, processor);
 
@@ -128,14 +131,14 @@ public sealed class ContentElementIntegrationTests
                     Children =
                     [
                         new TextElement { Content = "Before" },
-                        new ContentElement { Source = "base64:SEVMTE8=", Format = "binary-simple" },
+                        new ContentElement { Source = "data:application/octet-stream;base64,SEVMTE8=", Format = "binary-simple" },
                         new TextElement { Content = "After" }
                     ]
                 }
             ]
         };
 
-        // Act — no data needed, source is inline base64
+        // Act — no data needed, source is inline data URI
         var result = await pipeline.ProcessAsync(template, new ObjectValue());
 
         // Assert

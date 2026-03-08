@@ -344,7 +344,7 @@ Renders an image from a file, URL, base64 data, or embedded resource.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `src` | string | `""` | Image source: file path, `http://`, `embedded://`, base64 data URL |
+| `src` | string | `""` | Image source: relative file path, `file:` URI, `http://`, `embedded://`, or base64 data URL. Only relative paths are allowed (absolute paths rejected for security). |
 | `width` | int? | `null` | Image container width (null = natural width) |
 | `height` | int? | `null` | Image container height (null = natural height) |
 | `fit` | ImageFit | `contain` | How the image fits within bounds |

@@ -10,6 +10,11 @@ public sealed class EachElement : TemplateElement
     /// </summary>
     public override ElementType Type => ElementType.Each;
 
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">Always thrown. EachElement is expanded, not cloned.</exception>
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+        => throw new NotSupportedException("EachElement should be expanded, not cloned.");
+
     /// <summary>
     /// Gets or sets the path to the array in the data context.
     /// Example: "items" or "order.lines".

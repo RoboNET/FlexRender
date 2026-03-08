@@ -82,6 +82,44 @@ public sealed class FlexElement : TemplateElement
     }
 
     /// <inheritdoc />
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        var clone = new FlexElement
+        {
+            Direction = Direction,
+            Wrap = Wrap,
+            Gap = Gap,
+            Justify = Justify,
+            Align = Align,
+            AlignContent = AlignContent,
+            Overflow = Overflow,
+            RowGap = RowGap,
+            ColumnGap = ColumnGap,
+            FontSize = FontSize,
+            Children = []
+        };
+        CopyBasePropertiesTo(clone, substitutor);
+        return clone;
+    }
+
+    /// <summary>
+    /// Creates a clone with substituted variables and the specified children.
+    /// </summary>
+    /// <param name="children">The expanded child elements for the clone.</param>
+    /// <param name="substitutor">Function to substitute template variables in string values.</param>
+    /// <returns>A new flex element with the specified children and substituted properties.</returns>
+    public FlexElement CloneWithChildren(IReadOnlyList<TemplateElement> children, Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(children);
+
+        var clone = (FlexElement)CloneWithSubstitution(substitutor);
+        clone.Children = children;
+        return clone;
+    }
+
+    /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {
         base.ResolveExpressions(resolver, data);

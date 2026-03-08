@@ -112,133 +112,6 @@ public sealed class TemplateExpander
         return result;
     }
 
-    private List<TemplateElement> ExpandElements(IReadOnlyList<TemplateElement> elements, TemplateContext context, int depth, Template template, int? parentWidth = null)
-    {
-        if (depth > _limits.MaxRenderDepth)
-        {
-            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
-        }
-
-        var result = new List<TemplateElement>(elements.Count);
-
-        foreach (var element in elements)
-        {
-            var expanded = ExpandElement(element, context, depth, template, parentWidth);
-            result.AddRange(expanded);
-        }
-
-        return result;
-    }
-
-    private IEnumerable<TemplateElement> ExpandElement(TemplateElement element, TemplateContext context, int depth, Template template, int? parentWidth = null)
-    {
-        return element switch
-        {
-            EachElement each => ExpandEach(each, context, depth, template, parentWidth),
-            IfElement ifEl => ExpandIf(ifEl, context, depth, template, parentWidth),
-            TableElement table => [ExpandTable(table, context, depth, template)],
-            FlexElement flex => [ExpandFlex(flex, context, depth, template)],
-            ContentElement => throw new TemplateEngineException(
-                "Content element expansion requires async processing. Use ExpandAsync() instead of Expand()."),
-            _ => [CloneWithVariableSubstitution(element, context)]
-        };
-    }
-
-    private IEnumerable<TemplateElement> ExpandEach(EachElement each, TemplateContext context, int depth, Template template, int? parentWidth = null)
-    {
-        // Check depth limit - Each element increases nesting depth
-        var childDepth = depth + 1;
-        if (childDepth > _limits.MaxRenderDepth)
-        {
-            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
-        }
-
-        // Pre-validate nested control flow depth before checking data
-        ValidateNestedDepth(each.ItemTemplate, childDepth);
-
-        var arrayValue = ExpressionEvaluator.Resolve(each.ArrayPath, context);
-
-        if (arrayValue is ArrayValue array)
-        {
-            // Existing array iteration logic
-            var count = array.Count;
-            for (var i = 0; i < count; i++)
-            {
-                var item = array[i];
-
-                // Push item scope
-                if (each.ItemVariable != null)
-                {
-                    // Create a new scope with the item variable
-                    var scopeData = new ObjectValue
-                    {
-                        [each.ItemVariable] = item
-                    };
-                    context.PushScope(scopeData);
-                }
-                else
-                {
-                    context.PushScope(item);
-                }
-
-                context.SetLoopVariables(i, count);
-
-                // Expand children
-                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth, template, parentWidth);
-
-                // Pop scope
-                context.ClearLoopVariables();
-                context.PopScope();
-
-                foreach (var child in expandedChildren)
-                {
-                    yield return child;
-                }
-            }
-        }
-        else if (arrayValue is ObjectValue obj)
-        {
-            // Object iteration: iterate over key-value pairs with @key support
-            var keys = obj.Keys.ToList();
-            var count = keys.Count;
-            for (var i = 0; i < count; i++)
-            {
-                var key = keys[i];
-                var value = obj[key];
-
-                // Push item scope
-                if (each.ItemVariable != null)
-                {
-                    var scopeData = new ObjectValue
-                    {
-                        [each.ItemVariable] = value
-                    };
-                    context.PushScope(scopeData);
-                }
-                else
-                {
-                    context.PushScope(value);
-                }
-
-                context.SetLoopVariables(i, count);
-                context.SetLoopKey(key);
-
-                // Expand children
-                var expandedChildren = ExpandElements(each.ItemTemplate, context, childDepth, template, parentWidth);
-
-                // Pop scope
-                context.ClearLoopVariables();
-                context.PopScope();
-
-                foreach (var child in expandedChildren)
-                {
-                    yield return child;
-                }
-            }
-        }
-        // else: not array or object -- yield nothing (implicit yield break)
-    }
-
     private void ValidateNestedDepth(IReadOnlyList<TemplateElement> elements, int depth)
     {
         if (depth > _limits.MaxRenderDepth)
@@ -266,38 +139,6 @@ public sealed class TemplateExpander
                     break;
             }
         }
-    }
-
-    private IEnumerable<TemplateElement> ExpandIf(IfElement ifEl, TemplateContext context, int depth, Template template, int? parentWidth = null)
-    {
-        // Check depth limit - If element increases nesting depth
-        var childDepth = depth + 1;
-        if (childDepth > _limits.MaxRenderDepth)
-        {
-            throw new TemplateEngineException($"Maximum expansion depth ({_limits.MaxRenderDepth}) exceeded");
-        }
-
-        // Pre-validate nested control flow depth before checking data
-        ValidateNestedDepth(ifEl.ThenBranch, childDepth);
-        ValidateNestedDepth(ifEl.ElseBranch, childDepth);
-        if (ifEl.ElseIf != null)
-        {
-            ValidateNestedDepth(new[] { ifEl.ElseIf }, depth);
-        }
-
-        if (EvaluateCondition(ifEl, context))
-        {
-            return ExpandElements(ifEl.ThenBranch, context, childDepth, template, parentWidth);
-        }
-
-        // Check else-if chain
-        if (ifEl.ElseIf != null)
-        {
-            return ExpandIf(ifEl.ElseIf, context, depth + 1, template, parentWidth);
-        }
-
-        // Return else branch
-        return ExpandElements(ifEl.ElseBranch, context, childDepth, template, parentWidth);
     }
 
     private bool EvaluateCondition(IfElement ifEl, TemplateContext context)
@@ -504,7 +345,7 @@ public sealed class TemplateExpander
         return -1;
     }
 
-    private FlexElement ExpandTable(TableElement table, TemplateContext context, int depth, Template template)
+    private async Task<FlexElement> ExpandTableAsync(TableElement table, TemplateContext context, int depth, Template template)
     {
         var childDepth = depth + 1;
         if (childDepth > _limits.MaxRenderDepth)
@@ -581,7 +422,7 @@ public sealed class TemplateExpander
             };
 
             // Expand the each element inline
-            var expandedRows = ExpandEach(each, context, childDepth, template);
+            var expandedRows = await ExpandEachAsync(each, context, childDepth, template).ConfigureAwait(false);
             foreach (var row in expandedRows)
             {
                 outerFlex.AddChild(row);
@@ -738,39 +579,6 @@ public sealed class TemplateExpander
         return rowFlex;
     }
 
-    private FlexElement ExpandFlex(FlexElement flex, TemplateContext context, int depth, Template template)
-    {
-        var childParentWidth = TryParsePixelWidth(flex.Width.Value);
-        var expandedChildren = ExpandElements(flex.Children, context, depth + 1, template, childParentWidth);
-
-        var clone = new FlexElement
-        {
-            // Flex container-specific properties
-            Direction = flex.Direction,
-            Wrap = flex.Wrap,
-            Gap = flex.Gap,
-            Justify = flex.Justify,
-            Align = flex.Align,
-            AlignContent = flex.AlignContent,
-            Overflow = flex.Overflow,
-            RowGap = flex.RowGap,
-            ColumnGap = flex.ColumnGap,
-            FontSize = flex.FontSize,
-
-            // Base element properties requiring per-element handling
-            Rotate = flex.Rotate,
-            Background = SubstituteVariables(flex.Background.Value, context),
-            Padding = flex.Padding,
-            Margin = flex.Margin,
-
-            // Expanded children
-            Children = expandedChildren
-        };
-
-        TemplateElement.CopyBaseProperties(flex, clone);
-        return clone;
-    }
-
     /// <summary>
     /// Attempts to parse a plain pixel width value from a size string.
     /// Returns the integer pixel value for plain numeric strings (e.g., "200"),
@@ -821,9 +629,11 @@ public sealed class TemplateExpander
         {
             EachElement each => await ExpandEachAsync(each, context, depth, template, parentWidth).ConfigureAwait(false),
             IfElement ifEl => await ExpandIfAsync(ifEl, context, depth, template, parentWidth).ConfigureAwait(false),
-            TableElement table => [ExpandTable(table, context, depth, template)],
+            TableElement table => [await ExpandTableAsync(table, context, depth, template).ConfigureAwait(false)],
             FlexElement flex => [await ExpandFlexAsync(flex, context, depth, template).ConfigureAwait(false)],
             ContentElement content => await ExpandContentAsync(content, context, depth, template, parentWidth).ConfigureAwait(false),
+            ImageElement image => [await CloneImageElementAsync(image, context).ConfigureAwait(false)],
+            SvgElement svg => [await CloneSvgElementAsync(svg, context).ConfigureAwait(false)],
             _ => [CloneWithVariableSubstitution(element, context)]
         };
     }
@@ -942,28 +752,7 @@ public sealed class TemplateExpander
     {
         var childParentWidth = TryParsePixelWidth(flex.Width.Value);
         var expandedChildren = await ExpandElementsAsync(flex.Children, context, depth + 1, template, childParentWidth).ConfigureAwait(false);
-
-        var clone = new FlexElement
-        {
-            Direction = flex.Direction,
-            Wrap = flex.Wrap,
-            Gap = flex.Gap,
-            Justify = flex.Justify,
-            Align = flex.Align,
-            AlignContent = flex.AlignContent,
-            Overflow = flex.Overflow,
-            RowGap = flex.RowGap,
-            ColumnGap = flex.ColumnGap,
-            FontSize = flex.FontSize,
-            Rotate = flex.Rotate,
-            Background = SubstituteVariables(flex.Background.Value, context),
-            Padding = flex.Padding,
-            Margin = flex.Margin,
-            Children = expandedChildren
-        };
-
-        TemplateElement.CopyBaseProperties(flex, clone);
-        return clone;
+        return flex.CloneWithChildren(expandedChildren, text => SubstituteVariables(text, context));
     }
 
     private async Task<IEnumerable<TemplateElement>> ExpandContentAsync(ContentElement content, TemplateContext context, int depth, Template template, int? parentWidth = null)
@@ -990,14 +779,37 @@ public sealed class TemplateExpander
             ParentWidth = parentWidth
         };
 
-        var resolved = await ContentSourceResolver.ResolveAsync(content.Source, context, loaders: _resourceLoaders, SubstituteVariables).ConfigureAwait(false);
+        // Step 1: Try resolve BytesValue from template variable (e.g. {{payload}})
+        var source = content.Source;
+        var bytesValue = TryResolveBytesValue(source, context);
 
-        return resolved switch
+        // Step 2: Resolve source string with variable substitution
+        var rawText = source.RawValue ?? source.Value;
+        var resolvedSource = SubstituteVariables(rawText, context);
+
+        // Step 3: If no BytesValue from variable, try loading via resource loaders
+        if (bytesValue is null)
         {
-            BinaryContent binary => DispatchBinary(binary, resolvedFormat, parserContext, content.Options),
-            TextContent text => DispatchText(text, resolvedFormat, parserContext, content.Options),
-            _ => throw new TemplateEngineException($"Unexpected content source type: {resolved.GetType().Name}")
-        };
+            bytesValue = await TryLoadBytesFromLoadersAsync(resolvedSource).ConfigureAwait(false);
+        }
+
+        // Step 4: Dispatch binary if bytes were resolved
+        if (bytesValue is not null)
+        {
+            var binary = new BinaryContent(bytesValue.Memory, bytesValue.MimeType);
+            return DispatchBinary(binary, resolvedFormat, parserContext, content.Options);
+        }
+
+        // Step 5: "text:" prefix — strip prefix and treat as text
+        if (resolvedSource is not null && resolvedSource.StartsWith("text:", StringComparison.Ordinal))
+        {
+            var text = new TextContent(resolvedSource["text:".Length..]);
+            return DispatchText(text, resolvedFormat, parserContext, content.Options);
+        }
+
+        // Step 6: Plain text fallback
+        var textContent = new TextContent(resolvedSource ?? string.Empty);
+        return DispatchText(textContent, resolvedFormat, parserContext, content.Options);
     }
 
     private IReadOnlyList<TemplateElement> DispatchBinary(BinaryContent binary, string format, ContentParserContext context, IReadOnlyDictionary<string, object>? options)
@@ -1022,28 +834,14 @@ public sealed class TemplateExpander
 
     /// <summary>
     /// Clones an element and substitutes variables in its string properties.
+    /// Delegates to <see cref="TemplateElement.CloneWithSubstitution"/> on the element itself.
     /// </summary>
     /// <param name="element">The element to clone.</param>
     /// <param name="context">The template context for variable resolution.</param>
     /// <returns>A new element with variables substituted.</returns>
-    /// <exception cref="InvalidOperationException">Thrown for control flow elements that should be expanded, not cloned.</exception>
     private TemplateElement CloneWithVariableSubstitution(TemplateElement element, TemplateContext context)
     {
-        return element switch
-        {
-            TextElement text => CloneTextElement(text, context),
-            ImageElement image => CloneImageElement(image, context),
-            QrElement qr => CloneQrElement(qr, context),
-            BarcodeElement barcode => CloneBarcodeElement(barcode, context),
-            SvgElement svg => CloneSvgElement(svg, context),
-            SeparatorElement sep => CloneSeparatorElement(sep, context),
-            ContentElement content => CloneContentElement(content, context),
-            FlexElement => throw new InvalidOperationException("FlexElement should be handled by ExpandFlex"),
-            EachElement => throw new InvalidOperationException("EachElement should be expanded, not cloned"),
-            IfElement => throw new InvalidOperationException("IfElement should be expanded, not cloned"),
-            TableElement => throw new InvalidOperationException("TableElement should be handled by ExpandTable"),
-            _ => element
-        };
+        return element.CloneWithSubstitution(text => SubstituteVariables(text, context));
     }
 
     /// <summary>
@@ -1119,14 +917,15 @@ public sealed class TemplateExpander
     }
 
     /// <summary>
-    /// If the source expression is a single variable that resolves to a <see cref="BytesValue"/>,
-    /// converts the binary data to a <c>data:</c> URI with base64 encoding.
+    /// If the source expression is a single <c>{{variable}}</c> that resolves to a <see cref="BytesValue"/>,
+    /// returns that value so it can be attached to <see cref="ExprValue{T}.Bytes"/> without
+    /// base64 encoding/decoding overhead.
     /// Returns <c>null</c> when the expression is not a single variable or does not resolve to bytes.
     /// </summary>
-    /// <param name="source">The expression value holding the image source.</param>
+    /// <param name="source">The expression value holding the image/svg source.</param>
     /// <param name="context">The template context for variable resolution.</param>
-    /// <returns>A <c>data:</c> URI string, or <c>null</c> if not applicable.</returns>
-    private static string? TryResolveBytesAsDataUri(ExprValue<string> source, TemplateContext context)
+    /// <returns>The resolved <see cref="BytesValue"/>, or <c>null</c> if not applicable.</returns>
+    private static BytesValue? TryResolveBytesValue(ExprValue<string> source, TemplateContext context)
     {
         var raw = source.RawValue ?? source.Value;
         if (raw is null)
@@ -1143,147 +942,102 @@ public sealed class TemplateExpander
             return null;
 
         var resolved = ExpressionEvaluator.Resolve(inner, context);
-        if (resolved is not BytesValue bytes)
+        return resolved as BytesValue;
+    }
+
+
+
+    /// <summary>
+    /// Clones an image element asynchronously, resolving bytes from variables or URI loaders.
+    /// </summary>
+    /// <param name="image">The image element to clone.</param>
+    /// <param name="context">The template context for variable resolution.</param>
+    /// <returns>A new image element with resolved bytes when available.</returns>
+    private async ValueTask<ImageElement> CloneImageElementAsync(ImageElement image, TemplateContext context)
+    {
+        var bytesValue = TryResolveBytesValue(image.Src, context);
+        string? resolvedSrc;
+
+        if (bytesValue is not null)
+        {
+            resolvedSrc = image.Src.Value ?? "";
+        }
+        else
+        {
+            resolvedSrc = SubstituteVariables(image.Src.Value, context);
+            bytesValue = await TryLoadBytesFromLoadersAsync(resolvedSrc).ConfigureAwait(false);
+        }
+
+        ExprValue<string> srcExpr = resolvedSrc ?? "";
+        if (bytesValue is not null)
+            srcExpr = srcExpr.WithBytes(bytesValue);
+
+        return image.WithSrc(srcExpr, text => SubstituteVariables(text, context));
+    }
+
+    /// <summary>
+    /// Clones an SVG element asynchronously, resolving bytes from variables or URI loaders.
+    /// </summary>
+    /// <param name="svg">The SVG element to clone.</param>
+    /// <param name="context">The template context for variable resolution.</param>
+    /// <returns>A new SVG element with resolved bytes when available.</returns>
+    private async ValueTask<SvgElement> CloneSvgElementAsync(SvgElement svg, TemplateContext context)
+    {
+        var bytesValue = TryResolveBytesValue(svg.Src, context);
+        string? resolvedSrc;
+
+        if (bytesValue is not null)
+        {
+            resolvedSrc = svg.Src.Value ?? "";
+        }
+        else
+        {
+            resolvedSrc = SubstituteVariables(svg.Src.Value, context);
+            bytesValue = await TryLoadBytesFromLoadersAsync(resolvedSrc).ConfigureAwait(false);
+        }
+
+        ExprValue<string> srcExpr = resolvedSrc ?? "";
+        if (bytesValue is not null)
+            srcExpr = srcExpr.WithBytes(bytesValue);
+
+        return svg.WithSrc(srcExpr, text => SubstituteVariables(text, context));
+    }
+
+    /// <summary>
+    /// Tries to load binary content from a URI source via the resource loader chain.
+    /// Returns null if no loader can handle the source or no loaders are registered.
+    /// </summary>
+    /// <param name="source">The URI source string to load from.</param>
+    /// <returns>The loaded bytes, or null if no loader handles the source.</returns>
+    private async ValueTask<BytesValue?> TryLoadBytesFromLoadersAsync(string? source)
+    {
+        if (string.IsNullOrEmpty(source) || _resourceLoaders is null)
             return null;
 
-        var mime = bytes.MimeType ?? "application/octet-stream";
-        return $"data:{mime};base64,{Convert.ToBase64String(bytes.Value)}";
-    }
-
-    private TextElement CloneTextElement(TextElement text, TemplateContext context)
-    {
-        var clone = new TextElement
+        foreach (var loader in _resourceLoaders)
         {
-            Content = SubstituteVariables(text.Content.Value, context),
-            Font = text.Font,
-            FontWeight = text.FontWeight,
-            FontStyle = text.FontStyle,
-            Size = text.Size,
-            Color = text.Color,
-            Align = text.Align,
-            Wrap = text.Wrap,
-            MaxLines = text.MaxLines,
-            Overflow = text.Overflow,
-            LineHeight = text.LineHeight,
-            Rotate = text.Rotate,
-            Background = SubstituteVariables(text.Background.Value, context),
-            Padding = text.Padding,
-            Margin = text.Margin
-        };
+            if (loader.CanHandle(source))
+            {
+                try
+                {
+                    var stream = await loader.Load(source).ConfigureAwait(false);
+                    if (stream is not null)
+                    {
+                        using (stream)
+                        {
+                            return BytesValue.FromStream(stream);
+                        }
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Loader claimed it can handle this URI but failed —
+                    // continue to next loader.
+                }
+            }
+        }
 
-        TemplateElement.CopyBaseProperties(text, clone);
-        return clone;
+        return null;
     }
 
-    private ImageElement CloneImageElement(ImageElement image, TemplateContext context)
-    {
-        var resolvedSrc = TryResolveBytesAsDataUri(image.Src, context)
-                          ?? SubstituteVariables(image.Src.Value, context);
-
-        var clone = new ImageElement
-        {
-            Src = resolvedSrc,
-            ImageWidth = image.ImageWidth,
-            ImageHeight = image.ImageHeight,
-            Fit = image.Fit,
-            Rotate = image.Rotate,
-            Background = SubstituteVariables(image.Background.Value, context),
-            Padding = image.Padding,
-            Margin = image.Margin
-        };
-
-        TemplateElement.CopyBaseProperties(image, clone);
-        return clone;
-    }
-
-    private SvgElement CloneSvgElement(SvgElement svg, TemplateContext context)
-    {
-        var clone = new SvgElement
-        {
-            Src = SubstituteVariables(svg.Src.Value, context),
-            Content = SubstituteVariables(svg.Content.Value, context),
-            SvgWidth = svg.SvgWidth,
-            SvgHeight = svg.SvgHeight,
-            Fit = svg.Fit,
-            Rotate = svg.Rotate,
-            Background = SubstituteVariables(svg.Background.Value, context),
-            Padding = svg.Padding,
-            Margin = svg.Margin
-        };
-
-        TemplateElement.CopyBaseProperties(svg, clone);
-        return clone;
-    }
-
-    private QrElement CloneQrElement(QrElement qr, TemplateContext context)
-    {
-        var clone = new QrElement
-        {
-            Data = SubstituteVariables(qr.Data.Value, context),
-            Size = qr.Size,
-            ErrorCorrection = qr.ErrorCorrection,
-            Foreground = qr.Foreground,
-            Rotate = qr.Rotate,
-            Background = SubstituteVariables(qr.Background.Value, context),
-            Padding = qr.Padding,
-            Margin = qr.Margin
-        };
-
-        TemplateElement.CopyBaseProperties(qr, clone);
-        return clone;
-    }
-
-    private BarcodeElement CloneBarcodeElement(BarcodeElement barcode, TemplateContext context)
-    {
-        var clone = new BarcodeElement
-        {
-            Data = SubstituteVariables(barcode.Data.Value, context),
-            Format = barcode.Format,
-            BarcodeWidth = barcode.BarcodeWidth,
-            BarcodeHeight = barcode.BarcodeHeight,
-            ShowText = barcode.ShowText,
-            Foreground = barcode.Foreground,
-            Rotate = barcode.Rotate,
-            Background = SubstituteVariables(barcode.Background.Value, context),
-            Padding = barcode.Padding,
-            Margin = barcode.Margin
-        };
-
-        TemplateElement.CopyBaseProperties(barcode, clone);
-        return clone;
-    }
-
-    private SeparatorElement CloneSeparatorElement(SeparatorElement sep, TemplateContext context)
-    {
-        var clone = new SeparatorElement
-        {
-            Orientation = sep.Orientation,
-            Style = sep.Style,
-            Thickness = sep.Thickness,
-            Color = sep.Color,
-            Rotate = sep.Rotate,
-            Background = SubstituteVariables(sep.Background.Value, context),
-            Padding = sep.Padding,
-            Margin = sep.Margin
-        };
-
-        TemplateElement.CopyBaseProperties(sep, clone);
-        return clone;
-    }
-
-    private ContentElement CloneContentElement(ContentElement content, TemplateContext context)
-    {
-        var clone = new ContentElement
-        {
-            Source = SubstituteVariables(content.Source.RawValue ?? content.Source.Value, context),
-            Format = SubstituteVariables(content.Format.RawValue ?? content.Format.Value, context),
-            Rotate = content.Rotate,
-            Background = SubstituteVariables(content.Background.RawValue ?? content.Background.Value, context),
-            Padding = content.Padding,
-            Margin = content.Margin
-        };
-
-        TemplateElement.CopyBaseProperties(content, clone);
-        return clone;
-    }
 }
