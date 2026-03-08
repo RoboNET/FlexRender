@@ -48,10 +48,10 @@ public class FileResourceLoaderTests : IDisposable
         // Arrange
         var expectedContent = "Hello, World!";
         var filePath = CreateTempFile(expectedContent);
-        var loader = CreateLoader();
+        var loader = CreateLoader(Path.GetTempPath());
 
         // Act
-        var stream = await loader.Load(filePath);
+        var stream = await loader.Load(Path.GetFileName(filePath));
 
         // Assert
         stream.Should().NotBeNull();
@@ -67,8 +67,8 @@ public class FileResourceLoaderTests : IDisposable
     public async Task Load_WithNonExistentFile_ThrowsFileNotFoundException()
     {
         // Arrange
-        var loader = CreateLoader();
-        var nonExistentPath = Path.Combine(Path.GetTempPath(), "nonexistent_file_12345.txt");
+        var loader = CreateLoader(Path.GetTempPath());
+        var nonExistentPath = "nonexistent_file_12345.txt";
 
         // Act
         var act = () => loader.Load(nonExistentPath);

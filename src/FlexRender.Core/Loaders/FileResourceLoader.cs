@@ -127,10 +127,10 @@ public sealed class FileResourceLoader : IResourceLoader
     }
 
     /// <summary>
-    /// Validates the path for security issues such as path traversal attacks.
+    /// Validates the path for security issues: path traversal and absolute paths.
     /// </summary>
     /// <param name="path">The path to validate.</param>
-    /// <exception cref="ArgumentException">Thrown when path traversal is detected.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is absolute or contains traversal sequences.</exception>
     private static void ValidatePathSecurity(string path)
     {
         if (path.Contains(".."))
@@ -139,25 +139,37 @@ public sealed class FileResourceLoader : IResourceLoader
                 $"Invalid path (path traversal detected): {path}",
                 nameof(path));
         }
+
+        if (Path.IsPathRooted(path))
+        {
+            throw new ArgumentException(
+                $"Absolute paths are not allowed for security reasons: {path}. Use relative paths resolved against BasePath.",
+                nameof(path));
+        }
     }
 
     /// <summary>
-    /// Resolves a relative or absolute path to a full file system path.
+    /// Resolves a relative path against BasePath and validates the result stays within bounds.
     /// </summary>
-    /// <param name="path">The path to resolve.</param>
+    /// <param name="path">The relative path to resolve.</param>
     /// <returns>The fully resolved absolute path.</returns>
+    /// <exception cref="ArgumentException">Thrown when the resolved path escapes the base directory.</exception>
     private string ResolvePath(string path)
     {
-        if (Path.IsPathRooted(path))
+        var basePath = !string.IsNullOrEmpty(_options.BasePath)
+            ? Path.GetFullPath(_options.BasePath)
+            : Path.GetFullPath(".");
+
+        var fullPath = Path.GetFullPath(Path.Combine(basePath, path));
+
+        // Ensure the resolved path is still within the base directory
+        if (!fullPath.StartsWith(basePath, StringComparison.Ordinal))
         {
-            return Path.GetFullPath(path);
+            throw new ArgumentException(
+                $"Path '{path}' resolves outside the base directory.",
+                nameof(path));
         }
 
-        if (!string.IsNullOrEmpty(_options.BasePath))
-        {
-            return Path.GetFullPath(Path.Combine(_options.BasePath, path));
-        }
-
-        return Path.GetFullPath(path);
+        return fullPath;
     }
 }

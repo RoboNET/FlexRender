@@ -25,7 +25,7 @@ public class ImageLoaderTests : IDisposable
     /// <param name="width">Image width.</param>
     /// <param name="height">Image height.</param>
     /// <param name="color">Fill color.</param>
-    /// <returns>Path to the temporary file.</returns>
+    /// <returns>The filename (relative) of the temporary file within the temp directory.</returns>
     private string CreateTestImage(int width, int height, SKColor color)
     {
         var tempPath = Path.GetTempFileName();
@@ -41,7 +41,7 @@ public class ImageLoaderTests : IDisposable
         _tempFiles.Add(tempPath);
         _tempFiles.Add(pngPath);
 
-        return pngPath;
+        return Path.GetFileName(pngPath);
     }
 
     /// <summary>
@@ -53,6 +53,7 @@ public class ImageLoaderTests : IDisposable
     private static ImageLoader CreateImageLoader(FlexRenderOptions? options = null, params IResourceLoader[] loaders)
     {
         options ??= new FlexRenderOptions();
+        options.BasePath ??= Path.GetTempPath();
         return new ImageLoader(loaders, options);
     }
 
@@ -64,6 +65,7 @@ public class ImageLoaderTests : IDisposable
     private static ImageLoader CreateDefaultImageLoader(FlexRenderOptions? options = null)
     {
         options ??= new FlexRenderOptions();
+        options.BasePath ??= Path.GetTempPath();
         var fileLoader = new FileResourceLoader(options);
         var base64Loader = new Base64ResourceLoader(options);
         return new ImageLoader([fileLoader, base64Loader], options);
