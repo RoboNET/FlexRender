@@ -1,3 +1,6 @@
+using FlexRender.Abstractions;
+using FlexRender.Configuration;
+using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.TemplateEngine;
 using Xunit;
@@ -80,5 +83,56 @@ public sealed class ExpandImageBytesTests
         var svg = Assert.IsType<global::FlexRender.Parsing.Ast.SvgElement>(result.Elements[0]);
         Assert.NotNull(svg.Src.Bytes);
         Assert.Equal(svgBytes, svg.Src.Bytes!.Value);
+    }
+
+    [Fact]
+    public async Task ExpandAsync_ImageWithDataUri_LoadsBytesViaLoaderChain()
+    {
+        var options = new FlexRenderOptions();
+        IReadOnlyList<IResourceLoader> loaders = [new Base64ResourceLoader(options)];
+        var expander = new TemplateExpander(new ResourceLimits(), resourceLoaders: loaders);
+
+        var rawBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 };
+        var base64 = Convert.ToBase64String(rawBytes);
+
+        var template = new Template
+        {
+            Name = "test",
+            Version = 1,
+            Canvas = new CanvasSettings { Width = 200 },
+            Elements =
+            [
+                new ImageElement { Src = $"data:image/png;base64,{base64}" }
+            ]
+        };
+
+        var result = await expander.ExpandAsync(template, new ObjectValue());
+
+        var image = Assert.IsType<ImageElement>(result.Elements[0]);
+        Assert.NotNull(image.Src.Bytes);
+        Assert.Equal(rawBytes, image.Src.Bytes!.Value);
+    }
+
+    [Fact]
+    public async Task ExpandAsync_ImageWithPlainFilename_NoBytesWhenNoFileLoader()
+    {
+        var expander = new TemplateExpander(new ResourceLimits());
+
+        var template = new Template
+        {
+            Name = "test",
+            Version = 1,
+            Canvas = new CanvasSettings { Width = 200 },
+            Elements =
+            [
+                new ImageElement { Src = "logo.png" }
+            ]
+        };
+
+        var result = await expander.ExpandAsync(template, new ObjectValue());
+
+        var image = Assert.IsType<ImageElement>(result.Elements[0]);
+        Assert.Null(image.Src.Bytes);
+        Assert.Equal("logo.png", image.Src.Value);
     }
 }

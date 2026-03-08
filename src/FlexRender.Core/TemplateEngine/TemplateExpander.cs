@@ -824,6 +824,8 @@ public sealed class TemplateExpander
             TableElement table => [ExpandTable(table, context, depth, template)],
             FlexElement flex => [await ExpandFlexAsync(flex, context, depth, template).ConfigureAwait(false)],
             ContentElement content => await ExpandContentAsync(content, context, depth, template, parentWidth).ConfigureAwait(false),
+            ImageElement image => [await CloneImageElementAsync(image, context).ConfigureAwait(false)],
+            SvgElement svg => [await CloneSvgElementAsync(svg, context).ConfigureAwait(false)],
             _ => [CloneWithVariableSubstitution(element, context)]
         };
     }
@@ -1232,6 +1234,125 @@ public sealed class TemplateExpander
 
         TemplateElement.CopyBaseProperties(svg, clone);
         return clone;
+    }
+
+    /// <summary>
+    /// Clones an image element asynchronously, resolving bytes from variables or URI loaders.
+    /// </summary>
+    /// <param name="image">The image element to clone.</param>
+    /// <param name="context">The template context for variable resolution.</param>
+    /// <returns>A new image element with resolved bytes when available.</returns>
+    private async ValueTask<ImageElement> CloneImageElementAsync(ImageElement image, TemplateContext context)
+    {
+        var bytesValue = TryResolveBytesValue(image.Src, context);
+        string? resolvedSrc;
+
+        if (bytesValue is not null)
+        {
+            resolvedSrc = image.Src.Value ?? "";
+        }
+        else
+        {
+            resolvedSrc = SubstituteVariables(image.Src.Value, context);
+            bytesValue = await TryLoadBytesFromLoadersAsync(resolvedSrc).ConfigureAwait(false);
+        }
+
+        ExprValue<string> srcExpr = resolvedSrc ?? "";
+        if (bytesValue is not null)
+            srcExpr = srcExpr.WithBytes(bytesValue);
+
+        var clone = new ImageElement
+        {
+            Src = srcExpr,
+            ImageWidth = image.ImageWidth,
+            ImageHeight = image.ImageHeight,
+            Fit = image.Fit,
+            Rotate = image.Rotate,
+            Background = SubstituteVariables(image.Background.Value, context),
+            Padding = image.Padding,
+            Margin = image.Margin
+        };
+
+        TemplateElement.CopyBaseProperties(image, clone);
+        return clone;
+    }
+
+    /// <summary>
+    /// Clones an SVG element asynchronously, resolving bytes from variables or URI loaders.
+    /// </summary>
+    /// <param name="svg">The SVG element to clone.</param>
+    /// <param name="context">The template context for variable resolution.</param>
+    /// <returns>A new SVG element with resolved bytes when available.</returns>
+    private async ValueTask<SvgElement> CloneSvgElementAsync(SvgElement svg, TemplateContext context)
+    {
+        var bytesValue = TryResolveBytesValue(svg.Src, context);
+        string? resolvedSrc;
+
+        if (bytesValue is not null)
+        {
+            resolvedSrc = svg.Src.Value ?? "";
+        }
+        else
+        {
+            resolvedSrc = SubstituteVariables(svg.Src.Value, context);
+            bytesValue = await TryLoadBytesFromLoadersAsync(resolvedSrc).ConfigureAwait(false);
+        }
+
+        ExprValue<string> srcExpr = resolvedSrc ?? "";
+        if (bytesValue is not null)
+            srcExpr = srcExpr.WithBytes(bytesValue);
+
+        var clone = new SvgElement
+        {
+            Src = srcExpr,
+            Content = SubstituteVariables(svg.Content.Value, context),
+            SvgWidth = svg.SvgWidth,
+            SvgHeight = svg.SvgHeight,
+            Fit = svg.Fit,
+            Rotate = svg.Rotate,
+            Background = SubstituteVariables(svg.Background.Value, context),
+            Padding = svg.Padding,
+            Margin = svg.Margin
+        };
+
+        TemplateElement.CopyBaseProperties(svg, clone);
+        return clone;
+    }
+
+    /// <summary>
+    /// Tries to load binary content from a URI source via the resource loader chain.
+    /// Returns null if no loader can handle the source or no loaders are registered.
+    /// </summary>
+    /// <param name="source">The URI source string to load from.</param>
+    /// <returns>The loaded bytes, or null if no loader handles the source.</returns>
+    private async ValueTask<BytesValue?> TryLoadBytesFromLoadersAsync(string? source)
+    {
+        if (string.IsNullOrEmpty(source) || _resourceLoaders is null)
+            return null;
+
+        foreach (var loader in _resourceLoaders)
+        {
+            if (loader.CanHandle(source))
+            {
+                try
+                {
+                    var stream = await loader.Load(source).ConfigureAwait(false);
+                    if (stream is not null)
+                    {
+                        using (stream)
+                        {
+                            return BytesValue.FromStream(stream);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Loader failed — continue to next
+                }
+            }
+        }
+
+        return null;
     }
 
     private QrElement CloneQrElement(QrElement qr, TemplateContext context)
