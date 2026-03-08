@@ -100,7 +100,7 @@ public sealed class BoxShadowParsingTests
     // === Expansion preserves box-shadow ===
 
     [Fact]
-    public void Expand_PreservesBoxShadow()
+    public async Task Expand_PreservesBoxShadow()
     {
         var expander = new FlexRender.TemplateEngine.TemplateExpander();
         var template = new Template();
@@ -114,7 +114,7 @@ public sealed class BoxShadowParsingTests
             }
         });
 
-        var result = expander.Expand(template, new ObjectValue());
+        var result = await expander.ExpandAsync(template, new ObjectValue());
 
         var flex = Assert.IsType<FlexElement>(result.Elements[0]);
         Assert.Equal("4 4 8 #000000", flex.BoxShadow);

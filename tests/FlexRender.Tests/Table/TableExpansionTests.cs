@@ -41,7 +41,7 @@ public sealed class TableExpansionTests
     // === Dynamic table expansion ===
 
     [Fact]
-    public void Expand_DynamicTable_CreatesFlexContainerWithRows()
+    public async Task Expand_DynamicTable_CreatesFlexContainerWithRows()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -62,7 +62,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: should produce a column FlexElement wrapping rows
         Assert.Single(result.Elements);
@@ -73,7 +73,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_DynamicTableWithHeaders_CreatesHeaderRowAndDataRows()
+    public async Task Expand_DynamicTableWithHeaders_CreatesHeaderRowAndDataRows()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -93,7 +93,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: should have header row + data rows
         Assert.Single(result.Elements);
@@ -115,7 +115,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_DynamicTable_DataRowsHaveCorrectContent()
+    public async Task Expand_DynamicTable_DataRowsHaveCorrectContent()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -135,7 +135,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: the data row should contain TextElements with substituted values
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -149,7 +149,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_DynamicTableWithFormat_UsesFormatString()
+    public async Task Expand_DynamicTableWithFormat_UsesFormatString()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -169,7 +169,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: price column should use format string
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -179,7 +179,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_DynamicTableWithAsVariable_SetsItemVariable()
+    public async Task Expand_DynamicTableWithAsVariable_SetsItemVariable()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -198,7 +198,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: should expand correctly with 'as' variable
         Assert.Single(result.Elements);
@@ -209,7 +209,7 @@ public sealed class TableExpansionTests
     // === Static table expansion ===
 
     [Fact]
-    public void Expand_StaticTableWithRows_CreatesFlexContainerWithRows()
+    public async Task Expand_StaticTableWithRows_CreatesFlexContainerWithRows()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -228,7 +228,7 @@ public sealed class TableExpansionTests
         var data = new ObjectValue();
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert
         Assert.Single(result.Elements);
@@ -248,7 +248,7 @@ public sealed class TableExpansionTests
     // === Column property propagation ===
 
     [Fact]
-    public void Expand_ColumnWidth_AppliedToEachCell()
+    public async Task Expand_ColumnWidth_AppliedToEachCell()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -266,7 +266,7 @@ public sealed class TableExpansionTests
         var data = new ObjectValue();
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: the second column cell should have width "60"
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -276,7 +276,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_ColumnGrow_AppliedToCell()
+    public async Task Expand_ColumnGrow_AppliedToCell()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -293,7 +293,7 @@ public sealed class TableExpansionTests
         var data = new ObjectValue();
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: the cell should have grow=1
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -303,7 +303,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_ColumnAlign_AppliedToTextElement()
+    public async Task Expand_ColumnAlign_AppliedToTextElement()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -320,7 +320,7 @@ public sealed class TableExpansionTests
         var data = new ObjectValue();
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -330,7 +330,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_ColumnFontAndColor_AppliedToCell()
+    public async Task Expand_ColumnFontAndColor_AppliedToCell()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -347,7 +347,7 @@ public sealed class TableExpansionTests
         var data = new ObjectValue();
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -361,7 +361,7 @@ public sealed class TableExpansionTests
     // === Edge cases ===
 
     [Fact]
-    public void Expand_EmptyArray_HeaderRendersNoDataRows()
+    public async Task Expand_EmptyArray_HeaderRendersNoDataRows()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -377,7 +377,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: header should still render, but no data rows
         Assert.Single(result.Elements);
@@ -394,7 +394,7 @@ public sealed class TableExpansionTests
     }
 
     [Fact]
-    public void Expand_MissingKeyInData_ResolvesToEmptyString()
+    public async Task Expand_MissingKeyInData_ResolvesToEmptyString()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -414,7 +414,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: missing key should resolve to empty string
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -426,7 +426,7 @@ public sealed class TableExpansionTests
     // === Spacing ===
 
     [Fact]
-    public void Expand_TableWithGap_SetsGapOnFlexContainers()
+    public async Task Expand_TableWithGap_SetsGapOnFlexContainers()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -448,7 +448,7 @@ public sealed class TableExpansionTests
         var data = new ObjectValue();
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: the outer flex should have rowGap, inner row flex should have columnGap
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -461,7 +461,7 @@ public sealed class TableExpansionTests
     // === Header with border bottom (separator) ===
 
     [Fact]
-    public void Expand_HeaderBorderBottom_CreatesSeparatorAfterHeader()
+    public async Task Expand_HeaderBorderBottom_CreatesSeparatorAfterHeader()
     {
         // Arrange
         var columns = new List<TableColumn>
@@ -484,7 +484,7 @@ public sealed class TableExpansionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: should have header, separator, data row
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);

@@ -25,7 +25,7 @@ public sealed class TableExpanderTests
     // === Dynamic Table Tests ===
 
     [Fact]
-    public void Expand_DynamicTable_CreatesOuterColumnFlex()
+    public async Task Expand_DynamicTable_CreatesOuterColumnFlex()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "name", Label = "Name", Grow = 1 });
@@ -39,14 +39,14 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         Assert.Equal(FlexDirection.Column, outerFlex.Direction);
     }
 
     [Fact]
-    public void Expand_DynamicTable_WithHeaders_CreatesHeaderRow()
+    public async Task Expand_DynamicTable_WithHeaders_CreatesHeaderRow()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "name", Label = "Name", Grow = 1 },
@@ -65,7 +65,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         // First child should be the header row
@@ -84,7 +84,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_DynamicTable_WithData_CreatesDataRows()
+    public async Task Expand_DynamicTable_WithData_CreatesDataRows()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "name", Grow = 1 });
@@ -100,7 +100,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         // No headers (no labels), so all 3 children should be data row FlexElements
@@ -116,7 +116,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_DynamicTable_WithEmptyArray_OnlyHeaders()
+    public async Task Expand_DynamicTable_WithEmptyArray_OnlyHeaders()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "name", Label = "Name", Grow = 1 });
@@ -127,7 +127,7 @@ public sealed class TableExpanderTests
             ["items"] = new ArrayValue(new List<TemplateValue>())
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         // Just the header row, no data rows
@@ -136,7 +136,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_DynamicTable_WithoutItemVariable_UsesDirectAccess()
+    public async Task Expand_DynamicTable_WithoutItemVariable_UsesDirectAccess()
     {
         var columns = new List<TableColumn>
         {
@@ -158,7 +158,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var rowFlex = Assert.IsType<FlexElement>(outerFlex.Children[0]);
@@ -167,7 +167,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_DynamicTable_WithFormat_UsesFormatString()
+    public async Task Expand_DynamicTable_WithFormat_UsesFormatString()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "price", Grow = 1, Format = "{{item.price}} $" });
@@ -181,7 +181,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var rowFlex = Assert.IsType<FlexElement>(outerFlex.Children[0]);
@@ -192,7 +192,7 @@ public sealed class TableExpanderTests
     // === Static Table Tests ===
 
     [Fact]
-    public void Expand_StaticTable_CreatesRows()
+    public async Task Expand_StaticTable_CreatesRows()
     {
         var columns = new List<TableColumn>
         {
@@ -211,7 +211,7 @@ public sealed class TableExpanderTests
         var template = CreateTemplate(table);
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         // No headers (no labels), so 2 data rows
@@ -229,7 +229,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_StaticTable_WithHeaders_IncludesHeaderRow()
+    public async Task Expand_StaticTable_WithHeaders_IncludesHeaderRow()
     {
         var columns = new List<TableColumn>
         {
@@ -247,7 +247,7 @@ public sealed class TableExpanderTests
         var template = CreateTemplate(table);
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         // Header row + 1 data row
@@ -259,7 +259,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_StaticTable_PerRowStyling_Applied()
+    public async Task Expand_StaticTable_PerRowStyling_Applied()
     {
         var columns = new List<TableColumn>
         {
@@ -281,7 +281,7 @@ public sealed class TableExpanderTests
         var template = CreateTemplate(table);
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var rowFlex = Assert.IsType<FlexElement>(outerFlex.Children[0]);
@@ -296,7 +296,7 @@ public sealed class TableExpanderTests
     // === Header Border Bottom Tests ===
 
     [Fact]
-    public void Expand_WithHeaderBorderBottom_CreatesSeparator()
+    public async Task Expand_WithHeaderBorderBottom_CreatesSeparator()
     {
         var columns = new List<TableColumn>
         {
@@ -318,7 +318,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         // header row + separator + data row
@@ -330,7 +330,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_HeaderBorderBottomTrue_UsesDottedStyle()
+    public async Task Expand_HeaderBorderBottomTrue_UsesDottedStyle()
     {
         var columns = new List<TableColumn>
         {
@@ -349,7 +349,7 @@ public sealed class TableExpanderTests
             ["items"] = new ArrayValue(new List<TemplateValue>())
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var sep = Assert.IsType<SeparatorElement>(outerFlex.Children[1]);
@@ -359,7 +359,7 @@ public sealed class TableExpanderTests
     // === Spacing Tests ===
 
     [Fact]
-    public void Expand_RowGap_AppliedToOuterFlex()
+    public async Task Expand_RowGap_AppliedToOuterFlex()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "name", Grow = 1 });
@@ -374,14 +374,14 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         Assert.Equal("4", outerFlex.Gap);
     }
 
     [Fact]
-    public void Expand_ColumnGap_AppliedToRowFlex()
+    public async Task Expand_ColumnGap_AppliedToRowFlex()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "a", Grow = 1 },
@@ -401,7 +401,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var rowFlex = Assert.IsType<FlexElement>(outerFlex.Children[0]);
@@ -411,7 +411,7 @@ public sealed class TableExpanderTests
     // === Style Inheritance Tests ===
 
     [Fact]
-    public void Expand_HeaderStyling_OverridesTableDefaults()
+    public async Task Expand_HeaderStyling_OverridesTableDefaults()
     {
         var columns = new List<TableColumn>
         {
@@ -435,7 +435,7 @@ public sealed class TableExpanderTests
             ["items"] = new ArrayValue(new List<TemplateValue>())
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var headerRow = Assert.IsType<FlexElement>(outerFlex.Children[0]);
@@ -447,7 +447,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_ColumnStyling_OverridesTableDefaults()
+    public async Task Expand_ColumnStyling_OverridesTableDefaults()
     {
         var columns = new List<TableColumn>
         {
@@ -471,7 +471,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var rowFlex = Assert.IsType<FlexElement>(outerFlex.Children[0]);
@@ -485,7 +485,7 @@ public sealed class TableExpanderTests
     // === Base Properties Tests ===
 
     [Fact]
-    public void Expand_BaseProperties_CopiedToOuterFlex()
+    public async Task Expand_BaseProperties_CopiedToOuterFlex()
     {
         var columns = new List<TableColumn>
         {
@@ -506,7 +506,7 @@ public sealed class TableExpanderTests
             ["items"] = new ArrayValue(new List<TemplateValue>())
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         Assert.Equal("10", outerFlex.Padding);
@@ -515,7 +515,7 @@ public sealed class TableExpanderTests
     }
 
     [Fact]
-    public void Expand_MissingKeyInData_ResolvesToEmptyString()
+    public async Task Expand_MissingKeyInData_ResolvesToEmptyString()
     {
         var table = CreateDynamicTable("items", "item",
             new TableColumn { Key = "missing_key", Grow = 1 });
@@ -529,7 +529,7 @@ public sealed class TableExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var outerFlex = Assert.IsType<FlexElement>(result.Elements[0]);
         var rowFlex = Assert.IsType<FlexElement>(outerFlex.Children[0]);

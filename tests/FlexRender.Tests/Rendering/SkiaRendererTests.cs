@@ -1,7 +1,9 @@
+using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
 using FlexRender.Rendering;
+using FlexRender.TemplateEngine;
 using SkiaSharp;
 using Xunit;
 
@@ -27,7 +29,7 @@ public class SkiaRendererTests : IDisposable
     }
 
     [Fact]
-    public void Measure_SimpleTemplate_ReturnsDimensions()
+    public async Task Measure_SimpleTemplate_ReturnsDimensions()
     {
         var template = new Template
         {
@@ -39,14 +41,14 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
 
         Assert.Equal(300f, size.Width);
         Assert.True(size.Height > 0);
     }
 
     [Fact]
-    public void Measure_EmptyTemplate_ReturnsMinimalSize()
+    public async Task Measure_EmptyTemplate_ReturnsMinimalSize()
     {
         var template = new Template
         {
@@ -55,14 +57,14 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
 
         Assert.Equal(300f, size.Width);
         Assert.True(size.Height >= 0);
     }
 
     [Fact]
-    public void Measure_WithHeightFixed_ReturnsCorrectDimensions()
+    public async Task Measure_WithHeightFixed_ReturnsCorrectDimensions()
     {
         var template = new Template
         {
@@ -74,19 +76,15 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
 
         Assert.Equal(500f, size.Height);
         Assert.True(size.Width > 0);
     }
 
     [Fact]
-    public void Render_ToCanvas_DrawsWithoutError()
+    public async Task Render_ToCanvas_DrawsWithoutError()
     {
-        using var bitmap = new SKBitmap(300, 100);
-        using var canvas = new SKCanvas(bitmap);
-        canvas.Clear(SKColors.White);
-
         var template = new Template
         {
             Canvas = new CanvasSettings { Width = 300 },
@@ -97,18 +95,18 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        var exception = Record.Exception(() =>
-            _renderer.Render(canvas, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+        {
+            using var bitmap = await _renderer.Render(template, data);
+        });
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void Render_ToCanvas_WithOffset_AppliesOffset()
+    public async Task Render_ToCanvas_WithOffset_AppliesOffset()
     {
         using var bitmap = new SKBitmap(300, 100);
-        using var canvas = new SKCanvas(bitmap);
-        canvas.Clear(SKColors.White);
 
         var template = new Template
         {
@@ -121,14 +119,14 @@ public class SkiaRendererTests : IDisposable
         var data = new ObjectValue();
         var offset = new SKPoint(50, 25);
 
-        var exception = Record.Exception(() =>
-            _renderer.Render(canvas, template, data, offset));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, offset, default));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void Render_ToBitmap_DrawsWithoutError()
+    public async Task Render_ToBitmap_DrawsWithoutError()
     {
         using var bitmap = new SKBitmap(300, 100);
 
@@ -142,14 +140,14 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void Render_WithBackground_FillsBackground()
+    public async Task Render_WithBackground_FillsBackground()
     {
         using var bitmap = new SKBitmap(100, 100);
 
@@ -164,7 +162,7 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Check a pixel in the upper area where background should be rendered
         var topPixel = bitmap.GetPixel(50, 10);
@@ -174,7 +172,7 @@ public class SkiaRendererTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithDataSubstitution_SubstitutesValues()
+    public async Task Render_WithDataSubstitution_SubstitutesValues()
     {
         using var bitmap = new SKBitmap(300, 50);
 
@@ -189,14 +187,14 @@ public class SkiaRendererTests : IDisposable
         var data = new ObjectValue { ["name"] = "World" };
 
         // This should not throw - full text content verification would be in snapshot tests
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void Render_ParsedYaml_RendersCorrectly()
+    public async Task Render_ParsedYaml_RendersCorrectly()
     {
         const string yaml = """
             canvas:
@@ -212,14 +210,14 @@ public class SkiaRendererTests : IDisposable
         var data = new ObjectValue();
 
         using var bitmap = new SKBitmap(200, 50);
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void Render_MultipleTextElements_DrawsAll()
+    public async Task Render_MultipleTextElements_DrawsAll()
     {
         using var bitmap = new SKBitmap(300, 150);
 
@@ -235,14 +233,14 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void Render_WithITemplateData_WorksCorrectly()
+    public async Task Render_WithITemplateData_WorksCorrectly()
     {
         using var bitmap = new SKBitmap(300, 50);
 
@@ -256,8 +254,8 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new TestTemplateData { Price = 99.99m };
 
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data.ToTemplateValue(), default, default));
 
         Assert.Null(exception);
     }
@@ -273,7 +271,7 @@ public class SkiaRendererTests : IDisposable
     }
 
     [Fact]
-    public void Render_FlexWithBackground_DrawsBackground()
+    public async Task Render_FlexWithBackground_DrawsBackground()
     {
         using var bitmap = new SKBitmap(100, 100);
 
@@ -293,7 +291,7 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Check pixel in the flex area (should be red)
         var pixel = bitmap.GetPixel(50, 25);
@@ -303,7 +301,7 @@ public class SkiaRendererTests : IDisposable
     }
 
     [Fact]
-    public void Render_TextWithBackground_DrawsBackground()
+    public async Task Render_TextWithBackground_DrawsBackground()
     {
         using var bitmap = new SKBitmap(200, 100);
 
@@ -324,7 +322,7 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Check that green background was drawn in text area (bottom-left region below text line)
         var pixel = bitmap.GetPixel(10, 40);
@@ -332,7 +330,7 @@ public class SkiaRendererTests : IDisposable
     }
 
     [Fact]
-    public void Render_ElementWithoutBackground_NoBackgroundDrawn()
+    public async Task Render_ElementWithoutBackground_NoBackgroundDrawn()
     {
         using var bitmap = new SKBitmap(100, 100);
 
@@ -352,7 +350,7 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Pixel should be white (canvas background), not anything else
         var pixel = bitmap.GetPixel(25, 25);
@@ -365,7 +363,7 @@ public class SkiaRendererTests : IDisposable
     /// Verifies that a font named "default" is also registered as "main".
     /// </summary>
     [Fact]
-    public void Render_DefaultFont_RegisteredAsMain()
+    public async Task Render_DefaultFont_RegisteredAsMain()
     {
         const string yaml = """
             fonts:
@@ -384,8 +382,8 @@ public class SkiaRendererTests : IDisposable
 
         // Should not throw - the "default" font is registered as "main"
         // which is the default font reference for TextElement
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
     }
@@ -394,7 +392,7 @@ public class SkiaRendererTests : IDisposable
     /// Verifies that text elements without explicit font use the default font.
     /// </summary>
     [Fact]
-    public void Render_TextWithoutExplicitFont_UsesDefaultFont()
+    public async Task Render_TextWithoutExplicitFont_UsesDefaultFont()
     {
         const string yaml = """
             fonts:
@@ -416,8 +414,8 @@ public class SkiaRendererTests : IDisposable
         using var bitmap = new SKBitmap(300, 100);
 
         // Both text elements should render without error
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
 
@@ -440,7 +438,7 @@ public class SkiaRendererTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultLimits_Uses100MaxRenderDepth()
+    public async Task Constructor_DefaultLimits_Uses100MaxRenderDepth()
     {
         // The parameterless constructor should use 100 as default
         using var renderer = new SkiaRenderer();
@@ -456,12 +454,12 @@ public class SkiaRendererTests : IDisposable
         };
         var data = new ObjectValue();
 
-        var size = renderer.Measure(template, data);
+        var size = await renderer.MeasureAsync(template, data);
         Assert.True(size.Width > 0);
     }
 
     [Fact]
-    public void Render_SeparatorWithTemplateColorExpression_ResolvesColor()
+    public async Task Render_SeparatorWithTemplateColorExpression_ResolvesColor()
     {
         var template = new Template
         {
@@ -482,9 +480,9 @@ public class SkiaRendererTests : IDisposable
         };
 
         // Measure first to get correct bitmap size
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, Math.Max((int)size.Height, 2));
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // The separator line is drawn at y + height/2; with thickness=2, height=2, so lineY=1
         var pixel = bitmap.GetPixel(100, 1);
@@ -498,7 +496,7 @@ public class SkiaRendererTests : IDisposable
     /// to a system default font.
     /// </summary>
     [Fact]
-    public void Render_TextWithNoFontsSection_UsesDefaultFallback()
+    public async Task Render_TextWithNoFontsSection_UsesDefaultFallback()
     {
         var template = new Template
         {
@@ -518,8 +516,8 @@ public class SkiaRendererTests : IDisposable
         using var bitmap = new SKBitmap(200, 100);
 
         // Should not throw NullReferenceException even though no fonts are configured
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
     }
@@ -558,7 +556,7 @@ public class SkiaRendererTests : IDisposable
     /// Verifies that parsed YAML with text but no fonts section renders correctly.
     /// </summary>
     [Fact]
-    public void Render_ParsedYamlNoFonts_RendersCorrectly()
+    public async Task Render_ParsedYamlNoFonts_RendersCorrectly()
     {
         const string yaml = """
             canvas:
@@ -577,8 +575,8 @@ public class SkiaRendererTests : IDisposable
 
         using var bitmap = new SKBitmap(200, 100);
 
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
     }
@@ -588,7 +586,7 @@ public class SkiaRendererTests : IDisposable
     /// NRE when no fonts section is present.
     /// </summary>
     [Fact]
-    public void Render_MultipleTextNoFonts_DoesNotThrow()
+    public async Task Render_MultipleTextNoFonts_DoesNotThrow()
     {
         var template = new Template
         {
@@ -604,9 +602,82 @@ public class SkiaRendererTests : IDisposable
 
         using var bitmap = new SKBitmap(300, 200);
 
-        var exception = Record.Exception(() =>
-            _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () =>
+            await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
+    }
+
+    /// <summary>
+    /// Regression test: ContentElement previously threw TemplateEngineException
+    /// "Content element expansion requires async processing" when render pipeline
+    /// used sync Expand() instead of ExpandAsync().
+    /// </summary>
+    [Fact]
+    public async Task ContentElement_RendersSuccessfully_ThroughAsyncPipeline()
+    {
+        // Arrange: register a simple content parser that expands to text elements
+        var registry = new ContentParserRegistry();
+        registry.Register(new InlineTestContentParser());
+
+        using var renderer = new SkiaRenderer(
+            new ResourceLimits(),
+            qrProvider: null,
+            barcodeProvider: null,
+            imageLoader: null,
+            contentParserRegistry: registry);
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300, Background = "#ffffff" },
+            Elements = new List<TemplateElement>
+            {
+                new FlexElement
+                {
+                    Children = new List<TemplateElement>
+                    {
+                        new TextElement { Content = "Before content" },
+                        new ContentElement { Source = "Hello|World", Format = "pipe-split" },
+                        new TextElement { Content = "After content" }
+                    }
+                }
+            }
+        };
+        var data = new ObjectValue();
+
+        // Act & Assert: should not throw TemplateEngineException about sync Expand()
+        var exception = await Record.ExceptionAsync(async () =>
+        {
+            using var bitmap = await renderer.Render(template, data);
+            Assert.NotNull(bitmap);
+            Assert.True(bitmap.Width > 0);
+            Assert.True(bitmap.Height > 0);
+        });
+
+        Assert.Null(exception);
+    }
+
+    /// <summary>
+    /// Simple content parser that splits text on pipe characters and creates a
+    /// <see cref="TextElement"/> for each segment. Used by regression tests.
+    /// </summary>
+    private sealed class InlineTestContentParser : IContentParser
+    {
+        /// <inheritdoc />
+        public string FormatName => "pipe-split";
+
+        /// <inheritdoc />
+        public IReadOnlyList<TemplateElement> Parse(
+            string text,
+            ContentParserContext context,
+            IReadOnlyDictionary<string, object>? options = null)
+        {
+            ArgumentNullException.ThrowIfNull(text);
+            if (string.IsNullOrWhiteSpace(text)) return [];
+
+            return text.Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Select(segment => (TemplateElement)new TextElement { Content = segment.Trim() })
+                .ToList();
+        }
     }
 }

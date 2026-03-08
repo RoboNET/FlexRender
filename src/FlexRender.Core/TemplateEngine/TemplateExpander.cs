@@ -78,40 +78,6 @@ public sealed class TemplateExpander
     }
 
     /// <summary>
-    /// Expands EachElement and IfElement instances into concrete elements based on data.
-    /// Returns a new Template with all control flow elements resolved.
-    /// </summary>
-    /// <param name="template">The template containing control flow elements.</param>
-    /// <param name="data">The data for evaluating conditions and iterating arrays.</param>
-    /// <returns>A new Template with expanded elements.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when template or data is null.</exception>
-    /// <exception cref="TemplateEngineException">Thrown when maximum expansion depth is exceeded.</exception>
-    public Template Expand(Template template, ObjectValue data)
-    {
-        ArgumentNullException.ThrowIfNull(template);
-        ArgumentNullException.ThrowIfNull(data);
-
-        var context = new TemplateContext(data);
-        var expandedElements = ExpandElements(template.Elements, context, 0, template);
-
-        var result = new Template
-        {
-            Name = template.Name,
-            Version = template.Version,
-            Canvas = template.Canvas,
-            Elements = expandedElements
-        };
-
-        // Copy fonts
-        foreach (var font in template.Fonts)
-        {
-            result.Fonts[font.Key] = font.Value;
-        }
-
-        return result;
-    }
-
-    /// <summary>
     /// Asynchronously expands EachElement and IfElement instances into concrete elements based on data.
     /// Returns a new Template with all control flow elements resolved.
     /// Uses <c>await</c> for content source resolution instead of blocking synchronously.

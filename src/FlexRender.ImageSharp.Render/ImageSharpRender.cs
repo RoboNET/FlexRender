@@ -190,8 +190,7 @@ public sealed class ImageSharpRender : IFlexRender
 
         try
         {
-            using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
+            using var image = _engine.RenderToImage(processedTemplate, imageCache);
 
             var encoder = new PngEncoder();
             await image.SaveAsync(output, encoder, cancellationToken).ConfigureAwait(false);
@@ -241,8 +240,7 @@ public sealed class ImageSharpRender : IFlexRender
 
         try
         {
-            using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
+            using var image = _engine.RenderToImage(processedTemplate, imageCache);
 
             var encoder = new JpegEncoder { Quality = effectiveOptions.Quality };
             await image.SaveAsync(output, encoder, cancellationToken).ConfigureAwait(false);
@@ -291,8 +289,7 @@ public sealed class ImageSharpRender : IFlexRender
 
         try
         {
-            using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
+            using var image = _engine.RenderToImage(processedTemplate, imageCache);
 
             var encoder = new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel32 };
             await image.SaveAsync(output, encoder, cancellationToken).ConfigureAwait(false);
@@ -339,8 +336,7 @@ public sealed class ImageSharpRender : IFlexRender
 
         try
         {
-            using var image = _engine.RenderToImage(
-                layoutTemplate, effectiveData, _filterRegistry, imageCache, processedTemplate, _contentParserRegistry);
+            using var image = _engine.RenderToImage(processedTemplate, imageCache);
 
             // Write raw RGBA pixel data
             var pixelCount = checked(image.Width * image.Height);
@@ -360,26 +356,23 @@ public sealed class ImageSharpRender : IFlexRender
     // ========================================================================
 
     /// <summary>
-    /// Pre-loads all images referenced in the template using the configured resource loaders.
-    /// Also returns the processed template so callers can skip redundant expand+preprocess steps.
+    /// Expands and processes the template asynchronously, then pre-loads all images
+    /// referenced in it using the configured resource loaders.
     /// </summary>
-    /// <param name="template">The template to scan for image references.</param>
+    /// <param name="template">The template to process and scan for image references.</param>
     /// <param name="data">The data context for expression evaluation.</param>
     /// <param name="cancellationToken">Cancellation token for async operations.</param>
     /// <returns>
-    /// A tuple of the processed template and an image cache. The processed template is non-null
-    /// when resource loaders are configured (since expand+preprocess was already performed).
-    /// The image cache maps URIs to pre-loaded images, or is <c>null</c> when no images were found.
+    /// A tuple of the fully processed template and an image cache. The processed template
+    /// is always non-null. The image cache maps URIs to pre-loaded images, or is <c>null</c>
+    /// when no images were found or no resource loaders are configured.
     /// Caller is responsible for disposing images via <see cref="DisposeImageCache"/>.
     /// </returns>
-    private async Task<(Template? processedTemplate, Dictionary<string, Image<Rgba32>>? imageCache)> PreloadImages(
+    private async Task<(Template processedTemplate, Dictionary<string, Image<Rgba32>>? imageCache)> PreloadImages(
         Template template,
         ObjectValue data,
         CancellationToken cancellationToken)
     {
-        if (_resourceLoaders.Count == 0)
-            return (null, null);
-
         // Expand, resolve, and materialize template to resolve expressions in image src attributes
         var expander = _filterRegistry is not null
             ? new TemplateExpander(_limits, _filterRegistry, _contentParserRegistry, _resourceLoaders)
@@ -390,6 +383,9 @@ public sealed class ImageSharpRender : IFlexRender
 
         var pipeline = new TemplatePipeline(expander, templateProcessor);
         var processedTemplate = await pipeline.ProcessAsync(template, data).ConfigureAwait(false);
+
+        if (_resourceLoaders.Count == 0)
+            return (processedTemplate, null);
 
         var uris = ImageSharpRenderingEngine.CollectImageUris(processedTemplate);
         if (uris.Count == 0)

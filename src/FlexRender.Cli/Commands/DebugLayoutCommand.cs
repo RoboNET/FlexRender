@@ -63,7 +63,7 @@ public static class DebugLayoutCommand
     /// <param name="verbose">Whether to enable verbose output.</param>
     /// <param name="fontsDir">Optional fonts directory.</param>
     /// <returns>Exit code (0 for success, non-zero for failure).</returns>
-    private static Task<int> Execute(
+    private static async Task<int> Execute(
         FileInfo templateFile,
         FileInfo? dataFile,
         FileInfo? outputFile,
@@ -74,21 +74,21 @@ public static class DebugLayoutCommand
         if (!templateFile.Exists)
         {
             Console.Error.WriteLine($"Error: Template file not found: {templateFile.FullName}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         // Validate data file if specified
         if (dataFile is not null && !dataFile.Exists)
         {
             Console.Error.WriteLine($"Error: Data file not found: {dataFile.FullName}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         // Validate fonts directory if specified
         if (fontsDir is not null && !fontsDir.Exists)
         {
             Console.Error.WriteLine($"Error: Fonts directory not found: {fontsDir.FullName}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         try
@@ -137,7 +137,7 @@ public static class DebugLayoutCommand
             }
 
             // Compute layout using the same renderer as actual rendering
-            var root = skiaRender.ComputeLayout(template, templateData);
+            var root = await skiaRender.ComputeLayout(template, templateData);
 
             // Print registered fonts
             Console.WriteLine("Fonts:");
@@ -158,17 +158,17 @@ public static class DebugLayoutCommand
             // Optionally render debug image
             if (outputFile is not null)
             {
-                RenderDebugImage(template, root, templateData, outputFile.FullName, skiaRender);
+                await RenderDebugImage(template, root, templateData, outputFile.FullName, skiaRender);
                 Console.WriteLine();
                 Console.WriteLine($"Debug image: {outputFile.FullName}");
             }
 
-            return Task.FromResult(0);
+            return 0;
         }
         catch (TemplateParseException ex)
         {
             Console.Error.WriteLine($"Template error: {ex.Message}");
-            return Task.FromResult(1);
+            return 1;
         }
         catch (Exception ex)
         {
@@ -177,7 +177,7 @@ public static class DebugLayoutCommand
             {
                 Console.Error.WriteLine(ex.StackTrace);
             }
-            return Task.FromResult(1);
+            return 1;
         }
     }
 
@@ -281,20 +281,22 @@ public static class DebugLayoutCommand
     /// <param name="data">The template data.</param>
     /// <param name="outputPath">The output file path.</param>
     /// <param name="skiaRender">The SkiaRender instance with fonts already registered.</param>
-    private static void RenderDebugImage(
+    private static async Task RenderDebugImage(
         Template template,
         LayoutNode root,
         ObjectValue data,
         string outputPath,
         FlexRender.Skia.SkiaRender skiaRender)
     {
-        var size = skiaRender.Measure(template, data);
+        var size = await skiaRender.Measure(template, data);
 
         using var bitmap = new SKBitmap((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height));
         using var canvas = new SKCanvas(bitmap);
 
-        // Render template normally
-        skiaRender.Render(canvas, template, data);
+        // Render template to PNG and decode back to draw onto debug canvas
+        var pngBytes = await skiaRender.RenderToPng(template, data);
+        using var rendered = SKBitmap.Decode(pngBytes);
+        canvas.DrawBitmap(rendered, 0, 0);
 
         // Draw debug overlay
         DrawDebugOverlay(canvas, root, 0, 0, skiaRender.FontManager);

@@ -31,7 +31,7 @@ public sealed class CanvasRtlPipelineTests : IDisposable
     /// <c>Canvas.TextDirection</c> to the processed canvas, causing RTL mirroring to be lost.
     /// </summary>
     [Fact]
-    public void Parse_CanvasRtl_RowChildrenPositionedRightToLeft()
+    public async Task Parse_CanvasRtl_RowChildrenPositionedRightToLeft()
     {
         const string yaml = """
             canvas:
@@ -59,7 +59,7 @@ public sealed class CanvasRtlPipelineTests : IDisposable
         var data = new ObjectValue();
 
         // Full pipeline: expand -> preprocess -> layout
-        var root = _renderer.ComputeLayout(template, data);
+        var root = await _renderer.ComputeLayoutAsync(template, data);
 
         // root has one child: the row flex container
         Assert.Single(root.Children);

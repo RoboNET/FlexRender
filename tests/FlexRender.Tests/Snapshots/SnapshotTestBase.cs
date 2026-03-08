@@ -139,7 +139,7 @@ public abstract class SnapshotTestBase : IDisposable
     /// <exception cref="Xunit.Sdk.XunitException">
     /// Thrown when the rendered image does not match the golden image and update mode is disabled.
     /// </exception>
-    protected void AssertSnapshot(
+    protected async Task AssertSnapshot(
         string testName,
         Template template,
         ObjectValue data,
@@ -153,7 +153,7 @@ public abstract class SnapshotTestBase : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         // Render the template to a bitmap
-        using var actualBitmap = RenderTemplate(template, data);
+        using var actualBitmap = await RenderTemplate(template, data);
 
         if (_updateSnapshots)
         {
@@ -170,9 +170,9 @@ public abstract class SnapshotTestBase : IDisposable
     /// <param name="template">The template to render.</param>
     /// <param name="data">The data for variable substitution.</param>
     /// <returns>A bitmap containing the rendered template.</returns>
-    private SKBitmap RenderTemplate(Template template, ObjectValue data)
+    private async Task<SKBitmap> RenderTemplate(Template template, ObjectValue data)
     {
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         var width = (int)Math.Ceiling(size.Width);
         var height = (int)Math.Ceiling(size.Height);
 
@@ -181,7 +181,7 @@ public abstract class SnapshotTestBase : IDisposable
         height = Math.Max(height, 1);
 
         var bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         return bitmap;
     }

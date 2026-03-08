@@ -32,11 +32,11 @@ public sealed class ExprValueIntegrationTests
     /// <param name="yaml">The YAML template string.</param>
     /// <param name="data">The data context for expression evaluation.</param>
     /// <returns>The processed template with all expressions resolved.</returns>
-    private Template ParseAndProcess(string yaml, ObjectValue data)
+    private async Task<Template> ParseAndProcess(string yaml, ObjectValue data)
     {
         var template = _parser.Parse(yaml);
         var pipeline = CreatePipeline();
-        return pipeline.Process(template, data);
+        return await pipeline.ProcessAsync(template, data);
     }
 
     // === 1. Expression in float property (Opacity) ===
@@ -46,7 +46,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly through the full pipeline.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInOpacity_ResolvesToFloat()
+    public async Task Pipeline_ExpressionInOpacity_ResolvesToFloat()
     {
         const string yaml = """
             canvas:
@@ -65,7 +65,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal(0.5f, text.Opacity.Value);
@@ -79,7 +79,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly through the full pipeline.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInMaxLines_ResolvesToInt()
+    public async Task Pipeline_ExpressionInMaxLines_ResolvesToInt()
     {
         const string yaml = """
             canvas:
@@ -98,7 +98,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal(3, text.MaxLines.Value);
@@ -112,7 +112,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly through the full pipeline.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInShowText_ResolvesToBool()
+    public async Task Pipeline_ExpressionInShowText_ResolvesToBool()
     {
         const string yaml = """
             canvas:
@@ -131,7 +131,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var barcode = Assert.IsType<BarcodeElement>(result.Elements[0]);
         Assert.True(barcode.ShowText.Value);
@@ -142,7 +142,7 @@ public sealed class ExprValueIntegrationTests
     /// Verifies that a false boolean expression is resolved correctly.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInShowText_FalseValue_ResolvesToFalse()
+    public async Task Pipeline_ExpressionInShowText_FalseValue_ResolvesToFalse()
     {
         const string yaml = """
             canvas:
@@ -161,7 +161,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var barcode = Assert.IsType<BarcodeElement>(result.Elements[0]);
         Assert.False(barcode.ShowText.Value);
@@ -175,7 +175,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly through the full pipeline.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInAlign_ResolvesToEnum()
+    public async Task Pipeline_ExpressionInAlign_ResolvesToEnum()
     {
         const string yaml = """
             canvas:
@@ -194,7 +194,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal(TextAlign.Center, text.Align.Value);
@@ -205,7 +205,7 @@ public sealed class ExprValueIntegrationTests
     /// Verifies that a "right" alignment expression resolves correctly.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInAlign_RightValue_ResolvesToRight()
+    public async Task Pipeline_ExpressionInAlign_RightValue_ResolvesToRight()
     {
         const string yaml = """
             canvas:
@@ -224,7 +224,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal(TextAlign.Right, text.Align.Value);
@@ -239,7 +239,7 @@ public sealed class ExprValueIntegrationTests
     /// test confirming string expression substitution still works.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInContent_ResolvesToString()
+    public async Task Pipeline_ExpressionInContent_ResolvesToString()
     {
         const string yaml = """
             canvas:
@@ -254,7 +254,7 @@ public sealed class ExprValueIntegrationTests
             ["name"] = new StringValue("World")
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal("Hello World", text.Content.Value);
@@ -268,7 +268,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly through the full pipeline.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInColor_ResolvesToString()
+    public async Task Pipeline_ExpressionInColor_ResolvesToString()
     {
         const string yaml = """
             canvas:
@@ -287,7 +287,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal("#FF0000", text.Color.Value);
@@ -301,7 +301,7 @@ public sealed class ExprValueIntegrationTests
     /// the materialized value is null.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInMaxLines_EmptyValue_ResolvesToNull()
+    public async Task Pipeline_ExpressionInMaxLines_EmptyValue_ResolvesToNull()
     {
         const string yaml = """
             canvas:
@@ -320,7 +320,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Null(text.MaxLines.Value);
@@ -332,7 +332,7 @@ public sealed class ExprValueIntegrationTests
     /// the nullable int? property resolves to null.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInMaxLines_MissingVariable_ResolvesToNull()
+    public async Task Pipeline_ExpressionInMaxLines_MissingVariable_ResolvesToNull()
     {
         const string yaml = """
             canvas:
@@ -346,7 +346,7 @@ public sealed class ExprValueIntegrationTests
         // Data does not contain config.lines
         var data = new ObjectValue();
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Null(text.MaxLines.Value);
@@ -360,7 +360,7 @@ public sealed class ExprValueIntegrationTests
     /// in a single pipeline pass.
     /// </summary>
     [Fact]
-    public void Pipeline_MultipleExpressions_AllResolvedCorrectly()
+    public async Task Pipeline_MultipleExpressions_AllResolvedCorrectly()
     {
         const string yaml = """
             canvas:
@@ -391,7 +391,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal("Hello World", text.Content.Value);
@@ -416,7 +416,7 @@ public sealed class ExprValueIntegrationTests
     /// the pipeline unchanged and are correctly resolved.
     /// </summary>
     [Fact]
-    public void Pipeline_LiteralValues_PreservedUnchanged()
+    public async Task Pipeline_LiteralValues_PreservedUnchanged()
     {
         const string yaml = """
             canvas:
@@ -433,7 +433,7 @@ public sealed class ExprValueIntegrationTests
 
         var data = new ObjectValue();
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal("Static text", text.Content.Value);
@@ -458,7 +458,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInWrap_ResolvesToBool()
+    public async Task Pipeline_ExpressionInWrap_ResolvesToBool()
     {
         const string yaml = """
             canvas:
@@ -477,7 +477,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.False(text.Wrap.Value);
@@ -489,7 +489,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInGrow_ResolvesToFloat()
+    public async Task Pipeline_ExpressionInGrow_ResolvesToFloat()
     {
         const string yaml = """
             canvas:
@@ -508,7 +508,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal(2.0f, text.Grow.Value);
@@ -520,7 +520,7 @@ public sealed class ExprValueIntegrationTests
     /// is resolved correctly.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInOrder_ResolvesToInt()
+    public async Task Pipeline_ExpressionInOrder_ResolvesToInt()
     {
         const string yaml = """
             canvas:
@@ -539,7 +539,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal(3, text.Order.Value);
@@ -551,7 +551,7 @@ public sealed class ExprValueIntegrationTests
     /// Some properties are literal, others are expressions, and all are resolved.
     /// </summary>
     [Fact]
-    public void Pipeline_MixedLiteralAndExpression_AllResolvedCorrectly()
+    public async Task Pipeline_MixedLiteralAndExpression_AllResolvedCorrectly()
     {
         const string yaml = """
             canvas:
@@ -578,7 +578,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
 
@@ -604,7 +604,7 @@ public sealed class ExprValueIntegrationTests
     /// is correctly parsed as a float.
     /// </summary>
     [Fact]
-    public void Pipeline_ExpressionInOpacity_IntegerValue_ResolvesToFloat()
+    public async Task Pipeline_ExpressionInOpacity_IntegerValue_ResolvesToFloat()
     {
         const string yaml = """
             canvas:
@@ -623,7 +623,7 @@ public sealed class ExprValueIntegrationTests
             }
         };
 
-        var result = ParseAndProcess(yaml, data);
+        var result = await ParseAndProcess(yaml, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal(1.0f, text.Opacity.Value);

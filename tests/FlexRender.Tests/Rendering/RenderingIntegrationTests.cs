@@ -127,7 +127,7 @@ public class RenderingIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void FullPipeline_HeightFixed_CalculatesWidth()
+    public async Task FullPipeline_HeightFixed_CalculatesWidth()
     {
         const string yaml = """
             canvas:
@@ -142,7 +142,7 @@ public class RenderingIntegrationTests : IDisposable
         var template = _parser.Parse(yaml);
         var data = new ObjectValue();
 
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
 
         Assert.Equal(100f, size.Height);
         Assert.True(size.Width > 0);

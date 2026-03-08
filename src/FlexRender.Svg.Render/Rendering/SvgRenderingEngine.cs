@@ -116,7 +116,7 @@ internal sealed class SvgRenderingEngine
 
         try
         {
-            return RenderToSvg(template, data);
+            return RenderToSvgFromProcessed(processedTemplate);
         }
         finally
         {
@@ -128,20 +128,17 @@ internal sealed class SvgRenderingEngine
     }
 
     /// <summary>
-    /// Renders a template with data to SVG markup.
+    /// Renders a pre-processed template to SVG markup.
+    /// The template must already be processed through the pipeline by the caller.
     /// </summary>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The data for variable substitution.</param>
+    /// <param name="processedTemplate">The already-processed template to render.</param>
     /// <returns>The SVG markup as a string.</returns>
-    internal string RenderToSvg(Template template, ObjectValue data)
+    internal string RenderToSvgFromProcessed(Template processedTemplate)
     {
-        ArgumentNullException.ThrowIfNull(template);
-        ArgumentNullException.ThrowIfNull(data);
-
-        var processedTemplate = _pipeline.Process(template, data);
+        ArgumentNullException.ThrowIfNull(processedTemplate);
 
         // Build font family map and font face declarations from the template.
-        // Returned as local variables to ensure thread safety when RenderToSvg is called concurrently.
+        // Returned as local variables to ensure thread safety when RenderToSvgFromProcessed is called concurrently.
         var (fontFamilyMap, fontFaces) = BuildFontMap(processedTemplate);
 
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);

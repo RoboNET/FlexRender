@@ -11,7 +11,7 @@ namespace FlexRender.Tests.TemplateEngine;
 public sealed class TemplatePipelineTests
 {
     [Fact]
-    public void Process_CanvasBackground_Expression_Resolves()
+    public async Task Process_CanvasBackground_Expression_Resolves()
     {
         // Arrange: create template with expression in canvas background
         var template = new Template
@@ -30,7 +30,7 @@ public sealed class TemplatePipelineTests
         var pipeline = new TemplatePipeline(expander, processor);
 
         // Act
-        var result = pipeline.Process(template, data);
+        var result = await pipeline.ProcessAsync(template, data);
 
         // Assert
         Assert.Equal("#ff0000", result.Canvas.Background.Value);
@@ -38,7 +38,7 @@ public sealed class TemplatePipelineTests
     }
 
     [Fact]
-    public void Process_CanvasLiteral_PassesThrough()
+    public async Task Process_CanvasLiteral_PassesThrough()
     {
         var template = new Template
         {
@@ -55,14 +55,14 @@ public sealed class TemplatePipelineTests
         var processor = new TemplateProcessor(limits);
         var pipeline = new TemplatePipeline(expander, processor);
 
-        var result = pipeline.Process(template, data);
+        var result = await pipeline.ProcessAsync(template, data);
 
         Assert.Equal("#ffffff", result.Canvas.Background.Value);
         Assert.True(result.Canvas.Background.IsResolved);
     }
 
     [Fact]
-    public void Process_CanvasRotate_Expression_Resolves()
+    public async Task Process_CanvasRotate_Expression_Resolves()
     {
         var template = new Template
         {
@@ -79,25 +79,25 @@ public sealed class TemplatePipelineTests
         var processor = new TemplateProcessor(limits);
         var pipeline = new TemplatePipeline(expander, processor);
 
-        var result = pipeline.Process(template, data);
+        var result = await pipeline.ProcessAsync(template, data);
 
         Assert.Equal("right", result.Canvas.Rotate.Value);
         Assert.True(result.Canvas.Rotate.IsResolved);
     }
 
     [Fact]
-    public void Process_NullTemplate_ThrowsArgumentNullException()
+    public async Task Process_NullTemplate_ThrowsArgumentNullException()
     {
         var limits = new ResourceLimits();
         var expander = new TemplateExpander(limits);
         var processor = new TemplateProcessor(limits);
         var pipeline = new TemplatePipeline(expander, processor);
 
-        Assert.Throws<ArgumentNullException>(() => pipeline.Process(null!, new ObjectValue()));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await pipeline.ProcessAsync(null!, new ObjectValue()));
     }
 
     [Fact]
-    public void Process_NullData_ThrowsArgumentNullException()
+    public async Task Process_NullData_ThrowsArgumentNullException()
     {
         var limits = new ResourceLimits();
         var expander = new TemplateExpander(limits);
@@ -105,7 +105,7 @@ public sealed class TemplatePipelineTests
         var pipeline = new TemplatePipeline(expander, processor);
 
         var template = new Template { Canvas = new CanvasSettings { Width = 300 } };
-        Assert.Throws<ArgumentNullException>(() => pipeline.Process(template, null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await pipeline.ProcessAsync(template, null!));
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public sealed class TemplatePipelineTests
     }
 
     [Fact]
-    public void Process_PreservesTemplateMetadata()
+    public async Task Process_PreservesTemplateMetadata()
     {
         var template = new Template
         {
@@ -138,7 +138,7 @@ public sealed class TemplatePipelineTests
         var processor = new TemplateProcessor(limits);
         var pipeline = new TemplatePipeline(expander, processor);
 
-        var result = pipeline.Process(template, data);
+        var result = await pipeline.ProcessAsync(template, data);
 
         Assert.Equal("test-pipeline", result.Name);
         Assert.Equal(3, result.Version);
@@ -146,7 +146,7 @@ public sealed class TemplatePipelineTests
     }
 
     [Fact]
-    public void Process_ExpandsElements()
+    public async Task Process_ExpandsElements()
     {
         var template = new Template
         {
@@ -161,7 +161,7 @@ public sealed class TemplatePipelineTests
         var processor = new TemplateProcessor(limits);
         var pipeline = new TemplatePipeline(expander, processor);
 
-        var result = pipeline.Process(template, data);
+        var result = await pipeline.ProcessAsync(template, data);
 
         Assert.Single(result.Elements);
     }
