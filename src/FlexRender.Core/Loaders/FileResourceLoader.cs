@@ -13,8 +13,6 @@ namespace FlexRender.Loaders;
 /// </remarks>
 public sealed class FileResourceLoader : IResourceLoader
 {
-    private static readonly string[] UrlPrefixes = ["http://", "https://", "data:", "embedded://"];
-
     private readonly FlexRenderOptions _options;
 
     /// <summary>
@@ -37,7 +35,8 @@ public sealed class FileResourceLoader : IResourceLoader
 
     /// <inheritdoc />
     /// <remarks>
-    /// Returns <c>true</c> for URIs that do not start with http://, https://, data:, or embedded://.
+    /// Returns <c>true</c> for URIs that look like file paths or use the "file:" / "file://" scheme.
+    /// Rejects anything with other URI schemes (e.g., "http://", "data:", "base64:", "embedded://").
     /// </remarks>
     public bool CanHandle(string uri)
     {
@@ -46,9 +45,41 @@ public sealed class FileResourceLoader : IResourceLoader
             return false;
         }
 
-        foreach (var prefix in UrlPrefixes)
+        // Allow "file:" and "file://" scheme — this loader handles local files
+        if (uri.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
         {
-            if (uri.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return true;
+        }
+
+        // Reject any URI with a "://" scheme (e.g., "http://", "data://", "custom://")
+        if (uri.Contains("://", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // Reject scheme-like prefixes without "://" (e.g., "data:", "base64:")
+        // A URI scheme is [a-zA-Z][a-zA-Z0-9+.-]*: (min 2 chars to exclude Windows drive letters like "C:")
+        var colonIndex = uri.IndexOf(':');
+        if (colonIndex > 1 && colonIndex < 20)
+        {
+            var scheme = uri.AsSpan(0, colonIndex);
+            if (char.IsLetter(scheme[0]) && IsValidScheme(scheme))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks whether a span represents a valid URI scheme (letters, digits, +, ., -).
+    /// </summary>
+    private static bool IsValidScheme(ReadOnlySpan<char> scheme)
+    {
+        foreach (var c in scheme)
+        {
+            if (!char.IsLetterOrDigit(c) && c != '+' && c != '.' && c != '-')
             {
                 return false;
             }
@@ -70,9 +101,19 @@ public sealed class FileResourceLoader : IResourceLoader
             return Task.FromResult<Stream?>(null);
         }
 
-        ValidatePathSecurity(uri);
+        // Strip file: scheme prefix if present
+        // Supports: "file:///path" (RFC 8089), "file://path", "file:path"
+        var path = uri;
+        if (path.StartsWith("file:///", StringComparison.OrdinalIgnoreCase))
+            path = path["file:///".Length..];
+        else if (path.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            path = path["file://".Length..];
+        else if (path.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+            path = path["file:".Length..];
 
-        var fullPath = ResolvePath(uri);
+        ValidatePathSecurity(path);
+
+        var fullPath = ResolvePath(path);
 
         if (!File.Exists(fullPath))
         {

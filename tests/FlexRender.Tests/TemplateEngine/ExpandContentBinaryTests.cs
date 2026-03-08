@@ -1,5 +1,6 @@
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
+using FlexRender.Loaders;
 using FlexRender.Parsing.Ast;
 using FlexRender.TemplateEngine;
 using Xunit;
@@ -29,18 +30,20 @@ public sealed class ExpandContentBinaryTests
     }
 
     [Fact]
-    public async Task ExpandContent_Base64String_DecodesAndDispatchesToBinaryParser()
+    public async Task ExpandContent_DataUriString_DecodesAndDispatchesToBinaryParser()
     {
         var binaryParser = new CapturingBinaryParser("ndc");
         var registry = new ContentParserRegistry();
         registry.RegisterBinary(binaryParser);
 
-        var expander = new TemplateExpander(new ResourceLimits(), contentParserRegistry: registry);
+        var options = new FlexRenderOptions();
+        IReadOnlyList<IResourceLoader> loaders = [new Base64ResourceLoader(options)];
+        var expander = new TemplateExpander(new ResourceLimits(), contentParserRegistry: registry, resourceLoaders: loaders);
 
         var rawBytes = new byte[] { 0x1B, 0x40, 0x48 };
         var base64 = Convert.ToBase64String(rawBytes);
         var template = CreateTemplate(
-            new ContentElement { Source = $"base64:{base64}", Format = "ndc" });
+            new ContentElement { Source = $"data:application/octet-stream;base64,{base64}", Format = "ndc" });
 
         var result = await expander.ExpandAsync(template, new ObjectValue());
 
@@ -49,20 +52,22 @@ public sealed class ExpandContentBinaryTests
     }
 
     [Fact]
-    public async Task ExpandContent_Base64Variable_DecodesAndDispatchesToBinaryParser()
+    public async Task ExpandContent_DataUriVariable_DecodesAndDispatchesToBinaryParser()
     {
         var binaryParser = new CapturingBinaryParser("ndc");
         var registry = new ContentParserRegistry();
         registry.RegisterBinary(binaryParser);
 
-        var expander = new TemplateExpander(new ResourceLimits(), contentParserRegistry: registry);
+        var options = new FlexRenderOptions();
+        IReadOnlyList<IResourceLoader> loaders = [new Base64ResourceLoader(options)];
+        var expander = new TemplateExpander(new ResourceLimits(), contentParserRegistry: registry, resourceLoaders: loaders);
 
         var rawBytes = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
         var base64 = Convert.ToBase64String(rawBytes);
         var template = CreateTemplate(
             new ContentElement { Source = "{{data}}", Format = "ndc" });
 
-        var data = new ObjectValue { ["data"] = new StringValue($"base64:{base64}") };
+        var data = new ObjectValue { ["data"] = new StringValue($"data:application/octet-stream;base64,{base64}") };
         var result = await expander.ExpandAsync(template, data);
 
         Assert.NotNull(binaryParser.LastData);

@@ -140,8 +140,8 @@ var data = new ObjectValue { ["receipt"] = new BytesValue(rawBytes) };
 // From Stream
 var data = new ObjectValue { ["receipt"] = BytesValue.FromStream(fileStream) };
 
-// From base64 in YAML source
-// source: "base64:SGVsbG8gV29ybGQ="
+// From data URI in YAML source
+// source: "data:application/octet-stream;base64,SGVsbG8gV29ybGQ="
 ```
 
 `BytesValue` wraps `ReadOnlyMemory<byte>` and is passed directly to `IBinaryContentParser` without encoding conversion. When only `IContentParser` is registered, binary data is decoded as UTF-8.

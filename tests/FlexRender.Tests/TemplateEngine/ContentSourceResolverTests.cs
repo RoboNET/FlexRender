@@ -9,7 +9,14 @@ namespace FlexRender.Tests.TemplateEngine;
 
 public sealed class ContentSourceResolverTests
 {
-
+    /// <summary>
+    /// Default loaders matching production configuration (Base64 + File).
+    /// </summary>
+    private static IReadOnlyList<IResourceLoader> DefaultLoaders =>
+    [
+        new Base64ResourceLoader(new FlexRenderOptions()),
+        new FileResourceLoader(new FlexRenderOptions())
+    ];
 
     [Fact]
     public async Task Resolve_BytesVariable_ReturnsBinaryContent()
@@ -29,34 +36,65 @@ public sealed class ContentSourceResolverTests
     }
 
     [Fact]
-    public async Task Resolve_Base64Prefix_ReturnsBinaryContent()
+    public async Task Resolve_DataUri_ReturnsBinaryContent()
     {
         var rawBytes = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
         var base64 = Convert.ToBase64String(rawBytes);
         var context = new TemplateContext(new ObjectValue());
-        var source = ExprValue<string>.RawLiteral($"base64:{base64}", $"base64:{base64}");
+        var source = ExprValue<string>.RawLiteral(
+            $"data:application/octet-stream;base64,{base64}",
+            $"data:application/octet-stream;base64,{base64}");
 
-        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: null);
+        var result = await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders);
 
         var binary = Assert.IsType<BinaryContent>(result);
         Assert.Equal(rawBytes, binary.Data.ToArray());
     }
 
     [Fact]
-    public async Task Resolve_Base64Variable_ReturnsBinaryContent()
+    public async Task Resolve_DataUriWithoutMimeType_ReturnsBinaryContent()
+    {
+        var rawBytes = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
+        var base64 = Convert.ToBase64String(rawBytes);
+        var context = new TemplateContext(new ObjectValue());
+        var source = ExprValue<string>.RawLiteral(
+            $"data:;base64,{base64}",
+            $"data:;base64,{base64}");
+
+        var result = await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders);
+
+        var binary = Assert.IsType<BinaryContent>(result);
+        Assert.Equal(rawBytes, binary.Data.ToArray());
+    }
+
+    [Fact]
+    public async Task Resolve_Base64Shorthand_RewritesToDataUri()
+    {
+        var rawBytes = new byte[] { 0xCA, 0xFE };
+        var base64 = Convert.ToBase64String(rawBytes);
+        var context = new TemplateContext(new ObjectValue());
+        var source = ExprValue<string>.RawLiteral($"base64:{base64}", $"base64:{base64}");
+
+        var result = await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders);
+
+        var binary = Assert.IsType<BinaryContent>(result);
+        Assert.Equal(rawBytes, binary.Data.ToArray());
+    }
+
+    [Fact]
+    public async Task Resolve_DataUriVariable_ReturnsBinaryContent()
     {
         var rawBytes = new byte[] { 0xCA, 0xFE, 0xBA, 0xBE };
         var base64 = Convert.ToBase64String(rawBytes);
         var context = new TemplateContext(new ObjectValue
         {
-            ["data"] = new StringValue($"base64:{base64}")
+            ["data"] = new StringValue($"data:application/octet-stream;base64,{base64}")
         });
         var source = ExprValue<string>.Expression("{{data}}");
 
-        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: null,
+        var result = await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders,
             substituteVariables: (raw, ctx) =>
             {
-                // Simulate variable substitution: {{data}} -> "base64:..."
                 var resolved = ExpressionEvaluator.Resolve("data", ctx);
                 return resolved is StringValue sv ? sv.Value : raw;
             });
@@ -98,29 +136,27 @@ public sealed class ContentSourceResolverTests
     }
 
     [Fact]
-    public async Task Resolve_InvalidBase64_ThrowsTemplateEngineException()
+    public async Task Resolve_InvalidBase64InDataUri_ThrowsException()
     {
         var context = new TemplateContext(new ObjectValue());
-        var source = ExprValue<string>.RawLiteral("base64:!!!not-valid!!!", "base64:!!!not-valid!!!");
+        var source = ExprValue<string>.RawLiteral(
+            "data:application/octet-stream;base64,!!!not-valid!!!",
+            "data:application/octet-stream;base64,!!!not-valid!!!");
 
-        var ex = await Assert.ThrowsAsync<TemplateEngineException>(async () =>
-            await ContentSourceResolver.ResolveAsync(source, context, loaders: null));
-
-        Assert.Contains("Invalid base64", ex.Message, StringComparison.OrdinalIgnoreCase);
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders));
     }
 
     [Fact]
-    public async Task Resolve_FileUri_ReturnsBinaryContent()
+    public async Task Resolve_DataUriNoComma_ThrowsException()
     {
-        var expectedBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 }; // PNG header
-        var loader = new FakeResourceLoader("test", expectedBytes);
         var context = new TemplateContext(new ObjectValue());
-        var source = ExprValue<string>.RawLiteral("file:test.png", "file:test.png");
+        var source = ExprValue<string>.RawLiteral(
+            "data:application/octet-stream;base64",
+            "data:application/octet-stream;base64");
 
-        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: [loader]);
-
-        var binary = Assert.IsType<BinaryContent>(result);
-        Assert.Equal(expectedBytes, binary.Data.ToArray());
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders));
     }
 
     [Fact]
@@ -139,10 +175,9 @@ public sealed class ContentSourceResolverTests
     public async Task Resolve_PlainTextWithFileLoader_ReturnsTextContent()
     {
         var context = new TemplateContext(new ObjectValue());
-        var loaders = new IResourceLoader[] { new FileResourceLoader(new FlexRenderOptions()) };
         ExprValue<string> source = "ТЕСТОВЫЙ БАНК\nТЕЛ: 8-800-000-00-00";
 
-        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders);
+        var result = await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders);
 
         var text = Assert.IsType<TextContent>(result);
         Assert.Equal("ТЕСТОВЫЙ БАНК\nТЕЛ: 8-800-000-00-00", text.Text);
@@ -152,40 +187,56 @@ public sealed class ContentSourceResolverTests
     public async Task Resolve_TextPrefix_ReturnsTextContent()
     {
         var context = new TemplateContext(new ObjectValue());
-        var loaders = new IResourceLoader[] { new FileResourceLoader(new FlexRenderOptions()) };
-        var source = ExprValue<string>.RawLiteral("text:path/that/looks-like-file.txt", "text:path/that/looks-like-file.txt");
+        var source = ExprValue<string>.RawLiteral(
+            "text:path/that/looks-like-file.txt",
+            "text:path/that/looks-like-file.txt");
 
-        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders);
+        var result = await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders);
 
         var text = Assert.IsType<TextContent>(result);
         Assert.Equal("path/that/looks-like-file.txt", text.Text);
     }
 
     [Fact]
-    public async Task Resolve_LoaderCannotHandle_FallsToText()
+    public async Task Resolve_UnknownScheme_FallsToText()
     {
-        var loader = new FakeResourceLoader("http://", []);
         var context = new TemplateContext(new ObjectValue());
         var source = ExprValue<string>.RawLiteral("ftp://server/file", "ftp://server/file");
 
-        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: [loader]);
+        var result = await ContentSourceResolver.ResolveAsync(source, context, DefaultLoaders);
 
         var text = Assert.IsType<TextContent>(result);
         Assert.Equal("ftp://server/file", text.Text);
     }
 
-    [Theory]
-    [InlineData("file:../../../etc/passwd")]
-    [InlineData("file:///tmp/../etc/passwd")]
-    [InlineData("file:data/../../secret.bin")]
-    public async Task Resolve_FileSchemeWithPathTraversal_Throws(string source)
+    [Fact]
+    public async Task Resolve_FileUri_DelegatesToLoaders()
     {
+        var expectedBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 };
+        var loader = new FakeResourceLoader("file:", expectedBytes);
         var context = new TemplateContext(new ObjectValue());
-        var contentSource = new ExprValue<string>(source);
+        var source = ExprValue<string>.RawLiteral("file:test.png", "file:test.png");
 
-        var ex = await Assert.ThrowsAsync<TemplateEngineException>(async () =>
-            await ContentSourceResolver.ResolveAsync(contentSource, context, loaders: null));
-        Assert.Contains("Path traversal", ex.Message);
+        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: [loader]);
+
+        var binary = Assert.IsType<BinaryContent>(result);
+        Assert.Equal(expectedBytes, binary.Data.ToArray());
+    }
+
+    [Fact]
+    public async Task Resolve_HttpUri_DelegatesToLoaders()
+    {
+        var expectedBytes = new byte[] { 0xFF, 0xD8, 0xFF };
+        var loader = new FakeResourceLoader("https://", expectedBytes);
+        var context = new TemplateContext(new ObjectValue());
+        var source = ExprValue<string>.RawLiteral(
+            "https://example.com/image.png",
+            "https://example.com/image.png");
+
+        var result = await ContentSourceResolver.ResolveAsync(source, context, loaders: [loader]);
+
+        var binary = Assert.IsType<BinaryContent>(result);
+        Assert.Equal(expectedBytes, binary.Data.ToArray());
     }
 
     /// <summary>

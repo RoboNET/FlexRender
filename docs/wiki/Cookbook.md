@@ -559,10 +559,10 @@ var render = new FlexRenderBuilder()
     .Build();
 ```
 
-> **Note:** NDC receipts use binary data (`BytesValue`), so they must be rendered through the C# API. The CLI does not support binary data inputs. For text-based NDC content, you can use `base64:` prefix in the JSON data:
+> **Note:** NDC receipts use binary data (`BytesValue`), so they must be rendered through the C# API. The CLI does not support binary data inputs. For text-based NDC content, you can use `data:` URI format in the JSON data:
 >
 > ```json
-> { "receiptData": "base64:PFN0YXJ0PjxOREMgZGF0YT4..." }
+> { "receiptData": "data:application/octet-stream;base64,PFN0YXJ0PjxOREMgZGF0YT4..." }
 > ```
 >
 > ```bash
@@ -1313,7 +1313,7 @@ FlexRender supports four ways to load images in `type: image` elements. All sour
 | Base64 data URL | `src: "data:image/png;base64,iVBOR..."` | Default (Base64ResourceLoader) |
 | Embedded resource | `src: "embedded://MyApp.Assets.logo.png"` | `.WithEmbeddedLoader(assembly)` |
 
-> **Important:** For `data:` URIs, the MIME type is **required** (e.g., `data:image/png;base64,...`). For the `base64:` prefix in content sources, MIME type is **not required** (e.g., `base64:SGVsbG8=`).
+> **Important:** For image `data:` URIs, the MIME type is **required** (e.g., `data:image/png;base64,...`). For content source `data:` URIs, the MIME type is **optional** (e.g., `data:;base64,SGVsbG8=` or `data:application/octet-stream;base64,SGVsbG8=`).
 
 ---
 
