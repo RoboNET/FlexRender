@@ -1308,7 +1308,7 @@ FlexRender supports four ways to load images in `type: image` elements. All sour
 
 | Source | Syntax | Requires |
 |--------|--------|----------|
-| Local file | `src: "logo.png"` or `src: "/path/to/logo.png"` | Default (FileResourceLoader) |
+| Local file | `src: "logo.png"` or `src: "file:logo.png"` | Default (FileResourceLoader) |
 | HTTP/HTTPS | `src: "https://example.com/logo.png"` | `.WithHttpLoader()` on builder |
 | Base64 data URL | `src: "data:image/png;base64,iVBOR..."` | Default (Base64ResourceLoader) |
 | Embedded resource | `src: "embedded://MyApp.Assets.logo.png"` | `.WithEmbeddedLoader(assembly)` |

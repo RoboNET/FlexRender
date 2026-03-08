@@ -860,7 +860,7 @@ Embeds formatted text (Markdown, HTML, or NDC binary data) that is parsed into a
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| source | string | "" | Content to parse. Supports plain text, `base64:` binary, `file:` URIs, `text:` prefix, `{{variable}}` bound to `string` or `BytesValue` (`byte[]`) |
+| source | string | "" | Content to parse. `text:` prefix for plain text, `{{variable}}` for `string`/`BytesValue`, everything else delegates to IResourceLoader chain |
 | format | string | "markdown" | Content format: `markdown`, `html`, or `ndc` -- must match a registered parser |
 | options | dict? | null | Parser-specific options (e.g., NDC `columns`, `charsets`). Passed to the content parser. |
 
@@ -872,11 +872,9 @@ Embeds formatted text (Markdown, HTML, or NDC binary data) that is parsed into a
 
 Content source resolution (via ContentSourceResolver):
 - `{{variable}}` -> if variable is BytesValue (byte[]), passes binary directly to IBinaryContentParser
-- `base64:...` -> decodes base64 payload to byte[]
-- `file:path` or `file:///path` -> loads via resource loaders (throws on failure)
-- `text:...` -> forces text interpretation, skips file heuristic
-- File-like strings (paths, extensions) -> tries resource loaders, falls back to text
-- Plain text -> literal string content
+- `text:...` -> plain text (bypasses loaders)
+- All other sources delegate to IResourceLoader chain (`data:`, `base64:`, `file:`, `http://`, `embedded://`)
+- If no loader handles the source -> falls back to plain text
 
 Binary data binding:
 ```csharp
@@ -1175,10 +1173,12 @@ Resources (images, fonts) are loaded through `IResourceLoader` implementations u
 
 | Loader | Priority Range | Handles | URI Scheme |
 |--------|---------------|---------|------------|
-| Base64ResourceLoader | 0-99 (High) | Base64-encoded data | `data:` |
+| Base64ResourceLoader | 0-99 (High) | Base64-encoded data | `data:`, `data://`, `base64:`, `base64://` |
 | EmbeddedResourceLoader | 0-99 (High) | Assembly embedded resources | `embedded://` |
-| FileResourceLoader | 100-199 (Normal) | Local file system | File paths |
+| FileResourceLoader | 100-199 (Normal) | Local file system (relative paths only) | `file:`, `file://`, `file:///`, relative paths |
 | HttpResourceLoader | 200+ (Low) | Remote HTTP/HTTPS resources | `http://`, `https://` |
+
+> **Security:** FileResourceLoader rejects absolute paths with `ArgumentException`. Only relative paths resolved against `BasePath` are allowed. Unrecognized URI schemes are also rejected.
 
 Custom loaders can be added via `builder.ResourceLoaders.Add(new CustomLoader())` (internal API). Implement `IResourceLoader` with `CanHandle()`, `Load()`, and `Priority`.
 
