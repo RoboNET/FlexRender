@@ -74,6 +74,24 @@ public sealed class BarcodeElement : TemplateElement
     public ExprValue<string> Foreground { get; set; } = "#000000";
 
     /// <inheritdoc />
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        var clone = new BarcodeElement
+        {
+            Data = substitutor(Data.Value) ?? "",
+            Format = Format,
+            BarcodeWidth = BarcodeWidth,
+            BarcodeHeight = BarcodeHeight,
+            ShowText = ShowText,
+            Foreground = Foreground
+        };
+        CopyBasePropertiesTo(clone, substitutor);
+        return clone;
+    }
+
+    /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {
         base.ResolveExpressions(resolver, data);

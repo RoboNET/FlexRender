@@ -126,7 +126,8 @@ public readonly struct ExprValue<T>
             RawValue = resolved,
             Value = default!,
             IsExpression = false,
-            IsResolved = false
+            IsResolved = false,
+            Bytes = Bytes
         };
     }
 
@@ -162,7 +163,8 @@ public readonly struct ExprValue<T>
             RawValue = RawValue,
             Value = parsed,
             IsExpression = false,
-            IsResolved = true
+            IsResolved = true,
+            Bytes = Bytes
         };
     }
 

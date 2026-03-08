@@ -870,7 +870,7 @@ Embeds formatted text (Markdown, HTML, or NDC binary data) that is parsed into a
   format: markdown       # or "html" -- must match registered parser
 ```
 
-Content source resolution (via ContentSourceResolver):
+Content source resolution (inlined in TemplateExpander):
 - `{{variable}}` -> if variable is BytesValue (byte[]), passes binary directly to IBinaryContentParser
 - `text:...` -> plain text (bypasses loaders)
 - All other sources delegate to IResourceLoader chain (`data:`, `base64:`, `file:`, `http://`, `embedded://`)

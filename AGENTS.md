@@ -169,7 +169,7 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | Configuration | `FlexRenderBuilder`, `SkiaBuilder`, `FlexRenderOptions`, `ResourceLimits` |
 | Abstractions | `IFlexRender`, `IResourceLoader` |
 | Parsing | `TemplateParser`, `Template`, `CanvasSettings`, `TextElement`, `FlexElement`, `QrElement`, `BarcodeElement`, `ImageElement`, `SeparatorElement`, `TableElement`, `TableColumn`, `TableRow`, `EachElement`, `IfElement`, `ContentElement` |
-| Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext`, `InlineExpressionParser`, `InlineExpressionEvaluator`, `FilterRegistry`, `ITemplateFilter`, `ContentSourceResolver` |
+| Template Engine | `TemplateExpander`, `TemplateProcessor`, `ExpressionLexer`, `ExpressionEvaluator`, `TemplateContext`, `InlineExpressionParser`, `InlineExpressionEvaluator`, `FilterRegistry`, `ITemplateFilter` |
 | Layout | `LayoutEngine`, `LayoutNode`, `LayoutContext`, `LayoutSize`, `IntrinsicSize`, `Unit`, `UnitParser`, `MarginValue`, `MarginValues`, `PaddingParser.ParseMargin` |
 | Rendering (Skia) | `SkiaRender` (IFlexRender impl), `SkiaRenderer`, `TextRenderer`, `FontManager`, `ColorParser`, `RotationHelper`, `BmpEncoder`, `BoxShadowParser`, `GradientParser` |
 | Rendering (ImageSharp) | `ImageSharpRender` (IFlexRender impl), `ImageSharpRenderingEngine`, `ImageSharpTextRenderer`, `ImageSharpFontManager` |
@@ -177,7 +177,7 @@ byte[] png = await render.Render(_templates["receipt"], data);
 | Loaders | `FileResourceLoader`, `Base64ResourceLoader`, `EmbeddedResourceLoader`, `HttpResourceLoader` |
 | DI | `ServiceCollectionExtensions.AddFlexRender()` |
 | Values | `TemplateValue` (abstract), `StringValue`, `NumberValue`, `BoolValue`, `NullValue`, `ArrayValue`, `ObjectValue` |
-| Content Parsers | `IContentParser`, `IBinaryContentParser`, `ContentParserRegistry`, `ContentSourceResolver`, `NdcContentParser` |
+| Content Parsers | `IContentParser`, `IBinaryContentParser`, `ContentParserRegistry`, `NdcContentParser` |
 
 ## Coding Conventions
 

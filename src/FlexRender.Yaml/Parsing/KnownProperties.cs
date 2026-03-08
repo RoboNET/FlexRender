@@ -6,6 +6,12 @@ namespace FlexRender.Parsing;
 /// Defines the set of known YAML property names for each element type.
 /// Used to detect and report unknown/misspelled properties during parsing.
 /// </summary>
+/// <remarks>
+/// Property name matching is case-sensitive (ordinal comparison).
+/// All YAML property names must be lowercase (e.g., <c>"color"</c>, not <c>"Color"</c>).
+/// If an unknown property differs from a known one only by casing, the error message
+/// will include an explicit note about case-sensitivity.
+/// </remarks>
 internal static class KnownProperties
 {
     /// <summary>
@@ -178,6 +184,8 @@ internal static class KnownProperties
     /// <param name="elementType">The element type name (e.g., "text", "flex").</param>
     /// <exception cref="TemplateParseException">
     /// Thrown when one or more unknown properties are found on the element.
+    /// The message includes case-sensitivity hints when a property matches a known name
+    /// but differs only by casing (e.g., <c>"Color"</c> vs <c>"color"</c>).
     /// </exception>
     internal static void Validate(YamlMappingNode node, string elementType)
     {
@@ -227,7 +235,8 @@ internal static class KnownProperties
 
     /// <summary>
     /// Builds a suggestion string for unknown properties by finding close matches in the known set
-    /// using Levenshtein distance.
+    /// using Levenshtein distance. When an unknown property matches a known one only by case
+    /// (case-insensitive match), the suggestion includes a note that property names are case-sensitive.
     /// </summary>
     /// <param name="unknownProps">The list of unknown property names.</param>
     /// <param name="knownSet">The set of known property names to match against.</param>
@@ -238,6 +247,24 @@ internal static class KnownProperties
 
         foreach (var unknown in unknownProps)
         {
+            // First, check for an exact case-insensitive match (case-only mismatch).
+            string? caseMatch = null;
+            foreach (var known in knownSet)
+            {
+                if (string.Equals(unknown, known, StringComparison.OrdinalIgnoreCase))
+                {
+                    caseMatch = known;
+                    break;
+                }
+            }
+
+            if (caseMatch is not null)
+            {
+                suggestions.Add($"'{caseMatch}' (property names are case-sensitive)");
+                continue;
+            }
+
+            // Fall back to Levenshtein distance for fuzzy matching.
             string? bestMatch = null;
             var bestDistance = int.MaxValue;
 
@@ -275,9 +302,14 @@ internal static class KnownProperties
         if (sourceLen == 0) return targetLen;
         if (targetLen == 0) return sourceLen;
 
-        // Use a single-row buffer to reduce memory allocation
-        var previousRow = new int[targetLen + 1];
-        var currentRow = new int[targetLen + 1];
+        // Use stackalloc for small strings to avoid heap allocation
+        var bufferLen = targetLen + 1;
+        Span<int> previousRow = bufferLen <= 256
+            ? stackalloc int[bufferLen]
+            : new int[bufferLen];
+        Span<int> currentRow = bufferLen <= 256
+            ? stackalloc int[bufferLen]
+            : new int[bufferLen];
 
         for (var j = 0; j <= targetLen; j++)
         {
@@ -296,7 +328,9 @@ internal static class KnownProperties
                     previousRow[j - 1] + cost);
             }
 
-            (previousRow, currentRow) = (currentRow, previousRow);
+            var temp = previousRow;
+            previousRow = currentRow;
+            currentRow = temp;
         }
 
         return previousRow[targetLen];

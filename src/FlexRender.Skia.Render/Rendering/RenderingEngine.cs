@@ -617,19 +617,36 @@ internal sealed class RenderingEngine
     }
 
     /// <summary>
-    /// Recursively collects image URIs from a list of elements.
+    /// Recursively walks all elements in the tree, yielding each element depth-first.
+    /// Recurses into <see cref="FlexElement.Children"/> for container elements.
+    /// </summary>
+    /// <param name="elements">The root list of elements to walk.</param>
+    /// <returns>An enumerable of all elements in the tree.</returns>
+    private static IEnumerable<TemplateElement> WalkElements(IReadOnlyList<TemplateElement> elements)
+    {
+        foreach (var element in elements)
+        {
+            yield return element;
+            if (element is FlexElement flex)
+            {
+                foreach (var child in WalkElements(flex.Children))
+                {
+                    yield return child;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Collects image URIs from a flat walk of all elements.
     /// </summary>
     private static void CollectImageUrisFromElements(IReadOnlyList<TemplateElement> elements, HashSet<string> uris)
     {
-        foreach (var element in elements)
+        foreach (var element in WalkElements(elements))
         {
             if (element is ImageElement image && !string.IsNullOrEmpty(image.Src.Value))
             {
                 uris.Add(image.Src.Value);
-            }
-            else if (element is FlexElement flex)
-            {
-                CollectImageUrisFromElements(flex.Children, uris);
             }
         }
     }
@@ -647,7 +664,7 @@ internal sealed class RenderingEngine
         Dictionary<string, SKBitmap> cache,
         CancellationToken cancellationToken)
     {
-        foreach (var element in elements)
+        foreach (var element in WalkElements(elements))
         {
             if (element is ImageElement image && image.Src.Bytes is not null)
             {
@@ -662,10 +679,6 @@ internal sealed class RenderingEngine
                         cache[key] = bitmap;
                     }
                 }
-            }
-            else if (element is FlexElement flex)
-            {
-                DecodeImagesFromBytes(flex.Children, cache, cancellationToken);
             }
         }
     }
@@ -690,27 +703,7 @@ internal sealed class RenderingEngine
         var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        var cache = new Dictionary<string, SKBitmap>(StringComparer.Ordinal);
-
-        // First pass: decode images that already have bytes in ExprValue
-        DecodeImagesFromBytes(processedTemplate.Elements, cache, cancellationToken);
-
-        // Second pass: load remaining URIs via ImageLoader chain
-        var uris = CollectImageUris(processedTemplate);
-        foreach (var uri in uris)
-        {
-            if (cache.ContainsKey(uri))
-                continue;
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var bitmap = await _imageLoader.Load(uri, cancellationToken).ConfigureAwait(false);
-            if (bitmap is not null)
-            {
-                cache[uri] = bitmap;
-            }
-        }
-
-        return cache;
+        return await LoadImageCache(processedTemplate, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -729,6 +722,20 @@ internal sealed class RenderingEngine
         if (_imageLoader is null)
             return new Dictionary<string, SKBitmap>(0, StringComparer.Ordinal);
 
+        return await LoadImageCache(processedTemplate, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Builds an image cache by first decoding images that already have inline bytes,
+    /// then loading remaining images via the <see cref="IImageLoader"/> chain.
+    /// </summary>
+    /// <param name="processedTemplate">The processed template containing resolved image references.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A dictionary mapping image URIs to loaded bitmaps.</returns>
+    private async Task<Dictionary<string, SKBitmap>> LoadImageCache(
+        Template processedTemplate,
+        CancellationToken cancellationToken)
+    {
         var cache = new Dictionary<string, SKBitmap>(StringComparer.Ordinal);
 
         // First pass: decode images that already have bytes in ExprValue
@@ -742,7 +749,7 @@ internal sealed class RenderingEngine
                 continue;
 
             cancellationToken.ThrowIfCancellationRequested();
-            var bitmap = await _imageLoader.Load(uri, cancellationToken).ConfigureAwait(false);
+            var bitmap = await _imageLoader!.Load(uri, cancellationToken).ConfigureAwait(false);
             if (bitmap is not null)
             {
                 cache[uri] = bitmap;

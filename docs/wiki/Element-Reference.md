@@ -1471,7 +1471,7 @@ This is a **control-flow element** — like `each` and `if`, it is expanded duri
 
 ### Content Source Resolution
 
-The `source` property is resolved at render time through `ContentSourceResolver`, which supports multiple input types:
+The `source` property is resolved at render time by `TemplateExpander`, which supports multiple input types:
 
 | Source Format | Example | Resolved As | Description |
 |---------------|---------|-------------|-------------|

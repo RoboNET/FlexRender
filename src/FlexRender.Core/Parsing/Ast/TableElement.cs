@@ -12,6 +12,11 @@ public sealed class TableElement : TemplateElement
     /// <inheritdoc />
     public override ElementType Type => ElementType.Table;
 
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">Always thrown. TableElement is expanded, not cloned.</exception>
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+        => throw new NotSupportedException("TableElement should be expanded, not cloned.");
+
     /// <summary>
     /// Gets or sets the path to the array in the data context for dynamic tables.
     /// Mutually exclusive with <see cref="Rows"/>.

@@ -57,6 +57,36 @@ public sealed class ImageElement : TemplateElement
     public ExprValue<ImageFit> Fit { get; set; } = ImageFit.Contain;
 
     /// <inheritdoc />
+    public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
+    {
+        ArgumentNullException.ThrowIfNull(substitutor);
+
+        var clone = new ImageElement
+        {
+            Src = Src,
+            ImageWidth = ImageWidth,
+            ImageHeight = ImageHeight,
+            Fit = Fit
+        };
+        CopyBasePropertiesTo(clone, substitutor);
+        return clone;
+    }
+
+    /// <summary>
+    /// Creates a clone of this element with a different <see cref="Src"/> value.
+    /// Used by the expansion pipeline to attach resolved binary data.
+    /// </summary>
+    /// <param name="src">The resolved source expression with optional bytes attached.</param>
+    /// <param name="substitutor">Function to substitute template variables in string values.</param>
+    /// <returns>A new image element with the specified source.</returns>
+    public ImageElement WithSrc(ExprValue<string> src, Func<string?, string?> substitutor)
+    {
+        var clone = (ImageElement)CloneWithSubstitution(substitutor);
+        clone.Src = src;
+        return clone;
+    }
+
+    /// <inheritdoc />
     public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
     {
         base.ResolveExpressions(resolver, data);
