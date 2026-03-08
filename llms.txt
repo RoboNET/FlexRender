@@ -60,18 +60,21 @@ examples/                       # Example YAML templates (see "Example Templates
 ```
 YAML Template
   -> TemplateParser           (YAML -> AST: Template with CanvasSettings + element tree)
-  -> TemplateExpander         (expand EachElement/IfElement to concrete elements based on data)
-  -> TemplateProcessor        (resolve {{variable}} expressions in element properties)
+     + KnownProperties        (validate YAML keys, warn on unknown properties with "Did you mean?" suggestions)
+  -> TemplateExpander         (expand EachElement/IfElement to concrete elements based on data) [async only]
+  -> TemplateProcessor        (resolve {{variable}} expressions in element properties) [async only]
   -> LayoutEngine             (two-pass: MeasureAllIntrinsics -> ComputeLayout -> LayoutNode tree)
   -> SkiaRenderer             (traverse LayoutNode tree -> draw to SKBitmap via SkiaSharp)
      OR ImageSharpRenderer    (traverse LayoutNode tree -> draw via SixLabors.ImageSharp)
 ```
 
+The entire pipeline is **async-only**. There are no synchronous `Expand()`, `Process()`, `Measure()`, or `Render()` methods. All public API methods return `Task` or `Task<T>`.
+
 Templates can be parsed once and cached for reuse with different data.
 
 ## Element Types
 
-Ten element types, each a sealed class extending `TemplateElement`:
+Eleven element types, each a sealed class extending `TemplateElement`:
 
 | Type | Key Properties |
 |------|---------------|
@@ -277,6 +280,8 @@ Converts formatted text into FlexRender AST elements at render time (bold → Fo
 Content source supports: plain text, `base64:` binary, `file:` URI, `text:` prefix, `{{variable}}` bound to `string` or `BytesValue` (`byte[]`/`Stream`).
 Binary sources pass `ReadOnlyMemory<byte>` directly to `IBinaryContentParser` implementations (e.g., NDC parser).
 
+**Important:** Content element expansion is async-only. The `ExpandAsync()` method must be used; there is no synchronous `Expand()` alternative.
+
 #### NDC Content
 ```yaml
 - type: content
@@ -288,6 +293,16 @@ Binary sources pass `ReadOnlyMemory<byte>` directly to `IBinaryContentParser` im
 ```
 
 Requires NDC parser registration: `.WithNdc()` (FlexRender.Content.Ndc). Parses binary NDC ATM printer data streams. Supports charset switching, QWERTY→JCUKEN encoding, embedded barcodes, auto font sizing.
+
+## YAML Validation
+
+The parser validates all YAML property names against known properties for each element type. Unknown properties trigger a `TemplateParseException` with a "Did you mean?" suggestion using Levenshtein distance:
+
+```
+Unknown property 'colour' for element type 'text'. Did you mean 'color'?
+```
+
+This catches typos like `colour` → `color`, `backgrund` → `background`, `dierction` → `direction`.
 
 ## Supported Units
 
@@ -499,6 +514,10 @@ Reference these YAML files for real-world template patterns. Each file is a comp
 | `examples/showcase-all-features.yaml` | All features showcase | Every supported feature in one template |
 | `examples/markdown-content.yaml` | Markdown content demo | `type: content` with `format: markdown`, dynamic body |
 | `examples/html-content.yaml` | HTML content demo | `type: content` with `format: html`, inline styles |
+
+### Cookbook (docs/wiki/Cookbook.md)
+
+9 practical recipes for common use cases: simple receipt, dynamic receipt with loops, table invoice, NDC ATM receipt, receipt with QR code, shipping label, event ticket, conditional content, and multi-language template. Each recipe is a complete, copy-paste-ready YAML template with sample data.
 
 ### Per-Feature Examples (examples/visual-docs/)
 

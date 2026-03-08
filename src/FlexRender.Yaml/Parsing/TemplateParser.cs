@@ -400,6 +400,7 @@ public sealed class TemplateParser : ITemplateParser
 
         if (_elementParsers.TryGetValue(type, out var parser))
         {
+            KnownProperties.Validate(node, type);
             return parser(node);
         }
 

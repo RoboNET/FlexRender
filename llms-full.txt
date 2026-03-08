@@ -28,6 +28,7 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/
     TemplateParser.cs           # YAML to AST parser (includes EachElement, IfElement)
+    KnownProperties.cs          # YAML property validation with Levenshtein "Did you mean?" suggestions
 
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
   HttpResourceLoader.cs         # Load images/fonts from HTTP/HTTPS URLs
@@ -152,12 +153,15 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia.Render  FlexRender.ImageSharp.
 ```
 YAML Template
   -> TemplateParser           (YAML -> AST: Template with CanvasSettings + TemplateElement tree, including EachElement/IfElement)
-  -> TemplateExpander         (expand EachElement/IfElement to concrete elements based on data -- enables template caching)
-  -> TemplateProcessor        (resolve {{variable}} expressions in element properties -- inline substitution)
+     + KnownProperties        (validate YAML keys, warn on unknown properties with "Did you mean?" suggestions)
+  -> TemplateExpander         (expand EachElement/IfElement to concrete elements based on data) [async only]
+  -> TemplateProcessor        (resolve {{variable}} expressions in element properties) [async only]
   -> LayoutEngine             (two-pass: MeasureAllIntrinsics -> ComputeLayout -> LayoutNode tree)
   -> SkiaRenderer             (traverse LayoutNode tree -> draw to SKBitmap via SkiaSharp)
      OR ImageSharpRenderer    (traverse LayoutNode tree -> draw via SixLabors.ImageSharp)
 ```
+
+**Async-only API:** The entire pipeline from expansion through rendering is async. There are no synchronous `Expand()`, `Process()`, `Measure()`, `ComputeLayout()`, or `Render()` methods. All public API methods return `Task` or `Task<T>`. This is required because `ContentElement` expansion involves async I/O (loading external content sources).
 
 ### Template Caching
 
@@ -852,6 +856,8 @@ Renders SVG vector graphics. Supports external files (`src`) or inline markup (`
 
 Embeds formatted text (Markdown, HTML, or NDC binary data) that is parsed into an AST subtree at render time. Requires a content parser to be registered.
 
+**Important:** Content element expansion is async-only (`ExpandAsync()`). There is no synchronous expansion path. This is why the entire pipeline is async.
+
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | source | string | "" | Content to parse. Supports plain text, `base64:` binary, `file:` URIs, `text:` prefix, `{{variable}}` bound to `string` or `BytesValue` (`byte[]`) |
@@ -917,6 +923,17 @@ Colors are specified in hex format:
 - `#rgb` -- 3-digit hex shorthand (e.g., `"#f00"` for red)
 
 Parsed by `ColorParser` in the Rendering namespace.
+
+## YAML Validation
+
+The parser validates all YAML property names against known properties for each element type. Unknown properties trigger a `TemplateParseException` with a "Did you mean?" suggestion using Levenshtein distance:
+
+```
+Unknown property 'colour' for element type 'text'. Did you mean 'color'?
+Unknown property 'backgrund' for element type 'flex'. Did you mean 'background'?
+```
+
+Known properties are maintained per element type in `KnownProperties` (src/FlexRender.Yaml/Parsing/KnownProperties.cs). This covers all 11 element types and their specific + common properties.
 
 ## Supported Units
 
@@ -1552,6 +1569,16 @@ Reference these YAML files for real-world template patterns. Each file is a comp
 | `examples/showcase-all-features.yaml` | All features showcase | Every supported feature in one template |
 | `examples/markdown-content.yaml` | Markdown content demo | `type: content` with `format: markdown`, dynamic body |
 | `examples/html-content.yaml` | HTML content demo | `type: content` with `format: html`, inline styles |
+
+### Cookbook (docs/wiki/Cookbook.md)
+
+9 practical recipes for common use cases:
+- Simple receipt, dynamic receipt with loops, table invoice
+- NDC ATM receipt (binary content parsing)
+- Receipt with QR code, shipping label, event ticket
+- Conditional content, multi-language template
+
+Each recipe is a complete, copy-paste-ready YAML template with sample JSON data.
 
 ### Per-Feature Examples (examples/visual-docs/)
 

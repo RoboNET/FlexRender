@@ -646,6 +646,9 @@ internal sealed class RenderingEngine
         ObjectValue data,
         CancellationToken cancellationToken)
     {
+        if (_imageLoader is null)
+            return new Dictionary<string, SKBitmap>(0, StringComparer.Ordinal);
+
         var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
         var uris = CollectImageUris(processedTemplate);
@@ -654,7 +657,7 @@ internal sealed class RenderingEngine
         foreach (var uri in uris)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var bitmap = await _imageLoader!.Load(uri, cancellationToken).ConfigureAwait(false);
+            var bitmap = await _imageLoader.Load(uri, cancellationToken).ConfigureAwait(false);
             if (bitmap is not null)
             {
                 cache[uri] = bitmap;
@@ -676,13 +679,16 @@ internal sealed class RenderingEngine
         Template processedTemplate,
         CancellationToken cancellationToken)
     {
+        if (_imageLoader is null)
+            return new Dictionary<string, SKBitmap>(0, StringComparer.Ordinal);
+
         var uris = CollectImageUris(processedTemplate);
         var cache = new Dictionary<string, SKBitmap>(uris.Count, StringComparer.Ordinal);
 
         foreach (var uri in uris)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var bitmap = await _imageLoader!.Load(uri, cancellationToken).ConfigureAwait(false);
+            var bitmap = await _imageLoader.Load(uri, cancellationToken).ConfigureAwait(false);
             if (bitmap is not null)
             {
                 cache[uri] = bitmap;
@@ -938,6 +944,25 @@ internal sealed class RenderingEngine
                     new[] { side.Width * 4, side.Width * 2 }, 0);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Processes a template through the culture-aware pipeline. Resolves the effective
+    /// culture from <paramref name="renderOptions"/> and the template, creates a
+    /// culture-specific pipeline when needed, and returns the processed template.
+    /// </summary>
+    /// <param name="template">The template to process.</param>
+    /// <param name="data">The data context for expression evaluation.</param>
+    /// <param name="renderOptions">Per-call rendering options (may contain culture override).</param>
+    /// <returns>The processed template with all expressions expanded and resolved.</returns>
+    internal Task<Template> ProcessTemplate(
+        Template template,
+        ObjectValue data,
+        RenderOptions? renderOptions)
+    {
+        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
+        var pipeline = ResolvePipeline(effectiveRenderOptions, template);
+        return pipeline.ProcessAsync(template, data);
     }
 
     /// <summary>
