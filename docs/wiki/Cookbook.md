@@ -5,6 +5,43 @@ Practical recipes for common FlexRender use cases. Each recipe is a complete, co
 For element properties reference, see [[Element-Reference]].
 For expression syntax, see [[Template-Expressions]].
 For flexbox layout, see [[Flexbox-Layout]].
+For CLI usage, see [[CLI-Reference]].
+
+## Quick Start: CLI Rendering
+
+Every recipe below can be rendered using the `flexrender` CLI. Save the template as a `.yaml` file and the data as a `.json` file, then run:
+
+```bash
+# Render to PNG
+flexrender render template.yaml -d data.json -o output.png
+
+# Render to JPEG (85% quality)
+flexrender render template.yaml -d data.json -o output.jpg --quality 85
+
+# BMP monochrome for thermal printers
+flexrender render template.yaml -d data.json -o output.bmp --bmp-color monochrome1
+
+# Validate template without rendering
+flexrender validate template.yaml
+
+# Watch for changes and re-render automatically
+flexrender watch template.yaml -d data.json -o preview.png
+
+# Debug layout (shows element bounds)
+flexrender debug-layout template.yaml -d data.json
+
+# With custom fonts directory
+flexrender render template.yaml -d data.json -o output.png --fonts ./assets/fonts
+
+# Scale 2x (retina)
+flexrender render template.yaml -d data.json -o output.png --scale 2.0
+```
+
+If running from source (without installing the dotnet tool):
+
+```bash
+dotnet run --project src/FlexRender.Cli -- render template.yaml -d data.json -o output.png
+```
 
 ---
 
@@ -130,6 +167,15 @@ layout:
   "total": "7.50",
   "date": "2026-03-08 14:30"
 }
+```
+
+**CLI:**
+
+```bash
+flexrender render simple-receipt.yaml -d receipt-data.json -o receipt.png
+
+# For thermal printer (monochrome BMP)
+flexrender render simple-receipt.yaml -d receipt-data.json -o receipt.bmp --bmp-color monochrome1
 ```
 
 ---
@@ -277,6 +323,12 @@ layout:
 }
 ```
 
+**CLI:**
+
+```bash
+flexrender render dynamic-receipt.yaml -d order-data.json -o receipt.png
+```
+
 ---
 
 ### Receipt with Table
@@ -398,6 +450,15 @@ layout:
 }
 ```
 
+**CLI:**
+
+```bash
+flexrender render table-receipt.yaml -d invoice-data.json -o invoice.png
+
+# JPEG for email attachment
+flexrender render table-receipt.yaml -d invoice-data.json -o invoice.jpg --quality 90
+```
+
 ---
 
 ### Receipt with NDC Content
@@ -497,6 +558,16 @@ var render = new FlexRenderBuilder()
     .WithSkia()
     .Build();
 ```
+
+> **Note:** NDC receipts use binary data (`BytesValue`), so they must be rendered through the C# API. The CLI does not support binary data inputs. For text-based NDC content, you can use `base64:` prefix in the JSON data:
+>
+> ```json
+> { "receiptData": "base64:PFN0YXJ0PjxOREMgZGF0YT4..." }
+> ```
+>
+> ```bash
+> flexrender render ndc-receipt.yaml -d ndc-data.json -o atm-receipt.png
+> ```
 
 ---
 
@@ -619,6 +690,12 @@ var render = new FlexRenderBuilder()
     .Build();
 ```
 
+**CLI:**
+
+```bash
+flexrender render receipt-qr.yaml -d payment-data.json -o receipt-qr.png
+```
+
 ---
 
 ## Labels and Tickets
@@ -684,6 +761,15 @@ layout:
   "price": "$12.99",
   "sku": "TEA-GRN-100"
 }
+```
+
+**CLI:**
+
+```bash
+flexrender render product-label.yaml -d product-data.json -o label.png
+
+# Scale 2x for high-DPI label printers
+flexrender render product-label.yaml -d product-data.json -o label.png --scale 2.0
 ```
 
 ---
@@ -869,6 +955,15 @@ layout:
 }
 ```
 
+**CLI:**
+
+```bash
+flexrender render event-ticket.yaml -d ticket-data.json -o ticket.png
+
+# JPEG for web/email
+flexrender render event-ticket.yaml -d ticket-data.json -o ticket.jpg --quality 95
+```
+
 ---
 
 ## Advanced Patterns
@@ -1035,6 +1130,16 @@ layout:
 }
 ```
 
+**CLI:**
+
+```bash
+# Render with "paid" status
+flexrender render conditional-receipt.yaml -d paid-order.json -o receipt-paid.png
+
+# Render with "pending" status (includes QR code)
+flexrender render conditional-receipt.yaml -d pending-order.json -o receipt-pending.png
+```
+
 ---
 
 ### Markdown Content in a Receipt
@@ -1088,6 +1193,12 @@ layout:
   "title": "Order Summary",
   "body": "## Items\n\n- Espresso x2 -- $7.00\n- **Croissant** -- $4.00\n\n---\n\n> **Total: $11.00**\n\nThank you for your order!"
 }
+```
+
+**CLI:**
+
+```bash
+flexrender render markdown-receipt.yaml -d markdown-data.json -o receipt-md.png
 ```
 
 ---
@@ -1180,6 +1291,314 @@ layout:
 ```
 
 With `culture: "de-DE"`, the `currency` filter formats `3.50` as `3,50 EUR` (locale-dependent). Changing `culture` to `"en-US"` would produce `$3.50` instead -- no template edits needed.
+
+**CLI:**
+
+```bash
+flexrender render multi-lang-receipt.yaml -d german-data.json -o receipt-de.png
+```
+
+---
+
+## Images
+
+### Image Sources Overview
+
+FlexRender supports four ways to load images in `type: image` elements. All sources are resolved through a chain of loaders in priority order.
+
+| Source | Syntax | Requires |
+|--------|--------|----------|
+| Local file | `src: "logo.png"` or `src: "/path/to/logo.png"` | Default (FileResourceLoader) |
+| HTTP/HTTPS | `src: "https://example.com/logo.png"` | `.WithHttpLoader()` on builder |
+| Base64 data URL | `src: "data:image/png;base64,iVBOR..."` | Default (Base64ResourceLoader) |
+| Embedded resource | `src: "embedded://MyApp.Assets.logo.png"` | `.WithEmbeddedLoader(assembly)` |
+
+> **Important:** For `data:` URIs, the MIME type is **required** (e.g., `data:image/png;base64,...`). For the `base64:` prefix in content sources, MIME type is **not required** (e.g., `base64:SGVsbG8=`).
+
+---
+
+### Local File Image
+
+The simplest case -- image file relative to the template base path.
+
+**Template:**
+
+```yaml
+canvas:
+  fixed: width
+  width: 300
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "16"
+    gap: 12
+    align: center
+    children:
+      # Relative path (resolved from base path)
+      - type: image
+        src: "assets/images/logo.png"
+        width: 200
+        fit: contain
+
+      - type: text
+        content: "Company Name"
+        fontWeight: bold
+        size: 1.2em
+        align: center
+```
+
+**CLI:**
+
+```bash
+# --base-path tells the renderer where to find relative file references
+flexrender render card.yaml -d data.json -o card.png --base-path ./templates
+```
+
+---
+
+### HTTP Image
+
+Load images from URLs at render time. Requires `.WithHttpLoader()` in the builder or the CLI (enabled by default in CLI).
+
+**Template:**
+
+```yaml
+canvas:
+  fixed: width
+  width: 400
+  background: "#f5f5f5"
+
+layout:
+  - type: flex
+    padding: "20"
+    gap: 16
+    children:
+      - type: flex
+        direction: row
+        gap: 16
+        children:
+          # Image loaded from HTTPS URL
+          - type: image
+            src: "https://avatars.githubusercontent.com/u/12345"
+            width: 80
+            height: 80
+            fit: cover
+            border-radius: "40"
+
+          - type: flex
+            gap: 4
+            justify: center
+            children:
+              - type: text
+                content: "{{userName}}"
+                fontWeight: bold
+                size: 1.1em
+              - type: text
+                content: "{{bio}}"
+                size: 0.85em
+                color: "#666666"
+                maxLines: 2
+                overflow: ellipsis
+
+      - type: separator
+        color: "#e0e0e0"
+
+      - type: text
+        content: "{{stats.repos}} repos · {{stats.followers}} followers"
+        size: 0.85em
+        color: "#888888"
+        align: center
+```
+
+**Data:**
+
+```json
+{
+  "userName": "Jane Developer",
+  "bio": "Full-stack engineer, open source contributor",
+  "stats": { "repos": 42, "followers": 1200 }
+}
+```
+
+**CLI:**
+
+```bash
+flexrender render profile-card.yaml -d profile.json -o profile.png
+```
+
+**C# builder** (HTTP loader must be explicitly registered):
+
+```csharp
+var render = new FlexRenderBuilder()
+    .WithHttpLoader(opts => {
+        opts.Timeout = TimeSpan.FromSeconds(30);
+        opts.MaxResourceSize = 10 * 1024 * 1024;
+    })
+    .WithSkia()
+    .Build();
+```
+
+---
+
+### Base64 Inline Image
+
+Embed images directly in the template or data as base64 data URLs. Useful when images come from a database or API, or when you want a self-contained template with no external dependencies.
+
+**Template:**
+
+```yaml
+canvas:
+  fixed: width
+  width: 300
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "16"
+    gap: 12
+    align: center
+    children:
+      # Static base64 image (inline in template)
+      - type: image
+        src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        width: 100
+        height: 100
+
+      # Dynamic base64 image (from data)
+      - type: image
+        src: "{{logoBase64}}"
+        width: 200
+        fit: contain
+
+      - type: text
+        content: "{{title}}"
+        fontWeight: bold
+        align: center
+```
+
+**Data:**
+
+```json
+{
+  "title": "Product Card",
+  "logoBase64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+}
+```
+
+> **Syntax:** `data:image/<format>;base64,<data>` — the MIME type (`image/png`, `image/jpeg`, `image/webp`, etc.) is **required**. The comma after `base64` is the mandatory separator.
+
+**CLI:**
+
+```bash
+flexrender render inline-image.yaml -d image-data.json -o output.png
+```
+
+---
+
+### Image Fit Modes
+
+The `fit` property controls how an image is scaled within its container:
+
+**Template:**
+
+```yaml
+canvas:
+  fixed: width
+  width: 500
+  background: "#f0f0f0"
+
+layout:
+  - type: flex
+    padding: "16"
+    gap: 16
+    children:
+      - type: text
+        content: "Image Fit Modes"
+        fontWeight: bold
+        size: 1.2em
+        align: center
+
+      - type: flex
+        direction: row
+        gap: 12
+        wrap: wrap
+        children:
+          # contain -- scales to fit, preserves aspect ratio
+          - type: flex
+            gap: 4
+            align: center
+            children:
+              - type: image
+                src: "{{imageUrl}}"
+                width: 100
+                height: 100
+                fit: contain
+                background: "#dddddd"
+              - type: text
+                content: "contain"
+                size: 0.8em
+                color: "#666666"
+
+          # cover -- scales to fill, crops excess
+          - type: flex
+            gap: 4
+            align: center
+            children:
+              - type: image
+                src: "{{imageUrl}}"
+                width: 100
+                height: 100
+                fit: cover
+              - type: text
+                content: "cover"
+                size: 0.8em
+                color: "#666666"
+
+          # fill -- stretches to fill (may distort)
+          - type: flex
+            gap: 4
+            align: center
+            children:
+              - type: image
+                src: "{{imageUrl}}"
+                width: 100
+                height: 100
+                fit: fill
+              - type: text
+                content: "fill"
+                size: 0.8em
+                color: "#666666"
+
+          # none -- original size, no scaling
+          - type: flex
+            gap: 4
+            align: center
+            children:
+              - type: image
+                src: "{{imageUrl}}"
+                width: 100
+                height: 100
+                fit: none
+              - type: text
+                content: "none"
+                size: 0.8em
+                color: "#666666"
+```
+
+**Data:**
+
+```json
+{
+  "imageUrl": "assets/images/sample.png"
+}
+```
+
+**CLI:**
+
+```bash
+flexrender render fit-modes.yaml -d data.json -o fit-modes.png --base-path ./templates
+```
 
 ---
 
