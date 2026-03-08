@@ -355,7 +355,7 @@ public sealed class ResourceLimitsIntegrationTests
 
         // Verify SkiaRenderer uses limits
         using var renderer = new SkiaRenderer(limits);
-        var size = await renderer.Measure(template, new ObjectValue(), TestContext.Current.CancellationToken);
+        var size = await renderer.MeasureAsync(template, new ObjectValue(), TestContext.Current.CancellationToken);
         Assert.True(size.Width > 0);
     }
 

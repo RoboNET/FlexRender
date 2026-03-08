@@ -144,40 +144,46 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     public FontManager FontManager => _fontManager;
 
     /// <summary>
-    /// Computes the layout tree for a template with data.
+    /// Computes the layout tree for a template with data asynchronously.
     /// Uses the same layout engine configuration as rendering (including text measurement).
     /// </summary>
     /// <param name="template">The template to lay out.</param>
     /// <param name="data">The data for variable substitution.</param>
     /// <returns>The root layout node with computed positions and sizes.</returns>
-    public LayoutNode ComputeLayout(Template template, ObjectValue data)
+    /// <exception cref="ObjectDisposedException">Thrown when the renderer has been disposed.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="template"/> or <paramref name="data"/> is null.</exception>
+    public async Task<LayoutNode> ComputeLayoutAsync(Template template, ObjectValue data)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(data);
 
-        var processedTemplate = _pipeline.Process(template, data);
+        var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
         return _layoutEngine.ComputeLayout(processedTemplate);
     }
 
     /// <summary>
-    /// Measures the size required to render the template.
+    /// Measures the size required to render the template asynchronously.
     /// Takes into account canvas rotation which may swap width and height.
     /// </summary>
     /// <param name="template">The template to measure.</param>
     /// <param name="data">The data for variable substitution.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>The required size after rotation is applied.</returns>
-    public SKSize Measure(Template template, ObjectValue data)
+    /// <exception cref="ObjectDisposedException">Thrown when the renderer has been disposed.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="template"/> or <paramref name="data"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
+    public async Task<SKSize> MeasureAsync(Template template, ObjectValue data, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(data);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var processedTemplate = _pipeline.Process(template, data);
+        var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
         _preprocessor.RegisterFonts(processedTemplate);
 
-        // Use LayoutEngine to compute accurate sizes
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
 
         var width = rootNode.Width;
@@ -194,70 +200,9 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Renders the template to a canvas.
-    /// </summary>
-    /// <param name="canvas">The canvas to render to.</param>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The data for variable substitution.</param>
-    /// <param name="offset">Optional offset for rendering position.</param>
-    public void Render(SKCanvas canvas, Template template, ObjectValue data, SKPoint offset = default)
-    {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
-        ArgumentNullException.ThrowIfNull(canvas);
-        ArgumentNullException.ThrowIfNull(template);
-        ArgumentNullException.ThrowIfNull(data);
-
-        _renderingEngine.RenderToCanvas(canvas, template, data, offset, imageCache: null, _defaultRenderOptions);
-    }
-
-    /// <summary>
-    /// Renders the template to a bitmap.
-    /// Applies canvas rotation after rendering if specified in template settings.
-    /// </summary>
-    /// <param name="bitmap">The bitmap to render to.</param>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The data for variable substitution.</param>
-    /// <param name="offset">Optional offset for rendering position.</param>
-    public void Render(SKBitmap bitmap, Template template, ObjectValue data, SKPoint offset = default)
-    {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
-        ArgumentNullException.ThrowIfNull(bitmap);
-        ArgumentNullException.ThrowIfNull(template);
-        ArgumentNullException.ThrowIfNull(data);
-
-        _renderingEngine.RenderToBitmapCore(bitmap, template, data, offset, imageCache: null, _defaultRenderOptions);
-    }
-
-    /// <summary>
-    /// Renders the template using typed data.
-    /// </summary>
-    /// <typeparam name="T">The data type implementing ITemplateData.</typeparam>
-    /// <param name="canvas">The canvas to render to.</param>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The typed data.</param>
-    /// <param name="offset">Optional offset for rendering position.</param>
-    public void Render<T>(SKCanvas canvas, Template template, T data, SKPoint offset = default)
-        where T : ITemplateData
-    {
-        Render(canvas, template, data.ToTemplateValue(), offset);
-    }
-
-    /// <summary>
-    /// Renders the template using typed data to a bitmap.
-    /// </summary>
-    /// <typeparam name="T">The data type implementing ITemplateData.</typeparam>
-    /// <param name="bitmap">The bitmap to render to.</param>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The typed data.</param>
-    /// <param name="offset">Optional offset for rendering position.</param>
-    public void Render<T>(SKBitmap bitmap, Template template, T data, SKPoint offset = default)
-        where T : ITemplateData
-    {
-        Render(bitmap, template, data.ToTemplateValue(), offset);
-    }
-
-    /// <summary>
-    /// Renders a template to a new bitmap.
+    /// Renders a template to a new bitmap asynchronously.
+    /// Processes the template once through the async pipeline and pre-loads all images and SVG content
+    /// before rendering.
     /// </summary>
     /// <param name="layoutTemplate">The template to render.</param>
     /// <param name="data">The data context for template expressions.</param>
@@ -275,21 +220,28 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        _preprocessor.RegisterFonts(processedTemplate);
+
         var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
+            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
             : null;
 
-        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
 
         try
         {
-            // Measure returns the final size after rotation
-            var size = Measure(layoutTemplate, data);
+            var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
+            var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate.Value);
+            var size = RotationHelper.SwapsDimensions(rotationDegrees)
+                ? new SKSize(rootNode.Height, rootNode.Width)
+                : new SKSize(rootNode.Width, rootNode.Height);
+
             var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
             try
             {
-                _renderingEngine.RenderToBitmapCore(bitmap, layoutTemplate, data, default, imageCache);
+                _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, _defaultRenderOptions);
                 return bitmap;
             }
             catch
@@ -311,6 +263,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Renders a template to an existing bitmap asynchronously.
+    /// Processes the template once through the async pipeline and pre-loads all images and SVG content
+    /// before rendering.
     /// </summary>
     /// <param name="bitmap">The target bitmap to render onto.</param>
     /// <param name="layoutTemplate">The template to render.</param>
@@ -332,16 +286,20 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        _preprocessor.RegisterFonts(processedTemplate);
+
         var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
+            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
             : null;
 
-        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
 
         try
         {
-            _renderingEngine.RenderToBitmapCore(bitmap, layoutTemplate, data, offset, imageCache);
+            var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
+            _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, offset, imageCache, _defaultRenderOptions);
         }
         finally
         {
@@ -356,6 +314,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Renders a template to a PNG stream.
+    /// Processes the template once through the async pipeline and pre-loads all images and SVG content
+    /// before rendering.
     /// </summary>
     /// <param name="output">The output stream to write PNG data to.</param>
     /// <param name="layoutTemplate">The template to render.</param>
@@ -379,20 +339,26 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        _preprocessor.RegisterFonts(processedTemplate);
+
         var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
+            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
             : null;
 
-        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
 
         try
         {
-            // Measure returns the final size after rotation
-            var size = Measure(layoutTemplate, data);
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
+            var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate.Value);
+            var size = RotationHelper.SwapsDimensions(rotationDegrees)
+                ? new SKSize(rootNode.Height, rootNode.Width)
+                : new SKSize(rootNode.Width, rootNode.Height);
 
-            _renderingEngine.RenderToBitmapCore(bitmap, layoutTemplate, data, default, imageCache, renderOptions);
+            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             using var image = SKImage.FromBitmap(bitmap);
             using var encodedData = image.Encode(SKEncodedImageFormat.Png, compressionLevel);
@@ -411,6 +377,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Renders a template to a JPEG stream.
+    /// Processes the template once through the async pipeline and pre-loads all images and SVG content
+    /// before rendering.
     /// </summary>
     /// <param name="output">The output stream to write JPEG data to.</param>
     /// <param name="layoutTemplate">The template to render.</param>
@@ -441,20 +409,26 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        _preprocessor.RegisterFonts(processedTemplate);
+
         var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
+            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
             : null;
 
-        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
 
         try
         {
-            // Measure returns the final size after rotation
-            var size = Measure(layoutTemplate, data);
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
+            var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate.Value);
+            var size = RotationHelper.SwapsDimensions(rotationDegrees)
+                ? new SKSize(rootNode.Height, rootNode.Width)
+                : new SKSize(rootNode.Width, rootNode.Height);
 
-            _renderingEngine.RenderToBitmapCore(bitmap, layoutTemplate, data, default, imageCache, renderOptions);
+            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             using var image = SKImage.FromBitmap(bitmap);
             using var encodedData = image.Encode(SKEncodedImageFormat.Jpeg, quality);
@@ -473,6 +447,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Renders a template to a BMP stream.
+    /// Processes the template once through the async pipeline and pre-loads all images and SVG content
+    /// before rendering.
     /// </summary>
     /// <param name="output">The output stream to write BMP data to.</param>
     /// <param name="layoutTemplate">The template to render.</param>
@@ -496,20 +472,26 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        _preprocessor.RegisterFonts(processedTemplate);
+
         var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
+            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
             : null;
 
-        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
 
         try
         {
-            // Measure returns the final size after rotation
-            var size = Measure(layoutTemplate, data);
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
+            var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate.Value);
+            var size = RotationHelper.SwapsDimensions(rotationDegrees)
+                ? new SKSize(rootNode.Height, rootNode.Width)
+                : new SKSize(rootNode.Width, rootNode.Height);
 
-            _renderingEngine.RenderToBitmapCore(bitmap, layoutTemplate, data, default, imageCache, renderOptions);
+            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             BmpEncoder.Encode(bitmap, output, colorMode);
         }
@@ -526,6 +508,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Renders a template to raw pixel data in BGRA8888 format.
+    /// Processes the template once through the async pipeline and pre-loads all images and SVG content
+    /// before rendering.
     /// </summary>
     /// <param name="output">The output stream to write raw pixel data to.</param>
     /// <param name="layoutTemplate">The template to render.</param>
@@ -547,20 +531,26 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var processedTemplate = await _pipeline.ProcessAsync(layoutTemplate, data).ConfigureAwait(false);
+        _preprocessor.RegisterFonts(processedTemplate);
+
         var imageCache = _imageLoader is not null
-            ? await _renderingEngine.PreloadImagesAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false)
+            ? await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false)
             : null;
 
-        var svgContentCache = await _renderingEngine.PreloadSvgContentAsync(layoutTemplate, data, cancellationToken).ConfigureAwait(false);
+        var svgContentCache = await _renderingEngine.PreloadSvgContentFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
         _renderingEngine.SetSvgContentCache(svgContentCache);
 
         try
         {
-            // Measure returns the final size after rotation
-            var size = Measure(layoutTemplate, data);
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
+            var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate.Value);
+            var size = RotationHelper.SwapsDimensions(rotationDegrees)
+                ? new SKSize(rootNode.Height, rootNode.Width)
+                : new SKSize(rootNode.Width, rootNode.Height);
 
-            _renderingEngine.RenderToBitmapCore(bitmap, layoutTemplate, data, default, imageCache, renderOptions);
+            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             // Copy raw pixel bytes directly from the bitmap
             var pixels = bitmap.Bytes;
@@ -575,24 +565,6 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                     bmp.Dispose();
             }
         }
-    }
-
-    /// <summary>
-    /// Measures template size without rendering.
-    /// </summary>
-    /// <param name="layoutTemplate">The template to measure.</param>
-    /// <param name="data">The data context for template expressions.</param>
-    /// <param name="cancellationToken">Cancellation token for async operation.</param>
-    /// <returns>The size of the template in pixels.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="layoutTemplate"/> or <paramref name="data"/> is null.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
-    public Task<SKSize> Measure(
-        Template layoutTemplate,
-        ObjectValue data,
-        CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Measure(layoutTemplate, data));
     }
 
     /// <summary>

@@ -91,29 +91,25 @@ internal sealed class RenderingEngine
     }
 
     /// <summary>
-    /// Core canvas rendering logic. Accepts an optional pre-loaded image cache
-    /// so that async render paths can pass it through without storing mutable state
-    /// on the renderer instance (thread safety).
+    /// Core canvas rendering logic. Accepts a pre-processed template and computed layout node.
+    /// The caller is responsible for calling <see cref="TemplatePipeline.ProcessAsync"/> and
+    /// <see cref="TemplatePreprocessor.RegisterFonts"/> before invoking this method.
     /// </summary>
     /// <param name="canvas">The canvas to render to.</param>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The data for variable substitution.</param>
+    /// <param name="processedTemplate">The already-processed template (after pipeline expansion).</param>
+    /// <param name="rootNode">The pre-computed root layout node.</param>
     /// <param name="offset">Optional offset for rendering position.</param>
     /// <param name="imageCache">Optional pre-loaded image cache.</param>
     /// <param name="renderOptions">Per-call rendering options.</param>
     internal void RenderToCanvas(
         SKCanvas canvas,
-        Template template,
-        ObjectValue data,
+        Template processedTemplate,
+        LayoutNode rootNode,
         SKPoint offset,
         IReadOnlyDictionary<string, SKBitmap>? imageCache,
         RenderOptions? renderOptions = null)
     {
         var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
-        var pipeline = ResolvePipeline(effectiveRenderOptions, template);
-        var processedTemplate = pipeline.Process(template, data);
-        _preprocessor.RegisterFonts(processedTemplate);
-        var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
 
         // Save canvas state
         canvas.Save();
@@ -138,47 +134,42 @@ internal sealed class RenderingEngine
     }
 
     /// <summary>
-    /// Core bitmap rendering logic. Accepts an optional pre-loaded image cache
-    /// so that async render paths can pass it through without storing mutable state
-    /// on the renderer instance (thread safety).
+    /// Core bitmap rendering logic. Accepts a pre-processed template and computed layout node.
+    /// The caller is responsible for calling <see cref="TemplatePipeline.ProcessAsync"/> and
+    /// <see cref="TemplatePreprocessor.RegisterFonts"/> before invoking this method.
     /// </summary>
     /// <param name="bitmap">The bitmap to render to.</param>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The data for variable substitution.</param>
+    /// <param name="processedTemplate">The already-processed template (after pipeline expansion).</param>
+    /// <param name="rootNode">The pre-computed root layout node.</param>
     /// <param name="offset">Optional offset for rendering position.</param>
     /// <param name="imageCache">Optional pre-loaded image cache.</param>
     /// <param name="renderOptions">Per-call rendering options.</param>
     internal void RenderToBitmapCore(
         SKBitmap bitmap,
-        Template template,
-        ObjectValue data,
+        Template processedTemplate,
+        LayoutNode rootNode,
         SKPoint offset,
         IReadOnlyDictionary<string, SKBitmap>? imageCache,
         RenderOptions? renderOptions = null)
     {
-        var rotationDegrees = RotationHelper.ParseRotation(template.Canvas.Rotate.Value);
+        var rotationDegrees = RotationHelper.ParseRotation(processedTemplate.Canvas.Rotate.Value);
 
         // If no rotation needed, render directly to bitmap
         if (!RotationHelper.HasRotation(rotationDegrees))
         {
             using var canvas = new SKCanvas(bitmap);
-            RenderToCanvas(canvas, template, data, offset, imageCache, renderOptions);
+            RenderToCanvas(canvas, processedTemplate, rootNode, offset, imageCache, renderOptions);
             return;
         }
 
         // Render to temporary bitmap first, then rotate
-        var effectiveRenderOptions = renderOptions ?? RenderOptions.Default;
-        var pipeline = ResolvePipeline(effectiveRenderOptions, template);
-        var processedTemplate = pipeline.Process(template, data);
-        _preprocessor.RegisterFonts(processedTemplate);
-        var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
         var originalWidth = (int)rootNode.Width;
         var originalHeight = (int)rootNode.Height;
 
         using var tempBitmap = new SKBitmap(originalWidth, originalHeight);
         using (var tempCanvas = new SKCanvas(tempBitmap))
         {
-            RenderToCanvas(tempCanvas, template, data, offset, imageCache, renderOptions);
+            RenderToCanvas(tempCanvas, processedTemplate, rootNode, offset, imageCache, renderOptions);
         }
 
         // Rotate the bitmap
@@ -674,6 +665,34 @@ internal sealed class RenderingEngine
     }
 
     /// <summary>
+    /// Pre-loads all images from an already-processed template asynchronously using the image loader.
+    /// Unlike <see cref="PreloadImagesAsync"/>, this method skips the pipeline processing step
+    /// and works directly with the provided template.
+    /// </summary>
+    /// <param name="processedTemplate">The already-processed template containing resolved image references.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A dictionary mapping image URIs to loaded bitmaps.</returns>
+    internal async Task<Dictionary<string, SKBitmap>> PreloadImagesFromProcessedAsync(
+        Template processedTemplate,
+        CancellationToken cancellationToken)
+    {
+        var uris = CollectImageUris(processedTemplate);
+        var cache = new Dictionary<string, SKBitmap>(uris.Count, StringComparer.Ordinal);
+
+        foreach (var uri in uris)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var bitmap = await _imageLoader!.Load(uri, cancellationToken).ConfigureAwait(false);
+            if (bitmap is not null)
+            {
+                cache[uri] = bitmap;
+            }
+        }
+
+        return cache;
+    }
+
+    /// <summary>
     /// Sets the SVG content cache on the SVG provider if it implements <see cref="ISvgContentCacheAware"/>.
     /// </summary>
     /// <param name="cache">The cache to set, or null to clear.</param>
@@ -698,6 +717,34 @@ internal sealed class RenderingEngine
         CancellationToken cancellationToken)
     {
         var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
+        var uris = SvgContentLoader.CollectSvgUris(processedTemplate);
+        var cache = new Dictionary<string, string>(uris.Count, StringComparer.Ordinal);
+
+        foreach (var uri in uris)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var content = await SvgContentLoader.LoadFromLoaders(_resourceLoaders, uri).ConfigureAwait(false);
+            if (content is not null)
+            {
+                cache[uri] = content;
+            }
+        }
+
+        return cache;
+    }
+
+    /// <summary>
+    /// Pre-loads all SVG content from an already-processed template asynchronously using the resource loaders.
+    /// Unlike <see cref="PreloadSvgContentAsync"/>, this method skips the pipeline processing step
+    /// and works directly with the provided template.
+    /// </summary>
+    /// <param name="processedTemplate">The already-processed template containing resolved SVG element references.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A dictionary mapping SVG source URIs to loaded and sanitized SVG content.</returns>
+    internal async Task<Dictionary<string, string>> PreloadSvgContentFromProcessedAsync(
+        Template processedTemplate,
+        CancellationToken cancellationToken)
+    {
         var uris = SvgContentLoader.CollectSvgUris(processedTemplate);
         var cache = new Dictionary<string, string>(uris.Count, StringComparer.Ordinal);
 

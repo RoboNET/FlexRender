@@ -47,7 +47,7 @@ public sealed class FlexLayoutBugTests : IDisposable
     /// See: docs/known-issues/layout-bugs.md
     /// </summary>
     [Fact]
-    public void AlignItemsEnd_AutoHeightRow_ChildrenAlignedToBottom()
+    public async Task AlignItemsEnd_AutoHeightRow_ChildrenAlignedToBottom()
     {
         // Arrange: Row container with align: end, no explicit height, 3 children of different heights.
         // Each child has a distinct background color so we can verify position via pixel checks.
@@ -107,7 +107,7 @@ public sealed class FlexLayoutBugTests : IDisposable
         // Act: Render to bitmap
         using var bitmap = new SKBitmap(180, 80);
         var data = new ObjectValue();
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: Check pixel colors at strategic positions.
 
@@ -224,7 +224,7 @@ public sealed class FlexLayoutBugTests : IDisposable
     /// See: docs/known-issues/layout-bugs.md
     /// </summary>
     [Fact]
-    public void AlignItemsCenter_AutoHeightRow_ChildrenVerticallyCentered()
+    public async Task AlignItemsCenter_AutoHeightRow_ChildrenVerticallyCentered()
     {
         // Arrange: Row container with align: center, no explicit height, 3 children of different heights.
         //
@@ -283,7 +283,7 @@ public sealed class FlexLayoutBugTests : IDisposable
         // Act: Render to bitmap
         using var bitmap = new SKBitmap(180, 80);
         var data = new ObjectValue();
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: Check pixel colors at strategic positions.
 
@@ -408,7 +408,7 @@ public sealed class FlexLayoutBugTests : IDisposable
     /// See: docs/known-issues/layout-bugs.md
     /// </summary>
     [Fact]
-    public void VerticalSeparator_InRowWithExplicitHeight_StretchesToContainerHeight()
+    public async Task VerticalSeparator_InRowWithExplicitHeight_StretchesToContainerHeight()
     {
         // Arrange: Row container (100px height) with two colored boxes and a vertical separator between them.
         //
@@ -470,7 +470,7 @@ public sealed class FlexLayoutBugTests : IDisposable
         // Act: Render to bitmap
         using var bitmap = new SKBitmap(200, 100);
         var data = new ObjectValue();
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: The separator should be a visible black line spanning most of the height.
         // The separator is at approximately X=80..81 (2px wide).
@@ -503,7 +503,7 @@ public sealed class FlexLayoutBugTests : IDisposable
     /// See: docs/known-issues/layout-bugs.md
     /// </summary>
     [Fact]
-    public void VerticalSeparator_InAutoHeightRow_StretchesToContentHeight()
+    public async Task VerticalSeparator_InAutoHeightRow_StretchesToContentHeight()
     {
         // Arrange: Row container (auto height) with two colored boxes and a vertical separator.
         //
@@ -560,7 +560,7 @@ public sealed class FlexLayoutBugTests : IDisposable
         // Act: Render to bitmap
         using var bitmap = new SKBitmap(200, 80);
         var data = new ObjectValue();
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: The separator should span from Y=0 to Y=79 (80px total).
         // Check at multiple Y positions.

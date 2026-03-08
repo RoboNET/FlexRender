@@ -261,7 +261,7 @@ public sealed class AllFeaturesIntegrationTest : IDisposable
         var template = _parser.Parse(AllFeaturesYaml);
         var data = CreateTestData(hasDiscount: false, subtotal: 150);
 
-        var size = await _renderer.Measure(template, data, TestContext.Current.CancellationToken);
+        var size = await _renderer.MeasureAsync(template, data, TestContext.Current.CancellationToken);
 
         Assert.Equal(400f, size.Width);
         Assert.True(size.Height > 100, "Layout height should be substantial for a multi-section template");

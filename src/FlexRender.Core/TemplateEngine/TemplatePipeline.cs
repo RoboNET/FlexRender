@@ -26,30 +26,6 @@ public sealed class TemplatePipeline
     }
 
     /// <summary>
-    /// Processes a template through the full pipeline: Expand, Resolve, Materialize.
-    /// </summary>
-    /// <param name="template">The parsed template to process.</param>
-    /// <param name="data">The data context for expression evaluation.</param>
-    /// <returns>The expanded and resolved template with all expressions materialized.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="template"/> or <paramref name="data"/> is null.</exception>
-    public Template Process(Template template, ObjectValue data)
-    {
-        ArgumentNullException.ThrowIfNull(template);
-        ArgumentNullException.ThrowIfNull(data);
-
-        // Phase 1: Expand control flow (#if, #each, table)
-        var expanded = _expander.Expand(template, data);
-
-        // Phase 2: Resolve expressions in all ExprValue properties
-        ResolveAll(expanded, data);
-
-        // Phase 3: Materialize resolved strings into typed values
-        MaterializeAll(expanded);
-
-        return expanded;
-    }
-
-    /// <summary>
     /// Asynchronously processes a template through the full pipeline: Expand, Resolve, Materialize.
     /// Uses <c>await</c> for the expansion phase to support async content source resolution.
     /// </summary>

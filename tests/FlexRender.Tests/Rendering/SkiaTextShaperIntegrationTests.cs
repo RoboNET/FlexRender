@@ -18,7 +18,7 @@ public sealed class SkiaTextShaperIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void ComputeLayout_PopulatesTextLinesFromSkiaTextShaper()
+    public async Task ComputeLayout_PopulatesTextLinesFromSkiaTextShaper()
     {
         var template = new Template
         {
@@ -29,7 +29,7 @@ public sealed class SkiaTextShaperIntegrationTests : IDisposable
             }
         };
 
-        var root = _renderer.ComputeLayout(template, new ObjectValue());
+        var root = await _renderer.ComputeLayoutAsync(template, new ObjectValue());
         var textNode = root.Children[0];
 
         Assert.NotNull(textNode.TextLines);
@@ -38,7 +38,7 @@ public sealed class SkiaTextShaperIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void ComputeLayout_WrappedText_ProducesMultipleLines()
+    public async Task ComputeLayout_WrappedText_ProducesMultipleLines()
     {
         var template = new Template
         {
@@ -54,7 +54,7 @@ public sealed class SkiaTextShaperIntegrationTests : IDisposable
             }
         };
 
-        var root = _renderer.ComputeLayout(template, new ObjectValue());
+        var root = await _renderer.ComputeLayoutAsync(template, new ObjectValue());
         var textNode = root.Children[0];
 
         Assert.NotNull(textNode.TextLines);

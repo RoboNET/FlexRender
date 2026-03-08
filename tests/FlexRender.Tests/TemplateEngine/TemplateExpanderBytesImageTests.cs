@@ -25,7 +25,7 @@ public sealed class TemplateExpanderBytesImageTests
     }
 
     [Fact]
-    public void Expand_ImageSrcBytesValue_ConvertsToDataUri()
+    public async Task Expand_ImageSrcBytesValue_ConvertsToDataUri()
     {
         var pngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
         var template = CreateTemplate(
@@ -36,7 +36,7 @@ public sealed class TemplateExpanderBytesImageTests
             ["logo"] = new BytesValue(pngBytes, "image/png")
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var img = Assert.IsType<ImageElement>(result.Elements[0]);
         var expectedBase64 = Convert.ToBase64String(pngBytes);
@@ -44,7 +44,7 @@ public sealed class TemplateExpanderBytesImageTests
     }
 
     [Fact]
-    public void Expand_ImageSrcBytesValue_RoundTripsBytes()
+    public async Task Expand_ImageSrcBytesValue_RoundTripsBytes()
     {
         var pngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x01, 0x02, 0xFF };
         var template = CreateTemplate(
@@ -55,7 +55,7 @@ public sealed class TemplateExpanderBytesImageTests
             ["logo"] = new BytesValue(pngBytes, "image/png")
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var img = Assert.IsType<ImageElement>(result.Elements[0]);
         var srcValue = img.Src.Value;
@@ -68,7 +68,7 @@ public sealed class TemplateExpanderBytesImageTests
     }
 
     [Fact]
-    public void Expand_ImageSrcBytesValueWithoutMimeType_DefaultsToOctetStream()
+    public async Task Expand_ImageSrcBytesValueWithoutMimeType_DefaultsToOctetStream()
     {
         var rawBytes = new byte[] { 0x01, 0x02, 0x03 };
         var template = CreateTemplate(
@@ -79,7 +79,7 @@ public sealed class TemplateExpanderBytesImageTests
             ["data"] = new BytesValue(rawBytes)
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var img = Assert.IsType<ImageElement>(result.Elements[0]);
         var expectedBase64 = Convert.ToBase64String(rawBytes);
@@ -87,7 +87,7 @@ public sealed class TemplateExpanderBytesImageTests
     }
 
     [Fact]
-    public void Expand_ImageSrcStringValue_ResolvesAsStringPath()
+    public async Task Expand_ImageSrcStringValue_ResolvesAsStringPath()
     {
         var template = CreateTemplate(
             new ImageElement { Src = "{{imagePath}}" }
@@ -97,28 +97,28 @@ public sealed class TemplateExpanderBytesImageTests
             ["imagePath"] = new StringValue("/images/logo.png")
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var img = Assert.IsType<ImageElement>(result.Elements[0]);
         Assert.Equal("/images/logo.png", img.Src.Value);
     }
 
     [Fact]
-    public void Expand_ImageSrcLiteral_PreservesLiteral()
+    public async Task Expand_ImageSrcLiteral_PreservesLiteral()
     {
         var template = CreateTemplate(
             new ImageElement { Src = "/static/logo.png" }
         );
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var img = Assert.IsType<ImageElement>(result.Elements[0]);
         Assert.Equal("/static/logo.png", img.Src.Value);
     }
 
     [Fact]
-    public void Expand_ImageSrcMixedExpression_FallsBackToStringSubstitution()
+    public async Task Expand_ImageSrcMixedExpression_FallsBackToStringSubstitution()
     {
         // Mixed expression like "prefix_{{name}}.png" should not trigger bytes resolution
         var template = CreateTemplate(
@@ -129,14 +129,14 @@ public sealed class TemplateExpanderBytesImageTests
             ["name"] = new StringValue("logo")
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var img = Assert.IsType<ImageElement>(result.Elements[0]);
         Assert.Equal("prefix_logo.png", img.Src.Value);
     }
 
     [Fact]
-    public void Expand_ImageSrcBytesValueInEach_ConvertsToDataUri()
+    public async Task Expand_ImageSrcBytesValueInEach_ConvertsToDataUri()
     {
         var bytes1 = new byte[] { 0x01, 0x02 };
         var bytes2 = new byte[] { 0x03, 0x04 };
@@ -158,7 +158,7 @@ public sealed class TemplateExpanderBytesImageTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         var img1 = Assert.IsType<ImageElement>(result.Elements[0]);
@@ -169,7 +169,7 @@ public sealed class TemplateExpanderBytesImageTests
     }
 
     [Fact]
-    public void Expand_ImageSrcBytesValueNestedPath_ConvertsToDataUri()
+    public async Task Expand_ImageSrcBytesValueNestedPath_ConvertsToDataUri()
     {
         var pngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 };
         var template = CreateTemplate(
@@ -183,7 +183,7 @@ public sealed class TemplateExpanderBytesImageTests
             }
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var img = Assert.IsType<ImageElement>(result.Elements[0]);
         var expectedBase64 = Convert.ToBase64String(pngBytes);

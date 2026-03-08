@@ -34,7 +34,7 @@ public sealed class WbReceiptSnapshotTests : SnapshotTestBase
     /// that the output matches the golden snapshot image.
     /// </summary>
     [Fact]
-    public void WbReceipt_RendersCorrectly()
+    public async Task WbReceipt_RendersCorrectly()
     {
         var repoRoot = FindRepositoryRoot();
         var yamlPath = Path.Combine(repoRoot, "examples", "private", "wb-receipt.yaml");
@@ -56,7 +56,7 @@ public sealed class WbReceiptSnapshotTests : SnapshotTestBase
         try
         {
             Directory.SetCurrentDirectory(Path.Combine(repoRoot, "examples"));
-            AssertSnapshot("wb_receipt", template, data, colorThreshold: 10);
+            await AssertSnapshot("wb_receipt", template, data, colorThreshold: 10);
         }
         finally
         {

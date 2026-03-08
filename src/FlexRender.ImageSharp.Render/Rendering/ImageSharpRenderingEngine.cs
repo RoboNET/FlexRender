@@ -6,7 +6,6 @@ using FlexRender.Layout.Units;
 using FlexRender.Parsing.Ast;
 using FlexRender.Providers;
 using FlexRender.Rendering;
-using FlexRender.TemplateEngine;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -67,52 +66,25 @@ internal sealed class ImageSharpRenderingEngine
     }
 
     /// <summary>
-    /// Renders a template to a new Image&lt;Rgba32&gt;.
+    /// Renders a pre-processed template to a new Image&lt;Rgba32&gt;.
+    /// The caller must run the template through <c>TemplatePipeline.ProcessAsync</c>
+    /// before invoking this method.
     /// </summary>
-    /// <param name="template">The template to render.</param>
-    /// <param name="data">The data context for expression evaluation.</param>
-    /// <param name="filterRegistry">Optional filter registry.</param>
+    /// <param name="processedTemplate">
+    /// A fully expanded and processed template. Must have all expressions resolved
+    /// and content materialised via <c>TemplatePipeline.ProcessAsync</c>.
+    /// </param>
     /// <param name="imageCache">
     /// Optional pre-loaded image cache for HTTP and other async sources.
     /// When provided, images are resolved from the cache before falling back to
     /// inline loading (file and base64 only).
     /// </param>
-    /// <param name="preprocessedTemplate">
-    /// Optional pre-processed template from image preloading. When provided, the
-    /// expand+preprocess steps are skipped to avoid redundant work.
-    /// </param>
-    /// <param name="contentParserRegistry">Optional content parser registry for custom content type parsing.</param>
     /// <returns>A new image containing the rendered template. Caller owns disposal.</returns>
     internal Image<Rgba32> RenderToImage(
-        Template template,
-        ObjectValue data,
-        FilterRegistry? filterRegistry = null,
-        IReadOnlyDictionary<string, Image<Rgba32>>? imageCache = null,
-        Template? preprocessedTemplate = null,
-        ContentParserRegistry? contentParserRegistry = null)
+        Template processedTemplate,
+        IReadOnlyDictionary<string, Image<Rgba32>>? imageCache = null)
     {
-        ArgumentNullException.ThrowIfNull(template);
-        ArgumentNullException.ThrowIfNull(data);
-
-        Template processedTemplate;
-
-        if (preprocessedTemplate is not null)
-        {
-            processedTemplate = preprocessedTemplate;
-        }
-        else
-        {
-            // Expand, resolve, and materialize template via the Core pipeline
-            var expander = filterRegistry is not null
-                ? new TemplateExpander(_limits, filterRegistry, contentParserRegistry, _resourceLoaders)
-                : new TemplateExpander(_limits, contentParserRegistry, _resourceLoaders);
-            var templateProcessor = filterRegistry is not null
-                ? new TemplateProcessor(_limits, filterRegistry)
-                : new TemplateProcessor(_limits);
-
-            var pipeline = new TemplatePipeline(expander, templateProcessor);
-            processedTemplate = pipeline.Process(template, data);
-        }
+        ArgumentNullException.ThrowIfNull(processedTemplate);
 
         // Register fonts from the processed template (backend-specific)
         _preprocessor.RegisterFonts(processedTemplate);

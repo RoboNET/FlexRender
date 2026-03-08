@@ -18,7 +18,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithRotateRight_SwapsDimensions()
+    public async Task Render_WithRotateRight_SwapsDimensions()
     {
         // Arrange: 300x100 canvas should become 100x300 after 90 degree rotation
         var template = new Template
@@ -44,9 +44,9 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: dimensions should be swapped
         Assert.Equal(100, size.Width);
@@ -56,7 +56,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithRotateLeft_SwapsDimensions()
+    public async Task Render_WithRotateLeft_SwapsDimensions()
     {
         // Arrange: 300x100 canvas should become 100x300 after 270 degree rotation
         var template = new Template
@@ -82,9 +82,9 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: dimensions should be swapped
         Assert.Equal(100, size.Width);
@@ -94,7 +94,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithRotateFlip_KeepsDimensions()
+    public async Task Render_WithRotateFlip_KeepsDimensions()
     {
         // Arrange: 300x100 canvas should remain 300x100 after 180 degree rotation
         var template = new Template
@@ -120,9 +120,9 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: dimensions should NOT be swapped
         Assert.Equal(300, size.Width);
@@ -132,7 +132,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithRotateNone_DoesNothing()
+    public async Task Render_WithRotateNone_DoesNothing()
     {
         // Arrange: 300x100 canvas should remain 300x100 with no rotation
         var template = new Template
@@ -158,9 +158,9 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: dimensions should NOT be swapped
         Assert.Equal(300, size.Width);
@@ -170,7 +170,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Measure_WithRotate90_ReturnsSwappedDimensions()
+    public async Task Measure_WithRotate90_ReturnsSwappedDimensions()
     {
         // Arrange: receipt template 630px wide, content height ~200px
         var template = new Template
@@ -195,7 +195,7 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
 
         // Assert: width and height should be swapped
         Assert.Equal(200, size.Width);
@@ -203,7 +203,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithRotateRight_RotatesContentCorrectly()
+    public async Task Render_WithRotateRight_RotatesContentCorrectly()
     {
         // Arrange: Place a red element at top-left, after 90 CW rotation it should be at top-right
         var template = new Template
@@ -238,9 +238,9 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: After 90 CW rotation, original top-left becomes top-right
         // The red element was at (0-20, 0-20) in original 100x40
@@ -252,7 +252,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithRotateLeft_RotatesContentCorrectly()
+    public async Task Render_WithRotateLeft_RotatesContentCorrectly()
     {
         // Arrange: Similar setup for 270 degree (left) rotation
         var template = new Template
@@ -285,9 +285,9 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: After 270 CCW rotation
         Assert.Equal(40, size.Width);
@@ -295,7 +295,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_ThermalPrinterScenario_RotatesReceiptCorrectly()
+    public async Task Render_ThermalPrinterScenario_RotatesReceiptCorrectly()
     {
         // Arrange: Thermal printer receipt scenario
         // Original: 630px wide, ~300px tall receipt
@@ -341,9 +341,9 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
         using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        _renderer.Render(bitmap, template, data);
+        await _renderer.Render(bitmap, template, data, default, default);
 
         // Assert: Width and height should be swapped for thermal printer
         Assert.Equal(300, size.Width);
@@ -353,7 +353,7 @@ public class SkiaRendererRotationTests : IDisposable
     }
 
     [Fact]
-    public void Render_WithDefaultRotation_DoesNotRotate()
+    public async Task Render_WithDefaultRotation_DoesNotRotate()
     {
         // Arrange: Default CanvasSettings has Rotate = "none"
         var template = new Template
@@ -377,7 +377,7 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act
-        var size = _renderer.Measure(template, data);
+        var size = await _renderer.MeasureAsync(template, data);
 
         // Assert: No dimension swap
         Assert.Equal(200, size.Width);
@@ -392,7 +392,7 @@ public class SkiaRendererRotationTests : IDisposable
     [InlineData("90")]
     [InlineData("180")]
     [InlineData("270")]
-    public void Render_VariousRotationValues_DoesNotThrow(string rotateValue)
+    public async Task Render_VariousRotationValues_DoesNotThrow(string rotateValue)
     {
         // Arrange
         var template = new Template
@@ -412,11 +412,11 @@ public class SkiaRendererRotationTests : IDisposable
         var data = new ObjectValue();
 
         // Act & Assert: Should not throw
-        var exception = Record.Exception(() =>
+        var exception = await Record.ExceptionAsync(async () =>
         {
-            var size = _renderer.Measure(template, data);
+            var size = await _renderer.MeasureAsync(template, data);
             using var bitmap = new SKBitmap((int)Math.Max(size.Width, 1), (int)Math.Max(size.Height, 1));
-            _renderer.Render(bitmap, template, data);
+            await _renderer.Render(bitmap, template, data, default, default);
         });
 
         Assert.Null(exception);

@@ -36,7 +36,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
             Canvas = new CanvasSettings { Width = 100, Height = 50, Fixed = FixedDimension.Both, Background = "#ff0000" }
         };
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.Equal(100, image.Width);
         Assert.Equal(50, image.Height);
@@ -57,7 +57,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
         };
         template.AddElement(new TextElement { Content = "Hello", Size = "16", Color = "#000000" });
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         // Verify some pixels are non-white (text was drawn)
         var hasNonWhitePixel = false;
@@ -90,7 +90,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
         };
         template.AddElement(new SeparatorElement { Color = "#000000", Thickness = 2 });
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         // Verify some pixels are non-white (separator was drawn)
         var hasNonWhitePixel = false;
@@ -125,7 +125,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
         flex.AddChild(new TextElement { Content = "Inside flex", Color = "#ffffff", Size = "14" });
         template.AddElement(flex);
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.Equal(300, image.Width);
         Assert.Equal(100, image.Height);
@@ -145,7 +145,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
             Display = Display.None
         });
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         // All pixels should be white since the element is hidden
         var allWhite = true;
@@ -193,7 +193,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
         });
         template.AddElement(flex);
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.True(HasNonWhitePixel(image), "Expected rotated text to be drawn");
     }
@@ -221,7 +221,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
         });
         template.AddElement(flex);
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.True(HasNonWhitePixel(image), "Expected flipped text to be drawn");
     }
@@ -249,7 +249,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
         });
         template.AddElement(flex);
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.True(HasNonWhitePixel(image), "Expected angled text to be drawn");
     }
@@ -270,7 +270,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
             Rotate = "none"
         });
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.True(HasNonWhitePixel(image), "Expected text to be drawn normally with 'none' rotation");
     }
@@ -289,7 +289,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
             Rotate = "45"
         });
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.True(HasNonWhitePixel(image), "Expected rotated separator to be drawn");
     }
@@ -317,7 +317,7 @@ public sealed class ImageSharpRenderingEngineTests : IDisposable
         });
         template.AddElement(flex);
 
-        using var image = _engine.RenderToImage(template, new ObjectValue());
+        using var image = _engine.RenderToImage(template);
 
         Assert.True(HasNonWhitePixel(image), "Expected text with negative rotation to be drawn");
     }

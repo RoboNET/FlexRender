@@ -63,48 +63,33 @@ public sealed class SkiaRender : IFlexRender
     public FontManager FontManager => _renderer.FontManager;
 
     /// <summary>
-    /// Computes layout for a template without rendering.
+    /// Asynchronously computes layout for a template without rendering.
     /// Intended for diagnostic and debugging tools.
     /// </summary>
     /// <param name="template">The parsed template.</param>
     /// <param name="data">The template data.</param>
-    /// <returns>The root layout node.</returns>
+    /// <returns>A task that represents the asynchronous operation, containing the root layout node.</returns>
     /// <remarks>
     /// This method is intended for debugging and testing only. For production rendering,
     /// use <see cref="IFlexRender.Render(Template, ObjectValue?, ImageFormat, CancellationToken)"/>
     /// or one of the format-specific <c>RenderTo*</c> methods instead.
     /// </remarks>
-    public LayoutNode ComputeLayout(Template template, ObjectValue data) =>
-        _renderer.ComputeLayout(template, data);
+    public Task<LayoutNode> ComputeLayout(Template template, ObjectValue data) =>
+        _renderer.ComputeLayoutAsync(template, data);
 
     /// <summary>
-    /// Measures the size required to render the template.
+    /// Asynchronously measures the size required to render the template.
     /// </summary>
     /// <param name="template">The parsed template.</param>
     /// <param name="data">The template data.</param>
-    /// <returns>The measured size in pixels.</returns>
+    /// <returns>A task that represents the asynchronous operation, containing the measured size in pixels.</returns>
     /// <remarks>
     /// This method is intended for debugging and testing only. For production rendering,
     /// use <see cref="IFlexRender.Render(Template, ObjectValue?, ImageFormat, CancellationToken)"/>
     /// or one of the format-specific <c>RenderTo*</c> methods instead.
     /// </remarks>
-    public SKSize Measure(Template template, ObjectValue data) =>
-        _renderer.Measure(template, data);
-
-    /// <summary>
-    /// Renders the template to an existing canvas.
-    /// Intended for diagnostic and debugging tools.
-    /// </summary>
-    /// <param name="canvas">The canvas to render to.</param>
-    /// <param name="template">The parsed template.</param>
-    /// <param name="data">The template data.</param>
-    /// <remarks>
-    /// This method is intended for debugging and testing only. For production rendering,
-    /// use <see cref="IFlexRender.Render(Template, ObjectValue?, ImageFormat, CancellationToken)"/>
-    /// or one of the format-specific <c>RenderTo*</c> methods instead.
-    /// </remarks>
-    public void Render(SKCanvas canvas, Template template, ObjectValue data) =>
-        _renderer.Render(canvas, template, data);
+    public Task<SKSize> Measure(Template template, ObjectValue data) =>
+        _renderer.MeasureAsync(template, data);
 
     /// <inheritdoc cref="BmpColorMode"/>
     [Obsolete("Use RenderToBmp() with BmpOptions instead. This property will be removed in a future version.")]

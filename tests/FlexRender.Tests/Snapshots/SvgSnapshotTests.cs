@@ -25,7 +25,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// with the expected font-size, fill color, and text-anchor attributes.
     /// </summary>
     [Fact]
-    public void SvgTextBasic()
+    public async Task SvgTextBasic()
     {
         var template = CreateTemplate(300, 100);
         template.AddElement(new TextElement
@@ -37,7 +37,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
             Width = "300"
         });
 
-        AssertSvgSnapshot("svg_text_basic", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_text_basic", template, new ObjectValue());
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// with the correct stroke-dasharray attribute.
     /// </summary>
     [Fact]
-    public void SvgSeparatorHorizontal()
+    public async Task SvgSeparatorHorizontal()
     {
         var template = CreateTemplate(300, 50);
         var flex = new FlexElement
@@ -66,7 +66,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSvgSnapshot("svg_separator_horizontal", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_separator_horizontal", template, new ObjectValue());
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// for each child element.
     /// </summary>
     [Fact]
-    public void SvgFlexColumn()
+    public async Task SvgFlexColumn()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -91,7 +91,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSvgSnapshot("svg_flex_column", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_flex_column", template, new ObjectValue());
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// with children placed side by side.
     /// </summary>
     [Fact]
-    public void SvgFlexRow()
+    public async Task SvgFlexRow()
     {
         var template = CreateTemplate(300, 100);
         var flex = new FlexElement
@@ -115,7 +115,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSvgSnapshot("svg_flex_row", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_flex_row", template, new ObjectValue());
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// for each nesting level and that positioning is accurate.
     /// </summary>
     [Fact]
-    public void SvgBackgroundColors()
+    public async Task SvgBackgroundColors()
     {
         var template = CreateTemplate(300, 200);
 
@@ -157,7 +157,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
         outer.AddChild(inner);
         template.AddElement(outer);
 
-        AssertSvgSnapshot("svg_background_colors", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_background_colors", template, new ObjectValue());
     }
 
     /// <summary>
@@ -166,7 +166,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// as an SVG rect with fill="none" and appropriate stroke attributes.
     /// </summary>
     [Fact]
-    public void SvgBorderBasic()
+    public async Task SvgBorderBasic()
     {
         var template = CreateTemplate(300, 150);
 
@@ -188,7 +188,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
 
         template.AddElement(box);
 
-        AssertSvgSnapshot("svg_border_basic", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_border_basic", template, new ObjectValue());
     }
 
     /// <summary>
@@ -197,7 +197,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// rather than rasterized base64 images.
     /// </summary>
     [Fact]
-    public void SvgQrBasic()
+    public async Task SvgQrBasic()
     {
         var template = CreateTemplate(200, 200);
 
@@ -218,7 +218,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSvgSnapshot("svg_qr_basic", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_qr_basic", template, new ObjectValue());
     }
 
     /// <summary>
@@ -227,7 +227,7 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
     /// for Code 128 barcodes with correct foreground and background fills.
     /// </summary>
     [Fact]
-    public void SvgBarcodeBasic()
+    public async Task SvgBarcodeBasic()
     {
         var template = CreateTemplate(300, 120);
 
@@ -249,6 +249,6 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSvgSnapshot("svg_barcode_basic", template, new ObjectValue());
+        await AssertSvgSnapshot("svg_barcode_basic", template, new ObjectValue());
     }
 }

@@ -30,7 +30,7 @@ public sealed class ExpressionInConditionTests
     }
 
     [Fact]
-    public void Expand_IfWithArithmeticCondition_EvaluatesExpression()
+    public async Task Expand_IfWithArithmeticCondition_EvaluatesExpression()
     {
         // condition: price * quantity, greaterThan: 100
         var ifElem = new IfElement(
@@ -50,7 +50,7 @@ public sealed class ExpressionInConditionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: 25 * 5 = 125 > 100 => true => "Free shipping!"
         Assert.Single(result.Elements);
@@ -59,7 +59,7 @@ public sealed class ExpressionInConditionTests
     }
 
     [Fact]
-    public void Expand_IfWithArithmeticCondition_FalseCase()
+    public async Task Expand_IfWithArithmeticCondition_FalseCase()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Free shipping!" } },
@@ -78,7 +78,7 @@ public sealed class ExpressionInConditionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: 5 * 2 = 10 > 100 => false => "Shipping: $5"
         Assert.Single(result.Elements);
@@ -87,7 +87,7 @@ public sealed class ExpressionInConditionTests
     }
 
     [Fact]
-    public void Expand_IfWithSubtractionCondition_EvaluatesExpression()
+    public async Task Expand_IfWithSubtractionCondition_EvaluatesExpression()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Positive balance" } },
@@ -106,7 +106,7 @@ public sealed class ExpressionInConditionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: 100 - 30 = 70 > 0 => true
         Assert.Single(result.Elements);
@@ -115,7 +115,7 @@ public sealed class ExpressionInConditionTests
     }
 
     [Fact]
-    public void Expand_IfWithTruthyExpressionCondition_EvaluatesArithmeticResult()
+    public async Task Expand_IfWithTruthyExpressionCondition_EvaluatesArithmeticResult()
     {
         // Truthy check on arithmetic expression: price * quantity
         // Non-zero number is truthy
@@ -134,7 +134,7 @@ public sealed class ExpressionInConditionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: 10 * 3 = 30, truthy => "Has value"
         Assert.Single(result.Elements);
@@ -143,7 +143,7 @@ public sealed class ExpressionInConditionTests
     }
 
     [Fact]
-    public void Expand_IfWithNullCoalesceCondition_EvaluatesExpression()
+    public async Task Expand_IfWithNullCoalesceCondition_EvaluatesExpression()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Has name" } },
@@ -160,7 +160,7 @@ public sealed class ExpressionInConditionTests
         };
 
         // Act
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         // Assert: name is null, nickname is "JohnD" => truthy => "Has name"
         Assert.Single(result.Elements);
