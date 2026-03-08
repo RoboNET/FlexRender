@@ -25,7 +25,7 @@ public sealed class TemplateExpanderTests
     // === Each Expansion Tests ===
 
     [Fact]
-    public void Expand_NoControlFlow_ReturnsUnchanged()
+    public async Task Expand_NoControlFlow_ReturnsUnchanged()
     {
         var template = CreateTemplate(
             new TextElement { Content = "Hello" },
@@ -33,7 +33,7 @@ public sealed class TemplateExpanderTests
         );
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         Assert.Equal("Hello", ((TextElement)result.Elements[0]).Content);
@@ -41,7 +41,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_EachWithArray_CreatesElementsPerItem()
+    public async Task Expand_EachWithArray_CreatesElementsPerItem()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -62,14 +62,14 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(3, result.Elements.Count);
         Assert.All(result.Elements, e => Assert.IsType<TextElement>(e));
     }
 
     [Fact]
-    public void Expand_EachWithEmptyArray_ReturnsEmpty()
+    public async Task Expand_EachWithEmptyArray_ReturnsEmpty()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -85,13 +85,13 @@ public sealed class TemplateExpanderTests
             ["items"] = new ArrayValue(new List<TemplateValue>())
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Empty(result.Elements);
     }
 
     [Fact]
-    public void Expand_EachWithMissingArray_ReturnsEmpty()
+    public async Task Expand_EachWithMissingArray_ReturnsEmpty()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -104,13 +104,13 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(each);
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Empty(result.Elements);
     }
 
     [Fact]
-    public void Expand_EachWithItemVariable_SetsVariableInScope()
+    public async Task Expand_EachWithItemVariable_SetsVariableInScope()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -131,7 +131,7 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         // Verify variables are substituted during expansion
@@ -144,7 +144,7 @@ public sealed class TemplateExpanderTests
     // === If Expansion Tests ===
 
     [Fact]
-    public void Expand_IfTruthy_ReturnsThenBranch()
+    public async Task Expand_IfTruthy_ReturnsThenBranch()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Visible" } },
@@ -156,14 +156,14 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue { ["show"] = new BoolValue(true) };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         Assert.Equal("Visible", ((TextElement)result.Elements[0]).Content);
     }
 
     [Fact]
-    public void Expand_IfFalsy_ReturnsElseBranch()
+    public async Task Expand_IfFalsy_ReturnsElseBranch()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Visible" } },
@@ -175,14 +175,14 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue { ["show"] = new BoolValue(false) };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         Assert.Equal("Hidden", ((TextElement)result.Elements[0]).Content);
     }
 
     [Fact]
-    public void Expand_IfEquals_MatchingValue_ReturnsThen()
+    public async Task Expand_IfEquals_MatchingValue_ReturnsThen()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Paid" } },
@@ -196,13 +196,13 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue { ["status"] = new StringValue("paid") };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal("Paid", ((TextElement)result.Elements[0]).Content);
     }
 
     [Fact]
-    public void Expand_IfEquals_NonMatchingValue_ReturnsElse()
+    public async Task Expand_IfEquals_NonMatchingValue_ReturnsElse()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Paid" } },
@@ -216,13 +216,13 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue { ["status"] = new StringValue("pending") };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal("Not paid", ((TextElement)result.Elements[0]).Content);
     }
 
     [Fact]
-    public void Expand_IfNotEquals_MatchingValue_ReturnsElse()
+    public async Task Expand_IfNotEquals_MatchingValue_ReturnsElse()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Active" } },
@@ -236,13 +236,13 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue { ["status"] = new StringValue("cancelled") };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal("Cancelled", ((TextElement)result.Elements[0]).Content);
     }
 
     [Fact]
-    public void Expand_IfNotEquals_NonMatchingValue_ReturnsThen()
+    public async Task Expand_IfNotEquals_NonMatchingValue_ReturnsThen()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Active" } },
@@ -256,13 +256,13 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue { ["status"] = new StringValue("active") };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal("Active", ((TextElement)result.Elements[0]).Content);
     }
 
     [Fact]
-    public void Expand_IfElseIf_EvaluatesChain()
+    public async Task Expand_IfElseIf_EvaluatesChain()
     {
         var elseIf = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Pending" } })
@@ -285,14 +285,14 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue { ["status"] = new StringValue("pending") };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         Assert.Equal("Pending", ((TextElement)result.Elements[0]).Content);
     }
 
     [Fact]
-    public void Expand_IfMissingPath_ReturnsFalsy()
+    public async Task Expand_IfMissingPath_ReturnsFalsy()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "Visible" } },
@@ -304,7 +304,7 @@ public sealed class TemplateExpanderTests
         var template = CreateTemplate(ifElem);
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         Assert.Equal("Hidden", ((TextElement)result.Elements[0]).Content);
@@ -313,7 +313,7 @@ public sealed class TemplateExpanderTests
     // === Nested Expansion Tests ===
 
     [Fact]
-    public void Expand_NestedEachInFlex_ExpandsCorrectly()
+    public async Task Expand_NestedEachInFlex_ExpandsCorrectly()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -335,7 +335,7 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         var resultFlex = Assert.IsType<FlexElement>(result.Elements[0]);
@@ -343,7 +343,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_NestedIfInEach_ExpandsCorrectly()
+    public async Task Expand_NestedIfInEach_ExpandsCorrectly()
     {
         var ifElem = new IfElement(
             new List<TemplateElement> { new TextElement { Content = "active" } },
@@ -367,7 +367,7 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         var text1 = Assert.IsType<TextElement>(result.Elements[0]);
@@ -379,7 +379,7 @@ public sealed class TemplateExpanderTests
     // === Resource Limits Tests ===
 
     [Fact]
-    public void Expand_ExceedsMaxDepth_ThrowsException()
+    public async Task Expand_ExceedsMaxDepth_ThrowsException()
     {
         var limits = new ResourceLimits { MaxRenderDepth = 2 };
         var expander = new TemplateExpander(limits);
@@ -409,11 +409,11 @@ public sealed class TemplateExpanderTests
             ["items"] = new ArrayValue(new List<TemplateValue> { new ObjectValue() })
         };
 
-        Assert.Throws<TemplateEngineException>(() => expander.Expand(template, data));
+        await Assert.ThrowsAsync<TemplateEngineException>(async () => await expander.ExpandAsync(template, data));
     }
 
     [Fact]
-    public void Expand_DeeplyNestedEach_WithLowLimit_Throws()
+    public async Task Expand_DeeplyNestedEach_WithLowLimit_Throws()
     {
         // Create deeply nested Each elements (20 levels)
         TemplateElement current = new TextElement { Content = "deep" };
@@ -436,13 +436,13 @@ public sealed class TemplateExpanderTests
 
         var expander = new TemplateExpander(new ResourceLimits { MaxRenderDepth = 10 });
 
-        Assert.Throws<TemplateEngineException>(() => expander.Expand(template, data));
+        await Assert.ThrowsAsync<TemplateEngineException>(async () => await expander.ExpandAsync(template, data));
     }
 
     // === Regular Element Pass-through Tests ===
 
     [Fact]
-    public void Expand_RegularElements_PassesThrough()
+    public async Task Expand_RegularElements_PassesThrough()
     {
         var template = CreateTemplate(
             new TextElement { Content = "Hello" },
@@ -452,7 +452,7 @@ public sealed class TemplateExpanderTests
 
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(3, result.Elements.Count);
         Assert.IsType<TextElement>(result.Elements[0]);
@@ -463,22 +463,22 @@ public sealed class TemplateExpanderTests
     // === Null Argument Tests ===
 
     [Fact]
-    public void Expand_NullTemplate_ThrowsArgumentNullException()
+    public async Task Expand_NullTemplate_ThrowsArgumentNullException()
     {
-        Assert.Throws<ArgumentNullException>(() => _expander.Expand(null!, new ObjectValue()));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await _expander.ExpandAsync(null!, new ObjectValue()));
     }
 
     [Fact]
-    public void Expand_NullData_ThrowsArgumentNullException()
+    public async Task Expand_NullData_ThrowsArgumentNullException()
     {
         var template = CreateTemplate();
-        Assert.Throws<ArgumentNullException>(() => _expander.Expand(template, null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await _expander.ExpandAsync(template, null!));
     }
 
     // === Template Metadata Preservation Tests ===
 
     [Fact]
-    public void Expand_PreservesTemplateMetadata()
+    public async Task Expand_PreservesTemplateMetadata()
     {
         var template = new Template
         {
@@ -491,7 +491,7 @@ public sealed class TemplateExpanderTests
 
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal("TestTemplate", result.Name);
         Assert.Equal(2, result.Version);
@@ -526,7 +526,7 @@ public sealed class TemplateExpanderTests
     // === Variable Substitution Tests ===
 
     [Fact]
-    public void Expand_EachWithDirectAccess_SubstitutesVariables()
+    public async Task Expand_EachWithDirectAccess_SubstitutesVariables()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -546,7 +546,7 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         var text1 = Assert.IsType<TextElement>(result.Elements[0]);
@@ -556,7 +556,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_NestedEach_SubstitutesVariablesFromCurrentScope()
+    public async Task Expand_NestedEach_SubstitutesVariablesFromCurrentScope()
     {
         // Inner loop accesses variables from its current scope (the inner item)
         var innerEach = new EachElement(new List<TemplateElement>
@@ -590,7 +590,7 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         var text1 = Assert.IsType<TextElement>(result.Elements[0]);
@@ -600,7 +600,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_QrElement_SubstitutesDataVariable()
+    public async Task Expand_QrElement_SubstitutesDataVariable()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -620,7 +620,7 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         var qr1 = Assert.IsType<QrElement>(result.Elements[0]);
@@ -630,7 +630,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_ImageElement_SubstitutesSourceVariable()
+    public async Task Expand_ImageElement_SubstitutesSourceVariable()
     {
         var each = new EachElement(new List<TemplateElement>
         {
@@ -650,7 +650,7 @@ public sealed class TemplateExpanderTests
             })
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         var img1 = Assert.IsType<ImageElement>(result.Elements[0]);
@@ -660,7 +660,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_BarcodeElement_SubstitutesDataVariable()
+    public async Task Expand_BarcodeElement_SubstitutesDataVariable()
     {
         var template = CreateTemplate(new BarcodeElement { Data = "{{barcode}}" });
         var data = new ObjectValue
@@ -668,7 +668,7 @@ public sealed class TemplateExpanderTests
             ["barcode"] = new StringValue("1234567890")
         };
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         var barcode = Assert.IsType<BarcodeElement>(result.Elements[0]);
@@ -676,24 +676,24 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_TextWithNoVariables_PreservesContent()
+    public async Task Expand_TextWithNoVariables_PreservesContent()
     {
         var template = CreateTemplate(new TextElement { Content = "Hello World" });
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal("Hello World", text.Content);
     }
 
     [Fact]
-    public void Expand_TextWithMissingVariable_ReplacesWithEmpty()
+    public async Task Expand_TextWithMissingVariable_ReplacesWithEmpty()
     {
         var template = CreateTemplate(new TextElement { Content = "Hello {{name}}" });
         var data = new ObjectValue();
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         var text = Assert.IsType<TextElement>(result.Elements[0]);
         Assert.Equal("Hello ", text.Content);
@@ -702,7 +702,7 @@ public sealed class TemplateExpanderTests
     // === ObjectValue Iteration Tests ===
 
     [Fact]
-    public void Expand_EachWithObjectValue_IteratesKeyValuePairs()
+    public async Task Expand_EachWithObjectValue_IteratesKeyValuePairs()
     {
         var data = new ObjectValue
         {
@@ -719,7 +719,7 @@ public sealed class TemplateExpanderTests
         };
         var template = CreateTemplate(each);
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         var first = Assert.IsType<TextElement>(result.Elements[0]);
@@ -729,7 +729,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_EachWithObjectValue_WithAsVariable_BindsValue()
+    public async Task Expand_EachWithObjectValue_WithAsVariable_BindsValue()
     {
         var data = new ObjectValue
         {
@@ -746,7 +746,7 @@ public sealed class TemplateExpanderTests
         };
         var template = CreateTemplate(each);
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         var text = Assert.IsType<TextElement>(result.Elements[0]);
@@ -754,7 +754,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_EachWithObjectValue_IndexFirstLast()
+    public async Task Expand_EachWithObjectValue_IndexFirstLast()
     {
         var data = new ObjectValue
         {
@@ -772,7 +772,7 @@ public sealed class TemplateExpanderTests
         };
         var template = CreateTemplate(each);
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(3, result.Elements.Count);
         Assert.Equal("0-true-false", ((TextElement)result.Elements[0]).Content.Value);
@@ -781,7 +781,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_EachWithObjectValue_NestedValues()
+    public async Task Expand_EachWithObjectValue_NestedValues()
     {
         var data = new ObjectValue
         {
@@ -798,7 +798,7 @@ public sealed class TemplateExpanderTests
         };
         var template = CreateTemplate(each);
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Single(result.Elements);
         var text = Assert.IsType<TextElement>(result.Elements[0]);
@@ -806,7 +806,7 @@ public sealed class TemplateExpanderTests
     }
 
     [Fact]
-    public void Expand_EachWithEmptyObjectValue_ReturnsEmpty()
+    public async Task Expand_EachWithEmptyObjectValue_ReturnsEmpty()
     {
         var data = new ObjectValue
         {
@@ -819,13 +819,13 @@ public sealed class TemplateExpanderTests
         };
         var template = CreateTemplate(each);
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Empty(result.Elements);
     }
 
     [Fact]
-    public void Expand_EachWithStringValue_ReturnsEmpty()
+    public async Task Expand_EachWithStringValue_ReturnsEmpty()
     {
         var data = new ObjectValue
         {
@@ -838,13 +838,13 @@ public sealed class TemplateExpanderTests
         };
         var template = CreateTemplate(each);
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Empty(result.Elements);
     }
 
     [Fact]
-    public void Expand_EachOverObject_WithComputedKeyAccess()
+    public async Task Expand_EachOverObject_WithComputedKeyAccess()
     {
         // Scenario: iterate over labels dict, look up values from another dict by @key
         var data = new ObjectValue
@@ -869,7 +869,7 @@ public sealed class TemplateExpanderTests
         };
         var template = CreateTemplate(each);
 
-        var result = _expander.Expand(template, data);
+        var result = await _expander.ExpandAsync(template, data);
 
         Assert.Equal(2, result.Elements.Count);
         Assert.Equal("Name: Widget", ((TextElement)result.Elements[0]).Content.Value);

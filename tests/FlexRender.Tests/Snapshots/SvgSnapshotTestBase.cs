@@ -67,6 +67,7 @@ public abstract class SvgSnapshotTestBase
     private const string OutputDirectoryName = "output";
 
     private readonly SvgRenderingEngine _engine;
+    private readonly TemplatePipeline _pipeline;
     private readonly string _snapshotsBasePath;
     private readonly bool _updateSnapshots;
 
@@ -81,12 +82,12 @@ public abstract class SvgSnapshotTestBase
 
         var limits = new ResourceLimits();
         var expander = new TemplateExpander(limits);
-        var pipeline = new TemplatePipeline(expander, new TemplateProcessor(limits));
+        _pipeline = new TemplatePipeline(expander, new TemplateProcessor(limits));
         var layoutEngine = new LayoutEngine(limits);
 
         _engine = new SvgRenderingEngine(
             limits,
-            pipeline,
+            _pipeline,
             layoutEngine,
             baseFontSize: 16f,
             qrSvgProvider: new QrSvgProvider(),
@@ -134,14 +135,15 @@ public abstract class SvgSnapshotTestBase
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="testName"/> is empty or whitespace.
     /// </exception>
-    protected void AssertSvgSnapshot(string testName, Template template, ObjectValue data)
+    protected async Task AssertSvgSnapshot(string testName, Template template, ObjectValue data)
     {
         ArgumentNullException.ThrowIfNull(testName);
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(data);
         ArgumentException.ThrowIfNullOrWhiteSpace(testName);
 
-        var actualSvg = _engine.RenderToSvg(template, data);
+        var processedTemplate = await _pipeline.ProcessAsync(template, data);
+        var actualSvg = _engine.RenderToSvgFromProcessed(processedTemplate);
 
         if (_updateSnapshots)
         {

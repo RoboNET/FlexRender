@@ -17,7 +17,7 @@ public sealed class SeparatorSnapshotTests : SnapshotTestBase
     /// Tests horizontal separators with all three styles: dotted, dashed, and solid.
     /// </summary>
     [Fact]
-    public void SeparatorHorizontal_AllStyles()
+    public async Task SeparatorHorizontal_AllStyles()
     {
         var template = CreateTemplate(300);
 
@@ -57,14 +57,14 @@ public sealed class SeparatorSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("separator_horizontal_all_styles", template, new ObjectValue());
+        await AssertSnapshot("separator_horizontal_all_styles", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests vertical separators with all three styles: dotted, dashed, and solid.
     /// </summary>
     [Fact]
-    public void SeparatorVertical_AllStyles()
+    public async Task SeparatorVertical_AllStyles()
     {
         var template = CreateTemplate(300);
 
@@ -108,7 +108,7 @@ public sealed class SeparatorSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("separator_vertical_all_styles", template, new ObjectValue());
+        await AssertSnapshot("separator_vertical_all_styles", template, new ObjectValue());
     }
 
     /// <summary>

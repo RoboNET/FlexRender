@@ -152,7 +152,7 @@ public sealed class OpacityTests
     // === Expansion preserves opacity ===
 
     [Fact]
-    public void Expand_PreservesOpacity()
+    public async Task Expand_PreservesOpacity()
     {
         var expander = new FlexRender.TemplateEngine.TemplateExpander();
         var template = new Template();
@@ -165,7 +165,7 @@ public sealed class OpacityTests
             }
         });
 
-        var result = expander.Expand(template, new ObjectValue());
+        var result = await expander.ExpandAsync(template, new ObjectValue());
 
         var flex = Assert.IsType<FlexElement>(result.Elements[0]);
         Assert.Equal(0.5f, flex.Opacity);

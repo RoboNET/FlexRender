@@ -75,7 +75,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_SimpleRussianAscii()
+    public async Task NdcReceipt_SimpleRussianAscii()
     {
         var ndcData = ":02\x1b(1              \x1b(Intcnjdsq ~fyr f\x1b(1\r\n" +
                       "        \x1b(Intk\x1b(1. 8 (800) 000-00-00\r\n" +
@@ -91,7 +91,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_simple", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_simple", template, new ObjectValue());
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_WithFormFeed()
+    public async Task NdcReceipt_WithFormFeed()
     {
         var ndcData = "\x1b(1PAGE 1 CONTENT\r\n" +
                       "Line 2\x0c" +
@@ -120,7 +120,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_formfeed", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_formfeed", template, new ObjectValue());
     }
 
     /// <summary>
@@ -129,7 +129,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_WithSpacing()
+    public async Task NdcReceipt_WithSpacing()
     {
         var ndcData = "\x1b(1Label\x0e5Value\r\n" +
                       "Left\x0e9Right";
@@ -147,7 +147,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_spacing", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_spacing", template, new ObjectValue());
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Charset &gt; renders bold text at 48pt (double of auto 24); charset 1 uses auto 24pt.
     /// </summary>
     [Fact]
-    public void NdcReceipt_DoubleSizeCharset()
+    public async Task NdcReceipt_DoubleSizeCharset()
     {
         var ndcData = "\x1b(>HEADER\r\n" +
                       "\x1b(1Normal text\r\n" +
@@ -188,7 +188,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_doublesize", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_doublesize", template, new ObjectValue());
     }
 
     /// <summary>
@@ -196,7 +196,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_BankAMiniStatement()
+    public async Task NdcReceipt_BankAMiniStatement()
     {
         var text = LoadTestData("bank-a-mini-statement.bin");
 
@@ -208,7 +208,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_a", template, new ObjectValue(), maxDifferencePercent: 7.0);
+        await AssertSnapshot("ndc_receipt_bank_a", template, new ObjectValue(), maxDifferencePercent: 7.0);
     }
 
     /// <summary>
@@ -217,7 +217,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses 44 columns with auto font size (~21pt from 576 / (44 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_BankEBalance()
+    public async Task NdcReceipt_BankEBalance()
     {
         var text = LoadTestData("bank-e-balance.bin");
 
@@ -229,7 +229,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_e", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_bank_e", template, new ObjectValue());
     }
 
     /// <summary>
@@ -237,7 +237,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_BankCBalance()
+    public async Task NdcReceipt_BankCBalance()
     {
         var text = LoadTestData("bank-c-balance-receipt.bin");
 
@@ -249,7 +249,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_c_balance", template, new ObjectValue(), maxDifferencePercent: 7.0);
+        await AssertSnapshot("ndc_receipt_bank_c_balance", template, new ObjectValue(), maxDifferencePercent: 7.0);
     }
 
     /// <summary>
@@ -257,7 +257,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_BankCStatement()
+    public async Task NdcReceipt_BankCStatement()
     {
         var text = LoadTestData("bank-c-statement-receipt.bin");
 
@@ -269,7 +269,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_c_statement", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_bank_c_statement", template, new ObjectValue());
     }
 
     /// <summary>
@@ -277,7 +277,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_BankDBalance()
+    public async Task NdcReceipt_BankDBalance()
     {
         var text = LoadTestData("bank-d-balance-receipt.bin");
 
@@ -312,7 +312,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_d_balance", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_bank_d_balance", template, new ObjectValue());
     }
 
     /// <summary>
@@ -320,7 +320,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_BankACashout()
+    public async Task NdcReceipt_BankACashout()
     {
         var text = LoadTestData("bank-a-cashout-receipt.bin");
 
@@ -332,7 +332,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_a_cashout", template, new ObjectValue(), maxDifferencePercent: 7.0);
+        await AssertSnapshot("ndc_receipt_bank_a_cashout", template, new ObjectValue(), maxDifferencePercent: 7.0);
     }
 
     /// <summary>
@@ -341,7 +341,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// Uses auto font size (24pt from 576 / (40 * 0.6)).
     /// </summary>
     [Fact]
-    public void NdcReceipt_BankBBalance()
+    public async Task NdcReceipt_BankBBalance()
     {
         var text = LoadTestData("bank-b-balance-receipt.bin", System.Text.Encoding.UTF8);
 
@@ -358,7 +358,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_bank_b_balance", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_bank_b_balance", template, new ObjectValue());
     }
 
     /// <summary>
@@ -366,7 +366,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// No explicit font_size on charsets -- auto = 576 / (40 * 0.6) = 24.
     /// </summary>
     [Fact]
-    public void NdcReceipt_AutoFontSize()
+    public async Task NdcReceipt_AutoFontSize()
     {
         var ndcData = ":02\x1b(1              \x1b(Intcnjdsq ~fyr f\x1b(1\r\n" +
                       "        \x1b(Intk\x1b(1. 8 (800) 000-00-00\r\n" +
@@ -402,7 +402,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
         foreach (var el in elements)
             template.AddElement(el);
 
-        AssertSnapshot("ndc_receipt_autofont", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_autofont", template, new ObjectValue());
     }
 
     /// <summary>
@@ -412,7 +412,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
     /// is embedded within a larger composed template with non-NDC elements and decorations.
     /// </summary>
     [Fact]
-    public void NdcReceipt_CompositeWithHeaderFooter()
+    public async Task NdcReceipt_CompositeWithHeaderFooter()
     {
         var text = LoadTestData("bank-a-cashout-receipt.bin");
 
@@ -484,7 +484,7 @@ public sealed class NdcSnapshotTests : SnapshotTestBase
 
         template.AddElement(card);
 
-        AssertSnapshot("ndc_receipt_composite", template, new ObjectValue());
+        await AssertSnapshot("ndc_receipt_composite", template, new ObjectValue());
     }
 
     /// <summary>

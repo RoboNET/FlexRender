@@ -34,7 +34,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Tests basic text rendering with default settings.
     /// </summary>
     [Fact]
-    public void TextSimple()
+    public async Task TextSimple()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -46,14 +46,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Color = "#000000"
         });
 
-        AssertSnapshot("text_simple", template, new ObjectValue());
+        await AssertSnapshot("text_simple", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests styled text with bold font, red color, and center alignment.
     /// </summary>
     [Fact]
-    public void TextStyled()
+    public async Task TextStyled()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -67,14 +67,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Font = "bold"
         });
 
-        AssertSnapshot("text_styled", template, new ObjectValue());
+        await AssertSnapshot("text_styled", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests multiline text with maxLines constraint and ellipsis overflow.
     /// </summary>
     [Fact]
-    public void TextMultiline()
+    public async Task TextMultiline()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -90,14 +90,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Width = "280"
         });
 
-        AssertSnapshot("text_multiline", template, new ObjectValue());
+        await AssertSnapshot("text_multiline", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests template variable substitution in text content.
     /// </summary>
     [Fact]
-    public void TextVariables()
+    public async Task TextVariables()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -114,7 +114,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             ["name"] = new StringValue("World")
         };
 
-        AssertSnapshot("text_variables", template, data);
+        await AssertSnapshot("text_variables", template, data);
     }
 
     #endregion
@@ -125,7 +125,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Tests basic QR code generation.
     /// </summary>
     [Fact]
-    public void QrBasic()
+    public async Task QrBasic()
     {
         var template = CreateTemplate(300, 200);
         template.AddElement(new QrElement
@@ -134,14 +134,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Size = 100
         });
 
-        AssertSnapshot("qr_basic", template, new ObjectValue());
+        await AssertSnapshot("qr_basic", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests QR code with custom foreground and background colors.
     /// </summary>
     [Fact]
-    public void QrStyled()
+    public async Task QrStyled()
     {
         var template = CreateTemplate(300, 200);
         template.AddElement(new QrElement
@@ -152,14 +152,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Background = "#f0f0f0"
         });
 
-        AssertSnapshot("qr_styled", template, new ObjectValue());
+        await AssertSnapshot("qr_styled", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests Code128 barcode generation with visible text.
     /// </summary>
     [Fact]
-    public void BarcodeCode128()
+    public async Task BarcodeCode128()
     {
         var template = CreateTemplate(300, 200);
         template.AddElement(new BarcodeElement
@@ -171,7 +171,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             ShowText = true
         });
 
-        AssertSnapshot("barcode_code128", template, new ObjectValue());
+        await AssertSnapshot("barcode_code128", template, new ObjectValue());
     }
 
     #endregion
@@ -182,7 +182,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Tests image rendering with contain fit mode.
     /// </summary>
     [Fact]
-    public void ImageContain()
+    public async Task ImageContain()
     {
         var imageData = CreateTestImageBase64(100, 60, SKColors.Blue);
 
@@ -195,14 +195,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Fit = ImageFit.Contain
         });
 
-        AssertSnapshot("image_contain", template, new ObjectValue());
+        await AssertSnapshot("image_contain", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests image rendering with cover fit mode.
     /// </summary>
     [Fact]
-    public void ImageCover()
+    public async Task ImageCover()
     {
         var imageData = CreateTestImageBase64(100, 60, SKColors.Green);
 
@@ -215,7 +215,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Fit = ImageFit.Cover
         });
 
-        AssertSnapshot("image_cover", template, new ObjectValue());
+        await AssertSnapshot("image_cover", template, new ObjectValue());
     }
 
     #endregion
@@ -226,7 +226,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Tests vertical flex column layout with gap.
     /// </summary>
     [Fact]
-    public void FlexColumn()
+    public async Task FlexColumn()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -240,14 +240,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_column", template, new ObjectValue());
+        await AssertSnapshot("flex_column", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests horizontal flex row layout with space-between justification.
     /// </summary>
     [Fact]
-    public void FlexRow()
+    public async Task FlexRow()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -264,14 +264,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_row", template, new ObjectValue());
+        await AssertSnapshot("flex_row", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests two levels of nested flex containers (row inside column).
     /// </summary>
     [Fact]
-    public void FlexNested2Levels()
+    public async Task FlexNested2Levels()
     {
         var template = CreateTemplate(300, 200);
 
@@ -294,14 +294,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(outerColumn);
 
-        AssertSnapshot("flex_nested_2levels", template, new ObjectValue());
+        await AssertSnapshot("flex_nested_2levels", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests three levels of nested flex containers.
     /// </summary>
     [Fact]
-    public void FlexNested3Levels()
+    public async Task FlexNested3Levels()
     {
         var template = CreateTemplate(300, 200);
 
@@ -332,14 +332,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(outer);
 
-        AssertSnapshot("flex_nested_3levels", template, new ObjectValue());
+        await AssertSnapshot("flex_nested_3levels", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests flex grow distribution among child elements (1:2:1 ratio).
     /// </summary>
     [Fact]
-    public void FlexGrowDistribute()
+    public async Task FlexGrowDistribute()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -353,14 +353,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_grow_distribute", template, new ObjectValue());
+        await AssertSnapshot("flex_grow_distribute", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests cross-axis alignment with center alignment.
     /// </summary>
     [Fact]
-    public void FlexAlignItems()
+    public async Task FlexAlignItems()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -376,14 +376,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_align_items", template, new ObjectValue());
+        await AssertSnapshot("flex_align_items", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests space-around justification on main axis.
     /// </summary>
     [Fact]
-    public void FlexJustifyAll()
+    public async Task FlexJustifyAll()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -398,14 +398,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_justify_all", template, new ObjectValue());
+        await AssertSnapshot("flex_justify_all", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests <c>align: start</c> with boxes of different heights aligned to the top of the container.
     /// </summary>
     [Fact]
-    public void FlexAlignStart()
+    public async Task FlexAlignStart()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -458,14 +458,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_align_start", template, new ObjectValue());
+        await AssertSnapshot("flex_align_start", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests <c>align: center</c> with boxes of different heights centered vertically in the container.
     /// </summary>
     [Fact]
-    public void FlexAlignCenter()
+    public async Task FlexAlignCenter()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -518,14 +518,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_align_center", template, new ObjectValue());
+        await AssertSnapshot("flex_align_center", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests <c>align: end</c> with boxes of different heights aligned to the bottom of the container.
     /// </summary>
     [Fact]
-    public void FlexAlignEnd()
+    public async Task FlexAlignEnd()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -578,7 +578,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_align_end", template, new ObjectValue());
+        await AssertSnapshot("flex_align_end", template, new ObjectValue());
     }
 
     /// <summary>
@@ -586,7 +586,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Child boxes have no explicit height so they stretch to the container's 140px height.
     /// </summary>
     [Fact]
-    public void FlexAlignStretch()
+    public async Task FlexAlignStretch()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -636,7 +636,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_align_stretch", template, new ObjectValue());
+        await AssertSnapshot("flex_align_stretch", template, new ObjectValue());
     }
 
     /// <summary>
@@ -644,7 +644,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// aligned along their text baselines.
     /// </summary>
     [Fact]
-    public void FlexAlignBaseline()
+    public async Task FlexAlignBaseline()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -694,14 +694,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_align_baseline", template, new ObjectValue());
+        await AssertSnapshot("flex_align_baseline", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests <c>justify: start</c> with boxes packed toward the start of the main axis.
     /// </summary>
     [Fact]
-    public void FlexJustifyStart()
+    public async Task FlexJustifyStart()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -754,14 +754,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_justify_start", template, new ObjectValue());
+        await AssertSnapshot("flex_justify_start", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests <c>justify: center</c> with boxes centered along the main axis.
     /// </summary>
     [Fact]
-    public void FlexJustifyCenter()
+    public async Task FlexJustifyCenter()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -814,14 +814,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_justify_center", template, new ObjectValue());
+        await AssertSnapshot("flex_justify_center", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests <c>justify: end</c> with boxes packed toward the end of the main axis.
     /// </summary>
     [Fact]
-    public void FlexJustifyEnd()
+    public async Task FlexJustifyEnd()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -874,7 +874,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_justify_end", template, new ObjectValue());
+        await AssertSnapshot("flex_justify_end", template, new ObjectValue());
     }
 
     /// <summary>
@@ -882,7 +882,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// First item at start, last item at end, remaining space distributed evenly.
     /// </summary>
     [Fact]
-    public void FlexJustifySpaceBetween()
+    public async Task FlexJustifySpaceBetween()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -934,7 +934,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_justify_space_between", template, new ObjectValue());
+        await AssertSnapshot("flex_justify_space_between", template, new ObjectValue());
     }
 
     /// <summary>
@@ -942,7 +942,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// The space before the first item, between each item, and after the last item are all equal.
     /// </summary>
     [Fact]
-    public void FlexJustifySpaceEvenly()
+    public async Task FlexJustifySpaceEvenly()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -994,7 +994,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_justify_space_evenly", template, new ObjectValue());
+        await AssertSnapshot("flex_justify_space_evenly", template, new ObjectValue());
     }
 
     /// <summary>
@@ -1003,7 +1003,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// space for justify-content to distribute.
     /// </summary>
     [Fact]
-    public void FlexRowJustifyWithFlexChildren()
+    public async Task FlexRowJustifyWithFlexChildren()
     {
         var template = CreateTemplate(400, 200);
         var flex = new FlexElement
@@ -1049,7 +1049,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(child3);
         template.AddElement(flex);
 
-        AssertSnapshot("flex_row_justify_with_flex_children", template, new ObjectValue());
+        await AssertSnapshot("flex_row_justify_with_flex_children", template, new ObjectValue());
     }
 
     /// <summary>
@@ -1057,7 +1057,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// produce negative child positions when content exceeds available space.
     /// </summary>
     [Fact]
-    public void FlexColumnAutoHeightJustifyCenter()
+    public async Task FlexColumnAutoHeightJustifyCenter()
     {
         var template = CreateTemplate(300, 200);
         var row = new FlexElement
@@ -1087,14 +1087,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         row.AddChild(column);
         template.AddElement(row);
 
-        AssertSnapshot("flex_column_autoheight_justify_center", template, new ObjectValue());
+        await AssertSnapshot("flex_column_autoheight_justify_center", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests mixed content types (text, QR, barcode) in a single flex row.
     /// </summary>
     [Fact]
-    public void FlexMixedContent()
+    public async Task FlexMixedContent()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             return;
@@ -1112,14 +1112,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_mixed_content", template, new ObjectValue());
+        await AssertSnapshot("flex_mixed_content", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests percentage-based width distribution (30% and 70%).
     /// </summary>
     [Fact]
-    public void FlexPercentWidths()
+    public async Task FlexPercentWidths()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -1132,14 +1132,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_percent_widths", template, new ObjectValue());
+        await AssertSnapshot("flex_percent_widths", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests combination of padding and gap with multiple children.
     /// </summary>
     [Fact]
-    public void FlexPaddingGapCombo()
+    public async Task FlexPaddingGapCombo()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -1156,7 +1156,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_padding_gap_combo", template, new ObjectValue());
+        await AssertSnapshot("flex_padding_gap_combo", template, new ObjectValue());
     }
 
     #endregion
@@ -1167,7 +1167,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Tests flex container with a solid red background color.
     /// </summary>
     [Fact]
-    public void FlexWithBackground()
+    public async Task FlexWithBackground()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -1181,14 +1181,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_with_background", template, new ObjectValue());
+        await AssertSnapshot("flex_with_background", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests text element with a solid blue background color.
     /// </summary>
     [Fact]
-    public void TextWithBackground()
+    public async Task TextWithBackground()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -1201,7 +1201,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Background = "#0000ff"
         });
 
-        AssertSnapshot("text_with_background", template, new ObjectValue());
+        await AssertSnapshot("text_with_background", template, new ObjectValue());
     }
 
     /// <summary>
@@ -1209,7 +1209,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Outer container has gray background, inner has light blue, and text has yellow.
     /// </summary>
     [Fact]
-    public void NestedBackgrounds()
+    public async Task NestedBackgrounds()
     {
         var template = CreateTemplate(300, 200);
 
@@ -1242,14 +1242,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         outer.AddChild(inner);
         template.AddElement(outer);
 
-        AssertSnapshot("nested_backgrounds", template, new ObjectValue());
+        await AssertSnapshot("nested_backgrounds", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests flex container with padding around child text element.
     /// </summary>
     [Fact]
-    public void FlexWithPadding()
+    public async Task FlexWithPadding()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -1263,14 +1263,14 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("flex_with_padding", template, new ObjectValue());
+        await AssertSnapshot("flex_with_padding", template, new ObjectValue());
     }
 
     /// <summary>
     /// Tests two flex containers with margin creating spacing between them.
     /// </summary>
     [Fact]
-    public void FlexWithMargin()
+    public async Task FlexWithMargin()
     {
         var template = CreateTemplate(300, 200);
 
@@ -1303,7 +1303,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         container.AddChild(second);
         template.AddElement(container);
 
-        AssertSnapshot("flex_with_margin", template, new ObjectValue());
+        await AssertSnapshot("flex_with_margin", template, new ObjectValue());
     }
 
     /// <summary>
@@ -1311,7 +1311,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// that padding creates space inside the background area.
     /// </summary>
     [Fact]
-    public void BackgroundWithPadding()
+    public async Task BackgroundWithPadding()
     {
         var template = CreateTemplate(300, 200);
         var flex = new FlexElement
@@ -1326,7 +1326,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("background_with_padding", template, new ObjectValue());
+        await AssertSnapshot("background_with_padding", template, new ObjectValue());
     }
 
     /// <summary>
@@ -1334,7 +1334,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// margin creates space outside the background area.
     /// </summary>
     [Fact]
-    public void ElementWithMarginAndBackground()
+    public async Task ElementWithMarginAndBackground()
     {
         var template = CreateTemplate(300, 200);
 
@@ -1360,7 +1360,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         container.AddChild(child);
         template.AddElement(container);
 
-        AssertSnapshot("element_with_margin_and_background", template, new ObjectValue());
+        await AssertSnapshot("element_with_margin_and_background", template, new ObjectValue());
     }
 
     #endregion
@@ -1372,7 +1372,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// Blue box appears on the right, red in the middle, green on the left.
     /// </summary>
     [Fact]
-    public void RtlRowLayout()
+    public async Task RtlRowLayout()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -1411,7 +1411,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
         flex.AddChild(box3);
         template.AddElement(flex);
 
-        AssertSnapshot("rtl_row_layout", template, new ObjectValue());
+        await AssertSnapshot("rtl_row_layout", template, new ObjectValue());
     }
 
     /// <summary>
@@ -1419,7 +1419,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// "First" appears on the right, "Second" in the middle, "Third" on the left.
     /// </summary>
     [Fact]
-    public void RtlRowWithText()
+    public async Task RtlRowWithText()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -1438,7 +1438,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
 
         template.AddElement(flex);
 
-        AssertSnapshot("rtl_row_with_text", template, new ObjectValue());
+        await AssertSnapshot("rtl_row_with_text", template, new ObjectValue());
     }
 
     /// <summary>
@@ -1446,7 +1446,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     /// The text "Start Aligned" should appear right-aligned within the 300px canvas.
     /// </summary>
     [Fact]
-    public void RtlTextAlignStart()
+    public async Task RtlTextAlignStart()
     {
         if (!OperatingSystem.IsMacOS()) return;
 
@@ -1462,7 +1462,7 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
             Width = "300"
         });
 
-        AssertSnapshot("rtl_text_align_start", template, new ObjectValue());
+        await AssertSnapshot("rtl_text_align_start", template, new ObjectValue());
     }
 
     #endregion

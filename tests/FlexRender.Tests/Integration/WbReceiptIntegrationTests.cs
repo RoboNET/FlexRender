@@ -17,7 +17,7 @@ public class WbReceiptIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void WbReceipt_RendersWithBlackColumns()
+    public async Task WbReceipt_RendersWithBlackColumns()
     {
         // Layout: 630px total width with 8px gaps between 3 columns
         // Left column: 130px black, Center: 450px white, Right: 26px black
@@ -59,7 +59,7 @@ public class WbReceiptIntegrationTests : IDisposable
         var data = new ObjectValue();
 
         using var bitmap = new SKBitmap(630, 200);
-        var exception = Record.Exception(() => _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () => await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
 
@@ -83,7 +83,7 @@ public class WbReceiptIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void WbReceipt_TextWithBackgroundButton_Renders()
+    public async Task WbReceipt_TextWithBackgroundButton_Renders()
     {
         const string yaml = """
             canvas:
@@ -103,7 +103,7 @@ public class WbReceiptIntegrationTests : IDisposable
         var data = new ObjectValue();
 
         using var bitmap = new SKBitmap(200, 50);
-        var exception = Record.Exception(() => _renderer.Render(bitmap, template, data));
+        var exception = await Record.ExceptionAsync(async () => await _renderer.Render(bitmap, template, data, default, default));
 
         Assert.Null(exception);
 

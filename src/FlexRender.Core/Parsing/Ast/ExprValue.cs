@@ -245,7 +245,7 @@ public readonly struct ExprValue<T>
         if (IsExpression)
             return $"Expr({RawValue})";
         if (RawValue is not null)
-            return $"Raw({RawValue})={Value}";
-        return $"{Value}";
+            return string.Create(CultureInfo.InvariantCulture, $"Raw({RawValue})={Value}");
+        return string.Create(CultureInfo.InvariantCulture, $"{Value}");
     }
 }
