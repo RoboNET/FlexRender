@@ -4,59 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlexRender Playground</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="preload" id="webassembly" />
     <script type="importmap"></script>
     <script type="module" src="main#[.{fingerprint}].js"></script>
-    <style>
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        #loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            font-size: 1.2em;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid #333;
-            border-top-color: #007acc;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #app { display: none; }
-        #preview-img {
-            max-width: 100%;
-            max-height: 80vh;
-            image-rendering: auto;
-        }
-        #status { padding: 4px 12px; font-size: 12px; background: #007acc; color: #fff; }
-        #error { color: #f48771; padding: 12px; white-space: pre-wrap; font-family: monospace; }
-    </style>
 </head>
 <body>
     <div id="loading">
         <div class="spinner"></div>
         <div>Loading FlexRender WASM runtime...</div>
     </div>
+
     <div id="app">
-        <div style="padding: 12px;">
-            <h2 style="margin:0 0 12px 0">FlexRender Playground — WASM Test</h2>
-            <img id="preview-img" />
-            <pre id="error"></pre>
+        <div class="toolbar">
+            <h1>FlexRender Playground</h1>
+            <select id="examples">
+                <option value="">-- Examples --</option>
+            </select>
+            <div class="spacer"></div>
+            <button id="btn-export-png">Export PNG</button>
+            <button id="btn-export-svg">Export SVG</button>
         </div>
-        <div id="status">Ready</div>
+
+        <div class="main-content">
+            <div class="editor-panel">
+                <div class="editor-section" style="flex: 2">
+                    <div class="editor-label">Template (YAML)</div>
+                    <div class="editor-container" id="yaml-editor"></div>
+                </div>
+                <div class="editor-section" style="flex: 1">
+                    <div class="editor-label">Data (JSON)</div>
+                    <div class="editor-container" id="json-editor"></div>
+                </div>
+            </div>
+
+            <div class="preview-panel">
+                <div class="preview-tabs">
+                    <button class="active" data-tab="preview">Preview</button>
+                    <button data-tab="layout">Layout</button>
+                    <button data-tab="errors">Errors</button>
+                </div>
+                <div class="preview-content">
+                    <div id="preview-pane" class="tab-pane active">
+                        <img id="preview-img" />
+                    </div>
+                    <div id="layout-pane" class="tab-pane"></div>
+                    <div id="errors-pane" class="tab-pane"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="status-bar">
+            <span id="status-text">Ready</span>
+        </div>
+    </div>
+
+    <div class="drop-overlay" id="drop-overlay">
+        Drop fonts, images, or content files here
     </div>
 </body>
 </html>
