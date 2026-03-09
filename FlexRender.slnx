@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/playground/">
+    <Project Path="src/FlexRender.Playground/FlexRender.Playground.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/FlexRender.Core/FlexRender.Core.csproj" />
     <Project Path="src/FlexRender.DependencyInjection/FlexRender.DependencyInjection.csproj" />
