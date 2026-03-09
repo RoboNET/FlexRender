@@ -284,15 +284,26 @@ Binary sources pass `ReadOnlyMemory<byte>` directly to `IBinaryContentParser` im
 
 #### NDC Content
 ```yaml
+# Load NDC data from a local .bin file
 - type: content
-  source: "{{receiptData}}"
+  source: "file:ndc-data/receipt.bin"
   format: ndc
   options:
     columns: 40
     font_family: "JetBrains Mono"
+    charsets:
+      I:
+        font: bold
+        font_style: bold
+        encoding: qwerty-jcuken
+        uppercase: true
+      J:
+        encoding: qwerty-jcuken
+      "2":
+        font: default
 ```
 
-Requires NDC parser registration: `.WithNdc()` (FlexRender.Content.Ndc). Parses binary NDC ATM printer data streams. Supports charset switching, QWERTY→JCUKEN encoding, embedded barcodes, auto font sizing.
+Requires NDC parser registration: `.WithNdc()` (FlexRender.Content.Ndc). Parses binary NDC ATM printer data streams. Source can be `file:path`, `{{variable}}` (with `BytesValue`), or `data:` URI. Options: `columns` (default 40), `input_encoding` (`latin1`/`utf-8`/`ascii`), `charsets` with per-charset `encoding` (`qwerty-jcuken`), `font_style`, `uppercase`, `color`.
 
 ## YAML Validation
 
