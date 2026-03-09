@@ -1,3 +1,4 @@
 using System.Runtime.InteropServices.JavaScript;
 
-Console.WriteLine("FlexRender Playground loaded");
+FlexRender.Playground.PlaygroundApi.Initialize();
+Console.WriteLine("FlexRender Playground ready");
