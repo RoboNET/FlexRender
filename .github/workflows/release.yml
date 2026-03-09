@@ -204,10 +204,10 @@ jobs:
           cd marketplace
           python3 -c "
           import json
-          with open('flexrender/cli-version.json') as f:
+          with open('plugins/flexrender/cli-version.json') as f:
               data = json.load(f)
           data['recommendedVersion'] = '${{ steps.version.outputs.VERSION }}'
-          with open('flexrender/cli-version.json', 'w') as f:
+          with open('plugins/flexrender/cli-version.json', 'w') as f:
               json.dump(data, f, indent=2)
               f.write('\n')
           "
@@ -220,7 +220,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b update-cli-${{ steps.version.outputs.VERSION }}
-          git add flexrender/cli-version.json
+          git add plugins/flexrender/cli-version.json
           git commit -m "chore: update recommendedVersion to ${{ steps.version.outputs.VERSION }}"
           git push origin update-cli-${{ steps.version.outputs.VERSION }}
           gh pr create \
