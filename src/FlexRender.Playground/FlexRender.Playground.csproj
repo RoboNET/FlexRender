@@ -4,13 +4,15 @@
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- Disabled fingerprinting for simpler dev workflow -->
+    <!-- <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders> -->
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <StaticWebAssetFingerprintPattern Include="JS" Pattern="*.js" Expression="#[.{fingerprint}]!" />
+    <!-- Disable fingerprinting for all static assets (playground doesn't need cache-busting) -->
+    <StaticWebAssetFingerprintPattern Remove="@(StaticWebAssetFingerprintPattern)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,5 +21,15 @@
     <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
     <ProjectReference Include="..\FlexRender.Content.Ndc\FlexRender.Content.Ndc.csproj" />
     <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" />
+  </ItemGroup>
+
+  <!-- Explicit native file reference for SkiaSharp WASM (workaround for empty SkiaSharpStaticLibraryPath) -->
+  <ItemGroup>
+    <NativeFileReference Include="$(NuGetPackageRoot)skiasharp.nativeassets.webassembly/3.119.2/buildTransitive/netstandard1.0/libSkiaSharp.a/3.1.56/st/*.a" />
+  </ItemGroup>
+
+  <!-- Embedded default font for WASM (no system fonts available) -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts/Inter-Regular.ttf" LogicalName="Inter-Regular.ttf" />
   </ItemGroup>
 </Project>

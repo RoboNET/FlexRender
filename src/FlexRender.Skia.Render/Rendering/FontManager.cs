@@ -17,8 +17,25 @@ public sealed class FontManager : IFontManager, IDisposable
     private readonly ConcurrentDictionary<TypefaceVariantKey, SKTypeface> _variantTypefaces = new();
     private readonly ConcurrentDictionary<string, string> _fontPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, string> _fontFallbacks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly IReadOnlyList<IResourceLoader> _resourceLoaders;
     private string _defaultFallback = "Arial";
     private bool _disposed;
+
+    /// <summary>
+    /// Initializes a new instance with no resource loaders (file-system only).
+    /// </summary>
+    public FontManager() : this([]) { }
+
+    /// <summary>
+    /// Initializes a new instance with the specified resource loaders for font resolution.
+    /// When a font file path cannot be found on disk, the resource loaders are tried in priority order.
+    /// </summary>
+    /// <param name="resourceLoaders">Resource loaders to use for font resolution.</param>
+    public FontManager(IReadOnlyList<IResourceLoader> resourceLoaders)
+    {
+        ArgumentNullException.ThrowIfNull(resourceLoaders);
+        _resourceLoaders = resourceLoaders;
+    }
 
     /// <summary>
     /// Gets a typeface by font name, using fallback if necessary.
@@ -114,7 +131,7 @@ public sealed class FontManager : IFontManager, IDisposable
     /// <returns>The loaded typeface or a fallback.</returns>
     private SKTypeface LoadTypeface(string fontName)
     {
-        // Try to load from registered path
+        // Try to load from registered path on disk
         if (_fontPaths.TryGetValue(fontName, out var path) && File.Exists(path))
         {
             var typeface = SKTypeface.FromFile(path);
@@ -136,6 +153,46 @@ public sealed class FontManager : IFontManager, IDisposable
 
         // Use default fallback
         return SKTypeface.FromFamilyName(_defaultFallback) ?? SKTypeface.Default;
+    }
+
+    /// <summary>
+    /// Asynchronously pre-loads a font from resource loaders and caches the typeface.
+    /// Should be called during font registration (before rendering) to avoid sync-over-async.
+    /// </summary>
+    /// <param name="name">The font name to register.</param>
+    /// <param name="resourceKey">The resource key (file name or path) to look up.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if font was loaded from a resource loader; otherwise, false.</returns>
+    public async Task<bool> PreloadFontFromResourcesAsync(string name, string resourceKey, CancellationToken cancellationToken = default)
+    {
+        foreach (var loader in _resourceLoaders.OrderBy(l => l.Priority))
+        {
+            if (!loader.CanHandle(resourceKey))
+                continue;
+
+            try
+            {
+                using var stream = await loader.Load(resourceKey, cancellationToken).ConfigureAwait(false);
+                if (stream is null)
+                    continue;
+
+                var typeface = SKTypeface.FromStream(stream);
+                if (typeface is null)
+                    continue;
+
+                // Cache directly so GetTypeface returns it synchronously
+                _typefaces.TryRemove(name, out var old);
+                old?.Dispose();
+                _typefaces[name] = typeface;
+                return true;
+            }
+            catch
+            {
+                // Resource loader failed, try next
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

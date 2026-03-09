@@ -93,7 +93,7 @@ internal sealed class RenderingEngine
     /// <summary>
     /// Core canvas rendering logic. Accepts a pre-processed template and computed layout node.
     /// The caller is responsible for calling <see cref="TemplatePipeline.ProcessAsync"/> and
-    /// <see cref="TemplatePreprocessor.RegisterFonts"/> before invoking this method.
+    /// <see cref="TemplatePreprocessor.RegisterFontsAsync"/> before invoking this method.
     /// </summary>
     /// <param name="canvas">The canvas to render to.</param>
     /// <param name="processedTemplate">The already-processed template (after pipeline expansion).</param>
@@ -136,7 +136,7 @@ internal sealed class RenderingEngine
     /// <summary>
     /// Core bitmap rendering logic. Accepts a pre-processed template and computed layout node.
     /// The caller is responsible for calling <see cref="TemplatePipeline.ProcessAsync"/> and
-    /// <see cref="TemplatePreprocessor.RegisterFonts"/> before invoking this method.
+    /// <see cref="TemplatePreprocessor.RegisterFontsAsync"/> before invoking this method.
     /// </summary>
     /// <param name="bitmap">The bitmap to render to.</param>
     /// <param name="processedTemplate">The already-processed template (after pipeline expansion).</param>
@@ -701,7 +701,7 @@ internal sealed class RenderingEngine
             return new Dictionary<string, SKBitmap>(0, StringComparer.Ordinal);
 
         var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         return await LoadImageCache(processedTemplate, cancellationToken).ConfigureAwait(false);
     }

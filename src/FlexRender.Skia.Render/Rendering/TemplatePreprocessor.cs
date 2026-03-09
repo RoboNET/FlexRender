@@ -28,31 +28,51 @@ internal sealed class TemplatePreprocessor
 
     /// <summary>
     /// Registers all fonts defined in the template with the font manager.
+    /// Tries file system first, then falls back to resource loaders (async) for WASM support.
     /// </summary>
     /// <param name="template">The processed template containing font definitions.</param>
-    internal void RegisterFonts(Template template)
+    /// <param name="cancellationToken">Cancellation token.</param>
+    internal async Task RegisterFontsAsync(Template template, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(template);
-        RegisterTemplateFonts(template);
+        await RegisterTemplateFontsAsync(template, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Registers all fonts defined in the template with the font manager.
     /// If a font named "default" is defined, it is also registered as "main"
     /// to serve as the default font for elements without an explicit font specification.
+    /// Falls back to resource loaders when font file is not found on disk.
     /// </summary>
     /// <param name="template">The template containing font definitions.</param>
-    private void RegisterTemplateFonts(Template template)
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private async Task RegisterTemplateFontsAsync(Template template, CancellationToken cancellationToken)
     {
         foreach (var (fontName, fontDef) in template.Fonts)
         {
             var resolvedPath = ResolveFontPath(fontDef.Path);
-            _fontManager.RegisterFont(fontName, resolvedPath, fontDef.Fallback);
+            var registered = _fontManager.RegisterFont(fontName, resolvedPath, fontDef.Fallback);
+
+            // If file not found on disk, try resource loaders (e.g. MemoryResourceLoader for WASM)
+            if (!registered)
+            {
+                if (!await _fontManager.PreloadFontFromResourcesAsync(fontName, resolvedPath, cancellationToken).ConfigureAwait(false))
+                {
+                    await _fontManager.PreloadFontFromResourcesAsync(fontName, fontDef.Path, cancellationToken).ConfigureAwait(false);
+                }
+            }
 
             // Register "default" font also as "main" for elements without explicit font
             if (string.Equals(fontName, "default", StringComparison.OrdinalIgnoreCase))
             {
-                _fontManager.RegisterFont("main", resolvedPath, fontDef.Fallback);
+                var mainRegistered = _fontManager.RegisterFont("main", resolvedPath, fontDef.Fallback);
+                if (!mainRegistered)
+                {
+                    if (!await _fontManager.PreloadFontFromResourcesAsync("main", resolvedPath, cancellationToken).ConfigureAwait(false))
+                    {
+                        await _fontManager.PreloadFontFromResourcesAsync("main", fontDef.Path, cancellationToken).ConfigureAwait(false);
+                    }
+                }
             }
         }
     }

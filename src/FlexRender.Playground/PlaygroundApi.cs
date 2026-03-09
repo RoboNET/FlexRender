@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text.Json;
 using FlexRender.Abstractions;
@@ -29,6 +30,9 @@ internal static partial class PlaygroundApi
             _memoryLoader = new MemoryResourceLoader();
             _parser = new TemplateParser();
 
+            // Load embedded default font (WASM has no system fonts)
+            LoadEmbeddedFont("Inter-Regular.ttf");
+
             var builder = new FlexRenderBuilder()
                 .WithNdc()
                 .WithSkia();
@@ -37,6 +41,7 @@ internal static partial class PlaygroundApi
             builder.ResourceLoaders.Insert(0, _memoryLoader);
 
             _render = builder.Build();
+            Console.WriteLine("FlexRender engine initialized successfully");
         }
         catch (Exception ex)
         {
@@ -68,13 +73,14 @@ internal static partial class PlaygroundApi
                 data = ParseJsonData(dataJson);
             }
 
-            return _render.RenderYaml(yaml, data, ImageFormat.Png, _parser)
+            var result = _render.RenderYaml(yaml, data, ImageFormat.Png, _parser)
                 .GetAwaiter()
                 .GetResult();
+            return result;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"RenderToPng error: {ex.Message}");
+            Console.Error.WriteLine($"RenderToPng error: {ex}");
             return [];
         }
     }
@@ -163,6 +169,22 @@ internal static partial class PlaygroundApi
         {
             Console.Error.WriteLine($"LoadContent error: {ex.Message}");
         }
+    }
+
+    private static void LoadEmbeddedFont(string resourceName)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream is null)
+        {
+            Console.Error.WriteLine($"Embedded font not found: {resourceName}");
+            return;
+        }
+
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        _memoryLoader!.AddResource(resourceName, ms.ToArray());
+        Console.WriteLine($"Loaded embedded font: {resourceName}");
     }
 
     /// <summary>

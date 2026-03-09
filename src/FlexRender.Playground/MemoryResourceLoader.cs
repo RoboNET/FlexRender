@@ -22,7 +22,8 @@ internal sealed class MemoryResourceLoader : IResourceLoader
             return false;
         }
 
-        return _resources.ContainsKey(NormalizePath(uri));
+        return _resources.ContainsKey(NormalizePath(uri))
+            || _resources.ContainsKey(Path.GetFileName(uri));
     }
 
     /// <inheritdoc />
@@ -32,6 +33,14 @@ internal sealed class MemoryResourceLoader : IResourceLoader
 
         var normalized = NormalizePath(uri);
         if (_resources.TryGetValue(normalized, out var data))
+        {
+            Stream stream = new MemoryStream(data, writable: false);
+            return Task.FromResult<Stream?>(stream);
+        }
+
+        // Also try by filename only (handles absolute paths from ResolveFontPath)
+        var fileName = Path.GetFileName(uri);
+        if (_resources.TryGetValue(fileName, out data))
         {
             Stream stream = new MemoryStream(data, writable: false);
             return Task.FromResult<Stream?>(stream);

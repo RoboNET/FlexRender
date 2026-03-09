@@ -110,7 +110,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         var expander = filterRegistry is not null
             ? new TemplateExpander(limits, filterRegistry, contentParserRegistry, resourceLoaders)
             : new TemplateExpander(limits, contentParserRegistry, resourceLoaders);
-        _fontManager = new FontManager();
+        _fontManager = new FontManager(resourceLoaders ?? []);
         _defaultRenderOptions = deterministicRendering ? RenderOptions.Deterministic : RenderOptions.Default;
         _textRenderer = new TextRenderer(_fontManager);
         _layoutEngine = new LayoutEngine(_limits);
@@ -159,7 +159,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(data);
 
         var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate).ConfigureAwait(false);
         return _layoutEngine.ComputeLayout(processedTemplate);
     }
 
@@ -182,7 +182,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var processedTemplate = await _pipeline.ProcessAsync(template, data).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var rootNode = _layoutEngine.ComputeLayout(processedTemplate);
 
@@ -221,7 +221,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, _defaultRenderOptions).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
@@ -282,7 +282,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, _defaultRenderOptions).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
@@ -330,7 +330,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
@@ -345,7 +345,8 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 ? new SKSize(rootNode.Height, rootNode.Width)
                 : new SKSize(rootNode.Width, rootNode.Height);
 
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            // Ensure minimum 1px dimensions to avoid invalid bitmap (e.g. auto-height with no content)
+            using var bitmap = new SKBitmap(Math.Max(1, (int)size.Width), Math.Max(1, (int)size.Height));
             _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             using var image = SKImage.FromBitmap(bitmap);
@@ -395,7 +396,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
@@ -453,7 +454,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
@@ -507,7 +508,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var processedTemplate = await _renderingEngine.ProcessTemplate(layoutTemplate, data, renderOptions).ConfigureAwait(false);
-        _preprocessor.RegisterFonts(processedTemplate);
+        await _preprocessor.RegisterFontsAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 
         var imageCache = await _renderingEngine.PreloadImagesFromProcessedAsync(processedTemplate, cancellationToken).ConfigureAwait(false);
 

@@ -37,8 +37,12 @@ const EXAMPLES = {
         yaml: `canvas:
   width: 400
   height: 150
+  fixed: both
   background: "#ffffff"
-elements:
+fonts:
+  - name: main
+    path: Inter-Regular.ttf
+layout:
   - type: text
     content: "Hello, FlexRender!"
     size: 28
@@ -50,8 +54,12 @@ elements:
         yaml: `canvas:
   width: 400
   height: 200
+  fixed: both
   background: "#f5f5f5"
-elements:
+fonts:
+  - name: main
+    path: Inter-Regular.ttf
+layout:
   - type: flex
     direction: row
     gap: "10"
@@ -81,8 +89,12 @@ elements:
         yaml: `canvas:
   width: 400
   height: 300
+  fixed: both
   background: "#ffffff"
-elements:
+fonts:
+  - name: main
+    path: Inter-Regular.ttf
+layout:
   - type: flex
     padding: "20"
     gap: "8"
