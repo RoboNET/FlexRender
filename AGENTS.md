@@ -432,18 +432,20 @@ Any change to the following areas requires updating the corresponding skill in t
 **Plugin structure:**
 
 ```
-flexrender-marketplace/flexrender/
-├── .claude-plugin/plugin.json    # Plugin manifest
-├── cli-version.json              # CLI version requirements (auto-updated by CI)
-├── hooks/hooks.json              # SessionStart hook for CLI auto-install
-├── scripts/
-│   ├── run-hook.cmd              # Cross-platform polyglot wrapper
-│   └── ensure-cli.sh            # CLI check/install script
-├── skills/
-│   ├── template/SKILL.md         # YAML template authoring skill
-│   ├── template-csharp/SKILL.md  # C# integration skill
-│   └── content-formats/SKILL.md  # Content parsers skill
-└── README.md
+FlexRender-Marketplace/
+├── .claude-plugin/marketplace.json  # Marketplace manifest
+└── plugins/flexrender/
+    ├── .claude-plugin/plugin.json   # Plugin manifest
+    ├── cli-version.json             # CLI version requirements (auto-updated by CI)
+    ├── hooks/hooks.json             # SessionStart hook for CLI auto-install
+    ├── scripts/
+    │   ├── run-hook.cmd             # Cross-platform polyglot wrapper
+    │   └── ensure-cli.sh           # CLI check/install script
+    ├── skills/
+    │   ├── template/SKILL.md        # YAML template authoring skill
+    │   ├── template-csharp/SKILL.md # C# integration skill
+    │   └── content-formats/SKILL.md # Content parsers skill
+    └── README.md
 ```
 
 **CI automation:** The `release.yml` workflow automatically creates a PR in the marketplace repo to update `cli-version.json` when a new FlexRender version is released.
