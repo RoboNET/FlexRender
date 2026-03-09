@@ -352,10 +352,10 @@ Install the FlexRender plugin to get AI-assisted template authoring, live previe
 
 ```bash
 # Add the marketplace (one-time)
-claude plugins add-marketplace https://github.com/RoboNET/FlexRender-Marketplace
+claude plugin marketplace add https://github.com/RoboNET/FlexRender-Marketplace
 
 # Install the plugin
-claude plugins install flexrender@FlexRender-Marketplace
+claude plugin install flexrender@FlexRender-Marketplace
 ```
 
 The plugin provides three skills:
