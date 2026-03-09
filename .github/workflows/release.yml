@@ -183,3 +183,47 @@ jobs:
         with:
           generate_release_notes: true
           files: ./release-assets/*
+
+  update-marketplace:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Checkout marketplace
+        uses: actions/checkout@v4
+        with:
+          repository: RoboNET/FlexRender-Marketplace
+          token: ${{ secrets.MARKETPLACE_PAT }}
+          path: marketplace
+
+      - name: Update cli-version.json
+        run: |
+          cd marketplace
+          python3 -c "
+          import json
+          with open('flexrender/cli-version.json') as f:
+              data = json.load(f)
+          data['recommendedVersion'] = '${{ steps.version.outputs.VERSION }}'
+          with open('flexrender/cli-version.json', 'w') as f:
+              json.dump(data, f, indent=2)
+              f.write('\n')
+          "
+
+      - name: Create PR
+        working-directory: marketplace
+        env:
+          GH_TOKEN: ${{ secrets.MARKETPLACE_PAT }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b update-cli-${{ steps.version.outputs.VERSION }}
+          git add flexrender/cli-version.json
+          git commit -m "chore: update recommendedVersion to ${{ steps.version.outputs.VERSION }}"
+          git push origin update-cli-${{ steps.version.outputs.VERSION }}
+          gh pr create \
+            --title "Update CLI to v${{ steps.version.outputs.VERSION }}" \
+            --body "Automated update from FlexRender release v${{ steps.version.outputs.VERSION }}" \
+            --base main

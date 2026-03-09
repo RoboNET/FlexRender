@@ -403,6 +403,51 @@ var sb = new StringBuilder(estimatedCapacity);
 - [ ] `Span<T>` used for string/array slicing instead of `Substring()`/`Array.Copy()`
 - [ ] SKPaint/SKFont objects are reused or pooled, not created per-element
 
+## Claude Code Plugin (FlexRender-Marketplace)
+
+The FlexRender plugin for Claude Code lives in a separate repository: [`RoboNET/FlexRender-Marketplace`](https://github.com/RoboNET/FlexRender-Marketplace).
+
+**When to update the plugin skills:**
+
+Any change to the following areas requires updating the corresponding skill in the marketplace repo:
+
+| Changed Area | Skill to Update | Skill Path |
+|-------------|-----------------|------------|
+| YAML template syntax, element types, properties, expressions | `template` | `flexrender/skills/template/SKILL.md` |
+| C# API, FlexRenderBuilder, AST classes, NuGet packages, DI | `template-csharp` | `flexrender/skills/template-csharp/SKILL.md` |
+| Content parsers (Markdown, HTML, NDC), IContentParser API | `content-formats` | `flexrender/skills/content-formats/SKILL.md` |
+| CLI commands, options, output formats | `template` | `flexrender/skills/template/SKILL.md` (CLI Reference section) |
+
+**Checklist for code changes:**
+
+- [ ] If YAML syntax changed — update `template` skill
+- [ ] If new element type added — update `template` skill (Element Types + Common Properties)
+- [ ] If template expressions changed — update `template` skill (Template Expressions section)
+- [ ] If C# public API changed — update `template-csharp` skill
+- [ ] If NuGet package added/renamed — update `template-csharp` skill (NuGet Package Selection)
+- [ ] If content parser changed — update `content-formats` skill
+- [ ] If CLI command added/changed — update `template` skill (CLI Reference section)
+- [ ] If `KnownProperties.cs` updated — check if `template` skill needs property table updates
+
+**Plugin structure:**
+
+```
+flexrender-marketplace/flexrender/
+├── .claude-plugin/plugin.json    # Plugin manifest
+├── cli-version.json              # CLI version requirements (auto-updated by CI)
+├── hooks/hooks.json              # SessionStart hook for CLI auto-install
+├── scripts/
+│   ├── run-hook.cmd              # Cross-platform polyglot wrapper
+│   └── ensure-cli.sh            # CLI check/install script
+├── skills/
+│   ├── template/SKILL.md         # YAML template authoring skill
+│   ├── template-csharp/SKILL.md  # C# integration skill
+│   └── content-formats/SKILL.md  # Content parsers skill
+└── README.md
+```
+
+**CI automation:** The `release.yml` workflow automatically creates a PR in the marketplace repo to update `cli-version.json` when a new FlexRender version is released.
+
 ## Common Tasks
 
 ### Add new element type

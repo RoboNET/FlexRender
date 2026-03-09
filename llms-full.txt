@@ -898,6 +898,25 @@ Key features:
 - Form feed, line spacing, tab controls
 
 ```yaml
+# Load NDC data from a local file
+- type: content
+  source: "file:ndc-data/receipt.bin"
+  format: ndc
+  options:
+    columns: 40
+    font_family: "JetBrains Mono"
+    charsets:
+      I:
+        font: bold
+        font_style: bold
+        encoding: qwerty-jcuken
+        uppercase: true
+      J:
+        encoding: qwerty-jcuken
+      "2":
+        font: default
+
+# Or load from a template variable (C# API with BytesValue)
 - type: content
   source: "{{receiptData}}"
   format: ndc
@@ -910,6 +929,18 @@ Key features:
         encoding: "qwerty-jcuken"
         font_style: bold
 ```
+
+NDC options:
+- `columns` -- receipt width in characters (default: 40, standard for 80mm thermal printers)
+- `input_encoding` -- byte encoding: `latin1` (default), `utf-8`, `ascii`
+- `font_family` -- monospaced font for accurate column alignment
+- `char_width_ratio` -- character width ratio (default: 0.6)
+- `charsets` -- per-charset styling keyed by designator character from `ESC(X` sequences:
+  - `encoding` -- `qwerty-jcuken` (Latin→Cyrillic), `none`, `ascii`
+  - `font` / `font_style` -- font name or style (`bold`, `italic`, `bold-italic`, `regular`)
+  - `font_size` -- explicit size in pixels (auto-calculated if omitted)
+  - `color` -- text color (hex)
+  - `uppercase` -- convert to uppercase after encoding
 
 Register via `.WithNdc()` (FlexRender.Content.Ndc package, 0 external dependencies).
 

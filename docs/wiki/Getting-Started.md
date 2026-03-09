@@ -346,6 +346,25 @@ var render = new FlexRenderBuilder()
     .Build();
 ```
 
+## Claude Code Integration
+
+Install the FlexRender plugin to get AI-assisted template authoring, live preview, and CLI management:
+
+```bash
+# Add the marketplace (one-time)
+claude plugins add-marketplace https://github.com/RoboNET/FlexRender-Marketplace
+
+# Install the plugin
+claude plugins install flexrender@FlexRender-Marketplace
+```
+
+The plugin provides three skills:
+- **`template`** -- create, edit, debug YAML templates with live watch preview
+- **`template-csharp`** -- C# AST integration, NuGet package selection, builder API
+- **`content-formats`** -- Markdown, HTML, and NDC content parser reference
+
+The CLI (`flexrender`) is automatically installed on first session start.
+
 ## Next Steps
 
 - [[Template-Syntax]] -- learn all element types and properties
