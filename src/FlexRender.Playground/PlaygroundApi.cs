@@ -36,7 +36,7 @@ internal static partial class PlaygroundApi
             _memoryLoader = new MemoryResourceLoader();
             _parser = new TemplateParser();
 
-            // Load embedded default font (WASM has no system fonts)
+            // Load embedded default font into VFS (WASM has no system fonts)
             LoadEmbeddedFont("Inter-Regular.ttf");
 
             var builder = new FlexRenderBuilder()

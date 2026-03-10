@@ -53,7 +53,8 @@ layout:
     size: 28
     color: "#333333"
     padding: "30"`,
-        json: '{}'
+        json: '{}',
+        assets: ['Inter-Regular.ttf'],
     },
     'Flex Layout': {
         yaml: `canvas:
@@ -88,7 +89,8 @@ layout:
             content: "Right (grow: 2)"
             color: "#ffffff"
             size: 16`,
-        json: '{}'
+        json: '{}',
+        assets: ['Inter-Regular.ttf'],
     },
     'Data Binding': {
         yaml: `canvas:
@@ -116,6 +118,7 @@ layout:
         color: "#eee"
       - type: each
         array: items
+        as: item
         children:
           - type: text
             content: "\u2022 {{item}}"
@@ -125,14 +128,17 @@ layout:
   "title": "Shopping List",
   "author": "FlexRender",
   "items": ["Apples", "Bread", "Milk", "Cheese"]
-}`
+}`,
+        assets: ['Inter-Regular.ttf'],
     },
     'Image Scaling': {
         yaml: `canvas:
   fixed: width
   width: 440
   background: "#ffffff"
-
+fonts:
+  - name: main
+    path: Inter-Regular.ttf
 layout:
   - type: flex
     direction: column
@@ -215,14 +221,16 @@ layout:
                     height: "120"
                     fit: fill`,
         json: '{}',
-        assets: ['test-pattern.png'],
+        assets: ['test-pattern.png', 'Inter-Regular.ttf'],
     },
     'Dynamic Receipt': {
         yaml: `canvas:
   fixed: width
   width: 320
   background: "#ffffff"
-
+fonts:
+  - name: main
+    path: Inter-Regular.ttf
 layout:
   - type: flex
     padding: "24 20"
@@ -423,7 +431,7 @@ layout:
   "paymentUrl": "https://pay.example.com/inv/12345",
   "date": "2026-03-10 14:30"
 }`,
-        assets: ['star-badge.png'],
+        assets: ['star-badge.png', 'Inter-Regular.ttf'],
     },
     'NDC Receipt': {
         yaml: `# NDC (ATM receipt) format — binary terminal data rendered as a receipt
