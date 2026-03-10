@@ -7,6 +7,7 @@ using FlexRender.Content.Ndc;
 using FlexRender.Layout;
 using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
+using FlexRender.QrCode;
 using FlexRender.Rendering;
 using FlexRender.Skia;
 using FlexRender.Yaml;
@@ -42,7 +43,7 @@ internal static partial class PlaygroundApi
 
         var builder = new FlexRenderBuilder()
             .WithNdc()
-            .WithSkia();
+            .WithSkia(skia => skia.WithQr());
 
         // Insert memory loader at highest priority so uploaded files win
         builder.ResourceLoaders.Insert(0, _memoryLoader);

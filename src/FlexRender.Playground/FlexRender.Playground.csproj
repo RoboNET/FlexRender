@@ -18,6 +18,7 @@
     <ProjectReference Include="..\FlexRender.Yaml\FlexRender.Yaml.csproj" />
     <ProjectReference Include="..\FlexRender.Skia.Render\FlexRender.Skia.Render.csproj" />
     <ProjectReference Include="..\FlexRender.Content.Ndc\FlexRender.Content.Ndc.csproj" />
+    <ProjectReference Include="..\FlexRender.QrCode.Skia.Render\FlexRender.QrCode.Skia.Render.csproj" />
     <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" />
   </ItemGroup>
 
