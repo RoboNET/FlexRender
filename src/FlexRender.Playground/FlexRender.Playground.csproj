@@ -4,15 +4,13 @@
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- Disabled fingerprinting for simpler dev workflow -->
-    <!-- <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders> -->
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Disable fingerprinting for all static assets (playground doesn't need cache-busting) -->
-    <StaticWebAssetFingerprintPattern Remove="@(StaticWebAssetFingerprintPattern)" />
+    <StaticWebAssetFingerprintPattern Include="JS" Pattern="*.js" Expression="#[.{fingerprint}]!" />
   </ItemGroup>
 
   <ItemGroup>
