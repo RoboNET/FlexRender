@@ -481,6 +481,8 @@ const yamlEditor = monaco.editor.create(document.getElementById('yaml-editor'), 
     automaticLayout: true,
     scrollBeyondLastLine: true,
     fixedOverflowWidgets: true,
+    colorDecorators: true,
+    colorDecoratorsActivatedOn: 'click',
     quickSuggestions: {
         other: true,
         comments: false,
@@ -498,6 +500,49 @@ const jsonEditor = monaco.editor.create(document.getElementById('json-editor'), 
     automaticLayout: true,
     scrollBeyondLastLine: true,
     fixedOverflowWidgets: true,
+});
+
+// --- Color picker without alpha channel (FlexRender doesn't support alpha) ---
+monaco.languages.registerColorProvider('yaml', {
+    provideDocumentColors(model) {
+        const colors = [];
+        const hexRe = /#([0-9a-fA-F]{3,8})\b/g;
+        for (let i = 1; i <= model.getLineCount(); i++) {
+            const line = model.getLineContent(i);
+            let m;
+            while ((m = hexRe.exec(line)) !== null) {
+                const hex = m[1];
+                let r, g, b;
+                if (hex.length === 3) {
+                    r = parseInt(hex[0] + hex[0], 16) / 255;
+                    g = parseInt(hex[1] + hex[1], 16) / 255;
+                    b = parseInt(hex[2] + hex[2], 16) / 255;
+                } else if (hex.length === 6 || hex.length === 8) {
+                    r = parseInt(hex.slice(0, 2), 16) / 255;
+                    g = parseInt(hex.slice(2, 4), 16) / 255;
+                    b = parseInt(hex.slice(4, 6), 16) / 255;
+                } else {
+                    continue;
+                }
+                colors.push({
+                    color: { red: r, green: g, blue: b, alpha: 1 },
+                    range: {
+                        startLineNumber: i,
+                        startColumn: m.index + 1,
+                        endLineNumber: i,
+                        endColumn: m.index + 1 + m[0].length,
+                    },
+                });
+            }
+        }
+        return colors;
+    },
+    provideColorPresentations(model, colorInfo) {
+        const { red, green, blue } = colorInfo.color;
+        const toHex = (v) => Math.round(v * 255).toString(16).padStart(2, '0');
+        const hex = `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
+        return [{ label: hex }];
+    },
 });
 
 // --- UI elements ---

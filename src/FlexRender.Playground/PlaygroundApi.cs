@@ -22,6 +22,13 @@ internal static partial class PlaygroundApi
     private static IFlexRender? _render;
     private static MemoryResourceLoader? _memoryLoader;
     private static TemplateParser? _parser;
+    private static string? _lastError;
+
+    /// <summary>
+    /// Returns the last error message from any API call, or null if no error occurred.
+    /// </summary>
+    [JSExport]
+    public static string? GetLastError() => _lastError;
 
     /// <summary>
     /// Creates the FlexRender pipeline with an in-memory resource loader, Skia backend, and NDC support.
@@ -30,31 +37,21 @@ internal static partial class PlaygroundApi
     [JSExport]
     public static void Initialize()
     {
-        try
-        {
-            _memoryLoader = new MemoryResourceLoader();
-            _parser = new TemplateParser();
+        _memoryLoader = new MemoryResourceLoader();
+        _parser = new TemplateParser();
 
-            var builder = new FlexRenderBuilder()
-                .WithNdc()
-                .WithSkia();
+        var builder = new FlexRenderBuilder()
+            .WithNdc()
+            .WithSkia();
 
-            // Insert memory loader at highest priority so uploaded files win
-            builder.ResourceLoaders.Insert(0, _memoryLoader);
+        // Insert memory loader at highest priority so uploaded files win
+        builder.ResourceLoaders.Insert(0, _memoryLoader);
 
-            _render = builder.Build();
+        _render = builder.Build();
 
-            // Enable layout diagnostics for the playground inspector
-            if (_render is SkiaRender skiaRender)
-                skiaRender.EnableDiagnostics = true;
-
-            Console.WriteLine("FlexRender engine initialized successfully");
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"FlexRender initialization failed: {ex}");
-            throw;
-        }
+        // Enable layout diagnostics for the playground inspector
+        if (_render is SkiaRender skiaRender)
+            skiaRender.EnableDiagnostics = true;
     }
 
     /// <summary>
@@ -69,10 +66,7 @@ internal static partial class PlaygroundApi
         try
         {
             if (_render is null)
-            {
-                Console.Error.WriteLine("PlaygroundApi not initialized. Call Initialize() first.");
                 return [];
-            }
 
             ObjectValue? data = null;
             if (!string.IsNullOrWhiteSpace(dataJson))
@@ -87,7 +81,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"RenderToPng error: {ex}");
+            _lastError = ex.Message;
             return [];
         }
     }
@@ -105,10 +99,7 @@ internal static partial class PlaygroundApi
         try
         {
             if (_render is not SkiaRender skiaRender)
-            {
-                Console.Error.WriteLine("PlaygroundApi not initialized or not using SkiaRender.");
                 return [];
-            }
 
             _parser ??= new TemplateParser();
             var template = _parser.Parse(yaml);
@@ -153,10 +144,7 @@ internal static partial class PlaygroundApi
             using var image = SKImage.FromBitmap(bitmap);
             using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
             if (encoded is null)
-            {
-                Console.Error.WriteLine("RenderDebugPng: failed to encode debug image");
                 return [];
-            }
 
             using var ms = new MemoryStream();
             encoded.SaveTo(ms);
@@ -164,7 +152,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"RenderDebugPng error: {ex}");
+            _lastError = ex.Message;
             return [];
         }
     }
@@ -215,7 +203,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"LoadFont error: {ex.Message}");
+            _lastError = ex.Message;
         }
     }
 
@@ -233,7 +221,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"LoadImage error: {ex.Message}");
+            _lastError = ex.Message;
         }
     }
 
@@ -251,7 +239,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"LoadContent error: {ex.Message}");
+            _lastError = ex.Message;
         }
     }
 
@@ -269,7 +257,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"LoadResource error: {ex.Message}");
+            _lastError = ex.Message;
         }
     }
 
@@ -286,7 +274,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"RemoveResource error: {ex.Message}");
+            _lastError = ex.Message;
         }
     }
 
@@ -304,7 +292,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"ListResources error: {ex.Message}");
+            _lastError = ex.Message;
             return "[]";
         }
     }
@@ -321,10 +309,7 @@ internal static partial class PlaygroundApi
         try
         {
             if (_render is not SkiaRender skiaRender)
-            {
-                Console.Error.WriteLine("PlaygroundApi not initialized or not using SkiaRender.");
                 return "{}";
-            }
 
             _parser ??= new TemplateParser();
             var template = _parser.Parse(yaml);
@@ -344,7 +329,7 @@ internal static partial class PlaygroundApi
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"GetLayout error: {ex}");
+            _lastError = ex.Message;
             return "{}";
         }
     }
@@ -439,12 +424,18 @@ internal static partial class PlaygroundApi
                 if (!string.IsNullOrEmpty(t.Color.Value))
                     obj["color"] = t.Color.Value;
 
-                // Resolve typeface name for diagnostics
+                // Safely resolve typeface name for diagnostics.
+                // Only access native SKTypeface properties when the base font was loaded from
+                // a real file/resource — system fallback typefaces crash in WASM (no system fonts).
                 if (_render is SkiaRender skiaRender)
                 {
-                    var typeface = skiaRender.FontManager.GetTypeface(
-                        t.Font.Value, t.FontFamily.Value, t.FontWeight.Value, t.FontStyle.Value);
-                    obj["resolvedTypeface"] = typeface.FamilyName;
+                    var baseFontName = !string.IsNullOrEmpty(t.Font.Value) ? t.Font.Value : "main";
+                    if (skiaRender.FontManager.IsFileLoaded(baseFontName))
+                    {
+                        var typeface = skiaRender.FontManager.GetTypeface(
+                            t.Font.Value, t.FontFamily.Value, t.FontWeight.Value, t.FontStyle.Value);
+                        obj["resolvedTypeface"] = typeface.FamilyName;
+                    }
                 }
 
                 break;
@@ -564,6 +555,11 @@ internal static partial class PlaygroundApi
         LayoutNode node,
         FontManager fontManager)
     {
+        // Skip glyph boundaries if font is not file-loaded (WASM: system fallback has invalid native handle)
+        var baseFontName = !string.IsNullOrEmpty(text.Font.Value) ? text.Font.Value : "main";
+        if (!fontManager.IsFileLoaded(baseFontName))
+            return;
+
         var fontSize = node.ComputedFontSize > 0 ? node.ComputedFontSize : 16f;
         var typeface = fontManager.GetTypeface(text.Font.Value, text.FontFamily.Value, text.FontWeight.Value, text.FontStyle.Value);
         using var font = new SKFont(typeface, FontSizeResolver.Resolve(text.Size.Value, fontSize));
@@ -631,30 +627,25 @@ internal static partial class PlaygroundApi
             var fonts = new JsonArray();
             foreach (var (name, path) in registeredPaths)
             {
-                var typeface = fontManager.GetTypeface(name);
-
-                // Also test variant lookup (how layout engine resolves fonts)
-                var boldVariant = fontManager.GetTypeface(name, Parsing.Ast.FontWeight.Bold, Parsing.Ast.FontStyle.Normal);
-                var normalVariant = fontManager.GetTypeface(name, Parsing.Ast.FontWeight.Normal, Parsing.Ast.FontStyle.Normal);
-
-                // Test the 4-param overload (how NDC elements resolve: font + fontFamily + weight)
-                var ndcBoldResolve = fontManager.GetTypeface(name, "JetBrains Mono", Parsing.Ast.FontWeight.Bold, Parsing.Ast.FontStyle.Normal);
-                var ndcNormalResolve = fontManager.GetTypeface(name, "JetBrains Mono", Parsing.Ast.FontWeight.Normal, Parsing.Ast.FontStyle.Normal);
-
-                fonts.Add(new JsonObject
+                var info = fontManager.GetTypefaceInfo(name);
+                var fontObj = new JsonObject
                 {
                     ["name"] = name,
                     ["path"] = path,
-                    ["familyName"] = typeface.FamilyName,
-                    ["isFixedPitch"] = typeface.IsFixedPitch,
-                    ["fontWeight"] = (int)typeface.FontStyle.Weight,
-                    ["isDefault"] = typeface == SkiaSharp.SKTypeface.Default,
-                    // Variant lookups
-                    ["boldVariant"] = $"{boldVariant.FamilyName} w={boldVariant.FontStyle.Weight} fixed={boldVariant.IsFixedPitch} default={boldVariant == SkiaSharp.SKTypeface.Default}",
-                    ["normalVariant"] = $"{normalVariant.FamilyName} w={normalVariant.FontStyle.Weight} fixed={normalVariant.IsFixedPitch} default={normalVariant == SkiaSharp.SKTypeface.Default}",
-                    ["ndcBoldResolve"] = $"{ndcBoldResolve.FamilyName} w={ndcBoldResolve.FontStyle.Weight} fixed={ndcBoldResolve.IsFixedPitch} default={ndcBoldResolve == SkiaSharp.SKTypeface.Default}",
-                    ["ndcNormalResolve"] = $"{ndcNormalResolve.FamilyName} w={ndcNormalResolve.FontStyle.Weight} fixed={ndcNormalResolve.IsFixedPitch} default={ndcNormalResolve == SkiaSharp.SKTypeface.Default}",
-                });
+                    ["fileLoaded"] = fontManager.IsFileLoaded(name)
+                };
+
+                if (info is var (familyName, isFixedPitch))
+                {
+                    fontObj["familyName"] = familyName;
+                    fontObj["isFixedPitch"] = isFixedPitch;
+                }
+                else
+                {
+                    fontObj["familyName"] = "(system fallback - not inspectable in WASM)";
+                }
+
+                fonts.Add(fontObj);
             }
 
             var resources = _memoryLoader?.ListResources() ?? [];
