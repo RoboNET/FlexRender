@@ -82,6 +82,14 @@ internal sealed class MemoryResourceLoader : IResourceLoader
     }
 
     /// <summary>
+    /// Returns all stored resource paths.
+    /// </summary>
+    public IReadOnlyList<string> ListResources()
+    {
+        return [.. _resources.Keys];
+    }
+
+    /// <summary>
     /// Strips leading "./" or "/" from a path to produce a canonical lookup key.
     /// </summary>
     private static string NormalizePath(string path)

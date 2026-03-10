@@ -1,11 +1,17 @@
 using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using FlexRender.Abstractions;
 using FlexRender.Configuration;
 using FlexRender.Content.Ndc;
+using FlexRender.Layout;
 using FlexRender.Parsing;
+using FlexRender.Parsing.Ast;
+using FlexRender.Rendering;
+using FlexRender.Skia;
 using FlexRender.Yaml;
+using SkiaSharp;
 
 namespace FlexRender.Playground;
 
@@ -81,6 +87,83 @@ internal static partial class PlaygroundApi
         catch (Exception ex)
         {
             Console.Error.WriteLine($"RenderToPng error: {ex}");
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Renders a YAML template to PNG bytes with a debug overlay showing layout boundaries,
+    /// element type colors, and per-glyph text boundaries.
+    /// </summary>
+    /// <param name="yaml">YAML template string.</param>
+    /// <param name="dataJson">Optional JSON object with template data, or null.</param>
+    /// <returns>PNG image bytes with debug overlay, or an empty array on error.</returns>
+    [JSExport]
+    public static byte[] RenderDebugPng(string yaml, string? dataJson)
+    {
+        try
+        {
+            if (_render is not SkiaRender skiaRender)
+            {
+                Console.Error.WriteLine("PlaygroundApi not initialized or not using SkiaRender.");
+                return [];
+            }
+
+            _parser ??= new TemplateParser();
+            var template = _parser.Parse(yaml);
+
+            ObjectValue data = new();
+            if (!string.IsNullOrWhiteSpace(dataJson))
+            {
+                data = ParseJsonData(dataJson);
+            }
+
+            // Render normal PNG
+            var pngBytes = skiaRender.RenderToPng(template, data)
+                .GetAwaiter()
+                .GetResult();
+
+            // Compute layout for debug overlay
+            var root = skiaRender.ComputeLayout(template, data)
+                .GetAwaiter()
+                .GetResult();
+
+            var size = skiaRender.Measure(template, data)
+                .GetAwaiter()
+                .GetResult();
+
+            var bitmapWidth = Math.Max(1, (int)Math.Ceiling(size.Width));
+            var bitmapHeight = Math.Max(1, (int)Math.Ceiling(size.Height));
+
+            using var bitmap = new SKBitmap(bitmapWidth, bitmapHeight);
+            using var canvas = new SKCanvas(bitmap);
+
+            // Draw the rendered PNG onto the canvas
+            using var rendered = SKBitmap.Decode(pngBytes);
+            if (rendered is not null)
+            {
+                canvas.DrawBitmap(rendered, 0, 0);
+            }
+
+            // Draw debug overlay
+            DrawDebugOverlay(canvas, root, 0, 0, skiaRender.FontManager);
+
+            // Encode to PNG
+            using var image = SKImage.FromBitmap(bitmap);
+            using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
+            if (encoded is null)
+            {
+                Console.Error.WriteLine("RenderDebugPng: failed to encode debug image");
+                return [];
+            }
+
+            using var ms = new MemoryStream();
+            encoded.SaveTo(ms);
+            return ms.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"RenderDebugPng error: {ex}");
             return [];
         }
     }
@@ -171,6 +254,336 @@ internal static partial class PlaygroundApi
         }
     }
 
+    /// <summary>
+    /// Stores a resource (font, image, content, or any file) in the in-memory VFS.
+    /// </summary>
+    /// <param name="path">Resource path as referenced in the template.</param>
+    /// <param name="data">Raw resource bytes.</param>
+    [JSExport]
+    public static void LoadResource(string path, byte[] data)
+    {
+        try
+        {
+            _memoryLoader?.AddResource(path, data);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"LoadResource error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Removes a resource from the in-memory VFS.
+    /// </summary>
+    /// <param name="path">Resource path to remove.</param>
+    [JSExport]
+    public static void RemoveResource(string path)
+    {
+        try
+        {
+            _memoryLoader?.RemoveResource(path);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"RemoveResource error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Lists all resource paths currently stored in the in-memory VFS.
+    /// </summary>
+    /// <returns>JSON array of resource path strings.</returns>
+    [JSExport]
+    public static string ListResources()
+    {
+        try
+        {
+            var paths = _memoryLoader?.ListResources() ?? [];
+            return JsonSerializer.Serialize(paths);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"ListResources error: {ex.Message}");
+            return "[]";
+        }
+    }
+
+    /// <summary>
+    /// Computes the layout tree for a YAML template and returns it as a JSON string.
+    /// </summary>
+    /// <param name="yaml">YAML template string.</param>
+    /// <param name="dataJson">Optional JSON object with template data, or null.</param>
+    /// <returns>JSON string representing the layout tree, or an empty object on error.</returns>
+    [JSExport]
+    public static string GetLayout(string yaml, string? dataJson)
+    {
+        try
+        {
+            if (_render is not SkiaRender skiaRender)
+            {
+                Console.Error.WriteLine("PlaygroundApi not initialized or not using SkiaRender.");
+                return "{}";
+            }
+
+            _parser ??= new TemplateParser();
+            var template = _parser.Parse(yaml);
+
+            ObjectValue data = new();
+            if (!string.IsNullOrWhiteSpace(dataJson))
+            {
+                data = ParseJsonData(dataJson);
+            }
+
+            var layoutNode = skiaRender.ComputeLayout(template, data)
+                .GetAwaiter()
+                .GetResult();
+
+            var json = SerializeLayoutNode(layoutNode);
+            return json.ToJsonString();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"GetLayout error: {ex}");
+            return "{}";
+        }
+    }
+
+    private static JsonObject SerializeLayoutNode(LayoutNode node)
+    {
+        var obj = new JsonObject
+        {
+            ["type"] = node.Element.Type.ToString().ToLowerInvariant(),
+            ["x"] = Math.Round(node.X, 1),
+            ["y"] = Math.Round(node.Y, 1),
+            ["w"] = Math.Round(node.Width, 1),
+            ["h"] = Math.Round(node.Height, 1)
+        };
+
+        // Computed properties
+        if (node.ComputedFontSize > 0)
+            obj["fontSize"] = Math.Round(node.ComputedFontSize, 1);
+
+        if (node.Baseline > 0)
+            obj["baseline"] = Math.Round(node.Baseline, 1);
+
+        if (node.ComputedLineHeight > 0)
+            obj["lineHeight"] = Math.Round(node.ComputedLineHeight, 1);
+
+        if (node.TextLines is not null)
+            obj["textLines"] = node.TextLines.Count;
+
+        if (node.Direction != TextDirection.Ltr)
+            obj["direction"] = node.Direction.ToString().ToLowerInvariant();
+
+        // Element-specific properties
+        SerializeElementProperties(obj, node.Element);
+
+        var children = new JsonArray();
+        foreach (var child in node.Children)
+        {
+            children.Add(SerializeLayoutNode(child));
+        }
+
+        obj["children"] = children;
+        return obj;
+    }
+
+    /// <summary>
+    /// Adds element-specific properties to the JSON object based on the element type.
+    /// </summary>
+    /// <param name="obj">The JSON object to add properties to.</param>
+    /// <param name="element">The template element.</param>
+    private static void SerializeElementProperties(JsonObject obj, TemplateElement element)
+    {
+        switch (element)
+        {
+            case FlexElement f:
+                obj["direction"] = f.Direction.ToString().ToLowerInvariant();
+                if (!string.IsNullOrEmpty(f.FontSize.Value))
+                    obj["fontSizeSpec"] = f.FontSize.Value;
+                if (f.Align.Value != AlignItems.Stretch)
+                    obj["align"] = f.Align.Value.ToString().ToLowerInvariant();
+                if (f.Justify.Value != JustifyContent.Start)
+                    obj["justify"] = f.Justify.Value.ToString().ToLowerInvariant();
+                break;
+
+            case TextElement t:
+                obj["content"] = Truncate(t.Content.Value, 50);
+                if (!string.IsNullOrEmpty(t.Size.Value))
+                    obj["size"] = t.Size.Value;
+                if (!string.IsNullOrEmpty(t.Font.Value))
+                    obj["font"] = t.Font.Value;
+                if (!string.IsNullOrEmpty(t.FontFamily.Value))
+                    obj["fontFamily"] = t.FontFamily.Value;
+                if (t.FontWeight.Value != Parsing.Ast.FontWeight.Normal)
+                    obj["fontWeight"] = t.FontWeight.Value.ToString().ToLowerInvariant();
+                if (t.FontStyle.Value != Parsing.Ast.FontStyle.Normal)
+                    obj["fontStyle"] = t.FontStyle.Value.ToString().ToLowerInvariant();
+                if (!string.IsNullOrEmpty(t.Color.Value))
+                    obj["color"] = t.Color.Value;
+                break;
+
+            case ImageElement:
+                obj["indicator"] = "image";
+                break;
+
+            case QrElement:
+                obj["indicator"] = "qr";
+                break;
+
+            case BarcodeElement:
+                obj["indicator"] = "barcode";
+                break;
+
+            case SeparatorElement:
+                obj["indicator"] = "separator";
+                break;
+
+            case SvgElement:
+                obj["indicator"] = "svg";
+                break;
+
+            case TableElement:
+                obj["indicator"] = "table";
+                break;
+
+            case EachElement:
+                obj["indicator"] = "each";
+                break;
+
+            case IfElement:
+                obj["indicator"] = "if";
+                break;
+
+            case ContentElement:
+                obj["indicator"] = "content";
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Draws debug overlay rectangles on the canvas showing element boundaries
+    /// with colors coded by element type.
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="node">The current layout node.</param>
+    /// <param name="offsetX">The X offset from parent.</param>
+    /// <param name="offsetY">The Y offset from parent.</param>
+    /// <param name="fontManager">The font manager for creating fonts to measure glyph widths.</param>
+    private static void DrawDebugOverlay(SKCanvas canvas, LayoutNode node, float offsetX, float offsetY, FontManager fontManager)
+    {
+        var x = node.X + offsetX;
+        var y = node.Y + offsetY;
+
+        // Choose color based on element type
+        var color = node.Element switch
+        {
+            FlexElement => SKColors.Blue,
+            TextElement => SKColors.Green,
+            QrElement => SKColors.Purple,
+            BarcodeElement => SKColors.Orange,
+            ImageElement => SKColors.Cyan,
+            _ => SKColors.Gray
+        };
+
+        // Draw fill for flex containers
+        if (node.Element is FlexElement)
+        {
+            using var fillPaint = new SKPaint
+            {
+                Color = color.WithAlpha(30),
+                Style = SKPaintStyle.Fill
+            };
+            canvas.DrawRect(x, y, node.Width, node.Height, fillPaint);
+        }
+
+        // Draw stroke
+        using var strokePaint = new SKPaint
+        {
+            Color = color.WithAlpha(180),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1
+        };
+
+        canvas.DrawRect(x, y, node.Width, node.Height, strokePaint);
+
+        // Draw per-glyph boundaries for text elements
+        if (node.Element is TextElement text && !string.IsNullOrEmpty(text.Content.Value))
+        {
+            DrawGlyphBoundaries(canvas, text, x, y, node, fontManager);
+        }
+
+        // Recursively draw children
+        foreach (var child in node.Children)
+        {
+            DrawDebugOverlay(canvas, child, x, y, fontManager);
+        }
+    }
+
+    /// <summary>
+    /// Draws per-glyph boundary rectangles for a text element.
+    /// Spaces are highlighted with a distinct color to make whitespace visible.
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="text">The text element.</param>
+    /// <param name="x">The absolute X position of the text element.</param>
+    /// <param name="y">The absolute Y position of the text element.</param>
+    /// <param name="node">The layout node for the text element.</param>
+    /// <param name="fontManager">The font manager for creating fonts.</param>
+    private static void DrawGlyphBoundaries(
+        SKCanvas canvas,
+        TextElement text,
+        float x,
+        float y,
+        LayoutNode node,
+        FontManager fontManager)
+    {
+        var fontSize = node.ComputedFontSize > 0 ? node.ComputedFontSize : 16f;
+        var typeface = fontManager.GetTypeface(text.Font.Value, text.FontFamily.Value, text.FontWeight.Value, text.FontStyle.Value);
+        using var font = new SKFont(typeface, FontSizeResolver.Resolve(text.Size.Value, fontSize));
+
+        var content = text.Content.Value;
+
+        // Compute per-character advance widths using cumulative measurement.
+        // GetGlyphWidths returns ink bounds (visual shape width), not advance width,
+        // so spaces would appear zero-width. Cumulative MeasureText gives correct advances.
+        var advances = new float[content.Length];
+        float prevWidth = 0;
+        for (var i = 0; i < content.Length; i++)
+        {
+            var cumWidth = font.MeasureText(content.AsSpan(0, i + 1));
+            advances[i] = cumWidth - prevWidth;
+            prevWidth = cumWidth;
+        }
+
+        using var glyphStroke = new SKPaint
+        {
+            Color = SKColors.Red.WithAlpha(100),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 0.5f
+        };
+        using var spaceFill = new SKPaint
+        {
+            Color = SKColors.Yellow.WithAlpha(60),
+            Style = SKPaintStyle.Fill
+        };
+
+        var glyphX = x;
+        for (var i = 0; i < advances.Length; i++)
+        {
+            var w = advances[i];
+
+            // Highlight spaces with yellow fill
+            if (content[i] == ' ')
+            {
+                canvas.DrawRect(glyphX, y, w, node.Height, spaceFill);
+            }
+
+            canvas.DrawRect(glyphX, y, w, node.Height, glyphStroke);
+            glyphX += w;
+        }
+    }
+
     private static void LoadEmbeddedFont(string resourceName)
     {
         var assembly = Assembly.GetExecutingAssembly();
@@ -240,4 +653,13 @@ internal static partial class PlaygroundApi
 
         return obj;
     }
+
+    /// <summary>
+    /// Truncates a string to the specified maximum length, appending ellipsis if needed.
+    /// </summary>
+    /// <param name="s">The string to truncate.</param>
+    /// <param name="max">The maximum length.</param>
+    /// <returns>The truncated string with ellipsis if it exceeded the limit.</returns>
+    private static string Truncate(string s, int max) =>
+        s.Length <= max ? s : s[..(max - 3)] + "...";
 }
