@@ -384,7 +384,8 @@ body {
 }
 
 /* Debug overlay toggle */
-#overlay-toggle {
+#overlay-toggle,
+#bounds-toggle {
     font-size: 11px;
     color: #aaa;
     display: flex;
@@ -395,11 +396,13 @@ body {
     user-select: none;
 }
 
-#overlay-toggle:hover {
+#overlay-toggle:hover,
+#bounds-toggle:hover {
     color: #ddd;
 }
 
-#overlay-toggle input {
+#overlay-toggle input,
+#bounds-toggle input {
     cursor: pointer;
 }
 

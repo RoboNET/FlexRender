@@ -522,16 +522,39 @@ overlayCheckbox.addEventListener('change', () => {
     scheduleRender();
 });
 
+// --- Bounds overlay toggle ---
+const boundsToggle = document.createElement('label');
+boundsToggle.id = 'bounds-toggle';
+boundsToggle.innerHTML = '<input type="checkbox" id="bounds-checkbox" /> Bounds';
+previewTabs.insertBefore(boundsToggle, zoomSelect);
+
+const boundsCheckbox = document.getElementById('bounds-checkbox');
+let boundsMode = false;
+
+boundsCheckbox.addEventListener('change', () => {
+    boundsMode = boundsCheckbox.checked;
+    if (boundsMode && lastLayoutData) {
+        showAllBounds(lastLayoutData);
+    } else {
+        hideHighlight();
+    }
+});
+
 // --- Layout tree builder (with data attributes for highlight) ---
 let canvasWidth = 0;
 let canvasHeight = 0;
+let lastLayoutData = null;
 
-function buildLayoutTree(node, depth) {
+function buildLayoutTree(node, depth, parentAbsX, parentAbsY) {
     if (!node || !node.type) return '';
+    parentAbsX = parentAbsX || 0;
+    parentAbsY = parentAbsY || 0;
+    const absX = parentAbsX + node.x;
+    const absY = parentAbsY + node.y;
     const dims = `${node.w}\u00d7${node.h} @ (${node.x}, ${node.y})`;
     const hasChildren = node.children && node.children.length > 0;
     const openAttr = depth < 2 ? ' open' : '';
-    const dataAttrs = `data-x="${node.x}" data-y="${node.y}" data-w="${node.w}" data-h="${node.h}"`;
+    const dataAttrs = `data-x="${absX}" data-y="${absY}" data-w="${node.w}" data-h="${node.h}"`;
 
     const props = [];
     if (node.content) props.push(`"${escHtml(node.content)}"`);
@@ -552,7 +575,7 @@ function buildLayoutTree(node, depth) {
     const safeDims = escHtml(dims);
 
     if (hasChildren) {
-        const childrenHtml = node.children.map(c => buildLayoutTree(c, depth + 1)).join('');
+        const childrenHtml = node.children.map(c => buildLayoutTree(c, depth + 1, absX, absY)).join('');
         return `<details${openAttr}><summary ${dataAttrs}><span class="node-type" data-type="${safeType}">${safeType}</span> <span class="node-dims">${safeDims}</span>${propsStr}</summary>${childrenHtml}</details>`;
     }
     return `<div class="layout-leaf" ${dataAttrs}><span class="node-type" data-type="${safeType}">${safeType}</span> <span class="node-dims">${safeDims}</span>${propsStr}</div>`;
@@ -879,6 +902,64 @@ function hideHighlight() {
     const imgW = previewImg.offsetWidth;
     const imgH = previewImg.offsetHeight;
     highlightCtx.clearRect(0, 0, imgW, imgH);
+    // Redraw bounds overlay if active
+    if (boundsMode && lastLayoutData) {
+        showAllBounds(lastLayoutData);
+    }
+}
+
+function showAllBounds(layoutData) {
+    if (!previewImg.naturalWidth || canvasWidth === 0) return;
+    syncCanvasSize();
+    const imgW = previewImg.offsetWidth;
+    const imgH = previewImg.offsetHeight;
+    if (imgW === 0) return;
+
+    const scaleX = imgW / canvasWidth;
+    const scaleY = imgH / canvasHeight;
+
+    highlightCtx.clearRect(0, 0, imgW, imgH);
+
+    function drawNode(node, parentX, parentY) {
+        if (!node || !node.type) return;
+        const absX = parentX + node.x;
+        const absY = parentY + node.y;
+        const px = absX * scaleX;
+        const py = absY * scaleY;
+        const pw = node.w * scaleX;
+        const ph = node.h * scaleY;
+
+        if (node.type === 'text') {
+            highlightCtx.strokeStyle = 'rgba(33, 150, 243, 0.7)';
+            highlightCtx.lineWidth = 1.5;
+            highlightCtx.strokeRect(px, py, pw, ph);
+
+            // Draw label with font name and content preview
+            const fontLabel = node.fontFamily || node.font || '';
+            const contentPreview = (node.content || '').substring(0, 10);
+            const label = fontLabel ? `${fontLabel}: ${contentPreview}` : contentPreview;
+            if (label) {
+                highlightCtx.font = '9px system-ui, sans-serif';
+                const textMetrics = highlightCtx.measureText(label);
+                const labelX = px + 1;
+                const labelY = py > 12 ? py - 2 : py + ph + 10;
+                highlightCtx.fillStyle = 'rgba(33, 150, 243, 0.85)';
+                highlightCtx.fillRect(labelX - 1, labelY - 9, textMetrics.width + 4, 11);
+                highlightCtx.fillStyle = '#fff';
+                highlightCtx.fillText(label, labelX, labelY);
+            }
+        } else if (node.type === 'flex' && node.children && node.children.length > 0) {
+            highlightCtx.strokeStyle = 'rgba(76, 175, 80, 0.4)';
+            highlightCtx.lineWidth = 0.5;
+            highlightCtx.strokeRect(px, py, pw, ph);
+        }
+
+        if (node.children) {
+            node.children.forEach(c => drawNode(c, absX, absY));
+        }
+    }
+
+    drawNode(layoutData, 0, 0);
 }
 
 layoutPane.addEventListener('mouseover', (e) => {
@@ -982,10 +1063,51 @@ function render() {
                 const layoutData = JSON.parse(layoutJson);
                 canvasWidth = layoutData.w || 0;
                 canvasHeight = layoutData.h || 0;
+                lastLayoutData = layoutData;
+
+                // Font diagnostics (logged to console for debugging)
+                try {
+                    const diagJson = api.GetFontDiagnostics();
+                    const diag = JSON.parse(diagJson);
+                    if (diag.fonts?.length > 0) {
+                        console.group('Font diagnostics');
+                        for (const f of diag.fonts) {
+                            const status = f.isDefault ? '⚠️ DEFAULT FALLBACK' : `✅ ${f.familyName}`;
+                            console.log(`${f.name}: ${status} (fixed=${f.isFixedPitch}, weight=${f.fontWeight})`);
+                            console.log(`  boldVariant: ${f.boldVariant}`);
+                            console.log(`  normalVariant: ${f.normalVariant}`);
+                            console.log(`  ndcBoldResolve: ${f.ndcBoldResolve}`);
+                            console.log(`  ndcNormalResolve: ${f.ndcNormalResolve}`);
+                        }
+                        console.log(`Memory resources (${diag.memoryResourceCount}):`, diag.memoryResources);
+                        console.groupEnd();
+                    }
+                } catch (diagErr) { console.warn('Font diagnostics failed:', diagErr); }
+
+                // Layout debug: log first few text elements with metrics
+                console.group('Layout metrics (first text elements)');
+                function logTexts(node, depth, parentX, parentY) {
+                    if (!node) return;
+                    const ax = (parentX || 0) + node.x, ay = (parentY || 0) + node.y;
+                    if (node.type === 'text') {
+                        console.log(`[${ax.toFixed(1)},${ay.toFixed(1)}] ${node.w.toFixed(1)}×${node.h.toFixed(1)} fontSize=${node.fontSize || '?'} fontSizeExact=${node.fontSizeExact || '?'} font=${node.font || '?'} resolved=${node.resolvedTypeface || '?'} "${(node.content || '').substring(0, 30)}"`);
+                    }
+                    (node.children || []).forEach(c => logTexts(c, depth + 1, ax, ay));
+                }
+                logTexts(layoutData, 0, 0, 0);
+                console.groupEnd();
+
                 layoutPane.innerHTML = '<div class="layout-tree">' + buildLayoutTree(layoutData, 0) + '</div>';
+                // Compare rendered PNG size vs layout size
+                previewImg.addEventListener('load', () => {
+                    console.log(`PNG: ${previewImg.naturalWidth}×${previewImg.naturalHeight}, Layout: ${canvasWidth}×${canvasHeight}, Ratio: ${(previewImg.naturalWidth / canvasWidth).toFixed(4)}×${(previewImg.naturalHeight / canvasHeight).toFixed(4)}`);
+                    if (boundsMode) showAllBounds(layoutData);
+                }, { once: true });
+
             } catch (layoutErr) {
                 console.warn('Layout computation failed:', layoutErr);
                 layoutPane.innerHTML = '<div class="layout-error">Layout unavailable</div>';
+                lastLayoutData = null;
             }
 
             switchToTab('preview');

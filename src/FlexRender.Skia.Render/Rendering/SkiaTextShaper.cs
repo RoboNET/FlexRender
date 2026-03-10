@@ -93,6 +93,7 @@ public sealed class SkiaTextShaper : ITextShaper
         var font = new SKFont(typeface, fontSize)
         {
             Subpixel = _defaultRenderOptions.SubpixelText,
+            LinearMetrics = true,
             Hinting = MapFontHinting(_defaultRenderOptions.FontHinting),
             Edging = MapTextRendering(_defaultRenderOptions.TextRendering)
         };

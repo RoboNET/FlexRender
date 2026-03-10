@@ -867,7 +867,9 @@ public sealed class LayoutEngine
         // Floor to 0.1px to avoid rounding errors where text barely exceeds container width
         // due to non-linear font scaling (hinting, glyph rounding)
         var computed = refSize * availableWidth / totalMeasured;
-        return MathF.Floor(computed * 10f) / 10f;
+        var floored = MathF.Floor(computed * 10f) / 10f;
+
+        return floored;
     }
 
     private float MeasureContentWidth(TemplateElement element, LayoutContext context)

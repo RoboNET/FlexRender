@@ -361,7 +361,10 @@ internal static partial class PlaygroundApi
 
         // Computed properties
         if (node.ComputedFontSize > 0)
+        {
             obj["fontSize"] = Math.Round(node.ComputedFontSize, 1);
+            obj["fontSizeExact"] = node.ComputedFontSize;
+        }
 
         if (node.Baseline > 0)
             obj["baseline"] = Math.Round(node.Baseline, 1);
@@ -421,6 +424,7 @@ internal static partial class PlaygroundApi
                     obj["fontStyle"] = t.FontStyle.Value.ToString().ToLowerInvariant();
                 if (!string.IsNullOrEmpty(t.Color.Value))
                     obj["color"] = t.Color.Value;
+
                 break;
 
             case ImageElement:
@@ -581,6 +585,71 @@ internal static partial class PlaygroundApi
 
             canvas.DrawRect(glyphX, y, w, node.Height, glyphStroke);
             glyphX += w;
+        }
+    }
+
+    /// <summary>
+    /// Returns a JSON diagnostic report of font loading status, including registered font paths,
+    /// resolved typeface family names, and all resources in the in-memory VFS.
+    /// </summary>
+    /// <returns>JSON string with font diagnostics, or an error JSON on failure.</returns>
+    [JSExport]
+    public static string GetFontDiagnostics()
+    {
+        try
+        {
+            if (_render is not SkiaRender skiaRender)
+            {
+                return JsonSerializer.Serialize(new { error = "Not initialized or not using SkiaRender" });
+            }
+
+            var fontManager = skiaRender.FontManager;
+            var registeredPaths = fontManager.RegisteredFontPaths;
+
+            var fonts = new JsonArray();
+            foreach (var (name, path) in registeredPaths)
+            {
+                var typeface = fontManager.GetTypeface(name);
+
+                // Also test variant lookup (how layout engine resolves fonts)
+                var boldVariant = fontManager.GetTypeface(name, Parsing.Ast.FontWeight.Bold, Parsing.Ast.FontStyle.Normal);
+                var normalVariant = fontManager.GetTypeface(name, Parsing.Ast.FontWeight.Normal, Parsing.Ast.FontStyle.Normal);
+
+                // Test the 4-param overload (how NDC elements resolve: font + fontFamily + weight)
+                var ndcBoldResolve = fontManager.GetTypeface(name, "JetBrains Mono", Parsing.Ast.FontWeight.Bold, Parsing.Ast.FontStyle.Normal);
+                var ndcNormalResolve = fontManager.GetTypeface(name, "JetBrains Mono", Parsing.Ast.FontWeight.Normal, Parsing.Ast.FontStyle.Normal);
+
+                fonts.Add(new JsonObject
+                {
+                    ["name"] = name,
+                    ["path"] = path,
+                    ["familyName"] = typeface.FamilyName,
+                    ["isFixedPitch"] = typeface.IsFixedPitch,
+                    ["fontWeight"] = (int)typeface.FontStyle.Weight,
+                    ["isDefault"] = typeface == SkiaSharp.SKTypeface.Default,
+                    // Variant lookups
+                    ["boldVariant"] = $"{boldVariant.FamilyName} w={boldVariant.FontStyle.Weight} fixed={boldVariant.IsFixedPitch} default={boldVariant == SkiaSharp.SKTypeface.Default}",
+                    ["normalVariant"] = $"{normalVariant.FamilyName} w={normalVariant.FontStyle.Weight} fixed={normalVariant.IsFixedPitch} default={normalVariant == SkiaSharp.SKTypeface.Default}",
+                    ["ndcBoldResolve"] = $"{ndcBoldResolve.FamilyName} w={ndcBoldResolve.FontStyle.Weight} fixed={ndcBoldResolve.IsFixedPitch} default={ndcBoldResolve == SkiaSharp.SKTypeface.Default}",
+                    ["ndcNormalResolve"] = $"{ndcNormalResolve.FamilyName} w={ndcNormalResolve.FontStyle.Weight} fixed={ndcNormalResolve.IsFixedPitch} default={ndcNormalResolve == SkiaSharp.SKTypeface.Default}",
+                });
+            }
+
+            var resources = _memoryLoader?.ListResources() ?? [];
+
+            var result = new JsonObject
+            {
+                ["registeredFontCount"] = registeredPaths.Count,
+                ["fonts"] = fonts,
+                ["memoryResourceCount"] = resources.Count,
+                ["memoryResources"] = JsonSerializer.SerializeToNode(resources)
+            };
+
+            return result.ToJsonString();
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = ex.Message });
         }
     }
 

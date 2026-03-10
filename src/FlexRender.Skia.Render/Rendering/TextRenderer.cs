@@ -143,7 +143,8 @@ public sealed class TextRenderer
 
         foreach (var line in lines)
         {
-            var lineWidth = font.MeasureText(line);
+            var lineWidthAdv = font.MeasureText(line, out var drawBounds);
+            var lineWidth = Math.Max(lineWidthAdv, drawBounds.Right);
             var x = CalculateX(element.Align.Value, bounds, lineWidth, direction);
 
             canvas.DrawText(line, x, y, SKTextAlign.Left, font, paint);
@@ -178,6 +179,7 @@ public sealed class TextRenderer
         var font = new SKFont(typeface, fontSize)
         {
             Subpixel = renderOptions.SubpixelText,
+            LinearMetrics = true,
             Hinting = MapFontHinting(renderOptions.FontHinting),
             Edging = MapTextRendering(renderOptions.TextRendering)
         };
