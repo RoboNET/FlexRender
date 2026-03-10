@@ -569,6 +569,10 @@ function buildLayoutTree(node, depth, parentAbsX, parentAbsY) {
     if (node.justify) props.push(`justify=${escHtml(node.justify)}`);
     if (node.fontSize) props.push(`fontSize=${escHtml(String(node.fontSize))}px`);
     if (node.textLines) props.push(`lines=${escHtml(String(node.textLines))}`);
+    if (node.contentW) props.push(`contentW=${node.contentW}`);
+    if (node.intrinsicW) props.push(`intrinsicW=${node.intrinsicW}`);
+    if (node.shapedW) props.push(`shapedW=${node.shapedW}`);
+    if (node.resolvedTypeface) props.push(`tf=${escHtml(node.resolvedTypeface)}`);
 
     const propsStr = props.length > 0 ? ` <span class="node-props">[${props.join(', ')}]</span>` : '';
     const safeType = escHtml(node.type);

@@ -61,6 +61,28 @@ public sealed class LayoutNode
     /// </summary>
     public float ComputedFontSize { get; set; }
 
+    /// <summary>
+    /// Diagnostic: intrinsic width from IntrinsicMeasurer (before scaling).
+    /// Only populated for text elements during layout when diagnostics are enabled.
+    /// </summary>
+    public float DiagIntrinsicWidth { get; set; }
+
+    /// <summary>
+    /// Diagnostic: shaped width from TextShaper at final font size.
+    /// Only populated for text elements during layout when diagnostics are enabled.
+    /// </summary>
+    public float DiagShapedWidth { get; set; }
+
+    /// <summary>
+    /// Diagnostic: final content width used in layout calculation.
+    /// </summary>
+    public float DiagContentWidth { get; set; }
+
+    /// <summary>
+    /// Diagnostic: resolved typeface family name from FontManager.
+    /// </summary>
+    public string? DiagResolvedTypeface { get; set; }
+
     /// <summary>Right edge (X + Width).</summary>
     public float Right => X + Width;
 

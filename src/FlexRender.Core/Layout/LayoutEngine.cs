@@ -481,6 +481,8 @@ public sealed class LayoutEngine
         var border = BorderParser.Resolve(text, context.ContainerWidth, context.FontSize);
 
         float contentWidth;
+        var diagIntrinsicW = 0f;
+        var diagShapedW = 0f;
         if (!string.IsNullOrEmpty(text.Width.Value))
         {
             contentWidth = context.ResolveWidth(text.Width.Value) ?? context.ContainerWidth;
@@ -490,6 +492,7 @@ public sealed class LayoutEngine
             && intrinsic.MaxWidth > 0)
         {
             contentWidth = intrinsic.MaxWidth;
+            diagIntrinsicW = intrinsic.MaxWidth;
         }
         else
         {
@@ -518,6 +521,7 @@ public sealed class LayoutEngine
                     ? Math.Min(contentWidth, context.ContainerWidth)
                     : float.MaxValue;
                 var shaped = TextShaper.ShapeText(text, fontSize, measureWidth);
+                diagShapedW = shaped.TotalSize.Width;
                 textLines = shaped.Lines;
                 computedLineHeight = shaped.LineHeight;
                 textBaseline = shaped.Baseline;
@@ -534,6 +538,7 @@ public sealed class LayoutEngine
                 ? Math.Min(contentWidth, context.ContainerWidth)
                 : float.MaxValue;
             var shaped = TextShaper.ShapeText(text, fontSize, measureWidth);
+            diagShapedW = shaped.TotalSize.Width;
             contentHeight = shaped.TotalSize.Height;
             textLines = shaped.Lines;
             computedLineHeight = shaped.LineHeight;
@@ -582,6 +587,9 @@ public sealed class LayoutEngine
         node.ComputedLineHeight = computedLineHeight;
         node.Baseline = padding.Top + border.Top.Width + textBaseline;
         node.ComputedFontSize = resolvedFontSize;
+        node.DiagContentWidth = contentWidth;
+        node.DiagIntrinsicWidth = diagIntrinsicW;
+        node.DiagShapedWidth = diagShapedW;
         return node;
     }
 

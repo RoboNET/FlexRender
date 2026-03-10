@@ -378,6 +378,16 @@ internal static partial class PlaygroundApi
         if (node.Direction != TextDirection.Ltr)
             obj["direction"] = node.Direction.ToString().ToLowerInvariant();
 
+        // Diagnostic fields for text debugging
+        if (node.DiagContentWidth > 0)
+            obj["contentW"] = Math.Round(node.DiagContentWidth, 2);
+        if (node.DiagIntrinsicWidth > 0)
+            obj["intrinsicW"] = Math.Round(node.DiagIntrinsicWidth, 2);
+        if (node.DiagShapedWidth > 0)
+            obj["shapedW"] = Math.Round(node.DiagShapedWidth, 2);
+        if (!string.IsNullOrEmpty(node.DiagResolvedTypeface))
+            obj["resolvedTypeface"] = node.DiagResolvedTypeface;
+
         // Element-specific properties
         SerializeElementProperties(obj, node.Element);
 
@@ -424,6 +434,14 @@ internal static partial class PlaygroundApi
                     obj["fontStyle"] = t.FontStyle.Value.ToString().ToLowerInvariant();
                 if (!string.IsNullOrEmpty(t.Color.Value))
                     obj["color"] = t.Color.Value;
+
+                // Resolve typeface name for diagnostics
+                if (_render is SkiaRender skiaRender)
+                {
+                    var typeface = skiaRender.FontManager.GetTypeface(
+                        t.Font.Value, t.FontFamily.Value, t.FontWeight.Value, t.FontStyle.Value);
+                    obj["resolvedTypeface"] = typeface.FamilyName;
+                }
 
                 break;
 
