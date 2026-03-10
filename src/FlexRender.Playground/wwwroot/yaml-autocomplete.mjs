@@ -127,6 +127,17 @@ export function registerYamlAutocomplete(monaco, schema, options = {}) {
                 }
                 case 'template':
                     return makeSuggestions(monaco, rootProps.template?.properties || {}, range, 'template');
+                case 'content-options': {
+                    const formatDef = context.format
+                        ? defs[context.format + 'Options']
+                        : null;
+                    const props = formatDef?.properties || {};
+                    return makeSuggestions(monaco, props, range, 'content-options');
+                }
+                case 'content-charset-item': {
+                    const props = defs.charsetStyle?.properties || {};
+                    return makeSuggestions(monaco, props, range, 'content-charset-item');
+                }
                 default:
                     return { suggestions: [] };
             }
@@ -149,6 +160,30 @@ function detectContext(text, currentIndent) {
         if (lineIndent < currentIndent) {
             if (trimmed === 'canvas:') return { type: 'canvas' };
             if (trimmed === 'template:') return { type: 'template' };
+
+            // Check for charset designator (single word key, e.g. "I:")
+            const isDesignatorKey = trimmed.match(/^\w+:$/);
+            if (isDesignatorKey) {
+                for (let k = i - 1; k >= 0; k--) {
+                    const prev = lines[k];
+                    const prevTrimmed = prev.trim();
+                    if (!prevTrimmed || prevTrimmed.startsWith('#')) continue;
+                    const prevIndent = prev.match(/^(\s*)/)[1].length;
+                    if (prevIndent < lineIndent) {
+                        if (prevTrimmed === 'charsets:') {
+                            return { type: 'content-charset-item' };
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (trimmed === 'options:') {
+                const parentInfo = findContentParent(lines, i, lineIndent);
+                if (parentInfo) {
+                    return { type: 'content-options', format: parentInfo.format };
+                }
+            }
             if (trimmed === 'fonts:' || trimmed === '- name:' || trimmed.startsWith('- name:')) {
                 return { type: 'font-item' };
             }
@@ -188,6 +223,32 @@ function detectContext(text, currentIndent) {
     if (currentIndent === 0) return { type: 'root' };
 
     return { type: 'unknown' };
+}
+
+function findContentParent(lines, fromIndex, optionsIndent) {
+    let format = null;
+    for (let i = fromIndex - 1; i >= 0; i--) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const indent = line.match(/^(\s*)/)[1].length;
+        if (indent >= optionsIndent) {
+            const formatMatch = trimmed.match(/^format:\s*(\w+)/);
+            if (formatMatch) format = formatMatch[1];
+            continue;
+        }
+        const typeMatch = trimmed.match(/^-?\s*type:\s*(\w+)/);
+        if (typeMatch) {
+            if (typeMatch[1] === 'content') return { format };
+            return null;
+        }
+        if (indent < optionsIndent) {
+            const formatMatch = trimmed.match(/^-?\s*format:\s*(\w+)/);
+            if (formatMatch) format = formatMatch[1];
+        }
+        if (indent === 0) break;
+    }
+    return null;
 }
 
 function suggestValues(monaco, key, textUntilPosition, schema, defs, elementPropsMap, range, options) {
@@ -312,11 +373,52 @@ function findPropertyDef(key, textUntilPosition, schema, defs, elementPropsMap) 
         }
     }
 
+    // Check if inside content options or charset item
+    const optionsContext = detectContentOptionsContext(lines);
+    if (optionsContext === 'charset-item') {
+        const charsetDef = defs.charsetStyle;
+        if (charsetDef?.properties?.[cleanKey]) return charsetDef.properties[cleanKey];
+    } else if (optionsContext) {
+        const optDef = defs[optionsContext + 'Options'];
+        if (optDef?.properties?.[cleanKey]) return optDef.properties[cleanKey];
+    }
+
     // Check flex item properties as fallback
     if (defs.flexItemProperties?.properties?.[cleanKey]) {
         return defs.flexItemProperties.properties[cleanKey];
     }
 
+    return null;
+}
+
+function detectContentOptionsContext(lines) {
+    for (let i = lines.length - 2; i >= 0; i--) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const indent = line.match(/^(\s*)/)[1].length;
+
+        // Check for charset designator pattern
+        if (trimmed.match(/^\w+:$/)) {
+            for (let k = i - 1; k >= 0; k--) {
+                const prev = lines[k];
+                const prevTrimmed = prev.trim();
+                if (!prevTrimmed || prevTrimmed.startsWith('#')) continue;
+                const prevIndent = prev.match(/^(\s*)/)[1].length;
+                if (prevIndent < indent && prevTrimmed === 'charsets:') {
+                    return 'charset-item';
+                }
+                if (prevIndent < indent) break;
+            }
+        }
+
+        if (trimmed === 'options:') {
+            const parentInfo = findContentParent(lines, i, indent);
+            return parentInfo?.format || null;
+        }
+
+        if (indent === 0) break;
+    }
     return null;
 }
 
@@ -367,6 +469,8 @@ function getSortOrder(key, context) {
         canvas: { width: '0', height: '1', background: '2', fixed: '3' },
         element: { type: '0', content: '1', children: '1', src: '1', data: '1', direction: '2', size: '2', color: '2', font: '3', padding: '4' },
         font: { name: '0', path: '1', fallback: '2' },
+        'content-options': { input_encoding: '0', columns: '1', font_family: '2', char_width_ratio: '3', charsets: '4' },
+        'content-charset-item': { font: '0', font_family: '1', font_style: '2', font_size: '3', color: '4', encoding: '5', uppercase: '6' },
     };
     return priority[context]?.[key] || '5';
 }

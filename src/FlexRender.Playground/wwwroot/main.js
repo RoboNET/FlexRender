@@ -1135,7 +1135,15 @@ function render() {
 
             switchToTab('preview');
         } else {
-            statusText.textContent = 'Render returned empty \u2014 check console';
+            const lastError = api.GetLastError();
+            if (lastError) {
+                errorsPane.textContent = lastError;
+                statusBar.classList.add('error');
+                statusText.textContent = 'Error';
+                switchToTab('errors');
+            } else {
+                statusText.textContent = 'Render returned empty';
+            }
         }
     } catch (e) {
         errorsPane.textContent = e.message || String(e);
