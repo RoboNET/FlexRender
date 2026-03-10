@@ -70,12 +70,14 @@ public sealed class FlexRenderBuilder
 
     /// <summary>
     /// Gets the list of configured resource loaders.
+    /// Custom loaders can be inserted before <see cref="Build"/> is called to control
+    /// resolution priority (lower index = higher priority).
     /// </summary>
     /// <remarks>
-    /// Loaders are added lazily when <see cref="Build"/> is called to ensure
-    /// they receive the fully configured <see cref="Options"/> instance.
+    /// Built-in loaders (file, base64, embedded) are added lazily when <see cref="Build"/>
+    /// is called to ensure they receive the fully configured <see cref="Options"/> instance.
     /// </remarks>
-    internal List<IResourceLoader> ResourceLoaders { get; } = [];
+    public List<IResourceLoader> ResourceLoaders { get; } = [];
 
     /// <summary>
     /// Gets the configured filter registry, or <c>null</c> if no filters have been registered.

@@ -2,6 +2,8 @@
 
 This guide walks you through installing FlexRender, creating your first template, and rendering it using code, dependency injection, or the CLI.
 
+> **Want to try without installing?** Use the [browser playground](https://robonet.github.io/FlexRender/) -- edit YAML templates and see results instantly.
+
 ## Installation
 
 ### All-in-one (recommended)

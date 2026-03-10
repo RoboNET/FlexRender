@@ -54,6 +54,12 @@ public sealed class LayoutEngine
     public ITextShaper? TextShaper { get; set; }
 
     /// <summary>
+    /// When true, populates <see cref="LayoutNode.Diagnostics"/> with text measurement
+    /// details (intrinsic width, shaped width, content width). Defaults to false.
+    /// </summary>
+    public bool EnableDiagnostics { get; set; }
+
+    /// <summary>
     /// Base font size in pixels used for em resolution and as fallback when text elements
     /// don't specify an explicit size. Must match the renderer's base font size for
     /// consistent layout-to-render results.
@@ -481,6 +487,8 @@ public sealed class LayoutEngine
         var border = BorderParser.Resolve(text, context.ContainerWidth, context.FontSize);
 
         float contentWidth;
+        var diagIntrinsicW = 0f;
+        var diagShapedW = 0f;
         if (!string.IsNullOrEmpty(text.Width.Value))
         {
             contentWidth = context.ResolveWidth(text.Width.Value) ?? context.ContainerWidth;
@@ -490,6 +498,7 @@ public sealed class LayoutEngine
             && intrinsic.MaxWidth > 0)
         {
             contentWidth = intrinsic.MaxWidth;
+            diagIntrinsicW = intrinsic.MaxWidth;
         }
         else
         {
@@ -518,6 +527,7 @@ public sealed class LayoutEngine
                     ? Math.Min(contentWidth, context.ContainerWidth)
                     : float.MaxValue;
                 var shaped = TextShaper.ShapeText(text, fontSize, measureWidth);
+                diagShapedW = shaped.TotalSize.Width;
                 textLines = shaped.Lines;
                 computedLineHeight = shaped.LineHeight;
                 textBaseline = shaped.Baseline;
@@ -534,6 +544,7 @@ public sealed class LayoutEngine
                 ? Math.Min(contentWidth, context.ContainerWidth)
                 : float.MaxValue;
             var shaped = TextShaper.ShapeText(text, fontSize, measureWidth);
+            diagShapedW = shaped.TotalSize.Width;
             contentHeight = shaped.TotalSize.Height;
             textLines = shaped.Lines;
             computedLineHeight = shaped.LineHeight;
@@ -582,6 +593,10 @@ public sealed class LayoutEngine
         node.ComputedLineHeight = computedLineHeight;
         node.Baseline = padding.Top + border.Top.Width + textBaseline;
         node.ComputedFontSize = resolvedFontSize;
+        if (EnableDiagnostics)
+        {
+            node.Diagnostics = new LayoutDiagnostics(diagIntrinsicW, diagShapedW, contentWidth);
+        }
         return node;
     }
 

@@ -17,8 +17,29 @@ public sealed class FontManager : IFontManager, IDisposable
     private readonly ConcurrentDictionary<TypefaceVariantKey, SKTypeface> _variantTypefaces = new();
     private readonly ConcurrentDictionary<string, string> _fontPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, string> _fontFallbacks = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Names of typefaces loaded from real files/resources (safe to inspect native properties).</summary>
+    private readonly ConcurrentDictionary<string, byte> _fileLoadedTypefaces = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Typefaces removed from caches that still need disposal at shutdown.</summary>
+    private readonly ConcurrentBag<SKTypeface> _orphanedTypefaces = new();
+    private readonly IReadOnlyList<IResourceLoader> _resourceLoaders;
     private string _defaultFallback = "Arial";
     private bool _disposed;
+
+    /// <summary>
+    /// Initializes a new instance with no resource loaders (file-system only).
+    /// </summary>
+    public FontManager() : this([]) { }
+
+    /// <summary>
+    /// Initializes a new instance with the specified resource loaders for font resolution.
+    /// When a font file path cannot be found on disk, the resource loaders are tried in priority order.
+    /// </summary>
+    /// <param name="resourceLoaders">Resource loaders to use for font resolution.</param>
+    public FontManager(IReadOnlyList<IResourceLoader> resourceLoaders)
+    {
+        ArgumentNullException.ThrowIfNull(resourceLoaders);
+        _resourceLoaders = resourceLoaders;
+    }
 
     /// <summary>
     /// Gets a typeface by font name, using fallback if necessary.
@@ -114,28 +135,102 @@ public sealed class FontManager : IFontManager, IDisposable
     /// <returns>The loaded typeface or a fallback.</returns>
     private SKTypeface LoadTypeface(string fontName)
     {
-        // Try to load from registered path
+        // Try to load from registered path on disk
         if (_fontPaths.TryGetValue(fontName, out var path) && File.Exists(path))
         {
             var typeface = SKTypeface.FromFile(path);
             if (typeface != null)
             {
+                _fileLoadedTypefaces[fontName] = 1;
                 return typeface;
             }
         }
 
-        // Try fallback font
-        if (_fontFallbacks.TryGetValue(fontName, out var fallbackName))
+        // Try fallback font via system font lookup.
+        // In WASM (browser) there are no system fonts — SKTypeface.FromFamilyName() returns
+        // objects with invalid native handles whose properties cause unrecoverable RuntimeErrors.
+        // Skip system font fallback entirely and return the built-in blank typeface instead.
+        if (!OperatingSystem.IsBrowser())
         {
-            var fallback = SKTypeface.FromFamilyName(fallbackName);
-            if (fallback != null)
+            if (_fontFallbacks.TryGetValue(fontName, out var fallbackName))
             {
-                return fallback;
+                var fallback = SKTypeface.FromFamilyName(fallbackName);
+                if (fallback != null)
+                {
+                    return fallback;
+                }
+            }
+
+            // Use default fallback
+            return SKTypeface.FromFamilyName(_defaultFallback) ?? SKTypeface.Default;
+        }
+
+        // In WASM, SKTypeface.Default may also have an invalid native handle.
+        // Try to return any file-loaded typeface as a last resort.
+        return GetAnyFileLoadedTypeface() ?? SKTypeface.Default;
+    }
+
+    /// <summary>
+    /// Returns any typeface that was loaded from a real file/resource, or null if none exist.
+    /// Used as a WASM-safe fallback when system fonts and SKTypeface.Default are unavailable.
+    /// </summary>
+    private SKTypeface? GetAnyFileLoadedTypeface()
+    {
+        foreach (var (name, _) in _fileLoadedTypefaces)
+        {
+            if (_typefaces.TryGetValue(name, out var typeface))
+                return typeface;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Asynchronously pre-loads a font from resource loaders and caches the typeface.
+    /// Should be called during font registration (before rendering) to avoid sync-over-async.
+    /// </summary>
+    /// <param name="name">The font name to register.</param>
+    /// <param name="resourceKey">The resource key (file name or path) to look up.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if font was loaded from a resource loader; otherwise, false.</returns>
+    public async Task<bool> PreloadFontFromResourcesAsync(string name, string resourceKey, CancellationToken cancellationToken = default)
+    {
+        foreach (var loader in _resourceLoaders.OrderBy(l => l.Priority))
+        {
+            if (!loader.CanHandle(resourceKey))
+                continue;
+
+            try
+            {
+                using var stream = await loader.Load(resourceKey, cancellationToken).ConfigureAwait(false);
+                if (stream is null)
+                    continue;
+
+                var typeface = SKTypeface.FromStream(stream);
+                if (typeface is null)
+                    continue;
+
+                // Cache directly so GetTypeface returns it synchronously.
+                // Only mark as file-loaded when TryAdd succeeds — if the key already exists
+                // (e.g. a system fallback was cached by a concurrent GetTypeface call),
+                // marking it as file-loaded would be incorrect and unsafe in WASM.
+                if (_typefaces.TryAdd(name, typeface))
+                {
+                    _fileLoadedTypefaces[name] = 1;
+                }
+                else
+                {
+                    typeface.Dispose();
+                }
+                return true;
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                // Resource loader failed (e.g. file not found, invalid format), try next
             }
         }
 
-        // Use default fallback
-        return SKTypeface.FromFamilyName(_defaultFallback) ?? SKTypeface.Default;
+        return false;
     }
 
     /// <summary>
@@ -150,13 +245,21 @@ public sealed class FontManager : IFontManager, IDisposable
         var skFontStyle = ToSkFontStyle(weight, style);
         var targetWeight = (int)weight;
 
-        // 1. Search registered fonts by loading each and checking FamilyName
+        // 1. Search registered fonts by loading each and checking FamilyName.
+        // GetTypeface triggers lazy loading from file, which populates _fileLoadedTypefaces.
+        // After loading, only inspect typefaces that were loaded from real files — system
+        // fallbacks may have invalid native handles in WASM.
         SKTypeface? bestRegisteredMatch = null;
         var bestRegisteredWeightDiff = int.MaxValue;
 
         foreach (var fontPath in _fontPaths)
         {
             var typeface = GetTypeface(fontPath.Key);
+
+            // Skip system fallbacks (unsafe to inspect native properties in WASM)
+            if (!_fileLoadedTypefaces.ContainsKey(fontPath.Key))
+                continue;
+
             if (!string.Equals(typeface.FamilyName, familyName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -185,19 +288,24 @@ public sealed class FontManager : IFontManager, IDisposable
             return bestRegisteredMatch;
         }
 
-        // 2. Try system fonts via SKFontManager
-        var systemMatch = SKFontManager.Default.MatchFamily(familyName, skFontStyle);
-        if (systemMatch is not null)
+        // 2. Try system fonts via SKFontManager.
+        // In WASM (browser) there are no system fonts — MatchFamily() returns objects with
+        // invalid native handles whose properties cause unrecoverable RuntimeErrors.
+        if (!OperatingSystem.IsBrowser())
         {
-            var weightDiff = Math.Abs((int)systemMatch.FontStyle.Weight - targetWeight);
-            if (string.Equals(systemMatch.FamilyName, familyName, StringComparison.OrdinalIgnoreCase)
-                && weightDiff <= 100)
+            var systemMatch = SKFontManager.Default.MatchFamily(familyName, skFontStyle);
+            if (systemMatch is not null)
             {
-                return systemMatch;
-            }
+                var weightDiff = Math.Abs((int)systemMatch.FontStyle.Weight - targetWeight);
+                if (string.Equals(systemMatch.FamilyName, familyName, StringComparison.OrdinalIgnoreCase)
+                    && weightDiff <= 100)
+                {
+                    return systemMatch;
+                }
 
-            // System returned an unrelated font; dispose it
-            systemMatch.Dispose();
+                // System returned an unrelated font; dispose it
+                systemMatch.Dispose();
+            }
         }
 
         // 3. Return registered match even if weight is off, or fall back to default
@@ -206,10 +314,11 @@ public sealed class FontManager : IFontManager, IDisposable
 
     /// <summary>
     /// Factory method to load a typeface variant with specific weight and style.
-    /// Resolves the base font family name from the registered font, then attempts to find
-    /// a matching variant through the system font manager first. If the system match returns
-    /// an unrelated font (different family or distant weight), scans sibling font files in
-    /// the same directory as the base font for a better match.
+    /// Resolves the base font family name from the registered font, then searches for a
+    /// matching variant in the following order: (1) already-registered typefaces in the
+    /// in-memory cache, (2) the system font manager, (3) sibling font files on disk.
+    /// Registered typefaces are checked first so that environments without system fonts
+    /// (e.g., WASM) can resolve variants from pre-loaded fonts.
     /// </summary>
     /// <param name="key">The variant key containing font name, weight, and style.</param>
     /// <returns>The loaded typeface variant or a fallback to the base typeface.</returns>
@@ -220,32 +329,78 @@ public sealed class FontManager : IFontManager, IDisposable
 
         // Resolve the family name from the base typeface so that
         // named fonts (e.g. "main" mapped to a file) resolve correctly.
+        // If the font was not loaded from a real file/resource, skip variant search
+        // entirely — system fallback typefaces may have invalid native handles in WASM.
         var baseTypeface = GetTypeface(key.FontName);
+        if (!_fileLoadedTypefaces.ContainsKey(key.FontName))
+            return baseTypeface;
+
         var familyName = baseTypeface.FamilyName;
 
-        // 1. Try system font manager, but verify the result actually matches
-        var systemMatch = SKFontManager.Default.MatchFamily(familyName, skFontStyle);
-        if (systemMatch is not null)
+        // 1. Search among file/resource-loaded typefaces for matching family + weight/style.
+        // Trigger lazy loading for all registered font paths first, so _fileLoadedTypefaces
+        // is populated. Then only inspect file-loaded typefaces — system fallbacks may have
+        // invalid native handles in WASM (no system fonts), causing unrecoverable crashes.
+        foreach (var fontPath in _fontPaths)
+            GetTypeface(fontPath.Key);
+
+        SKTypeface? bestRegistered = null;
+        var bestRegisteredDiff = int.MaxValue;
+        foreach (var (name, _) in _fileLoadedTypefaces)
         {
-            var weightDiff = Math.Abs((int)systemMatch.FontStyle.Weight - targetWeight);
-            if (string.Equals(systemMatch.FamilyName, familyName, StringComparison.OrdinalIgnoreCase)
-                && weightDiff <= 100)
+            if (!_typefaces.TryGetValue(name, out var registered))
+                continue;
+
+            if (!string.Equals(registered.FamilyName, familyName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var wDiff = Math.Abs((int)registered.FontStyle.Weight - targetWeight);
+            var slantMatch = key.Style == FontStyle.Italic
+                ? registered.FontStyle.Slant != SKFontStyleSlant.Upright
+                : registered.FontStyle.Slant == SKFontStyleSlant.Upright;
+
+            if (wDiff <= 100 && slantMatch && wDiff < bestRegisteredDiff)
             {
-                return systemMatch;
+                bestRegistered = registered;
+                bestRegisteredDiff = wDiff;
             }
-
-            // System returned an unrelated font; dispose and try sibling scan
-            systemMatch.Dispose();
         }
 
-        // 2. Scan sibling font files in the same directory as the base font
-        var siblingMatch = FindSiblingTypeface(key.FontName, familyName, targetWeight, skFontStyle.Slant);
-        if (siblingMatch is not null)
+        if (bestRegistered is not null)
+            return bestRegistered;
+
+        // 2. Try system font manager, but verify the result actually matches.
+        // In WASM (browser) there are no system fonts — MatchFamily() returns objects with
+        // invalid native handles whose properties cause unrecoverable RuntimeErrors.
+        if (!OperatingSystem.IsBrowser())
         {
-            return siblingMatch;
+            var systemMatch = SKFontManager.Default.MatchFamily(familyName, skFontStyle);
+            if (systemMatch is not null)
+            {
+                var weightDiff = Math.Abs((int)systemMatch.FontStyle.Weight - targetWeight);
+                if (string.Equals(systemMatch.FamilyName, familyName, StringComparison.OrdinalIgnoreCase)
+                    && weightDiff <= 100)
+                {
+                    return systemMatch;
+                }
+
+                // System returned an unrelated font; dispose and try sibling scan
+                systemMatch.Dispose();
+            }
         }
 
-        // 3. Fall back to base typeface
+        // 3. Scan sibling font files in the same directory as the base font.
+        // In WASM (browser) there is no local file system, so skip sibling discovery.
+        if (!OperatingSystem.IsBrowser())
+        {
+            var siblingMatch = FindSiblingTypeface(key.FontName, familyName, targetWeight, skFontStyle.Slant);
+            if (siblingMatch is not null)
+            {
+                return siblingMatch;
+            }
+        }
+
+        // 4. Fall back to base typeface
         return baseTypeface;
     }
 
@@ -364,19 +519,19 @@ public sealed class FontManager : IFontManager, IDisposable
         if (!string.IsNullOrEmpty(fallback))
             _fontFallbacks[name] = fallback;
 
-        // Clear cached typeface so it gets reloaded
-        // TryRemove is the thread-safe equivalent of Remove for ConcurrentDictionary
-        _typefaces.TryRemove(name, out var removedTypeface);
-        removedTypeface?.Dispose();
+        // Remove cached typeface and collect for deferred disposal.
+        // Cannot dispose immediately — the same object may be shared via _variantTypefaces.
+        if (_typefaces.TryRemove(name, out var removedTypeface))
+            _orphanedTypefaces.Add(removedTypeface);
 
-        // Clear matching variant typefaces for re-registered font
-        foreach (var variantKey in _variantTypefaces.Keys)
+        // Clear ALL variant typefaces and collect for deferred disposal.
+        // Variant entries (including __family__ prefixed keys from GetTypefaceByFamily)
+        // may hold references to the typeface being re-registered. Without a full clear,
+        // stale entries would return the old typeface.
+        foreach (var key in _variantTypefaces.Keys)
         {
-            if (string.Equals(variantKey.FontName, name, StringComparison.OrdinalIgnoreCase)
-                && _variantTypefaces.TryRemove(variantKey, out var variantTypeface))
-            {
-                variantTypeface.Dispose();
-            }
+            if (_variantTypefaces.TryRemove(key, out var variant))
+                _orphanedTypefaces.Add(variant);
         }
 
         return File.Exists(path);
@@ -390,15 +545,27 @@ public sealed class FontManager : IFontManager, IDisposable
 
     /// <summary>
     /// Gets the resolved typeface info (family name, fixed-pitch) for a registered font.
-    /// Returns null if the font is not registered or cannot be loaded.
+    /// Returns null if the font was not loaded from a real file or resource
+    /// (system fallback typefaces may have invalid native handles in WASM).
     /// </summary>
     /// <param name="fontName">The registered font name.</param>
-    /// <returns>Tuple of (FamilyName, IsFixedPitch) or null.</returns>
+    /// <returns>Tuple of (FamilyName, IsFixedPitch) or null if not file-loaded.</returns>
     public (string FamilyName, bool IsFixedPitch)? GetTypefaceInfo(string fontName)
     {
+        if (!_fileLoadedTypefaces.ContainsKey(fontName))
+            return null;
+
         var typeface = GetTypeface(fontName);
         return (typeface.FamilyName, typeface.IsFixedPitch);
     }
+
+    /// <summary>
+    /// Returns whether the named font was loaded from a real file or resource (safe to inspect native properties).
+    /// System fallback typefaces in WASM may have invalid native handles; this check prevents crashes.
+    /// </summary>
+    /// <param name="fontName">The registered font name.</param>
+    /// <returns>True if the font was loaded from a file or resource loader.</returns>
+    public bool IsFileLoaded(string fontName) => _fileLoadedTypefaces.ContainsKey(fontName);
 
     /// <summary>
     /// Sets the default fallback font family name.
@@ -440,7 +607,8 @@ public sealed class FontManager : IFontManager, IDisposable
     }
 
     /// <summary>
-    /// Disposes all loaded typefaces (both base and variant caches).
+    /// Disposes all loaded typefaces (base caches, variant caches, and orphaned typefaces
+    /// collected during font re-registration).
     /// This method is thread-safe but should only be called once.
     /// </summary>
     public void Dispose()
@@ -450,23 +618,26 @@ public sealed class FontManager : IFontManager, IDisposable
 
         _disposed = true;
 
-        // Dispose and remove each base typeface atomically
+        // Collect all unique typefaces to avoid double-dispose (variants may alias base entries)
+        var toDispose = new HashSet<SKTypeface>(ReferenceEqualityComparer.Instance);
+
         foreach (var key in _typefaces.Keys)
         {
             if (_typefaces.TryRemove(key, out var typeface))
-            {
-                typeface.Dispose();
-            }
+                toDispose.Add(typeface);
         }
 
-        // Dispose and remove each variant typeface atomically
         foreach (var key in _variantTypefaces.Keys)
         {
             if (_variantTypefaces.TryRemove(key, out var typeface))
-            {
-                typeface.Dispose();
-            }
+                toDispose.Add(typeface);
         }
+
+        while (_orphanedTypefaces.TryTake(out var orphan))
+            toDispose.Add(orphan);
+
+        foreach (var typeface in toDispose)
+            typeface.Dispose();
     }
 
     /// <summary>

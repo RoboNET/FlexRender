@@ -1,0 +1,901 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://flexrender.dev/schemas/flexrender-template.json",
+  "title": "FlexRender Template",
+  "description": "Schema for FlexRender YAML templates that define layout, styling, and data-bound rendering.",
+  "type": "object",
+  "required": ["canvas"],
+  "additionalProperties": false,
+  "properties": {
+    "template": {
+      "description": "Optional metadata about the template.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Human-readable name for this template.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version string for this template.",
+          "type": "string"
+        },
+        "culture": {
+          "description": "Culture/locale code (e.g., 'en-US', 'de-DE') for number and date formatting.",
+          "type": "string"
+        }
+      }
+    },
+    "canvas": {
+      "description": "Defines the output canvas dimensions and defaults.",
+      "type": "object",
+      "required": ["width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "description": "Canvas width in pixels.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "description": "Canvas height in pixels.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "background": {
+          "description": "Background color (hex string, e.g., '#ffffff').",
+          "type": "string"
+        },
+        "fixed": {
+          "description": "Which dimensions are fixed vs. auto-sized.",
+          "type": "string",
+          "enum": ["width", "height", "both", "none"]
+        },
+        "text-direction": {
+          "description": "Default text direction for the template.",
+          "type": "string",
+          "enum": ["ltr", "rtl"]
+        }
+      }
+    },
+    "fonts": {
+      "description": "Font definitions available to text elements.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Logical name used to reference this font in elements.",
+            "type": "string"
+          },
+          "path": {
+            "description": "Path to the font file (TTF, OTF, WOFF2).",
+            "type": "string"
+          },
+          "fallback": {
+            "description": "Name of a fallback font if glyphs are missing.",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "layout": {
+      "description": "Root layout array containing the top-level elements.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/element"
+      }
+    }
+  },
+  "definitions": {
+    "element": {
+      "description": "A layout element. The 'type' property determines which element-specific properties are valid.",
+      "type": "object",
+      "required": ["type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "text" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/textElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "flex" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/flexElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "image" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/imageElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "qr" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/qrElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "barcode" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/barcodeElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "separator" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/separatorElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "svg" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/svgElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "table" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/tableElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "each" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/eachElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "if" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/ifElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "content" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/contentElement" }
+        }
+      ],
+      "properties": {
+        "type": {
+          "description": "The element type.",
+          "type": "string",
+          "enum": ["text", "flex", "image", "qr", "barcode", "separator", "svg", "table", "each", "if", "content"]
+        }
+      }
+    },
+
+    "flexItemProperties": {
+      "description": "Common flex-item properties shared by all visual elements.",
+      "type": "object",
+      "properties": {
+        "grow": {
+          "description": "Flex grow factor.",
+          "type": "number",
+          "minimum": 0
+        },
+        "shrink": {
+          "description": "Flex shrink factor.",
+          "type": "number",
+          "minimum": 0
+        },
+        "basis": {
+          "description": "Flex basis (initial main size).",
+          "type": ["number", "string"]
+        },
+        "order": {
+          "description": "Order for flex item sorting.",
+          "type": "integer"
+        },
+        "display": {
+          "description": "Display mode.",
+          "type": "string",
+          "enum": ["flex", "none"]
+        },
+        "alignSelf": {
+          "description": "Override the parent's align for this item.",
+          "type": "string",
+          "enum": ["auto", "start", "center", "end", "stretch", "baseline"]
+        },
+        "width": {
+          "description": "Element width (pixels or percentage string).",
+          "type": ["number", "string"]
+        },
+        "height": {
+          "description": "Element height (pixels or percentage string).",
+          "type": ["number", "string"]
+        },
+        "minWidth": {
+          "description": "Minimum width.",
+          "type": ["number", "string"]
+        },
+        "min-width": {
+          "description": "Minimum width (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "maxWidth": {
+          "description": "Maximum width.",
+          "type": ["number", "string"]
+        },
+        "max-width": {
+          "description": "Maximum width (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "minHeight": {
+          "description": "Minimum height.",
+          "type": ["number", "string"]
+        },
+        "min-height": {
+          "description": "Minimum height (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "maxHeight": {
+          "description": "Maximum height.",
+          "type": ["number", "string"]
+        },
+        "max-height": {
+          "description": "Maximum height (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "padding": {
+          "description": "Padding (single value or shorthand string, e.g., '10' or '10 20 10 20').",
+          "type": ["number", "string"]
+        },
+        "margin": {
+          "description": "Margin (single value or shorthand string).",
+          "type": ["number", "string"]
+        },
+        "background": {
+          "description": "Background color (hex string).",
+          "type": "string"
+        },
+        "opacity": {
+          "description": "Opacity from 0.0 (transparent) to 1.0 (opaque).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rotate": {
+          "description": "Rotation angle in degrees.",
+          "type": "number"
+        },
+        "boxShadow": {
+          "description": "Box shadow definition string.",
+          "type": "string"
+        },
+        "box-shadow": {
+          "description": "Box shadow (kebab-case alias).",
+          "type": "string"
+        },
+        "borderRadius": {
+          "description": "Border radius (pixels or shorthand).",
+          "type": ["number", "string"]
+        },
+        "border-radius": {
+          "description": "Border radius (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "position": {
+          "description": "Positioning mode.",
+          "type": "string",
+          "enum": ["static", "relative", "absolute"]
+        },
+        "top": {
+          "description": "Top offset for positioned elements.",
+          "type": ["number", "string"]
+        },
+        "right": {
+          "description": "Right offset for positioned elements.",
+          "type": ["number", "string"]
+        },
+        "bottom": {
+          "description": "Bottom offset for positioned elements.",
+          "type": ["number", "string"]
+        },
+        "left": {
+          "description": "Left offset for positioned elements.",
+          "type": ["number", "string"]
+        },
+        "aspectRatio": {
+          "description": "Aspect ratio constraint (e.g., 1.5 or '16/9').",
+          "type": ["number", "string"]
+        },
+        "aspect-ratio": {
+          "description": "Aspect ratio (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "border": {
+          "description": "Border shorthand (e.g., '1 solid #000').",
+          "type": "string"
+        },
+        "borderWidth": {
+          "description": "Border width in pixels.",
+          "type": ["number", "string"]
+        },
+        "border-width": {
+          "description": "Border width (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "borderColor": {
+          "description": "Border color (hex string).",
+          "type": "string"
+        },
+        "border-color": {
+          "description": "Border color (kebab-case alias).",
+          "type": "string"
+        },
+        "borderStyle": {
+          "description": "Border style.",
+          "type": "string",
+          "enum": ["solid", "dashed", "dotted"]
+        },
+        "border-style": {
+          "description": "Border style (kebab-case alias).",
+          "type": "string",
+          "enum": ["solid", "dashed", "dotted"]
+        },
+        "borderTop": {
+          "description": "Top border shorthand.",
+          "type": "string"
+        },
+        "border-top": {
+          "description": "Top border (kebab-case alias).",
+          "type": "string"
+        },
+        "borderRight": {
+          "description": "Right border shorthand.",
+          "type": "string"
+        },
+        "border-right": {
+          "description": "Right border (kebab-case alias).",
+          "type": "string"
+        },
+        "borderBottom": {
+          "description": "Bottom border shorthand.",
+          "type": "string"
+        },
+        "border-bottom": {
+          "description": "Bottom border (kebab-case alias).",
+          "type": "string"
+        },
+        "borderLeft": {
+          "description": "Left border shorthand.",
+          "type": "string"
+        },
+        "border-left": {
+          "description": "Left border (kebab-case alias).",
+          "type": "string"
+        },
+        "text-direction": {
+          "description": "Text direction override for this element.",
+          "type": "string",
+          "enum": ["ltr", "rtl"]
+        }
+      }
+    },
+
+    "textElement": {
+      "description": "Renders styled text content.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "text" },
+        "content": {
+          "description": "Text content to render. Supports {{variable}} data binding.",
+          "type": "string"
+        },
+        "font": {
+          "description": "Logical font name (must match a name in the fonts array).",
+          "type": "string"
+        },
+        "fontFamily": {
+          "description": "Font family name.",
+          "type": "string"
+        },
+        "font-family": {
+          "description": "Font family (kebab-case alias).",
+          "type": "string"
+        },
+        "size": {
+          "description": "Font size in pixels.",
+          "type": "number",
+          "minimum": 1
+        },
+        "color": {
+          "description": "Text color (hex string).",
+          "type": "string"
+        },
+        "align": {
+          "description": "Horizontal text alignment.",
+          "type": "string",
+          "enum": ["left", "center", "right", "start", "end"]
+        },
+        "wrap": {
+          "description": "Whether text wraps to multiple lines.",
+          "type": "boolean",
+          "default": true
+        },
+        "overflow": {
+          "description": "Text overflow behavior.",
+          "type": "string",
+          "enum": ["ellipsis", "clip", "visible"]
+        },
+        "maxLines": {
+          "description": "Maximum number of lines before truncation.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "lineHeight": {
+          "description": "Line height multiplier.",
+          "type": "number"
+        },
+        "fontWeight": {
+          "description": "Font weight (e.g., 'bold', 'normal', or numeric 100-900).",
+          "type": ["string", "number"]
+        },
+        "fontStyle": {
+          "description": "Font style.",
+          "type": "string",
+          "enum": ["normal", "italic", "oblique"]
+        }
+      }
+    },
+
+    "flexElement": {
+      "description": "A flex container that arranges children using flexbox layout.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "flex" },
+        "direction": {
+          "description": "Flex direction.",
+          "type": "string",
+          "enum": ["row", "column", "rowReverse", "columnReverse"]
+        },
+        "wrap": {
+          "description": "Flex wrap behavior.",
+          "type": "string",
+          "enum": ["noWrap", "wrap", "wrapReverse"]
+        },
+        "gap": {
+          "description": "Gap between children (shorthand for both row and column gap).",
+          "type": ["number", "string"]
+        },
+        "rowGap": {
+          "description": "Gap between rows.",
+          "type": ["number", "string"]
+        },
+        "row-gap": {
+          "description": "Gap between rows (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "columnGap": {
+          "description": "Gap between columns.",
+          "type": ["number", "string"]
+        },
+        "column-gap": {
+          "description": "Gap between columns (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "justify": {
+          "description": "Justify content along the main axis.",
+          "type": "string",
+          "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+        },
+        "align": {
+          "description": "Align items along the cross axis.",
+          "type": "string",
+          "enum": ["start", "center", "end", "stretch", "baseline"]
+        },
+        "alignContent": {
+          "description": "Align content for multi-line flex containers.",
+          "type": "string",
+          "enum": ["start", "center", "end", "stretch", "spaceBetween", "spaceAround", "spaceEvenly"]
+        },
+        "align-content": {
+          "description": "Align content (kebab-case alias).",
+          "type": "string",
+          "enum": ["start", "center", "end", "stretch", "spaceBetween", "spaceAround", "spaceEvenly"]
+        },
+        "overflow": {
+          "description": "Overflow behavior for content exceeding bounds.",
+          "type": "string",
+          "enum": ["visible", "hidden"]
+        },
+        "children": {
+          "description": "Child elements arranged by this flex container.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/element"
+          }
+        }
+      }
+    },
+
+    "imageElement": {
+      "description": "Renders an image from a source path or URL.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "required": ["src"],
+      "properties": {
+        "type": { "const": "image" },
+        "src": {
+          "description": "Image source path or URL.",
+          "type": "string"
+        },
+        "fit": {
+          "description": "How the image fits within its bounds.",
+          "type": "string",
+          "enum": ["fill", "contain", "cover", "none"]
+        }
+      }
+    },
+
+    "qrElement": {
+      "description": "Renders a QR code.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "required": ["data"],
+      "properties": {
+        "type": { "const": "qr" },
+        "data": {
+          "description": "Data to encode in the QR code. Supports {{variable}} binding.",
+          "type": "string"
+        },
+        "size": {
+          "description": "QR code size in pixels.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "foreground": {
+          "description": "Foreground (module) color.",
+          "type": "string"
+        },
+        "errorCorrection": {
+          "description": "Error correction level.",
+          "type": "string",
+          "enum": ["l", "m", "q", "h"]
+        }
+      }
+    },
+
+    "barcodeElement": {
+      "description": "Renders a barcode.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "required": ["data"],
+      "properties": {
+        "type": { "const": "barcode" },
+        "data": {
+          "description": "Data to encode in the barcode. Supports {{variable}} binding.",
+          "type": "string"
+        },
+        "showText": {
+          "description": "Whether to display the encoded text below the barcode.",
+          "type": "boolean"
+        },
+        "foreground": {
+          "description": "Barcode color.",
+          "type": "string"
+        },
+        "format": {
+          "description": "Barcode format/symbology.",
+          "type": "string",
+          "enum": ["Code128", "Code39", "Ean13", "Ean8", "Upc"]
+        }
+      }
+    },
+
+    "separatorElement": {
+      "description": "Renders a horizontal or vertical separator line.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "separator" },
+        "orientation": {
+          "description": "Separator orientation.",
+          "type": "string",
+          "enum": ["horizontal", "vertical"]
+        },
+        "style": {
+          "description": "Line style.",
+          "type": "string",
+          "enum": ["dotted", "dashed", "solid"]
+        },
+        "thickness": {
+          "description": "Line thickness in pixels.",
+          "type": "number",
+          "minimum": 0
+        },
+        "color": {
+          "description": "Line color (hex string).",
+          "type": "string"
+        }
+      }
+    },
+
+    "svgElement": {
+      "description": "Renders an SVG image from a source path or inline content.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "svg" },
+        "src": {
+          "description": "SVG source path or URL.",
+          "type": "string"
+        },
+        "content": {
+          "description": "Inline SVG content string.",
+          "type": "string"
+        },
+        "fit": {
+          "description": "How the SVG fits within its bounds.",
+          "type": "string",
+          "enum": ["fill", "contain", "cover", "none"]
+        }
+      }
+    },
+
+    "tableElement": {
+      "description": "Renders a data table with columns, optional header styling, and data binding.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "table" },
+        "columns": {
+          "description": "Column definitions for the table.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "array": {
+          "description": "Data binding path to the array of row data.",
+          "type": "string"
+        },
+        "rows": {
+          "description": "Static row data (alternative to data-bound array).",
+          "type": "array"
+        },
+        "as": {
+          "description": "Variable name for each row item in data binding.",
+          "type": "string"
+        },
+        "font": {
+          "description": "Font name for table body text.",
+          "type": "string"
+        },
+        "size": {
+          "description": "Font size for table body text.",
+          "type": "number"
+        },
+        "color": {
+          "description": "Text color for table body.",
+          "type": "string"
+        },
+        "rowGap": {
+          "description": "Gap between table rows.",
+          "type": ["number", "string"]
+        },
+        "row-gap": {
+          "description": "Gap between table rows (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "columnGap": {
+          "description": "Gap between table columns.",
+          "type": ["number", "string"]
+        },
+        "column-gap": {
+          "description": "Gap between table columns (kebab-case alias).",
+          "type": ["number", "string"]
+        },
+        "headerFont": {
+          "description": "Font name for the header row.",
+          "type": "string"
+        },
+        "header-font": {
+          "description": "Header font (kebab-case alias).",
+          "type": "string"
+        },
+        "headerFontWeight": {
+          "description": "Font weight for the header row.",
+          "type": ["string", "number"]
+        },
+        "header-fontWeight": {
+          "description": "Header font weight (kebab-case alias).",
+          "type": ["string", "number"]
+        },
+        "headerFontStyle": {
+          "description": "Font style for the header row.",
+          "type": "string"
+        },
+        "header-fontStyle": {
+          "description": "Header font style (kebab-case alias).",
+          "type": "string"
+        },
+        "headerFontFamily": {
+          "description": "Font family for the header row.",
+          "type": "string"
+        },
+        "header-fontFamily": {
+          "description": "Header font family (kebab-case alias).",
+          "type": "string"
+        },
+        "headerColor": {
+          "description": "Text color for the header row.",
+          "type": "string"
+        },
+        "header-color": {
+          "description": "Header color (kebab-case alias).",
+          "type": "string"
+        },
+        "headerSize": {
+          "description": "Font size for the header row.",
+          "type": "number"
+        },
+        "header-size": {
+          "description": "Header size (kebab-case alias).",
+          "type": "number"
+        },
+        "headerBorderBottom": {
+          "description": "Border below the header row (e.g., '1 solid #000').",
+          "type": "string"
+        },
+        "header-border-bottom": {
+          "description": "Header border bottom (kebab-case alias).",
+          "type": "string"
+        }
+      }
+    },
+
+    "eachElement": {
+      "description": "Iterates over a data array and renders children for each item.",
+      "required": ["array", "children"],
+      "properties": {
+        "type": { "const": "each" },
+        "array": {
+          "description": "Data binding path to the array to iterate over.",
+          "type": "string"
+        },
+        "as": {
+          "description": "Variable name for the current item (default: 'item').",
+          "type": "string"
+        },
+        "children": {
+          "description": "Elements to render for each array item.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/element"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ifElement": {
+      "description": "Conditional rendering based on data values.",
+      "required": ["condition", "then"],
+      "properties": {
+        "type": { "const": "if" },
+        "condition": {
+          "description": "Data binding path to the value to evaluate.",
+          "type": "string"
+        },
+        "equals": {
+          "description": "Matches when the condition value equals this value."
+        },
+        "notEquals": {
+          "description": "Matches when the condition value does not equal this value."
+        },
+        "in": {
+          "description": "Matches when the condition value is one of these values.",
+          "type": "array"
+        },
+        "notIn": {
+          "description": "Matches when the condition value is not one of these values.",
+          "type": "array"
+        },
+        "contains": {
+          "description": "Matches when the condition value (string) contains this substring.",
+          "type": "string"
+        },
+        "greaterThan": {
+          "description": "Matches when the condition value is greater than this number.",
+          "type": "number"
+        },
+        "lessThan": {
+          "description": "Matches when the condition value is less than this number.",
+          "type": "number"
+        },
+        "greaterThanOrEqual": {
+          "description": "Matches when the condition value is greater than or equal to this number.",
+          "type": "number"
+        },
+        "lessThanOrEqual": {
+          "description": "Matches when the condition value is less than or equal to this number.",
+          "type": "number"
+        },
+        "hasItems": {
+          "description": "Matches when the condition value (array) has items (true) or is empty (false).",
+          "type": "boolean"
+        },
+        "countEquals": {
+          "description": "Matches when the condition value (array) has exactly this many items.",
+          "type": "number"
+        },
+        "countGreaterThan": {
+          "description": "Matches when the condition value (array) has more than this many items.",
+          "type": "number"
+        },
+        "then": {
+          "description": "Elements to render when the condition is true.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/element"
+          }
+        },
+        "else": {
+          "description": "Elements to render when the condition is false.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/element"
+          }
+        },
+        "elseIf": {
+          "description": "Chained conditional (another if-style object).",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "contentElement": {
+      "description": "Renders external content (NDC, Markdown, HTML) from a source file.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "required": ["source"],
+      "properties": {
+        "type": { "const": "content" },
+        "source": {
+          "description": "Path to the content source file.",
+          "type": "string"
+        },
+        "format": {
+          "description": "Content format.",
+          "type": "string",
+          "enum": ["ndc", "markdown", "html"]
+        },
+        "options": {
+          "description": "Format-specific rendering options.",
+          "type": "object"
+        }
+      }
+    }
+  }
+}

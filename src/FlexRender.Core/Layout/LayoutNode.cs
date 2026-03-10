@@ -61,6 +61,12 @@ public sealed class LayoutNode
     /// </summary>
     public float ComputedFontSize { get; set; }
 
+    /// <summary>
+    /// Optional diagnostic data populated during layout for debugging purposes.
+    /// Only populated when <see cref="LayoutEngine.EnableDiagnostics"/> is true.
+    /// </summary>
+    public LayoutDiagnostics? Diagnostics { get; set; }
+
     /// <summary>Right edge (X + Width).</summary>
     public float Right => X + Width;
 

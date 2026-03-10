@@ -83,6 +83,7 @@ internal sealed class IntrinsicMeasurer
             contentWidth = !string.IsNullOrEmpty(text.Width.Value)
                 ? ParseAbsolutePixelValue(text.Width.Value, shaped.TotalSize.Width)
                 : shaped.TotalSize.Width;
+
             contentHeight = !string.IsNullOrEmpty(text.Height.Value)
                 ? ParseAbsolutePixelValue(text.Height.Value, shaped.TotalSize.Height)
                 : shaped.TotalSize.Height;
