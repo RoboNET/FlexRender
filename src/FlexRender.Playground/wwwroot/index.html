@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlexRender Playground</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preload" id="webassembly" />
+    <script type="importmap"></script>
+    <script type="module" src="main.js"></script>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Loading FlexRender WASM runtime...</div>
+    </div>
+
+    <div id="app">
+        <div class="toolbar">
+            <h1>FlexRender Playground</h1>
+            <select id="project-select" title="Switch project"></select>
+            <button id="btn-new-project" title="New project">+</button>
+            <button id="btn-delete-project" title="Delete project">&#x1F5D1;</button>
+            <button id="btn-reset-example" title="Reset example to default" style="display:none">Reset</button>
+            <div class="spacer"></div>
+            <button id="btn-export-png">Export PNG</button>
+            <button id="btn-export-svg">Export SVG</button>
+            <button id="btn-export-zip">Export ZIP</button>
+            <button id="btn-import-zip">Import ZIP</button>
+        </div>
+
+        <div class="main-content">
+            <div class="editor-panel" id="editor-panel">
+                <div class="editor-section" id="yaml-section" style="flex: 2">
+                    <div class="editor-label">Template (YAML)</div>
+                    <div class="editor-container" id="yaml-editor"></div>
+                </div>
+                <div class="splitter splitter-h" data-split="yaml-json"></div>
+                <div class="editor-section" id="json-section" style="flex: 1">
+                    <div class="editor-label collapsible" data-target="json-section">Data (JSON) <span class="collapse-icon">&#x25BC;</span></div>
+                    <div class="editor-container" id="json-editor"></div>
+                </div>
+                <div class="splitter splitter-h" data-split="json-files"></div>
+                <div class="editor-section" id="files-section" style="flex: 1">
+                    <div class="editor-label collapsible" data-target="files-section">
+                        Files
+                        <span class="collapse-icon">&#x25BC;</span>
+                        <span class="files-toolbar">
+                            <button id="btn-add-folder" title="New folder">+ &#x1F4C1;</button>
+                        </span>
+                    </div>
+                    <div class="files-container" id="files-pane">
+                        <div class="files-tree" id="files-tree"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="splitter splitter-v" data-split="editor-preview"></div>
+            <div class="preview-panel">
+                <div class="preview-tabs">
+                    <button class="active" data-tab="preview">Preview</button>
+                    <button data-tab="errors">Errors</button>
+                    <div class="spacer"></div>
+                    <select id="zoom-select" title="Zoom level">
+                        <option value="0.25">25%</option>
+                        <option value="0.5">50%</option>
+                        <option value="0.75">75%</option>
+                        <option value="1" selected>100%</option>
+                        <option value="1.5">150%</option>
+                        <option value="2">200%</option>
+                        <option value="3">300%</option>
+                        <option value="fit">Fit</option>
+                    </select>
+                </div>
+                <div class="preview-content">
+                    <div id="preview-pane" class="tab-pane active">
+                        <div id="preview-image-wrap">
+                            <img id="preview-img" />
+                            <canvas id="highlight-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div id="errors-pane" class="tab-pane"></div>
+                </div>
+                <div class="splitter splitter-h" data-split="preview-layout"></div>
+                <div id="layout-section">
+                    <div id="layout-header">
+                        <span>Layout Inspector</span>
+                        <button id="layout-toggle" title="Toggle layout panel">&#x25BC;</button>
+                    </div>
+                    <div id="layout-pane"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="status-bar">
+            <span id="status-text">Ready</span>
+        </div>
+    </div>
+
+    <div class="drop-overlay" id="drop-overlay">
+        Drop fonts, images, content files, or .zip projects here
+    </div>
+</body>
+</html>

@@ -450,6 +450,15 @@ FlexRender-Marketplace/
 
 **CI automation:** The `release.yml` workflow automatically creates a PR in the marketplace repo to update `cli-version.json` when a new FlexRender version is released.
 
+## WASM Playground Testing
+
+When debugging or testing the WASM playground (`src/FlexRender.Playground/`), use the **agent-browser** tool to interact with the running playground at `http://localhost:5249/`. This allows inspecting rendered output, checking browser console for errors, and verifying layout diagnostics without relying on the user to manually test.
+
+**Key WASM constraints:**
+- `SKTypeface.FromFamilyName()` and `SKFontManager.Default.MatchFamily()` return objects with **invalid native handles** in WASM -- accessing ANY native property (`.FamilyName`, `.FontStyle.Weight`) causes an unrecoverable `RuntimeError: memory access out of bounds`
+- Guard all system font calls with `!OperatingSystem.IsBrowser()`
+- Never dispose shared typefaces in `RegisterFont` -- they may be referenced by variant caches
+
 ## Common Tasks
 
 ### Add new element type

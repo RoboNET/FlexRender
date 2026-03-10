@@ -63,6 +63,16 @@ public sealed class SkiaRender : IFlexRender
     public FontManager FontManager => _renderer.FontManager;
 
     /// <summary>
+    /// Enables diagnostic data collection on layout nodes.
+    /// When true, <see cref="LayoutNode.Diagnostics"/> is populated with text measurement details.
+    /// </summary>
+    public bool EnableDiagnostics
+    {
+        get => _renderer.EnableDiagnostics;
+        set => _renderer.EnableDiagnostics = value;
+    }
+
+    /// <summary>
     /// Asynchronously computes layout for a template without rendering.
     /// Intended for diagnostic and debugging tools.
     /// </summary>
