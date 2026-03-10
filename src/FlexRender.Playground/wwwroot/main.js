@@ -31,7 +31,7 @@ try {
     registerYamlAutocomplete(monaco, flexrenderSchema, {
         getVfsFiles: () => vfs.listFiles().map(p => ({ path: p, type: vfs.detectType(p) })),
     });
-    console.log('YAML autocomplete registered with FlexRender schema');
+    // YAML autocomplete ready
 } catch (e) {
     console.warn('YAML autocomplete setup failed:', e.message);
 }
@@ -1122,42 +1122,8 @@ function render() {
                 canvasHeight = layoutData.h || 0;
                 lastLayoutData = layoutData;
 
-                // Font diagnostics (logged to console for debugging)
-                try {
-                    const diagJson = api.GetFontDiagnostics();
-                    const diag = JSON.parse(diagJson);
-                    if (diag.fonts?.length > 0) {
-                        console.group('Font diagnostics');
-                        for (const f of diag.fonts) {
-                            const status = f.isDefault ? '⚠️ DEFAULT FALLBACK' : `✅ ${f.familyName}`;
-                            console.log(`${f.name}: ${status} (fixed=${f.isFixedPitch}, weight=${f.fontWeight})`);
-                            console.log(`  boldVariant: ${f.boldVariant}`);
-                            console.log(`  normalVariant: ${f.normalVariant}`);
-                            console.log(`  ndcBoldResolve: ${f.ndcBoldResolve}`);
-                            console.log(`  ndcNormalResolve: ${f.ndcNormalResolve}`);
-                        }
-                        console.log(`Memory resources (${diag.memoryResourceCount}):`, diag.memoryResources);
-                        console.groupEnd();
-                    }
-                } catch (diagErr) { console.warn('Font diagnostics failed:', diagErr); }
-
-                // Layout debug: log first few text elements with metrics
-                console.group('Layout metrics (first text elements)');
-                function logTexts(node, depth, parentX, parentY) {
-                    if (!node) return;
-                    const ax = (parentX || 0) + node.x, ay = (parentY || 0) + node.y;
-                    if (node.type === 'text') {
-                        console.log(`[${ax.toFixed(1)},${ay.toFixed(1)}] ${node.w.toFixed(1)}×${node.h.toFixed(1)} fontSize=${node.fontSize || '?'} fontSizeExact=${node.fontSizeExact || '?'} font=${node.font || '?'} resolved=${node.resolvedTypeface || '?'} "${(node.content || '').substring(0, 30)}"`);
-                    }
-                    (node.children || []).forEach(c => logTexts(c, depth + 1, ax, ay));
-                }
-                logTexts(layoutData, 0, 0, 0);
-                console.groupEnd();
-
                 layoutPane.innerHTML = '<div class="layout-tree">' + buildLayoutTree(layoutData, 0) + '</div>';
-                // Compare rendered PNG size vs layout size
                 previewImg.addEventListener('load', () => {
-                    console.log(`PNG: ${previewImg.naturalWidth}×${previewImg.naturalHeight}, Layout: ${canvasWidth}×${canvasHeight}, Ratio: ${(previewImg.naturalWidth / canvasWidth).toFixed(4)}×${(previewImg.naturalHeight / canvasHeight).toFixed(4)}`);
                     if (boundsMode) showAllBounds(layoutData);
                 }, { once: true });
 
