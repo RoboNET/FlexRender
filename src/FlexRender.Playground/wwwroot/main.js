@@ -11,8 +11,9 @@ const api = exports.FlexRender.Playground.PlaygroundApi;
 
 await runMain();
 
-// --- VFS & Splitter modules ---
+// --- VFS, Splitter & Projects modules ---
 import * as vfs from './vfs.mjs';
+import * as projects from './projects.mjs';
 import { initSplitters, initCollapsible } from './splitter.mjs';
 
 // --- Monaco Editor via modern-monaco from CDN ---
@@ -27,22 +28,15 @@ try {
     const { registerYamlAutocomplete } = await import('./yaml-autocomplete.mjs');
     const schemaResponse = await fetch('schemas/flexrender-template.json');
     const flexrenderSchema = await schemaResponse.json();
-    registerYamlAutocomplete(monaco, flexrenderSchema);
+    registerYamlAutocomplete(monaco, flexrenderSchema, {
+        getVfsFiles: () => vfs.listFiles().map(p => ({ path: p, type: vfs.detectType(p) })),
+    });
     console.log('YAML autocomplete registered with FlexRender schema');
 } catch (e) {
     console.warn('YAML autocomplete setup failed:', e.message);
 }
 
-// --- Restore VFS from IndexedDB and sync to WASM ---
-const restoredCount = await vfs.restore();
-if (restoredCount > 0) {
-    for (const entry of vfs.allEntries()) {
-        api.LoadResource(entry.path, entry.data);
-    }
-    console.log(`Restored ${restoredCount} files from IndexedDB`);
-}
-
-// --- Built-in examples ---
+// --- Built-in examples (used to seed example projects on first run) ---
 const EXAMPLES = {
     'Simple Text': {
         yaml: `canvas:
@@ -132,15 +126,343 @@ layout:
   "author": "FlexRender",
   "items": ["Apples", "Bread", "Milk", "Cheese"]
 }`
-    }
+    },
+    'Image Scaling': {
+        yaml: `canvas:
+  fixed: width
+  width: 440
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: column
+    gap: "20"
+    padding: "20"
+    children:
+      - type: text
+        content: "Image Fit Modes"
+        size: 20
+        color: "#333"
+        fontWeight: bold
+
+      - type: flex
+        direction: row
+        gap: "16"
+        children:
+          - type: flex
+            direction: column
+            gap: "4"
+            align: center
+            children:
+              - type: text
+                content: "contain"
+                size: 11
+                color: "#888"
+              - type: flex
+                width: "120"
+                height: "120"
+                background: "#f0f0f0"
+                border: "1"
+                borderColor: "#ddd"
+                children:
+                  - type: image
+                    src: test-pattern.png
+                    width: "120"
+                    height: "120"
+                    fit: contain
+
+          - type: flex
+            direction: column
+            gap: "4"
+            align: center
+            children:
+              - type: text
+                content: "cover"
+                size: 11
+                color: "#888"
+              - type: flex
+                width: "120"
+                height: "120"
+                background: "#f0f0f0"
+                border: "1"
+                borderColor: "#ddd"
+                children:
+                  - type: image
+                    src: test-pattern.png
+                    width: "120"
+                    height: "120"
+                    fit: cover
+
+          - type: flex
+            direction: column
+            gap: "4"
+            align: center
+            children:
+              - type: text
+                content: "fill"
+                size: 11
+                color: "#888"
+              - type: flex
+                width: "120"
+                height: "120"
+                background: "#f0f0f0"
+                border: "1"
+                borderColor: "#ddd"
+                children:
+                  - type: image
+                    src: test-pattern.png
+                    width: "120"
+                    height: "120"
+                    fit: fill`,
+        json: '{}',
+        assets: ['test-pattern.png'],
+    },
+    'Dynamic Receipt': {
+        yaml: `canvas:
+  fixed: width
+  width: 320
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    padding: "24 20"
+    gap: "12"
+    children:
+      - type: flex
+        gap: "4"
+        align: center
+        children:
+          - type: text
+            content: "{{shopName}}"
+            fontWeight: bold
+            size: 1.5em
+            align: center
+            color: "#1a1a1a"
+          - type: text
+            content: "{{address}}"
+            size: 0.85em
+            align: center
+            color: "#888888"
+
+      - type: separator
+        style: dashed
+        color: "#cccccc"
+
+      - type: if
+        condition: items
+        hasItems: true
+        then:
+          - type: flex
+            gap: "6"
+            children:
+              - type: each
+                array: items
+                as: item
+                children:
+                  - type: flex
+                    direction: row
+                    justify: space-between
+                    children:
+                      - type: flex
+                        direction: column
+                        gap: "2"
+                        shrink: 1
+                        children:
+                          - type: text
+                            content: "{{item.name}}"
+                            size: 1em
+                            color: "#333"
+                          - type: if
+                            condition: item.quantity
+                            then:
+                              - type: text
+                                content: "x{{item.quantity}}"
+                                size: 0.8em
+                                color: "#888"
+                      - type: text
+                        content: "{{item.price}} $"
+                        size: 1em
+                        color: "#333"
+                        align: right
+
+      - type: separator
+        color: "#1a1a1a"
+
+      - type: if
+        condition: discount
+        then:
+          - type: flex
+            gap: "6"
+            children:
+              - type: flex
+                direction: row
+                justify: space-between
+                children:
+                  - type: text
+                    content: "Subtotal"
+                    size: 0.9em
+                    color: "#666"
+                  - type: text
+                    content: "{{subtotal}} $"
+                    size: 0.9em
+                    color: "#666"
+              - type: flex
+                direction: row
+                justify: space-between
+                children:
+                  - type: text
+                    content: "Discount"
+                    size: 0.9em
+                    color: "#22c55e"
+                  - type: text
+                    content: "-{{discount}} $"
+                    size: 0.9em
+                    color: "#22c55e"
+              - type: separator
+                style: dashed
+                color: "#ccc"
+
+      - type: flex
+        direction: row
+        justify: space-between
+        align: center
+        children:
+          - type: text
+            content: "TOTAL"
+            fontWeight: bold
+            size: 1.2em
+            color: "#1a1a1a"
+          - type: text
+            content: "{{total}} $"
+            fontWeight: bold
+            size: 1.2em
+            color: "#1a1a1a"
+          - type: if
+            condition: totalNumber
+            greaterThan: 10
+            then:
+              - type: image
+                position: absolute
+                top: "-8"
+                left: "36"
+                rotate: 30
+                src: star-badge.png
+                width: "24"
+                height: "24"
+                fit: contain
+
+      - type: separator
+        style: dotted
+        color: "#ccc"
+
+      - type: if
+        condition: paymentStatus
+        equals: "paid"
+        then:
+          - type: flex
+            align: center
+            gap: "4"
+            children:
+              - type: text
+                content: "PAID"
+                fontWeight: bold
+                size: 1.1em
+                color: "#22c55e"
+                align: center
+              - type: text
+                content: "Thank you!"
+                size: 0.85em
+                color: "#666"
+                align: center
+        elseIf:
+          condition: paymentStatus
+          equals: "pending"
+          then:
+            - type: flex
+              align: center
+              gap: "6"
+              children:
+                - type: qr
+                  data: "{{paymentUrl}}"
+                  size: 120
+                  errorCorrection: M
+                - type: text
+                  content: "Scan to pay"
+                  size: 0.75em
+                  color: "#999"
+                  align: center
+        else:
+          - type: text
+            content: "Payment required at counter"
+            size: 0.9em
+            color: "#ef4444"
+            align: center
+
+      - type: separator
+        style: dotted
+        color: "#ccc"
+
+      - type: text
+        content: "{{date}}"
+        size: 0.75em
+        align: center
+        color: "#999"`,
+        json: `{
+  "shopName": "Coffee & Co",
+  "address": "123 Main St, Downtown",
+  "items": [
+    {"name": "Cappuccino", "quantity": 2, "price": "4.50"},
+    {"name": "Croissant", "price": "3.20"},
+    {"name": "Fresh Juice", "quantity": 1, "price": "5.00"}
+  ],
+  "subtotal": "17.20",
+  "discount": "2.00",
+  "total": "15.20",
+  "totalNumber": 15.20,
+  "paymentStatus": "paid",
+  "paymentUrl": "https://pay.example.com/inv/12345",
+  "date": "2026-03-10 14:30"
+}`,
+        assets: ['star-badge.png'],
+    },
+    'NDC Receipt': {
+        yaml: `# NDC (ATM receipt) format — binary terminal data rendered as a receipt
+# The .ndc file in VFS contains raw ESC-sequence data from an ATM
+
+fonts:
+  - name: default
+    path: JetBrainsMono-Regular.ttf
+  - name: bold
+    path: JetBrainsMono-Bold.ttf
+
+canvas:
+  fixed: width
+  width: 576
+  background: "#ffffff"
+
+layout:
+  - type: content
+    source: bank-receipt.ndc
+    format: ndc
+    options:
+      columns: 44
+      font_family: JetBrains Mono
+      charsets:
+        I:
+          font: bold
+          font_style: bold
+          encoding: qwerty-jcuken
+          uppercase: true
+        "2":
+          font: default`,
+        json: '{}',
+        assets: ['bank-receipt.ndc', 'JetBrainsMono-Regular.ttf', 'JetBrainsMono-Bold.ttf'],
+    },
 };
 
 // --- Create Monaco editors ---
-const defaultYaml = EXAMPLES['Simple Text'].yaml;
-const defaultJson = '{}';
-
 const yamlModelUri = monaco.Uri.parse('file:///template.yaml');
-const yamlModel = monaco.editor.createModel(defaultYaml, 'yaml', yamlModelUri);
+const yamlModel = monaco.editor.createModel('', 'yaml', yamlModelUri);
 
 const yamlEditor = monaco.editor.create(document.getElementById('yaml-editor'), {
     model: yamlModel,
@@ -149,7 +471,8 @@ const yamlEditor = monaco.editor.create(document.getElementById('yaml-editor'), 
     fontSize: 13,
     tabSize: 2,
     automaticLayout: true,
-    scrollBeyondLastLine: false,
+    scrollBeyondLastLine: true,
+    fixedOverflowWidgets: true,
     quickSuggestions: {
         other: true,
         comments: false,
@@ -158,14 +481,15 @@ const yamlEditor = monaco.editor.create(document.getElementById('yaml-editor'), 
 });
 
 const jsonEditor = monaco.editor.create(document.getElementById('json-editor'), {
-    value: defaultJson,
+    value: '{}',
     language: 'json',
     theme: 'one-dark-pro',
     minimap: { enabled: false },
     fontSize: 13,
     tabSize: 2,
     automaticLayout: true,
-    scrollBeyondLastLine: false,
+    scrollBeyondLastLine: true,
+    fixedOverflowWidgets: true,
 });
 
 // --- UI elements ---
@@ -174,6 +498,12 @@ const statusText = document.getElementById('status-text');
 const previewImg = document.getElementById('preview-img');
 const errorsPane = document.getElementById('errors-pane');
 const layoutPane = document.getElementById('layout-pane');
+
+// --- Project UI elements ---
+const projectSelect = document.getElementById('project-select');
+const btnNewProject = document.getElementById('btn-new-project');
+const btnDeleteProject = document.getElementById('btn-delete-project');
+const btnResetExample = document.getElementById('btn-reset-example');
 
 // --- Debug overlay toggle ---
 const previewTabs = document.querySelector('.preview-tabs');
@@ -204,26 +534,28 @@ function buildLayoutTree(node, depth) {
     const dataAttrs = `data-x="${node.x}" data-y="${node.y}" data-w="${node.w}" data-h="${node.h}"`;
 
     const props = [];
-    if (node.content) props.push(`"${node.content}"`);
-    if (node.font) props.push(`font=${node.font}`);
-    if (node.fontFamily) props.push(`family=${node.fontFamily}`);
-    if (node.size) props.push(`size=${node.size}`);
-    if (node.color) props.push(`color=${node.color}`);
-    if (node.fontWeight) props.push(`weight=${node.fontWeight}`);
-    if (node.fontStyle) props.push(`style=${node.fontStyle}`);
-    if (node.direction && node.type === 'Flex') props.push(node.direction);
-    if (node.align) props.push(`align=${node.align}`);
-    if (node.justify) props.push(`justify=${node.justify}`);
-    if (node.fontSize) props.push(`fontSize=${node.fontSize}px`);
-    if (node.textLines) props.push(`lines=${node.textLines}`);
+    if (node.content) props.push(`"${escHtml(node.content)}"`);
+    if (node.font) props.push(`font=${escHtml(node.font)}`);
+    if (node.fontFamily) props.push(`family=${escHtml(node.fontFamily)}`);
+    if (node.size) props.push(`size=${escHtml(String(node.size))}`);
+    if (node.color) props.push(`color=${escHtml(node.color)}`);
+    if (node.fontWeight) props.push(`weight=${escHtml(String(node.fontWeight))}`);
+    if (node.fontStyle) props.push(`style=${escHtml(node.fontStyle)}`);
+    if (node.direction && node.type === 'Flex') props.push(escHtml(node.direction));
+    if (node.align) props.push(`align=${escHtml(node.align)}`);
+    if (node.justify) props.push(`justify=${escHtml(node.justify)}`);
+    if (node.fontSize) props.push(`fontSize=${escHtml(String(node.fontSize))}px`);
+    if (node.textLines) props.push(`lines=${escHtml(String(node.textLines))}`);
 
     const propsStr = props.length > 0 ? ` <span class="node-props">[${props.join(', ')}]</span>` : '';
+    const safeType = escHtml(node.type);
+    const safeDims = escHtml(dims);
 
     if (hasChildren) {
         const childrenHtml = node.children.map(c => buildLayoutTree(c, depth + 1)).join('');
-        return `<details${openAttr}><summary ${dataAttrs}><span class="node-type" data-type="${node.type}">${node.type}</span> <span class="node-dims">${dims}</span>${propsStr}</summary>${childrenHtml}</details>`;
+        return `<details${openAttr}><summary ${dataAttrs}><span class="node-type" data-type="${safeType}">${safeType}</span> <span class="node-dims">${safeDims}</span>${propsStr}</summary>${childrenHtml}</details>`;
     }
-    return `<div class="layout-leaf" ${dataAttrs}><span class="node-type" data-type="${node.type}">${node.type}</span> <span class="node-dims">${dims}</span>${propsStr}</div>`;
+    return `<div class="layout-leaf" ${dataAttrs}><span class="node-type" data-type="${safeType}">${safeType}</span> <span class="node-dims">${safeDims}</span>${propsStr}</div>`;
 }
 
 // --- File tree rendering ---
@@ -503,8 +835,6 @@ const highlightCtx = highlightCanvas.getContext('2d');
 const previewImageWrap = document.getElementById('preview-image-wrap');
 
 function syncCanvasSize() {
-    // Use the image's CSS (layout) size before any transform scaling.
-    // Since canvas is inside the same scaled wrapper, we match the un-scaled img size.
     const w = previewImg.offsetWidth;
     const h = previewImg.offsetHeight;
     if (w === 0) return;
@@ -531,16 +861,13 @@ function showHighlight(x, y, w, h) {
 
     highlightCtx.clearRect(0, 0, imgW, imgH);
 
-    // Fill with semi-transparent color
     highlightCtx.fillStyle = 'rgba(255, 90, 50, 0.12)';
     highlightCtx.fillRect(px, py, pw, ph);
 
-    // Thick border like debug overlay
     highlightCtx.strokeStyle = 'rgba(255, 90, 50, 0.8)';
     highlightCtx.lineWidth = 2;
     highlightCtx.strokeRect(px, py, pw, ph);
 
-    // Dimension label
     highlightCtx.font = '10px system-ui, sans-serif';
     highlightCtx.fillStyle = 'rgba(255, 90, 50, 0.9)';
     const label = `${Math.round(w)}\u00d7${Math.round(h)}`;
@@ -582,7 +909,6 @@ function applyZoom(level) {
         previewImageWrap.style.transform = `scale(${level})`;
         previewImageWrap.style.transformOrigin = 'top left';
     }
-    // Update dropdown to nearest preset (or clear custom)
     const nearest = [...zoomSelect.options].find(o => o.value !== 'fit' && Math.abs(parseFloat(o.value) - level) < 0.05);
     zoomSelect.value = nearest ? nearest.value : '';
 }
@@ -605,7 +931,6 @@ previewContent.addEventListener('wheel', (e) => {
     applyZoom(Math.max(0.25, Math.min(5, zoomLevel + delta)));
 }, { passive: false });
 
-// Double-click to reset zoom
 previewContent.addEventListener('dblclick', () => {
     applyZoom(1);
 });
@@ -684,32 +1009,372 @@ function scheduleRender() {
 yamlEditor.onDidChangeModelContent(scheduleRender);
 jsonEditor.onDidChangeModelContent(scheduleRender);
 
-// Sync VFS changes to WASM MemoryResourceLoader
+// --- Project management ---
+
+/** Currently loaded project (full object). */
+let currentProject = null;
+let autoSaveTimeout = null;
+let isSwitching = false; // Guard to prevent auto-save during project switch
+let switchGeneration = 0; // Guard against rapid project switching race conditions
+
+/** Convert an example name to a stable slug ID. */
+function exampleSlug(name) {
+    return 'example-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+
+/** Populate the project selector dropdown. */
+async function refreshProjectSelect() {
+    const list = await projects.listProjects();
+    projectSelect.innerHTML = '';
+
+    const examplesGroup = document.createElement('optgroup');
+    examplesGroup.label = 'Examples';
+    const userGroup = document.createElement('optgroup');
+    userGroup.label = 'My Projects';
+
+    let hasExamples = false;
+    let hasUser = false;
+
+    for (const p of list) {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.name;
+        if (p.isExample) {
+            examplesGroup.appendChild(option);
+            hasExamples = true;
+        } else {
+            userGroup.appendChild(option);
+            hasUser = true;
+        }
+    }
+
+    if (hasExamples) projectSelect.appendChild(examplesGroup);
+    if (hasUser) projectSelect.appendChild(userGroup);
+
+    if (currentProject) {
+        projectSelect.value = currentProject.id;
+    }
+
+    // Update delete/reset button visibility
+    updateProjectButtons();
+}
+
+/** Show/hide delete and reset buttons based on current project type. */
+function updateProjectButtons() {
+    if (!currentProject) return;
+    btnDeleteProject.style.display = currentProject.isExample ? 'none' : '';
+    btnResetExample.style.display = currentProject.isExample ? '' : 'none';
+}
+
+/** Save the current project state (editors + VFS) to IndexedDB. */
+async function saveCurrentProject() {
+    if (!currentProject || isSwitching) return;
+    currentProject.yaml = yamlEditor.getValue();
+    currentProject.json = jsonEditor.getValue();
+    currentProject.files = vfs.exportFiles();
+    await projects.saveProject(currentProject);
+}
+
+/** Debounced auto-save (500ms). */
+function scheduleAutoSave() {
+    if (isSwitching) return;
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => saveCurrentProject(), 500);
+}
+
+/** Switch to a different project by ID. Saves current first, then loads new. */
+async function switchProject(id) {
+    const myGeneration = ++switchGeneration;
+    isSwitching = true;
+    clearTimeout(autoSaveTimeout);
+
+    // Save current project before switching
+    if (currentProject) {
+        currentProject.yaml = yamlEditor.getValue();
+        currentProject.json = jsonEditor.getValue();
+        currentProject.files = vfs.exportFiles();
+        await projects.saveProject(currentProject);
+    }
+    if (myGeneration !== switchGeneration) return;
+
+    // Load new project
+    const project = await projects.loadProject(id);
+    if (myGeneration !== switchGeneration) return;
+    if (!project) {
+        isSwitching = false;
+        console.warn('Project not found:', id);
+        return;
+    }
+
+    currentProject = project;
+    projects.setCurrentProjectId(id);
+
+    // Clear WASM resources before loading new VFS
+    for (const path of vfs.listFiles()) {
+        api.RemoveResource(path);
+    }
+
+    // Set editor values (this will trigger onDidChangeModelContent, but auto-save is guarded)
+    yamlEditor.setValue(project.yaml);
+    jsonEditor.setValue(project.json);
+
+    // Load VFS files — this triggers 'clear' then 'add' for each file,
+    // which syncs to WASM via the VFS subscriber
+    vfs.loadFromProject(project.files);
+
+    // Update UI
+    projectSelect.value = id;
+    updateProjectButtons();
+
+    isSwitching = false;
+    scheduleRender();
+}
+
+// Sync VFS changes to WASM MemoryResourceLoader AND trigger auto-save
 vfs.subscribe((event, path) => {
     if (event === 'add') {
         const entry = vfs.getFile(path);
-        if (entry && entry.data.length > 0) api.LoadResource(entry.path, entry.data);
+        if (entry && entry.data.length > 0) api.LoadResource(path, entry.data);
     } else if (event === 'remove') {
         api.RemoveResource(path);
     }
     scheduleRender();
+    scheduleAutoSave();
 });
 
-// --- Examples dropdown ---
-const examplesSelect = document.getElementById('examples');
-for (const name of Object.keys(EXAMPLES)) {
-    const option = document.createElement('option');
-    option.value = name;
-    option.textContent = name;
-    examplesSelect.appendChild(option);
+// Auto-save on editor changes
+yamlEditor.onDidChangeModelContent(scheduleAutoSave);
+jsonEditor.onDidChangeModelContent(scheduleAutoSave);
+
+// --- Project selector change ---
+projectSelect.addEventListener('change', () => {
+    const id = projectSelect.value;
+    if (id && (!currentProject || id !== currentProject.id)) {
+        switchProject(id);
+    }
+});
+
+// --- New project button ---
+btnNewProject.addEventListener('click', async () => {
+    const name = prompt('Project name:');
+    if (!name || !name.trim()) return;
+    const project = await projects.createProject(name.trim());
+    await refreshProjectSelect();
+    await switchProject(project.id);
+    statusText.textContent = `Created project: ${project.name}`;
+});
+
+// --- Delete project button ---
+btnDeleteProject.addEventListener('click', async () => {
+    if (!currentProject || currentProject.isExample) return;
+    if (!confirm(`Delete project "${currentProject.name}"?`)) return;
+
+    const deletedId = currentProject.id;
+    await projects.deleteProject(deletedId);
+
+    // Switch to first available project
+    const list = await projects.listProjects();
+    const nextId = list.length > 0 ? list[0].id : null;
+
+    if (nextId) {
+        currentProject = null; // Clear so switchProject doesn't try to save deleted project
+        await refreshProjectSelect();
+        await switchProject(nextId);
+    }
+
+    statusText.textContent = 'Project deleted';
+});
+
+// --- Reset example button ---
+btnResetExample.addEventListener('click', async () => {
+    if (!currentProject || !currentProject.isExample) return;
+    if (!confirm(`Reset "${currentProject.name}" to its default state?`)) return;
+
+    // Find the original example data
+    const originalName = Object.keys(EXAMPLES).find(name => exampleSlug(name) === currentProject.id);
+    if (!originalName) return;
+
+    const example = EXAMPLES[originalName];
+    const files = await loadExampleAssets(example.assets);
+    const resetId = currentProject.id;
+    await projects.seedExample(resetId, originalName, example.yaml, example.json, files);
+    currentProject = null; // Prevent switchProject from overwriting the fresh seed
+    await switchProject(resetId);
+    statusText.textContent = `Reset example: ${originalName}`;
+});
+
+/** Fetch example asset files from example-assets/ directory. */
+async function loadExampleAssets(assetNames) {
+    if (!assetNames || assetNames.length === 0) return [];
+    const files = [];
+    for (const name of assetNames) {
+        try {
+            const resp = await fetch(`example-assets/${name}`);
+            if (!resp.ok) continue;
+            const data = new Uint8Array(await resp.arrayBuffer());
+            files.push({ path: name, data, type: vfs.detectType(name) });
+        } catch (e) {
+            console.warn(`Failed to load example asset: ${name}`, e);
+        }
+    }
+    return files;
 }
 
-examplesSelect.addEventListener('change', () => {
-    const example = EXAMPLES[examplesSelect.value];
-    if (example) {
-        yamlEditor.setValue(example.yaml);
-        jsonEditor.setValue(example.json);
+// --- Initialize projects on startup ---
+async function initProjects() {
+    await projects.init();
+    const list = await projects.listProjects();
+
+    // Seed any missing examples (supports adding new examples without clearing DB)
+    const existingIds = new Set(list.map(p => p.id));
+    for (const [name, example] of Object.entries(EXAMPLES)) {
+        const id = exampleSlug(name);
+        if (!existingIds.has(id)) {
+            const files = await loadExampleAssets(example.assets);
+            await projects.seedExample(id, name, example.yaml, example.json, files);
+        }
     }
+
+    await refreshProjectSelect();
+
+    // Determine which project to load
+    let projectId = projects.getCurrentProjectId();
+
+    // Validate that the stored project still exists
+    if (projectId) {
+        const exists = await projects.projectExists(projectId);
+        if (!exists) projectId = null;
+    }
+
+    // Default to first example
+    if (!projectId) {
+        const firstExampleName = Object.keys(EXAMPLES)[0];
+        projectId = exampleSlug(firstExampleName);
+    }
+
+    await switchProject(projectId);
+}
+
+// --- JSZip lazy loader (cached after first use) ---
+let _jszip = null;
+async function loadJSZip() {
+    if (!_jszip) {
+        _jszip = (await import('https://esm.sh/jszip')).default;
+    }
+    return _jszip;
+}
+
+// --- Export ZIP ---
+document.getElementById('btn-export-zip').addEventListener('click', async () => {
+    if (!currentProject) return;
+    try {
+        statusText.textContent = 'Exporting ZIP...';
+        const JSZip = await loadJSZip();
+        const zip = new JSZip();
+
+        // Add template.yaml
+        zip.file('template.yaml', yamlEditor.getValue());
+
+        // Add data.json (only if non-empty)
+        const jsonVal = jsonEditor.getValue().trim();
+        if (jsonVal && jsonVal !== '{}') {
+            zip.file('data.json', jsonVal);
+        }
+
+        // Add VFS files under files/ prefix
+        for (const entry of vfs.allEntries()) {
+            zip.file('files/' + entry.path, entry.data);
+        }
+
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const safeName = currentProject.name.replace(/[^a-zA-Z0-9_\-. ]/g, '_');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = safeName + '.zip';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+        statusText.textContent = `Exported: ${safeName}.zip`;
+    } catch (e) {
+        statusText.textContent = 'ZIP export failed';
+        console.error('ZIP export error:', e);
+        alert('ZIP export failed: ' + (e.message || e));
+    }
+});
+
+// --- Import ZIP ---
+async function importZipFile(file) {
+    try {
+        statusText.textContent = 'Importing ZIP...';
+        const JSZip = await loadJSZip();
+        const zip = await JSZip.loadAsync(await file.arrayBuffer());
+
+        // Extract template.yaml (required)
+        let yamlContent = null;
+        let jsonContent = '{}';
+        const vfsFiles = [];
+
+        for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
+            if (zipEntry.dir) continue;
+
+            // Normalize: strip leading slashes
+            const name = relativePath.replace(/^\/+/, '');
+
+            if (name === 'template.yaml') {
+                yamlContent = await zipEntry.async('string');
+            } else if (name === 'data.json') {
+                jsonContent = await zipEntry.async('string');
+            } else if (name.startsWith('files/')) {
+                const vfsPath = name.slice('files/'.length);
+                if (vfsPath && !vfsPath.startsWith('/') && !vfsPath.includes('..')) {
+                    const data = new Uint8Array(await zipEntry.async('arraybuffer'));
+                    vfsFiles.push({ path: vfsPath, data, type: vfs.detectType(vfsPath) });
+                }
+            } else {
+                // Files outside files/ directory (other than template.yaml/data.json) go into VFS
+                if (!name.startsWith('/') && !name.includes('..')) {
+                    const data = new Uint8Array(await zipEntry.async('arraybuffer'));
+                    vfsFiles.push({ path: name, data, type: vfs.detectType(name) });
+                }
+            }
+        }
+
+        if (!yamlContent) {
+            alert('Invalid ZIP: template.yaml not found.');
+            statusText.textContent = 'Import failed: no template.yaml';
+            return;
+        }
+
+        // Derive project name from ZIP filename
+        let projectName = file.name.replace(/\.zip$/i, '').trim();
+        if (!projectName) projectName = 'Imported Project';
+
+        // Create a new project with the extracted data
+        const project = await projects.createProject(projectName);
+        project.yaml = yamlContent;
+        project.json = jsonContent;
+        project.files = vfsFiles;
+        await projects.saveProject(project);
+
+        await refreshProjectSelect();
+        await switchProject(project.id);
+        statusText.textContent = `Imported project: ${projectName} (${vfsFiles.length} file(s))`;
+    } catch (e) {
+        statusText.textContent = 'ZIP import failed';
+        console.error('ZIP import error:', e);
+        alert('ZIP import failed: ' + (e.message || e));
+    }
+}
+
+document.getElementById('btn-import-zip').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.zip';
+    input.addEventListener('change', async () => {
+        if (input.files.length > 0) {
+            await importZipFile(input.files[0]);
+        }
+    });
+    input.click();
 });
 
 // --- Export PNG ---
@@ -726,7 +1391,7 @@ document.getElementById('btn-export-png').addEventListener('click', () => {
             a.href = URL.createObjectURL(blob);
             a.download = 'flexrender-output.png';
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => URL.revokeObjectURL(a.href), 60000);
         }
     } catch (e) {
         alert('Export failed: ' + (e.message || e));
@@ -758,6 +1423,26 @@ document.addEventListener('drop', async (e) => {
     dragCounter = 0;
     dropOverlay.classList.remove('visible');
 
+    // Check for .zip files first — import them as projects
+    const droppedFiles = e.dataTransfer.files;
+    const zipFiles = [];
+
+    for (let i = 0; i < droppedFiles.length; i++) {
+        const file = droppedFiles[i];
+        if (file.name.toLowerCase().endsWith('.zip')) {
+            zipFiles.push(file);
+        }
+    }
+
+    if (zipFiles.length > 0) {
+        for (const zipFile of zipFiles) {
+            await importZipFile(zipFile);
+        }
+        // If all dropped files are zips, stop here
+        if (zipFiles.length === droppedFiles.length) return;
+    }
+
+    // Process non-zip files as VFS entries
     const items = e.dataTransfer.items;
     const fileEntries = [];
 
@@ -771,15 +1456,21 @@ document.addEventListener('drop', async (e) => {
     }
 
     if (fileEntries.length === 0) {
-        for (const file of e.dataTransfer.files) {
+        for (const file of droppedFiles) {
+            if (file.name.toLowerCase().endsWith('.zip')) continue; // Already handled
             const buffer = new Uint8Array(await file.arrayBuffer());
             fileEntries.push({ path: file.name, data: buffer });
         }
+    } else {
+        // Filter out zip files that were already imported
+        const filtered = fileEntries.filter(f => !f.path.toLowerCase().endsWith('.zip'));
+        fileEntries.length = 0;
+        fileEntries.push(...filtered);
     }
 
     for (const { path, data } of fileEntries) {
         const type = vfs.detectType(path);
-        await vfs.addFile(path, data, type);
+        vfs.addFile(path, data, type);
     }
 
     if (fileEntries.length > 0) {
@@ -795,8 +1486,13 @@ async function collectEntries(entry, prefix, results) {
         results.push({ path: prefix + entry.name, data });
     } else if (entry.isDirectory) {
         const reader = entry.createReader();
-        const entries = await new Promise((resolve) => reader.readEntries(resolve));
-        for (const child of entries) {
+        const allEntries = [];
+        let batch;
+        do {
+            batch = await new Promise((resolve) => reader.readEntries(resolve));
+            allEntries.push(...batch);
+        } while (batch.length > 0);
+        for (const child of allEntries) {
             await collectEntries(child, prefix + entry.name + '/', results);
         }
     }
@@ -818,12 +1514,7 @@ initSplitters({
 
 initCollapsible();
 
-// Ensure embedded font appears in VFS
-if (!vfs.exists('Inter-Regular.ttf')) {
-    await vfs.addFile('Inter-Regular.ttf', new TextEncoder().encode('(embedded)'), 'font');
-}
-
-// --- Show app & initial render ---
+// --- Show app & initialize projects ---
 document.getElementById('loading').style.display = 'none';
 document.getElementById('app').style.display = 'flex';
-render();
+await initProjects();

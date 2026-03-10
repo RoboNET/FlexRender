@@ -67,6 +67,30 @@ body {
 
 .toolbar .spacer { flex: 1; }
 
+#project-select {
+    max-width: 220px;
+}
+
+#btn-new-project,
+#btn-delete-project,
+#btn-reset-example {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+#btn-delete-project {
+    color: #d4d4d4;
+}
+
+#btn-delete-project:hover {
+    background: #c72e2e;
+    border-color: #c72e2e;
+}
+
+#btn-reset-example:hover {
+    background: #4c4c4c;
+}
+
 .main-content {
     display: flex;
     flex: 1;

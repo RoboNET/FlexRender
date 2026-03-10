@@ -1,9 +1,5 @@
 // Virtual File System for FlexRender Playground.
-// Manages an in-memory Map<path, {data, type}> with IndexedDB persistence.
-
-const DB_NAME = 'flexrender-vfs';
-const DB_VERSION = 1;
-const STORE_NAME = 'files';
+// Purely in-memory Map<path, {data, type}>. Persistence is owned by projects.mjs.
 
 /** @type {Map<string, {data: Uint8Array, type: string}>} */
 const files = new Map();
@@ -44,103 +40,32 @@ function notify(event, path) {
     }
 }
 
-// --- IndexedDB helpers ---
-
-function openDb() {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = () => {
-            const db = req.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME);
-            }
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-}
-
-async function dbPut(path, entry) {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ data: entry.data.buffer, type: entry.type }, path);
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
-    });
-}
-
-async function dbDelete(path) {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).delete(path);
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
-    });
-}
-
-async function dbClear() {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).clear();
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
-    });
-}
-
-async function dbGetAll() {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.openCursor();
-        const entries = [];
-        req.onsuccess = () => {
-            const cursor = req.result;
-            if (cursor) {
-                entries.push({ path: cursor.key, data: new Uint8Array(cursor.value.data), type: cursor.value.type });
-                cursor.continue();
-            } else {
-                db.close();
-                resolve(entries);
-            }
-        };
-        req.onerror = () => { db.close(); reject(req.error); };
-    });
-}
-
 // --- Public API ---
 
-/** Add or overwrite a file. */
-export async function addFile(path, data, type) {
+/** Add or overwrite a file (in-memory only). */
+export function addFile(path, data, type) {
     path = normalizePath(path);
     if (!type) type = detectType(path);
     files.set(path, { data, type });
-    await dbPut(path, { data, type });
     notify('add', path);
 }
 
-/** Remove a file. */
-export async function removeFile(path) {
+/** Remove a file (in-memory only). */
+export function removeFile(path) {
     path = normalizePath(path);
     if (!files.has(path)) return;
     files.delete(path);
-    await dbDelete(path);
     notify('remove', path);
 }
 
-/** Rename/move a file. */
-export async function renameFile(oldPath, newPath) {
+/** Rename/move a file (in-memory only). */
+export function renameFile(oldPath, newPath) {
     oldPath = normalizePath(oldPath);
     newPath = normalizePath(newPath);
     const entry = files.get(oldPath);
     if (!entry) return;
     files.delete(oldPath);
     files.set(newPath, entry);
-    await dbDelete(oldPath);
-    await dbPut(newPath, entry);
     notify('rename', oldPath);
     notify('add', newPath);
 }
@@ -165,25 +90,41 @@ export function exists(path) {
     return files.has(normalizePath(path));
 }
 
-/** Clear all files. */
-export async function clearAll() {
+/** Clear all files (in-memory only). */
+export function clearAll() {
     files.clear();
-    await dbClear();
     notify('clear', '');
 }
 
-/** Load all files from IndexedDB into memory. Call once at startup. */
-export async function restore() {
-    try {
-        const entries = await dbGetAll();
-        for (const e of entries) {
-            files.set(e.path, { data: e.data, type: e.type });
-        }
-        return entries.length;
-    } catch (err) {
-        console.warn('VFS restore from IndexedDB failed:', err);
-        return 0;
+/**
+ * Load files from a project into the in-memory VFS.
+ * Clears current files, loads given array, and notifies listeners.
+ * Does NOT write to IndexedDB — projects.mjs handles persistence.
+ * @param {{path: string, data: Uint8Array, type: string}[]} projectFiles
+ */
+export function loadFromProject(projectFiles) {
+    files.clear();
+    for (const f of projectFiles) {
+        const path = normalizePath(f.path);
+        files.set(path, { data: f.data, type: f.type || detectType(path) });
     }
+    notify('clear', '');
+    // Notify for each file so WASM resource loader can pick them up
+    for (const [path] of files) {
+        notify('add', path);
+    }
+}
+
+/**
+ * Export current VFS files as an array for saving into a project.
+ * @returns {{path: string, data: Uint8Array, type: string}[]}
+ */
+export function exportFiles() {
+    return [...files.entries()].map(([path, entry]) => ({
+        path,
+        data: entry.data,
+        type: entry.type,
+    }));
 }
 
 /**

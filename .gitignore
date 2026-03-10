@@ -57,3 +57,5 @@ docs/figma-wb-receipt-v2-metadata.txt
 .DS_Store
 Thumbs.db
 docs/plans
+publish
+node_modules
