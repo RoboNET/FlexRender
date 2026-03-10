@@ -181,14 +181,16 @@ public sealed class FontManager : IFontManager, IDisposable
                     continue;
 
                 // Cache directly so GetTypeface returns it synchronously
-                _typefaces.TryRemove(name, out var old);
-                old?.Dispose();
-                _typefaces[name] = typeface;
+                _typefaces.AddOrUpdate(name, typeface, (_, old) =>
+                {
+                    old.Dispose();
+                    return typeface;
+                });
                 return true;
             }
-            catch
+            catch (Exception ex) when (ex is not OutOfMemoryException)
             {
-                // Resource loader failed, try next
+                // Resource loader failed (e.g. file not found, invalid format), try next
             }
         }
 

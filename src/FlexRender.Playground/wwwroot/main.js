@@ -682,7 +682,7 @@ function showContextMenu(x, y, items) {
         }
         const el = document.createElement('div');
         el.className = 'ctx-menu-item';
-        el.innerHTML = `<span>${item.label}</span>${item.shortcut ? `<span class="ctx-menu-shortcut">${item.shortcut}</span>` : ''}`;
+        el.innerHTML = `<span>${escHtml(item.label)}</span>${item.shortcut ? `<span class="ctx-menu-shortcut">${escHtml(item.shortcut)}</span>` : ''}`;
         el.addEventListener('click', () => { hideContextMenu(); item.action(); });
         ctxMenu.appendChild(el);
     }

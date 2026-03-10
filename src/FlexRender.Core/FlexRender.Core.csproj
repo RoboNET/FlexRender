@@ -12,7 +12,6 @@
     <InternalsVisibleTo Include="FlexRender.Skia.Render" />
     <InternalsVisibleTo Include="FlexRender.Svg.Render" />
     <InternalsVisibleTo Include="FlexRender.ImageSharp.Render" />
-    <InternalsVisibleTo Include="FlexRender.Playground" />
   </ItemGroup>
 
 </Project>

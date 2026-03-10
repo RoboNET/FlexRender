@@ -7,6 +7,8 @@
 
 A .NET library for rendering images from YAML templates with a full CSS flexbox layout engine. Perfect for generating receipts, labels, tickets, and structured documents.
 
+**[Try it in the browser](https://robonet.github.io/FlexRender/)** -- WASM playground with live preview, no installation required.
+
 ## Features
 
 - **YAML Templates** -- define complex image layouts in readable YAML format

@@ -144,6 +144,15 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
     public FontManager FontManager => _fontManager;
 
     /// <summary>
+    /// Enables diagnostic data collection on layout nodes.
+    /// </summary>
+    public bool EnableDiagnostics
+    {
+        get => _layoutEngine.EnableDiagnostics;
+        set => _layoutEngine.EnableDiagnostics = value;
+    }
+
+    /// <summary>
     /// Computes the layout tree for a template with data asynchronously.
     /// Uses the same layout engine configuration as rendering (including text measurement).
     /// </summary>
@@ -236,7 +245,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 ? new SKSize(rootNode.Height, rootNode.Width)
                 : new SKSize(rootNode.Width, rootNode.Height);
 
-            var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            var bitmap = new SKBitmap(Math.Max(1, (int)size.Width), Math.Max(1, (int)size.Height));
             try
             {
                 _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, _defaultRenderOptions);
@@ -411,7 +420,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 ? new SKSize(rootNode.Height, rootNode.Width)
                 : new SKSize(rootNode.Width, rootNode.Height);
 
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            using var bitmap = new SKBitmap(Math.Max(1, (int)size.Width), Math.Max(1, (int)size.Height));
             _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             using var image = SKImage.FromBitmap(bitmap);
@@ -469,7 +478,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 ? new SKSize(rootNode.Height, rootNode.Width)
                 : new SKSize(rootNode.Width, rootNode.Height);
 
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            using var bitmap = new SKBitmap(Math.Max(1, (int)size.Width), Math.Max(1, (int)size.Height));
             _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             BmpEncoder.Encode(bitmap, output, colorMode);
@@ -523,7 +532,7 @@ internal sealed class SkiaRenderer : IDisposable, IAsyncDisposable
                 ? new SKSize(rootNode.Height, rootNode.Width)
                 : new SKSize(rootNode.Width, rootNode.Height);
 
-            using var bitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            using var bitmap = new SKBitmap(Math.Max(1, (int)size.Width), Math.Max(1, (int)size.Height));
             _renderingEngine.RenderToBitmapCore(bitmap, processedTemplate, rootNode, default, imageCache, renderOptions);
 
             // Copy raw pixel bytes directly from the bitmap

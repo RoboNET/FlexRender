@@ -54,6 +54,12 @@ public sealed class LayoutEngine
     public ITextShaper? TextShaper { get; set; }
 
     /// <summary>
+    /// When true, populates <see cref="LayoutNode.Diagnostics"/> with text measurement
+    /// details (intrinsic width, shaped width, content width). Defaults to false.
+    /// </summary>
+    public bool EnableDiagnostics { get; set; }
+
+    /// <summary>
     /// Base font size in pixels used for em resolution and as fallback when text elements
     /// don't specify an explicit size. Must match the renderer's base font size for
     /// consistent layout-to-render results.
@@ -587,9 +593,10 @@ public sealed class LayoutEngine
         node.ComputedLineHeight = computedLineHeight;
         node.Baseline = padding.Top + border.Top.Width + textBaseline;
         node.ComputedFontSize = resolvedFontSize;
-        node.DiagContentWidth = contentWidth;
-        node.DiagIntrinsicWidth = diagIntrinsicW;
-        node.DiagShapedWidth = diagShapedW;
+        if (EnableDiagnostics)
+        {
+            node.Diagnostics = new LayoutDiagnostics(diagIntrinsicW, diagShapedW, contentWidth);
+        }
         return node;
     }
 
@@ -875,9 +882,7 @@ public sealed class LayoutEngine
         // Floor to 0.1px to avoid rounding errors where text barely exceeds container width
         // due to non-linear font scaling (hinting, glyph rounding)
         var computed = refSize * availableWidth / totalMeasured;
-        var floored = MathF.Floor(computed * 10f) / 10f;
-
-        return floored;
+        return MathF.Floor(computed * 10f) / 10f;
     }
 
     private float MeasureContentWidth(TemplateElement element, LayoutContext context)

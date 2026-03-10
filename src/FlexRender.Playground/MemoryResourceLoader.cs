@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using FlexRender.Abstractions;
 
 namespace FlexRender.Playground;
@@ -8,7 +9,9 @@ namespace FlexRender.Playground;
 /// </summary>
 internal sealed class MemoryResourceLoader : IResourceLoader
 {
-    private readonly Dictionary<string, byte[]> _resources = new(StringComparer.OrdinalIgnoreCase);
+    private const int MaxResourceSize = 10 * 1024 * 1024; // 10 MB per resource
+
+    private readonly ConcurrentDictionary<string, byte[]> _resources = new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     /// <remarks>Priority 10 ensures uploaded files override all other loaders.</remarks>
@@ -59,6 +62,9 @@ internal sealed class MemoryResourceLoader : IResourceLoader
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(data);
 
+        if (data.Length > MaxResourceSize)
+            throw new ArgumentException($"Resource exceeds maximum size of {MaxResourceSize / 1024 / 1024} MB.", nameof(data));
+
         _resources[NormalizePath(name)] = data;
     }
 
@@ -70,7 +76,7 @@ internal sealed class MemoryResourceLoader : IResourceLoader
     {
         ArgumentNullException.ThrowIfNull(name);
 
-        _resources.Remove(NormalizePath(name));
+        _resources.TryRemove(NormalizePath(name), out _);
     }
 
     /// <summary>
@@ -78,7 +84,7 @@ internal sealed class MemoryResourceLoader : IResourceLoader
     /// </summary>
     public void Clear()
     {
-        _resources.Clear();
+        _resources.Clear(); // ConcurrentDictionary.Clear is thread-safe
     }
 
     /// <summary>

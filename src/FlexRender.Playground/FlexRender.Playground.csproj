@@ -26,8 +26,4 @@
     <NativeFileReference Include="$(NuGetPackageRoot)skiasharp.nativeassets.webassembly/3.119.2/buildTransitive/netstandard1.0/libSkiaSharp.a/3.1.56/st/*.a" />
   </ItemGroup>
 
-  <!-- Embedded default font for WASM (no system fonts available) -->
-  <ItemGroup>
-    <EmbeddedResource Include="Fonts/Inter-Regular.ttf" LogicalName="Inter-Regular.ttf" />
-  </ItemGroup>
 </Project>

@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -36,9 +35,6 @@ internal static partial class PlaygroundApi
             _memoryLoader = new MemoryResourceLoader();
             _parser = new TemplateParser();
 
-            // Load embedded default font into VFS (WASM has no system fonts)
-            LoadEmbeddedFont("Inter-Regular.ttf");
-
             var builder = new FlexRenderBuilder()
                 .WithNdc()
                 .WithSkia();
@@ -47,6 +43,11 @@ internal static partial class PlaygroundApi
             builder.ResourceLoaders.Insert(0, _memoryLoader);
 
             _render = builder.Build();
+
+            // Enable layout diagnostics for the playground inspector
+            if (_render is SkiaRender skiaRender)
+                skiaRender.EnableDiagnostics = true;
+
             Console.WriteLine("FlexRender engine initialized successfully");
         }
         catch (Exception ex)
@@ -379,14 +380,17 @@ internal static partial class PlaygroundApi
             obj["direction"] = node.Direction.ToString().ToLowerInvariant();
 
         // Diagnostic fields for text debugging
-        if (node.DiagContentWidth > 0)
-            obj["contentW"] = Math.Round(node.DiagContentWidth, 2);
-        if (node.DiagIntrinsicWidth > 0)
-            obj["intrinsicW"] = Math.Round(node.DiagIntrinsicWidth, 2);
-        if (node.DiagShapedWidth > 0)
-            obj["shapedW"] = Math.Round(node.DiagShapedWidth, 2);
-        if (!string.IsNullOrEmpty(node.DiagResolvedTypeface))
-            obj["resolvedTypeface"] = node.DiagResolvedTypeface;
+        if (node.Diagnostics is { } diag)
+        {
+            if (diag.ContentWidth > 0)
+                obj["contentW"] = Math.Round(diag.ContentWidth, 2);
+            if (diag.IntrinsicWidth > 0)
+                obj["intrinsicW"] = Math.Round(diag.IntrinsicWidth, 2);
+            if (diag.ShapedWidth > 0)
+                obj["shapedW"] = Math.Round(diag.ShapedWidth, 2);
+            if (!string.IsNullOrEmpty(diag.ResolvedTypeface))
+                obj["resolvedTypeface"] = diag.ResolvedTypeface;
+        }
 
         // Element-specific properties
         SerializeElementProperties(obj, node.Element);
@@ -669,22 +673,6 @@ internal static partial class PlaygroundApi
         {
             return JsonSerializer.Serialize(new { error = ex.Message });
         }
-    }
-
-    private static void LoadEmbeddedFont(string resourceName)
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-        using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream is null)
-        {
-            Console.Error.WriteLine($"Embedded font not found: {resourceName}");
-            return;
-        }
-
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        _memoryLoader!.AddResource(resourceName, ms.ToArray());
-        Console.WriteLine($"Loaded embedded font: {resourceName}");
     }
 
     /// <summary>

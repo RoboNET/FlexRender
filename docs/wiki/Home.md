@@ -7,6 +7,8 @@
 
 A modular .NET library for rendering images from YAML templates with a full CSS flexbox layout engine. Render-backend agnostic with SkiaSharp as the default backend. Fully AOT-compatible with zero reflection.
 
+**[Try it in the browser](https://robonet.github.io/FlexRender/)** -- WASM playground with live preview, no installation required.
+
 ## Why FlexRender?
 
 - **YAML-first** -- define complex image layouts in readable YAML, no design tools needed
