@@ -246,17 +246,20 @@ public sealed class FontManager : IFontManager, IDisposable
         var targetWeight = (int)weight;
 
         // 1. Search registered fonts by loading each and checking FamilyName.
-        // Only check file/resource-loaded typefaces — system fallbacks may have invalid
-        // native handles in WASM where no system fonts are available.
+        // GetTypeface triggers lazy loading from file, which populates _fileLoadedTypefaces.
+        // After loading, only inspect typefaces that were loaded from real files — system
+        // fallbacks may have invalid native handles in WASM.
         SKTypeface? bestRegisteredMatch = null;
         var bestRegisteredWeightDiff = int.MaxValue;
 
         foreach (var fontPath in _fontPaths)
         {
+            var typeface = GetTypeface(fontPath.Key);
+
+            // Skip system fallbacks (unsafe to inspect native properties in WASM)
             if (!_fileLoadedTypefaces.ContainsKey(fontPath.Key))
                 continue;
 
-            var typeface = GetTypeface(fontPath.Key);
             if (!string.Equals(typeface.FamilyName, familyName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -335,8 +338,12 @@ public sealed class FontManager : IFontManager, IDisposable
         var familyName = baseTypeface.FamilyName;
 
         // 1. Search among file/resource-loaded typefaces for matching family + weight/style.
-        // Only inspect typefaces loaded from real font files — system fallbacks may have
+        // Trigger lazy loading for all registered font paths first, so _fileLoadedTypefaces
+        // is populated. Then only inspect file-loaded typefaces — system fallbacks may have
         // invalid native handles in WASM (no system fonts), causing unrecoverable crashes.
+        foreach (var fontPath in _fontPaths)
+            GetTypeface(fontPath.Key);
+
         SKTypeface? bestRegistered = null;
         var bestRegisteredDiff = int.MaxValue;
         foreach (var (name, _) in _fileLoadedTypefaces)
