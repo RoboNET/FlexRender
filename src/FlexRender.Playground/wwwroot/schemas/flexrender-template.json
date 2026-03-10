@@ -892,10 +892,89 @@
           "enum": ["ndc", "markdown", "html"]
         },
         "options": {
-          "description": "Format-specific rendering options.",
-          "type": "object"
+          "description": "Format-specific rendering options. Properties depend on the chosen format.",
+          "oneOf": [
+            { "$ref": "#/definitions/ndcOptions" },
+            { "type": "object", "description": "No options for this format.", "properties": {}, "additionalProperties": false }
+          ]
         }
       }
+    },
+
+    "charsetStyle": {
+      "description": "Per-charset style configuration for NDC content parser.",
+      "type": "object",
+      "properties": {
+        "font": {
+          "description": "Font registration name (e.g., \"bold\", \"default\").",
+          "type": "string"
+        },
+        "font_family": {
+          "description": "Explicit font family for this charset.",
+          "type": "string"
+        },
+        "font_style": {
+          "description": "Font style.",
+          "type": "string",
+          "enum": ["bold", "italic", "bold-italic"]
+        },
+        "font_size": {
+          "description": "Explicit font size in pixels.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "color": {
+          "description": "Text color (hex format, e.g., \"#333\").",
+          "type": "string"
+        },
+        "encoding": {
+          "description": "Character encoding (e.g., \"none\", \"qwerty-jcuken\").",
+          "type": "string"
+        },
+        "uppercase": {
+          "description": "Convert text to uppercase.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ndcOptions": {
+      "description": "Options for the NDC content parser.",
+      "type": "object",
+      "properties": {
+        "input_encoding": {
+          "description": "Byte encoding for binary data.",
+          "type": "string",
+          "enum": ["latin1", "iso-8859-1", "utf-8", "utf8", "ascii"],
+          "default": "latin1"
+        },
+        "columns": {
+          "description": "Max characters per line (receipt width).",
+          "type": "integer",
+          "minimum": 1,
+          "default": 40
+        },
+        "font_family": {
+          "description": "Font family for all text (e.g., \"JetBrains Mono\").",
+          "type": "string"
+        },
+        "char_width_ratio": {
+          "description": "Character width as fraction of font size for monospace fonts.",
+          "type": "number",
+          "minimum": 0.1,
+          "default": 0.6
+        },
+        "charsets": {
+          "description": "Per-charset style mappings keyed by designator character.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/charsetStyle"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
