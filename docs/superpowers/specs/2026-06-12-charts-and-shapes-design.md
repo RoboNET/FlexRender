@@ -1,6 +1,6 @@
 # Charts and Shape Primitives for LLM-Generated Graphics
 
-Enable LLM agents to generate polished charts and custom graphics through declarative YAML templates, rendered via Skia. No hand-written SVG markup required. Two layers: high-level `chart` elements (agent describes data, library draws it beautifully) and low-level shape primitives (`rect`, `circle`, `ellipse`, `canvas`) for custom decoration and free-form drawing.
+Enable LLM agents to generate polished charts and custom graphics through declarative YAML templates, rendered via Skia. No hand-written SVG markup required. Two layers: high-level `chart` elements (agent describes data, library draws it beautifully) and low-level shape primitives (`rect`, `circle`, `ellipse`, `draw`) for custom decoration and free-form drawing. (The free-form element is named `draw`, not `canvas`, to avoid confusion with the template root `canvas:` settings section.)
 
 ## Goals
 
@@ -13,7 +13,7 @@ Enable LLM agents to generate polished charts and custom graphics through declar
 
 Charts and shapes have no external dependencies, so — unlike QrCode/Barcode — no new packages are needed:
 
-- **AST**: new element classes in `src/FlexRender.Core/Parsing/Ast/` (`RectElement`, `CircleElement`, `EllipseElement`, `CanvasElement`, `ChartElement`).
+- **AST**: new element classes in `src/FlexRender.Core/Parsing/Ast/` (`RectElement`, `CircleElement`, `EllipseElement`, `DrawElement`, `ChartElement`).
 - **Chart layout math** (axis scales, nice ticks, legend measurement): `src/FlexRender.Core/Charts/` — pure, testable, renderer-agnostic.
 - **Drawing**: `FlexRender.Skia` render visitors, same dispatch pattern as `TableElement`.
 - **Parsing**: `FlexRender.Yaml` `TemplateParser` extended for new element types; all new properties registered in `KnownProperties.cs` for validation and typo suggestions.
@@ -41,12 +41,12 @@ fill:
   angle: 45               # linear only, degrees
 ```
 
-### `canvas` — free-form drawing
+### `draw` — free-form drawing
 
-A flex box in the flow; inside, a `shapes` list in absolute coordinates relative to the canvas box:
+A flex box in the flow; inside, a `shapes` list in absolute coordinates relative to the element box:
 
 ```yaml
-- type: canvas
+- type: draw
   width: 400
   height: 200
   shapes:
@@ -59,7 +59,7 @@ A flex box in the flow; inside, a `shapes` list in absolute coordinates relative
 
 - `path.d` supports commands `M`, `L`, `Q`, `C`, `Z` (absolute coordinates only). Parsed with a hand-written tokenizer — no regex backtracking, AOT-safe.
 - Shapes draw in list order (painter's algorithm); overlap is allowed.
-- New resource limit: `ResourceLimits.MaxShapesPerCanvas` (default 1000). Existing `MaxNestingDepth` applies to element tree as usual.
+- New resource limit: `ResourceLimits.MaxShapesPerDraw` (default 1000). Existing `MaxNestingDepth` applies to element tree as usual.
 
 ## Layer 2: Chart Element
 
@@ -143,7 +143,7 @@ Themes and palettes live in `FlexRender.Core/Charts/` as static readonly data (A
 ## Testing
 
 - **Unit tests**: axis scale math (nice ticks for ranges crossing zero, negative-only, single point, identical values), palette/theme resolution, path tokenizer edge cases, data binding from context.
-- **Snapshot tests**: golden images for every chart type × theme, shape primitives with gradients/strokes, canvas overlap ordering. Regenerated via `UPDATE_SNAPSHOTS=true`.
+- **Snapshot tests**: golden images for every chart type × theme, shape primitives with gradients/strokes, draw overlap ordering. Regenerated via `UPDATE_SNAPSHOTS=true`.
 - **Validation tests**: typo suggestions for new properties, resource limit enforcement, empty-data placeholder.
 
 ## Documentation (every phase)
@@ -156,7 +156,7 @@ Themes and palettes live in `FlexRender.Core/Charts/` as static readonly data (A
 
 ## Implementation Phases
 
-1. **Shapes**: `rect`/`circle`/`ellipse` box elements, gradients, `canvas` with `line`/`polyline`/`rect`/`circle`/`path`.
+1. **Shapes**: `rect`/`circle`/`ellipse` box elements, gradients, `draw` with `line`/`polyline`/`rect`/`circle`/`path`.
 2. **Charts base**: `bar`/`line`/`area`/`pie`/`donut`, themes, palettes, axes, legends, "no data" placeholder.
 3. **Charts extension**: `scatter`/`bubble`, `gauge`/`progress`/`sparkline`.
 4. **Charts advanced**: `heatmap`/`radar`.
@@ -168,5 +168,5 @@ Each phase ships independently with full tests and docs.
 
 - SVG render backend for charts (Skia only initially; `FlexRender.Svg` backend support can follow later if needed).
 - Animation, interactivity (static images by design).
-- Arbitrary per-element style overrides beyond theme/palette (axis font sizes, custom grid styles) — themes are the styling surface; escape hatch is the `canvas` element.
+- Arbitrary per-element style overrides beyond theme/palette (axis font sizes, custom grid styles) — themes are the styling surface; escape hatch is the `draw` element.
 - MCP server (agents use YAML + existing CLI; revisit after element work lands).
