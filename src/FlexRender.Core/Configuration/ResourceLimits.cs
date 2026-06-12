@@ -12,6 +12,7 @@ public sealed class ResourceLimits
     private int _maxRenderDepth = 100;
     private int _maxImageSize = 10 * 1024 * 1024;
     private int _maxFlexLines = 1000;
+    private int _maxShapesPerDraw = 1000;
     /// <summary>
     /// Maximum allowed YAML template file size in bytes.
     /// </summary>
@@ -100,6 +101,22 @@ public sealed class ResourceLimits
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxImageSize = value;
+        }
+    }
+
+    /// <summary>
+    /// Maximum number of shapes allowed in a single 'draw' element.
+    /// Prevents resource exhaustion from templates with a huge shape list.
+    /// </summary>
+    /// <value>Default: 1000.</value>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is zero or negative.</exception>
+    public int MaxShapesPerDraw
+    {
+        get => _maxShapesPerDraw;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            _maxShapesPerDraw = value;
         }
     }
 }
