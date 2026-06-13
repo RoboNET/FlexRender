@@ -74,6 +74,15 @@ public sealed class ChartElement : TemplateElement
     /// <summary>Gets or sets the centered caption for gauge/progress charts (distinct from <see cref="Title"/>).</summary>
     public string? ValueLabel { get; set; }
 
+    /// <summary>Gets or sets the heatmap column (x-axis) labels. Empty falls back to <see cref="Categories"/>.</summary>
+    public IReadOnlyList<string> XLabels { get; set; } = Array.Empty<string>();
+
+    /// <summary>Gets or sets the heatmap row (y-axis) labels, one per series/row.</summary>
+    public IReadOnlyList<string> YLabels { get; set; } = Array.Empty<string>();
+
+    /// <summary>Gets or sets whether the heatmap draws each cell's numeric value inside the cell.</summary>
+    public bool ShowCellValues { get; set; }
+
     /// <inheritdoc/>
     public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
     {
@@ -93,7 +102,10 @@ public sealed class ChartElement : TemplateElement
             PieLabels = PieLabels,
             Value = Value,
             Max = Max,
-            ValueLabel = ValueLabel
+            ValueLabel = ValueLabel,
+            XLabels = XLabels,
+            YLabels = YLabels,
+            ShowCellValues = ShowCellValues
         };
         CopyBasePropertiesTo(clone, substitutor);
         return clone;
