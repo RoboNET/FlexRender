@@ -871,7 +871,7 @@
     },
 
     "chartElement": {
-      "description": "Renders a bar, line, area, pie, or donut chart. Empty/missing series renders a 'no data' placeholder.",
+      "description": "Renders a bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline, heatmap, or radar chart. Empty/missing series renders a 'no data' placeholder.",
       "allOf": [
         { "$ref": "#/definitions/flexItemProperties" }
       ],
@@ -880,7 +880,7 @@
         "chart-type": {
           "description": "Chart kind.",
           "type": "string",
-          "enum": ["bar", "line", "area", "pie", "donut", "scatter", "bubble", "gauge", "progress", "sparkline"]
+          "enum": ["bar", "line", "area", "pie", "donut", "scatter", "bubble", "gauge", "progress", "sparkline", "heatmap", "radar"]
         },
         "categories": {
           "description": "X-axis category labels (bar/line/area) or slice labels (pie/donut).",
@@ -961,6 +961,20 @@
         "label": {
           "description": "Gauge/progress only. Centered caption under the value.",
           "type": "string"
+        },
+        "x-labels": {
+          "description": "Heatmap only. Column (x-axis) labels, left to right.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "y-labels": {
+          "description": "Heatmap only. Row (y-axis) labels, top to bottom (one per series/row).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cell-values": {
+          "description": "Heatmap only. Draw each cell's numeric value inside the cell.",
+          "type": "boolean"
         }
       }
     },
