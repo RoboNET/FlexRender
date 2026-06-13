@@ -688,6 +688,55 @@ internal static class ChartRenderer
             };
             canvas.DrawCircle(cx, cy, radius * 0.55f, hole);
         }
+
+        DrawPieLabels(canvas, chart, theme, data, total, cx, cy, radius, isDonut, typeface, antialias);
+    }
+
+    /// <summary>
+    /// Draws a text label at each slice's mid-angle when a typeface is available and the chart's
+    /// <see cref="PieLabelMode"/> is not <see cref="PieLabelMode.None"/>. Labels are placed on a
+    /// ring between the (optional) donut hole and the outer edge, centered on their anchor point.
+    /// </summary>
+    private static void DrawPieLabels(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        IReadOnlyList<double> data, double total, float cx, float cy, float radius, bool isDonut,
+        SKTypeface? typeface, bool antialias)
+    {
+        if (typeface is null || chart.PieLabels == PieLabelMode.None || total <= 0d)
+            return;
+
+        // For donuts the hole occupies the inner 55% of the radius, so place labels in the visible
+        // ring; for pies use ~0.7 of the radius from the center.
+        var labelRadius = isDonut ? radius * 0.78f : radius * 0.7f;
+
+        using var font = new SKFont(typeface, theme.LabelSize);
+        using var paint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
+
+        var startAngle = -90f; // matches the slice drawing start (12 o'clock)
+        for (var i = 0; i < data.Count; i++)
+        {
+            if (data[i] <= 0d)
+                continue;
+
+            var sweep = (float)(data[i] / total * 360d);
+            var midAngle = startAngle + (sweep / 2f);
+            startAngle += sweep;
+
+            // Skip very thin slices to avoid overlapping clutter.
+            if (sweep < 6f)
+                continue;
+
+            var label = chart.PieLabels == PieLabelMode.Value
+                ? FormatTick(data[i])
+                : $"{Math.Round(data[i] / total * 100d):0}%";
+
+            var rad = midAngle * (MathF.PI / 180f);
+            var tx = cx + (labelRadius * MathF.Cos(rad));
+            var ty = cy + (labelRadius * MathF.Sin(rad));
+
+            var tw = font.MeasureText(label);
+            canvas.DrawText(label, tx - (tw / 2f), ty + (theme.LabelSize / 3f), SKTextAlign.Left, font, paint);
+        }
     }
 
     /// <summary>Draws the centred chart title in the reserved top band, when present.</summary>
