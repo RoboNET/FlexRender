@@ -171,13 +171,41 @@
             "required": ["type"]
           },
           "then": { "$ref": "#/definitions/contentElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "rect" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/rectElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "circle" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/circleElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "ellipse" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/ellipseElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "draw" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/drawElement" }
         }
       ],
       "properties": {
         "type": {
           "description": "The element type.",
           "type": "string",
-          "enum": ["text", "flex", "image", "qr", "barcode", "separator", "svg", "table", "each", "if", "content"]
+          "enum": ["text", "flex", "image", "qr", "barcode", "separator", "svg", "table", "each", "if", "content", "rect", "circle", "ellipse", "draw"]
         }
       }
     },
@@ -633,6 +661,204 @@
         "color": {
           "description": "Line color (hex string).",
           "type": "string"
+        }
+      }
+    },
+
+    "gradientFill": {
+      "description": "A gradient fill object for shape elements.",
+      "type": "object",
+      "required": ["gradient", "colors"],
+      "properties": {
+        "gradient": {
+          "description": "Gradient kind.",
+          "type": "string",
+          "enum": ["linear", "radial"]
+        },
+        "colors": {
+          "description": "Ordered color stops (minimum two hex strings).",
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2
+        },
+        "angle": {
+          "description": "Gradient angle in degrees (linear only; radial ignores it).",
+          "type": "number"
+        }
+      }
+    },
+
+    "rectElement": {
+      "description": "A flex box drawn as a filled and/or stroked rectangle.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "rect" },
+        "fill": {
+          "description": "Solid hex color or a gradient fill object.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientFill" }
+          ]
+        },
+        "stroke": {
+          "description": "Stroke (outline) color (hex string).",
+          "type": "string"
+        },
+        "stroke-width": {
+          "description": "Stroke width in pixels.",
+          "type": "number",
+          "minimum": 0
+        },
+        "radius": {
+          "description": "Corner radius (px or em).",
+          "type": ["number", "string"]
+        }
+      }
+    },
+
+    "circleElement": {
+      "description": "A flex box drawn as a circle.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "circle" },
+        "fill": {
+          "description": "Solid hex color or a gradient fill object.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientFill" }
+          ]
+        },
+        "stroke": {
+          "description": "Stroke (outline) color (hex string).",
+          "type": "string"
+        },
+        "stroke-width": {
+          "description": "Stroke width in pixels.",
+          "type": "number",
+          "minimum": 0
+        },
+        "size": {
+          "description": "Shorthand setting both width and height (the diameter).",
+          "type": ["number", "string"]
+        }
+      }
+    },
+
+    "ellipseElement": {
+      "description": "A flex box drawn as an ellipse filling its width and height.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "ellipse" },
+        "fill": {
+          "description": "Solid hex color or a gradient fill object.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientFill" }
+          ]
+        },
+        "stroke": {
+          "description": "Stroke (outline) color (hex string).",
+          "type": "string"
+        },
+        "stroke-width": {
+          "description": "Stroke width in pixels.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+
+    "drawShape": {
+      "description": "A single shape in a draw element. Use exactly one shape key.",
+      "type": "object",
+      "properties": {
+        "line": {
+          "description": "A straight line segment.",
+          "type": "object",
+          "properties": {
+            "x1": { "type": "number" },
+            "y1": { "type": "number" },
+            "x2": { "type": "number" },
+            "y2": { "type": "number" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 }
+          }
+        },
+        "polyline": {
+          "description": "Connected line segments, optionally filled.",
+          "type": "object",
+          "properties": {
+            "points": {
+              "description": "List of [x, y] points.",
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 },
+            "fill": { "type": "string" }
+          }
+        },
+        "rect": {
+          "description": "A rectangle, optionally with rounded corners.",
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "width": { "type": "number" },
+            "height": { "type": "number" },
+            "fill": { "type": "string" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 },
+            "radius": { "type": "number", "minimum": 0 }
+          }
+        },
+        "circle": {
+          "description": "A circle centered at (cx, cy) with radius r.",
+          "type": "object",
+          "properties": {
+            "cx": { "type": "number" },
+            "cy": { "type": "number" },
+            "r": { "type": "number" },
+            "fill": { "type": "string" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 }
+          }
+        },
+        "path": {
+          "description": "An SVG-style path. The 'd' string supports absolute commands M, L, Q, C, Z only.",
+          "type": "object",
+          "properties": {
+            "d": { "type": "string" },
+            "fill": { "type": "string" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "drawElement": {
+      "description": "A flex box holding an ordered list of absolute-coordinate shapes painted in list order.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "draw" },
+        "shapes": {
+          "description": "Ordered list of shapes, painted in order (max MaxShapesPerDraw, default 1000).",
+          "type": "array",
+          "items": { "$ref": "#/definitions/drawShape" }
         }
       }
     },
