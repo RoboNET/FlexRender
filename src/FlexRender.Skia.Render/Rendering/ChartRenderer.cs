@@ -57,8 +57,7 @@ internal static class ChartRenderer
                 return;
             }
 
-            // Series geometry is added in subsequent tasks (bar/line/area/pie/donut).
-            DrawSeries(canvas, theme, width, height, antialias);
+            DrawSeries(canvas, chart, theme, width, height, typeface, antialias);
         }
         finally
         {
@@ -125,20 +124,192 @@ internal static class ChartRenderer
     }
 
     /// <summary>
-    /// Draws series geometry by chart type. Phase-2 bar geometry is added in Task 17; this
-    /// placeholder keeps the dispatch surface in place so smoke tests can run.
+    /// Draws series geometry by chart type. Bar charts render grid, axes, and columns; other
+    /// chart types fall through to a faint plot border until added in later tasks.
     /// </summary>
-    private static void DrawSeries(SKCanvas canvas, ChartTheme theme, float width, float height, bool antialias)
+    private static void DrawSeries(
+        SKCanvas canvas,
+        ChartElement chart,
+        ChartTheme theme,
+        float width,
+        float height,
+        SKTypeface? typeface,
+        bool antialias)
     {
-        // Filled in by subsequent tasks. Until then, draw a faint plot border so a chart with
-        // data is visibly non-blank in smoke tests.
-        using var border = new SKPaint
+        switch (chart.ChartType)
         {
-            Color = ColorParser.Parse(theme.AxisColor),
+            case ChartType.Bar:
+                DrawBars(canvas, chart, theme, width, height, typeface, antialias);
+                break;
+            default:
+                // Other chart types are added in later tasks.
+                using (var border = new SKPaint
+                {
+                    Color = ColorParser.Parse(theme.AxisColor),
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 1f,
+                    IsAntialias = antialias
+                })
+                {
+                    canvas.DrawRect(0.5f, 0.5f, width - 1f, height - 1f, border);
+                }
+                break;
+        }
+    }
+
+    /// <summary>Computes the combined data min/max across all series.</summary>
+    private static (double Min, double Max) DataBounds(ChartElement chart)
+    {
+        var min = double.MaxValue;
+        var max = double.MinValue;
+        foreach (var s in chart.Series)
+        {
+            foreach (var v in s.Data)
+            {
+                if (v < min) min = v;
+                if (v > max) max = v;
+            }
+        }
+        if (min == double.MaxValue)
+            return (0d, 1d);
+        return (min, max);
+    }
+
+    /// <summary>Draws horizontal grid lines and y-axis tick labels for the given scale.</summary>
+    private static void DrawGridAndYAxis(
+        SKCanvas canvas, ChartTheme theme, in PlotArea plot, AxisScale scale,
+        SKTypeface? typeface, bool antialias)
+    {
+        var mapper = new ValueMapper(scale.Min, scale.Max, plot.Top, plot.Bottom);
+
+        using var grid = new SKPaint
+        {
+            Color = ColorParser.Parse(theme.GridColor),
             Style = SKPaintStyle.Stroke,
             StrokeWidth = 1f,
             IsAntialias = antialias
         };
-        canvas.DrawRect(0.5f, 0.5f, width - 1f, height - 1f, border);
+
+        SKFont? font = null;
+        SKPaint? labelPaint = null;
+        if (typeface is not null)
+        {
+            font = new SKFont(typeface, theme.LabelSize);
+            labelPaint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
+        }
+
+        try
+        {
+            foreach (var tick in scale.Ticks)
+            {
+                var ty = mapper.MapY(tick);
+                canvas.DrawLine(plot.Left, ty, plot.Right, ty, grid);
+
+                if (font is not null && labelPaint is not null)
+                {
+                    var label = FormatTick(tick);
+                    var tw = font.MeasureText(label);
+                    canvas.DrawText(label, plot.Left - tw - 4f, ty + (theme.LabelSize / 3f), SKTextAlign.Left, font, labelPaint);
+                }
+            }
+        }
+        finally
+        {
+            font?.Dispose();
+            labelPaint?.Dispose();
+        }
+    }
+
+    /// <summary>Draws x-axis category labels centred under each category slot.</summary>
+    private static void DrawCategoryLabels(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, in PlotArea plot,
+        SKTypeface? typeface, bool antialias)
+    {
+        if (typeface is null || chart.Categories.Count == 0)
+            return;
+
+        using var font = new SKFont(typeface, theme.LabelSize);
+        using var paint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
+
+        var slot = plot.Width / chart.Categories.Count;
+        for (var i = 0; i < chart.Categories.Count; i++)
+        {
+            var label = chart.Categories[i];
+            var tw = font.MeasureText(label);
+            var cx = plot.Left + (slot * (i + 0.5f));
+            canvas.DrawText(label, cx - (tw / 2f), plot.Bottom + theme.LabelSize + 2f, SKTextAlign.Left, font, paint);
+        }
+    }
+
+    /// <summary>Draws a vertical or horizontal bar chart with grid and axis labels.</summary>
+    private static void DrawBars(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool antialias)
+    {
+        var (dataMin, dataMax) = DataBounds(chart);
+        var scale = AxisScale.Compute(dataMin, dataMax, targetTicks: 5);
+
+        var hasTitle = !string.IsNullOrEmpty(chart.Title);
+        var plot = ChartLayout.ComputePlotArea(
+            width, height, hasTitle, chart.Legend,
+            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f);
+
+        DrawGridAndYAxis(canvas, theme, plot, scale, typeface, antialias);
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        var mapper = new ValueMapper(scale.Min, scale.Max, plot.Top, plot.Bottom);
+        var zeroY = mapper.MapY(0d);
+
+        var seriesCount = chart.Series.Count;
+        if (seriesCount == 0)
+            return;
+
+        // Determine category count from the longest series.
+        var categoryCount = 0;
+        foreach (var s in chart.Series)
+            categoryCount = Math.Max(categoryCount, s.Data.Count);
+        if (categoryCount == 0)
+            return;
+
+        var groupSlot = plot.Width / categoryCount;
+        var groupPadding = groupSlot * 0.15f;
+        var barAreaWidth = groupSlot - (2f * groupPadding);
+        var barWidth = barAreaWidth / seriesCount;
+
+        for (var si = 0; si < seriesCount; si++)
+        {
+            var data = chart.Series[si].Data;
+            using var paint = new SKPaint
+            {
+                Color = ColorParser.Parse(palette.ColorAt(si)),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            };
+
+            for (var ci = 0; ci < data.Count; ci++)
+            {
+                var value = data[ci];
+                var valueY = mapper.MapY(value);
+                var barLeft = plot.Left + (groupSlot * ci) + groupPadding + (barWidth * si);
+                var top = Math.Min(valueY, zeroY);
+                var bottom = Math.Max(valueY, zeroY);
+                var rect = new SKRect(barLeft, top, barLeft + barWidth, bottom);
+
+                if (theme.BarCornerRadius > 0f)
+                    canvas.DrawRoundRect(rect, theme.BarCornerRadius, theme.BarCornerRadius, paint);
+                else
+                    canvas.DrawRect(rect, paint);
+            }
+        }
+
+        DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+    }
+
+    /// <summary>Formats a tick value compactly, trimming trailing zeros.</summary>
+    private static string FormatTick(double value)
+    {
+        if (value == Math.Floor(value) && Math.Abs(value) < 1e15)
+            return ((long)value).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
