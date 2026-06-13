@@ -3470,6 +3470,11 @@ gh pr create --base main --head feature/charts-and-shapes \
 ## Follow-up (separate repo)
 - Update \`flexrender/skills/template/SKILL.md\` in RoboNET/FlexRender-Marketplace for the new elements, gradient object form, and MaxShapesPerDraw.
 
+## Follow-up (this repo, post-Phase-1)
+- Inner draw-shape property typo validation: properties inside a shape mapping (\`x1\`, \`cx\`, \`d\`, \`stroke-width\`, \`r\`, etc.) are not registered in \`KnownProperties\`, so a typo like \`strok\` is silently ignored instead of suggesting \`stroke\`. Add per-shape-kind known-property sets (line/polyline/rect/circle/path) and nested validation so inner typos surface, matching the typo-suggestion guarantee the top-level element properties already provide.
+- A shape mapping with multiple recognized keys (e.g. \`{line: {...}, circle: {...}}\`) silently uses the first; consider rejecting >1 shape key per entry.
+- Circle/ellipse stroke straddles the inscribed boundary (half the stroke width extends past the diameter). Standard SVG stroke behavior; document or add an inset option if exact-fit strokes are needed.
+
 ## Out of scope
 Charts (later phases), SVG backend for shapes.
 
