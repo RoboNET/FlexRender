@@ -180,6 +180,9 @@ internal static class ChartRenderer
             case ChartType.Heatmap:
                 DrawHeatmap(canvas, chart, theme, width, height, typeface, antialias);
                 break;
+            case ChartType.Radar:
+                DrawRadar(canvas, chart, theme, width, height, typeface, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -990,6 +993,150 @@ internal static class ChartRenderer
         {
             font?.Dispose();
             labelPaint?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Draws a radar (spider) chart: N spokes for N categories, concentric grid rings, and one
+    /// closed polygon per series filled semi-transparently and stroked. Values map radially from
+    /// the center (axis minimum, anchored at zero) to the outer radius (axis maximum).
+    /// </summary>
+    private static void DrawRadar(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool antialias)
+    {
+        var spokeCount = chart.Categories.Count;
+        // Without categories, fall back to the longest series length so a polygon can still draw.
+        if (spokeCount == 0)
+        {
+            foreach (var s in chart.Series)
+                spokeCount = Math.Max(spokeCount, s.Data.Count);
+        }
+        if (spokeCount == 0)
+            return;
+
+        var (dataMin, dataMax) = DataBounds(chart);
+        var scale = AxisScale.Compute(dataMin, dataMax, targetTicks: 4);
+        var span = scale.Max - scale.Min;
+
+        var hasTitle = !string.IsNullOrEmpty(chart.Title);
+        var legendReserve = chart.Legend is LegendPosition.Bottom ? 28f : 0f;
+        var top = hasTitle ? theme.TitleSize + 8f : 8f;
+        var availH = height - top - legendReserve - 8f;
+        var availW = width - 16f;
+        if (availH <= 0f || availW <= 0f)
+            return;
+
+        // Leave room for category labels around the rim.
+        var labelRoom = typeface is not null && spokeCount > 0 ? theme.LabelSize + 6f : 0f;
+        var radius = (MathF.Min(availW, availH) / 2f) - labelRoom;
+        if (radius <= 0f)
+            return;
+
+        var cx = width / 2f;
+        var cy = top + (availH / 2f);
+
+        DrawRadarGrid(canvas, theme, cx, cy, radius, spokeCount, antialias);
+        DrawRadarSpokeLabels(canvas, chart, theme, cx, cy, radius, spokeCount, typeface, antialias);
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+
+        for (var si = 0; si < chart.Series.Count; si++)
+        {
+            var data = chart.Series[si].Data;
+            if (data.Count == 0)
+                continue;
+
+            var color = ColorParser.Parse(palette.ColorAt(si));
+
+            using var path = new SKPath();
+            for (var i = 0; i < spokeCount; i++)
+            {
+                var value = i < data.Count ? data[i] : scale.Min;
+                var fraction = span <= 0d ? 0f : (float)((value - scale.Min) / span);
+                var p = RadarGeometry.Project(cx, cy, radius, i, spokeCount, fraction);
+                if (i == 0)
+                    path.MoveTo(p.X, p.Y);
+                else
+                    path.LineTo(p.X, p.Y);
+            }
+            path.Close();
+
+            using var fillPaint = new SKPaint
+            {
+                Color = color.WithAlpha(70),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            };
+            canvas.DrawPath(path, fillPaint);
+
+            using var strokePaint = new SKPaint
+            {
+                Color = color,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = theme.LineWidth,
+                IsAntialias = antialias,
+                StrokeJoin = SKStrokeJoin.Round
+            };
+            canvas.DrawPath(path, strokePaint);
+        }
+    }
+
+    /// <summary>Draws the radar's concentric grid rings and radial spoke lines.</summary>
+    private static void DrawRadarGrid(
+        SKCanvas canvas, ChartTheme theme, float cx, float cy, float radius, int spokeCount, bool antialias)
+    {
+        using var gridPaint = new SKPaint
+        {
+            Color = ColorParser.Parse(theme.GridColor),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1f,
+            IsAntialias = antialias
+        };
+
+        const int rings = 4;
+        for (var ring = 1; ring <= rings; ring++)
+        {
+            var r = radius * ring / rings;
+            using var ringPath = new SKPath();
+            for (var i = 0; i < spokeCount; i++)
+            {
+                var p = RadarGeometry.Project(cx, cy, r, i, spokeCount, 1f);
+                if (i == 0)
+                    ringPath.MoveTo(p.X, p.Y);
+                else
+                    ringPath.LineTo(p.X, p.Y);
+            }
+            ringPath.Close();
+            canvas.DrawPath(ringPath, gridPaint);
+        }
+
+        for (var i = 0; i < spokeCount; i++)
+        {
+            var p = RadarGeometry.Project(cx, cy, radius, i, spokeCount, 1f);
+            canvas.DrawLine(cx, cy, p.X, p.Y, gridPaint);
+        }
+    }
+
+    /// <summary>Draws each category label just outside its spoke's outer end, when a typeface is available.</summary>
+    private static void DrawRadarSpokeLabels(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, float cx, float cy, float radius,
+        int spokeCount, SKTypeface? typeface, bool antialias)
+    {
+        if (typeface is null || chart.Categories.Count == 0)
+            return;
+
+        using var font = new SKFont(typeface, theme.LabelSize);
+        using var paint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
+
+        for (var i = 0; i < spokeCount && i < chart.Categories.Count; i++)
+        {
+            var label = chart.Categories[i];
+            // Project slightly past the rim so the text sits outside the outer ring.
+            var p = RadarGeometry.Project(cx, cy, radius + (theme.LabelSize * 0.6f), i, spokeCount, 1f);
+            var tw = font.MeasureText(label);
+            // Center the text horizontally on its anchor; nudge vertically by a third of the label size.
+            canvas.DrawText(label, p.X - (tw / 2f), p.Y + (theme.LabelSize / 3f), SKTextAlign.Left, font, paint);
         }
     }
 
