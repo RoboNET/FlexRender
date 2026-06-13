@@ -177,6 +177,9 @@ internal static class ChartRenderer
             case ChartType.Progress:
                 DrawProgress(canvas, chart, theme, width, height, typeface, antialias);
                 break;
+            case ChartType.Heatmap:
+                DrawHeatmap(canvas, chart, theme, width, height, typeface, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -873,6 +876,121 @@ internal static class ChartRenderer
         }
 
         DrawIndicatorText(canvas, chart, theme, value, max, cx, cy, typeface, antialias);
+    }
+
+    /// <summary>
+    /// Draws a heatmap: each series is one row and each column is a category. Cell color encodes the
+    /// value, interpolated between the palette's first ("low") and second ("high") colors. Optional
+    /// x/y labels and per-cell value text are drawn when a typeface is available.
+    /// </summary>
+    private static void DrawHeatmap(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool antialias)
+    {
+        var rowCount = chart.Series.Count;
+        if (rowCount == 0)
+            return;
+
+        // Columns = the widest row; ragged rows simply leave trailing cells unpainted.
+        var colCount = 0;
+        foreach (var s in chart.Series)
+            colCount = Math.Max(colCount, s.Data.Count);
+        if (colCount == 0)
+            return;
+
+        // Global value range across every cell, for the color scale.
+        var (minV, maxV) = DataBounds(chart);
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        var lowColor = ColorParser.Parse(palette.ColorAt(0));
+        var highColor = ColorParser.Parse(palette.Colors.Count > 1 ? palette.ColorAt(1) : palette.ColorAt(0));
+
+        // X labels: prefer XLabels, fall back to Categories.
+        var xLabels = chart.XLabels.Count > 0 ? chart.XLabels : chart.Categories;
+        var yLabels = chart.YLabels;
+
+        var hasTitle = !string.IsNullOrEmpty(chart.Title);
+        var top = hasTitle ? theme.TitleSize + 8f : 4f;
+        // Reserve a left gutter for y-labels and a bottom gutter for x-labels (only when labelled).
+        var leftGutter = typeface is not null && yLabels.Count > 0 ? 52f : 6f;
+        var bottomGutter = typeface is not null && xLabels.Count > 0 ? theme.LabelSize + 8f : 6f;
+
+        var gridLeft = leftGutter;
+        var gridTop = top;
+        var gridRight = width - 6f;
+        var gridBottom = height - bottomGutter;
+        if (gridRight <= gridLeft || gridBottom <= gridTop)
+            return;
+
+        var cellW = (gridRight - gridLeft) / colCount;
+        var cellH = (gridBottom - gridTop) / rowCount;
+
+        SKFont? font = null;
+        SKPaint? labelPaint = null;
+        if (typeface is not null)
+        {
+            font = new SKFont(typeface, theme.LabelSize);
+            labelPaint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
+        }
+
+        try
+        {
+            using var cellPaint = new SKPaint { Style = SKPaintStyle.Fill, IsAntialias = antialias };
+            using var cellValuePaint = new SKPaint { IsAntialias = antialias };
+
+            for (var ri = 0; ri < rowCount; ri++)
+            {
+                var data = chart.Series[ri].Data;
+                var cellTop = gridTop + (cellH * ri);
+
+                for (var ci = 0; ci < data.Count; ci++)
+                {
+                    var value = data[ci];
+                    var cellLeft = gridLeft + (cellW * ci);
+                    cellPaint.Color = HeatmapColorScale.Map(value, minV, maxV, lowColor, highColor);
+                    // Inset by half a pixel to leave a faint grid seam between cells.
+                    canvas.DrawRect(cellLeft + 0.5f, cellTop + 0.5f, cellW - 1f, cellH - 1f, cellPaint);
+
+                    if (chart.ShowCellValues && font is not null)
+                    {
+                        // Choose dark or light value text for contrast against the cell color.
+                        var cell = cellPaint.Color;
+                        var luminance = (0.299f * cell.Red) + (0.587f * cell.Green) + (0.114f * cell.Blue);
+                        cellValuePaint.Color = luminance > 140f ? SKColors.Black : SKColors.White;
+
+                        var text = FormatTick(value);
+                        var tw = font.MeasureText(text);
+                        var tx = cellLeft + ((cellW - tw) / 2f);
+                        var ty = cellTop + ((cellH + theme.LabelSize) / 2f) - 2f;
+                        canvas.DrawText(text, tx, ty, SKTextAlign.Left, font, cellValuePaint);
+                    }
+                }
+            }
+
+            if (font is not null && labelPaint is not null)
+            {
+                for (var ci = 0; ci < xLabels.Count && ci < colCount; ci++)
+                {
+                    var label = xLabels[ci];
+                    var tw = font.MeasureText(label);
+                    var cx = gridLeft + (cellW * (ci + 0.5f));
+                    canvas.DrawText(label, cx - (tw / 2f), gridBottom + theme.LabelSize + 2f, SKTextAlign.Left, font, labelPaint);
+                }
+
+                for (var ri = 0; ri < yLabels.Count && ri < rowCount; ri++)
+                {
+                    var label = yLabels[ri];
+                    var tw = font.MeasureText(label);
+                    var cy = gridTop + (cellH * (ri + 0.5f)) + (theme.LabelSize / 3f);
+                    canvas.DrawText(label, gridLeft - tw - 6f, cy, SKTextAlign.Left, font, labelPaint);
+                }
+            }
+        }
+        finally
+        {
+            font?.Dispose();
+            labelPaint?.Dispose();
+        }
     }
 
     /// <summary>
