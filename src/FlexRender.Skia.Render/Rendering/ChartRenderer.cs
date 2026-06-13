@@ -141,6 +141,12 @@ internal static class ChartRenderer
             case ChartType.Bar:
                 DrawBars(canvas, chart, theme, width, height, typeface, antialias);
                 break;
+            case ChartType.Line:
+                DrawLineOrArea(canvas, chart, theme, width, height, typeface, fillArea: false, antialias);
+                break;
+            case ChartType.Area:
+                DrawLineOrArea(canvas, chart, theme, width, height, typeface, fillArea: true, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -359,6 +365,77 @@ internal static class ChartRenderer
                     canvas.DrawRect(rect, paint);
             }
         }
+    }
+
+    /// <summary>Draws a line chart, optionally filling the area under each series.</summary>
+    private static void DrawLineOrArea(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool fillArea, bool antialias)
+    {
+        var (dataMin, dataMax) = DataBounds(chart);
+        var scale = AxisScale.Compute(dataMin, dataMax, targetTicks: 5);
+
+        var hasTitle = !string.IsNullOrEmpty(chart.Title);
+        var plot = ChartLayout.ComputePlotArea(
+            width, height, hasTitle, chart.Legend,
+            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f);
+
+        DrawGridAndYAxis(canvas, theme, plot, scale, typeface, antialias);
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        var mapper = new ValueMapper(scale.Min, scale.Max, plot.Top, plot.Bottom);
+        var zeroY = mapper.MapY(0d);
+
+        for (var si = 0; si < chart.Series.Count; si++)
+        {
+            var data = chart.Series[si].Data;
+            if (data.Count == 0)
+                continue;
+
+            var color = ColorParser.Parse(palette.ColorAt(si));
+            var step = data.Count > 1 ? plot.Width / (data.Count - 1) : 0f;
+
+            float X(int i) => data.Count > 1 ? plot.Left + (step * i) : plot.Left + (plot.Width / 2f);
+
+            using var linePath = new SKPath();
+            linePath.MoveTo(X(0), mapper.MapY(data[0]));
+            for (var i = 1; i < data.Count; i++)
+                linePath.LineTo(X(i), mapper.MapY(data[i]));
+
+            if (fillArea)
+            {
+                using var areaPath = new SKPath();
+                areaPath.MoveTo(X(0), zeroY);
+                for (var i = 0; i < data.Count; i++)
+                    areaPath.LineTo(X(i), mapper.MapY(data[i]));
+                areaPath.LineTo(X(data.Count - 1), zeroY);
+                areaPath.Close();
+
+                var fillColor = color.WithAlpha(70);
+                using var areaPaint = new SKPaint { Color = fillColor, Style = SKPaintStyle.Fill, IsAntialias = antialias };
+                canvas.DrawPath(areaPath, areaPaint);
+            }
+
+            using var linePaint = new SKPaint
+            {
+                Color = color,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = theme.LineWidth,
+                IsAntialias = antialias,
+                StrokeCap = SKStrokeCap.Round,
+                StrokeJoin = SKStrokeJoin.Round
+            };
+            canvas.DrawPath(linePath, linePaint);
+
+            if (chart.ShowPoints)
+            {
+                using var pointPaint = new SKPaint { Color = color, Style = SKPaintStyle.Fill, IsAntialias = antialias };
+                for (var i = 0; i < data.Count; i++)
+                    canvas.DrawCircle(X(i), mapper.MapY(data[i]), theme.LineWidth + 1f, pointPaint);
+            }
+        }
+
+        DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
     }
 
     /// <summary>Formats a tick value compactly, trimming trailing zeros.</summary>
