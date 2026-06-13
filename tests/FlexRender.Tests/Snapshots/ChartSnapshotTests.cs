@@ -245,6 +245,57 @@ public sealed class ChartSnapshotTests : SnapshotTestBase
     }
 
     [Fact]
+    public async Task HeatmapChart_Light()
+    {
+        var template = Parser.Parse("""
+            canvas:
+              width: 420
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: heatmap
+                width: 420
+                height: 300
+                x-labels: [Mon, Tue, Wed, Thu, Fri]
+                y-labels: [Morning, Afternoon, Evening]
+                cell-values: true
+                series:
+                  - data: [2, 8, 4, 10, 6]
+                  - data: [5, 3, 9, 7, 1]
+                  - data: [8, 6, 2, 4, 9]
+                title: Activity
+                legend: none
+                palette: ocean
+            """);
+        await AssertSnapshot("chart_heatmap_light", template, new ObjectValue());
+    }
+
+    [Fact]
+    public async Task RadarChart_Dark()
+    {
+        var template = Parser.Parse("""
+            canvas:
+              width: 360
+              background: "#1e1e1e"
+            layout:
+              - type: chart
+                chart-type: radar
+                width: 360
+                height: 360
+                categories: [Speed, Power, Range, Agility, Armor, Stealth]
+                series:
+                  - label: Alpha
+                    data: [4, 3, 5, 2, 4, 3]
+                  - label: Bravo
+                    data: [3, 5, 2, 4, 3, 5]
+                theme: dark
+                legend: bottom
+                palette: vivid
+            """);
+        await AssertSnapshot("chart_radar_dark", template, new ObjectValue());
+    }
+
+    [Fact]
     public async Task EmptyChart_NoDataPlaceholder()
     {
         var template = Parser.Parse("""
