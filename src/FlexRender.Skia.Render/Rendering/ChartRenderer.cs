@@ -254,11 +254,7 @@ internal static class ChartRenderer
             width, height, hasTitle, chart.Legend,
             axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f);
 
-        DrawGridAndYAxis(canvas, theme, plot, scale, typeface, antialias);
-
         var palette = chart.Palette ?? ChartPalettes.Default;
-        var mapper = new ValueMapper(scale.Min, scale.Max, plot.Top, plot.Bottom);
-        var zeroY = mapper.MapY(0d);
 
         var seriesCount = chart.Series.Count;
         if (seriesCount == 0)
@@ -270,6 +266,26 @@ internal static class ChartRenderer
             categoryCount = Math.Max(categoryCount, s.Data.Count);
         if (categoryCount == 0)
             return;
+
+        if (chart.Horizontal)
+        {
+            DrawHorizontalBars(canvas, chart, theme, plot, scale, palette, seriesCount, categoryCount, antialias);
+        }
+        else
+        {
+            DrawGridAndYAxis(canvas, theme, plot, scale, typeface, antialias);
+            DrawVerticalBars(canvas, chart, theme, plot, scale, palette, seriesCount, categoryCount, antialias);
+            DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+        }
+    }
+
+    /// <summary>Draws bars rising vertically from the zero baseline, grouped along the X axis by category.</summary>
+    private static void DrawVerticalBars(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, in PlotArea plot, AxisScale scale,
+        ChartPalette palette, int seriesCount, int categoryCount, bool antialias)
+    {
+        var mapper = new ValueMapper(scale.Min, scale.Max, plot.Top, plot.Bottom);
+        var zeroY = mapper.MapY(0d);
 
         var groupSlot = plot.Width / categoryCount;
         var groupPadding = groupSlot * 0.15f;
@@ -288,12 +304,9 @@ internal static class ChartRenderer
 
             for (var ci = 0; ci < data.Count; ci++)
             {
-                var value = data[ci];
-                var valueY = mapper.MapY(value);
+                var valueY = mapper.MapY(data[ci]);
                 var barLeft = plot.Left + (groupSlot * ci) + groupPadding + (barWidth * si);
-                var top = Math.Min(valueY, zeroY);
-                var bottom = Math.Max(valueY, zeroY);
-                var rect = new SKRect(barLeft, top, barLeft + barWidth, bottom);
+                var rect = new SKRect(barLeft, Math.Min(valueY, zeroY), barLeft + barWidth, Math.Max(valueY, zeroY));
 
                 if (theme.BarCornerRadius > 0f)
                     canvas.DrawRoundRect(rect, theme.BarCornerRadius, theme.BarCornerRadius, paint);
@@ -301,8 +314,51 @@ internal static class ChartRenderer
                     canvas.DrawRect(rect, paint);
             }
         }
+    }
 
-        DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+    /// <summary>Draws bars extending horizontally from the zero baseline, grouped along the Y axis by category.</summary>
+    private static void DrawHorizontalBars(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, in PlotArea plot, AxisScale scale,
+        ChartPalette palette, int seriesCount, int categoryCount, bool antialias)
+    {
+        // For horizontal bars the value axis is X: min -> plot.Left, max -> plot.Right.
+        // Copy the readonly plot fields into locals so the mapping closure can capture them.
+        var plotLeft = plot.Left;
+        var plotWidth = plot.Width;
+        var scaleMin = scale.Min;
+        var xSpan = scale.Max - scale.Min;
+        float MapX(double value) => xSpan <= 0d
+            ? plotLeft
+            : plotLeft + (float)(((value - scaleMin) / xSpan) * plotWidth);
+        var zeroX = MapX(0d);
+
+        var groupSlot = plot.Height / categoryCount;
+        var groupPadding = groupSlot * 0.15f;
+        var barAreaHeight = groupSlot - (2f * groupPadding);
+        var barHeight = barAreaHeight / seriesCount;
+
+        for (var si = 0; si < seriesCount; si++)
+        {
+            var data = chart.Series[si].Data;
+            using var paint = new SKPaint
+            {
+                Color = ColorParser.Parse(palette.ColorAt(si)),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            };
+
+            for (var ci = 0; ci < data.Count; ci++)
+            {
+                var valueX = MapX(data[ci]);
+                var barTop = plot.Top + (groupSlot * ci) + groupPadding + (barHeight * si);
+                var rect = new SKRect(Math.Min(valueX, zeroX), barTop, Math.Max(valueX, zeroX), barTop + barHeight);
+
+                if (theme.BarCornerRadius > 0f)
+                    canvas.DrawRoundRect(rect, theme.BarCornerRadius, theme.BarCornerRadius, paint);
+                else
+                    canvas.DrawRect(rect, paint);
+            }
+        }
     }
 
     /// <summary>Formats a tick value compactly, trimming trailing zeros.</summary>
