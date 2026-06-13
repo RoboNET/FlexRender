@@ -28,9 +28,14 @@ internal static class XmlToYamlNodeConverter
     /// <summary>
     /// Attribute names whose comma/semicolon values expand into YAML sequences.
     /// </summary>
+    /// <remarks>
+    /// The <c>data</c> attribute is intentionally excluded: as a top-level element attribute it is a
+    /// scalar (e.g. <c>&lt;qr data="hello"/&gt;</c>, <c>&lt;barcode data="12345"/&gt;</c>). Chart-series
+    /// <c>data</c> is expanded by the dedicated series converter, not by this generic attribute pass.
+    /// </remarks>
     private static readonly HashSet<string> ListAttributes = new(StringComparer.Ordinal)
     {
-        "data", "points", "categories", "palette", "x-labels", "y-labels"
+        "points", "categories", "palette", "x-labels", "y-labels"
     };
 
     /// <summary>
