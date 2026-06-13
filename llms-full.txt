@@ -963,11 +963,11 @@ Example: `d: "M 0 0 L 100 50 Q 150 0 200 50 Z"`
 
 ## Element Type: chart (ChartElement)
 
-A declarative chart element that renders bar, line, area, pie, and donut charts. The chart paints into its `width` by `height` box and participates in flex layout like any other element. Both `width` and `height` are required.
+A declarative chart element that renders bar, line, area, pie, donut, scatter, bubble, gauge, progress, and sparkline charts. The chart paints into its `width` by `height` box and participates in flex layout like any other element. Both `width` and `height` are required.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| chart-type | string | `bar` | Chart kind: `bar`, `line`, `area`, `pie`, `donut` |
+| chart-type | string | `bar` | Chart kind: `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline` |
 | width | number | none | Chart width in pixels (**required**) |
 | height | number | none | Chart height in pixels (**required**) |
 | categories | string[] | `[]` | X-axis category labels (bar/line/area) or slice labels (pie/donut) |
@@ -978,13 +978,16 @@ A declarative chart element that renders bar, line, area, pie, and donut charts.
 | title | string | none | Optional chart title |
 | horizontal | bool | `false` | **Bar only.** Render bars horizontally |
 | stacked | bool | `false` | **Bar only.** Stack series on top of each other |
-| smooth | bool | `false` | **Line/area only.** Smooth (curved) lines instead of straight segments |
-| points | bool | `false` | **Line/area only.** Draw point markers at each data value |
+| smooth | bool | `false` | **Line/area/sparkline only.** Smooth (curved) lines instead of straight segments |
+| points | bool | `false` | **Line/area/sparkline only.** Draw point markers at each data value |
 | labels | string | `percent` | **Pie/donut only.** Slice label content: `percent`, `value`, `none` |
+| value | number | none | **Gauge/progress only.** The indicator value |
+| max | number | `100` | **Gauge/progress only.** The indicator maximum |
+| label | string | none | **Gauge/progress only.** Centered caption under the value |
 
 ### Series and Data Binding
 
-Each entry in `series` is an object with an optional `label` (used in the legend) and a required `data` value. `data` is either an inline array of numbers, **or** a `{{ expression }}` string that resolves to a number array from the render data context -- the same binding mechanism used by `table` rows. This lets chart data come directly from the data file:
+Each entry in `series` is an object with an optional `label` (used in the legend) and a required `data` value. For bar/line/area/pie/donut/sparkline, `data` is either an inline array of numbers, **or** a `{{ expression }}` string that resolves to a number array from the render data context -- the same binding mechanism used by `table` rows. This lets chart data come directly from the data file:
 
 ```yaml
 series:
@@ -992,6 +995,55 @@ series:
     data: [12, 30, 22, 48]      # inline literal numbers
   - label: "2025"
     data: "{{ sales }}"          # resolves to a number array from data
+```
+
+### Phase-3 Chart Types
+
+**Scatter and bubble** take tuple data instead of a flat number array: `data: [[x, y], ...]` for `scatter` and `data: [[x, y, r], ...]` for `bubble`, where `r` sizes each bubble. Tuple data is inline-only (expression-bound tuples are not yet supported).
+
+```yaml
+- type: chart
+  chart-type: scatter
+  width: 480
+  height: 320
+  series:
+    - data: [[1, 12], [3, 30], [5, 22], [7, 48], [9, 35]]
+- type: chart
+  chart-type: bubble
+  width: 480
+  height: 320
+  series:
+    - data: [[1, 12, 6], [3, 30, 18], [5, 22, 10], [7, 48, 24]]
+```
+
+**Gauge and progress** are single-value indicators that ignore `series`/`categories` and instead use `value`, `max` (default 100), and `label` (a centered caption). Gauge draws a 270-degree dial; progress draws a ring filled to `value` / `max`.
+
+```yaml
+- type: chart
+  chart-type: gauge
+  width: 280
+  height: 220
+  value: 72
+  max: 100
+  label: CPU
+- type: chart
+  chart-type: progress
+  width: 240
+  height: 240
+  value: 64
+  label: Disk
+```
+
+**Sparkline** is a tiny inline line chart with no axes, legend, or title (chrome-free). It uses a plain numeric `data` array and honors `smooth` and `points`.
+
+```yaml
+- type: chart
+  chart-type: sparkline
+  width: 200
+  height: 50
+  smooth: true
+  series:
+    - data: [3, 8, 4, 10, 6, 9, 5, 11]
 ```
 
 ### Palettes and Themes
