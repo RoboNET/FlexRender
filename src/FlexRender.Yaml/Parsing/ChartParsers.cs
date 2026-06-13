@@ -26,7 +26,7 @@ public static class ChartParsers
         ArgumentNullException.ThrowIfNull(node);
 
         var chartType = ParseChartType(node);
-        var series = ParseSeries(node, maxSeries, maxDataPoints);
+        var series = ParseSeries(node, chartType, maxSeries, maxDataPoints);
 
         var chart = new ChartElement(chartType, series)
         {
@@ -62,7 +62,7 @@ public static class ChartParsers
         if (!Enum.TryParse<ChartType>(raw, ignoreCase: true, out var chartType))
         {
             throw new TemplateParseException(
-                $"Unknown chart-type '{raw}'. Valid values: bar, line, area, pie, donut.");
+                $"Unknown chart-type '{raw}'. Valid values: bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline.");
         }
         return chartType;
     }
@@ -177,11 +177,12 @@ public static class ChartParsers
     /// Parses the <c>series</c> sequence, enforcing the per-chart series limit.
     /// </summary>
     /// <param name="node">The chart mapping node.</param>
+    /// <param name="chartType">The chart type, used to decide whether tuple (scatter/bubble) data is expected.</param>
     /// <param name="maxSeries">The maximum number of series allowed.</param>
     /// <param name="maxDataPoints">The maximum number of data points per series.</param>
     /// <returns>The parsed series; empty when no <c>series</c> sequence is present.</returns>
     /// <exception cref="TemplateParseException">Thrown when the series limit is exceeded or an entry is malformed.</exception>
-    private static List<ChartSeries> ParseSeries(YamlMappingNode node, int maxSeries, int maxDataPoints)
+    private static List<ChartSeries> ParseSeries(YamlMappingNode node, ChartType chartType, int maxSeries, int maxDataPoints)
     {
         var result = new List<ChartSeries>();
 
@@ -199,22 +200,27 @@ public static class ChartParsers
             if (item is not YamlMappingNode seriesNode)
                 throw new TemplateParseException("Each entry in 'series' must be a mapping with a 'data' field.");
 
-            result.Add(ParseOneSeries(seriesNode, maxDataPoints));
+            result.Add(ParseOneSeries(seriesNode, chartType, maxDataPoints));
         }
 
         return result;
     }
 
     /// <summary>
-    /// Parses a single series entry, supporting an inline numeric array or a template expression.
+    /// Parses a single series entry, supporting an inline numeric array, an array-of-arrays of
+    /// XY/XY(R) tuples (scatter/bubble), or a template expression.
     /// </summary>
     /// <param name="seriesNode">The series mapping node.</param>
+    /// <param name="chartType">The chart type, used to decide tuple arity rules for scatter/bubble.</param>
     /// <param name="maxDataPoints">The maximum number of data points allowed in the series.</param>
     /// <returns>The parsed <see cref="ChartSeries"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown when the data-point limit is exceeded or a value is non-numeric/non-finite.</exception>
-    private static ChartSeries ParseOneSeries(YamlMappingNode seriesNode, int maxDataPoints)
+    private static ChartSeries ParseOneSeries(YamlMappingNode seriesNode, ChartType chartType, int maxDataPoints)
     {
         var label = GetStringValue(seriesNode, "label");
+
+        // Bubble tuples may carry a third (radius) element; scatter tuples are strictly [x, y].
+        var allowRadius = chartType is ChartType.Bubble;
 
         // Inline array form.
         if (TryGetSequence(seriesNode, "data", out var dataSeq))
@@ -225,6 +231,11 @@ public static class ChartParsers
                     $"Series '{label ?? "(unlabeled)"}' has {dataSeq.Children.Count} data points, which exceeds the maximum of {maxDataPoints}.");
             }
 
+            // Tuple data: the items are themselves sequences ([x, y] or [x, y, r]).
+            if (dataSeq.Children.Count > 0 && dataSeq.Children[0] is YamlSequenceNode)
+                return ParseTupleSeries(label, dataSeq, allowRadius);
+
+            // Flat numeric data (bar/line/area/pie/donut/sparkline/gauge-progress series).
             var values = new List<double>(dataSeq.Children.Count);
             foreach (var v in dataSeq.Children)
             {
@@ -247,5 +258,59 @@ public static class ChartParsers
 
         // No data at all -> empty inline series (renders as "no data" if all series empty).
         return ChartSeries.FromInline(label, Array.Empty<double>());
+    }
+
+    /// <summary>
+    /// Parses an array-of-arrays data sequence into XY (scatter) or XY(R) (bubble) tuple points.
+    /// </summary>
+    /// <param name="label">The series label, used in error messages.</param>
+    /// <param name="dataSeq">The data sequence whose items are 2- or 3-element scalar sequences.</param>
+    /// <param name="allowRadius">Whether a third (radius) element is permitted (bubble).</param>
+    /// <returns>A point-bearing <see cref="ChartSeries"/>.</returns>
+    /// <exception cref="TemplateParseException">Thrown on wrong arity, non-numeric, or non-finite tuple values.</exception>
+    private static ChartSeries ParseTupleSeries(string? label, YamlSequenceNode dataSeq, bool allowRadius)
+    {
+        var points = new List<ChartPoint>(dataSeq.Children.Count);
+        foreach (var item in dataSeq.Children)
+        {
+            if (item is not YamlSequenceNode tuple)
+            {
+                throw new TemplateParseException(
+                    $"Series '{label ?? "(unlabeled)"}' mixes tuple and scalar data; every item must be an [x, y] (or [x, y, r]) array.");
+            }
+
+            var arity = tuple.Children.Count;
+            var maxArity = allowRadius ? 3 : 2;
+            if (arity < 2 || arity > maxArity)
+            {
+                throw new TemplateParseException(
+                    $"Series '{label ?? "(unlabeled)"}' has a tuple with {arity} elements; expected 2{(allowRadius ? " or 3" : string.Empty)}.");
+            }
+
+            var x = ParseTupleScalar(tuple.Children[0], label);
+            var y = ParseTupleScalar(tuple.Children[1], label);
+            var r = arity == 3 ? ParseTupleScalar(tuple.Children[2], label) : 0d;
+            points.Add(new ChartPoint(x, y, r));
+        }
+
+        return ChartSeries.FromPoints(label, points);
+    }
+
+    /// <summary>Parses a single tuple element as a finite double, raising a named error otherwise.</summary>
+    /// <param name="node">The tuple element node.</param>
+    /// <param name="label">The series label, used in error messages.</param>
+    /// <returns>The parsed finite double.</returns>
+    /// <exception cref="TemplateParseException">Thrown when the value is non-numeric or non-finite.</exception>
+    private static double ParseTupleScalar(YamlNode node, string? label)
+    {
+        if (node is YamlScalarNode scalar
+            && double.TryParse(scalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
+            && double.IsFinite(d))
+        {
+            return d;
+        }
+
+        throw new TemplateParseException(
+            $"Series '{label ?? "(unlabeled)"}' contains a non-numeric tuple value '{(node as YamlScalarNode)?.Value}'.");
     }
 }
