@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using FlexRender.Charts;
 using FlexRender.Parsing.Ast;
 using SkiaSharp;
@@ -58,6 +59,8 @@ internal static class ChartRenderer
             }
 
             DrawSeries(canvas, chart, theme, width, height, typeface, antialias);
+            DrawTitle(canvas, chart, theme, width, typeface, antialias);
+            DrawLegend(canvas, chart, theme, width, height, typeface, antialias);
         }
         finally
         {
@@ -516,6 +519,84 @@ internal static class ChartRenderer
                 IsAntialias = antialias
             };
             canvas.DrawCircle(cx, cy, radius * 0.55f, hole);
+        }
+    }
+
+    /// <summary>Draws the centred chart title in the reserved top band, when present.</summary>
+    private static void DrawTitle(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, float width, SKTypeface? typeface, bool antialias)
+    {
+        if (typeface is null || string.IsNullOrEmpty(chart.Title))
+            return;
+
+        using var font = new SKFont(typeface, theme.TitleSize);
+        using var paint = new SKPaint { Color = ColorParser.Parse(theme.TitleColor), IsAntialias = antialias };
+        var tw = font.MeasureText(chart.Title);
+        canvas.DrawText(chart.Title, (width - tw) / 2f, theme.TitleSize + 2f, SKTextAlign.Left, font, paint);
+    }
+
+    /// <summary>
+    /// Draws a simple legend (colored swatch + series label) for each labeled series.
+    /// Supports the bottom legend band; other positions reserve space but use the same row layout.
+    /// </summary>
+    private static void DrawLegend(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool antialias)
+    {
+        if (typeface is null || chart.Legend == LegendPosition.None)
+            return;
+
+        using var font = new SKFont(typeface, theme.LabelSize);
+        using var textPaint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        const float swatch = 10f;
+        const float gap = 6f;
+        const float itemGap = 16f;
+
+        // Build entries: for pie/donut use categories, otherwise use series labels.
+        var labels = new List<string>();
+        if (chart.ChartType is ChartType.Pie or ChartType.Donut)
+        {
+            foreach (var c in chart.Categories)
+                labels.Add(c);
+        }
+        else
+        {
+            for (var i = 0; i < chart.Series.Count; i++)
+                labels.Add(chart.Series[i].Label ?? $"Series {i + 1}");
+        }
+
+        if (labels.Count == 0)
+            return;
+
+        // Measure total width for centring along the bottom.
+        var totalWidth = 0f;
+        foreach (var label in labels)
+            totalWidth += swatch + gap + font.MeasureText(label) + itemGap;
+        totalWidth -= itemGap;
+
+        var startX = (width - totalWidth) / 2f;
+        var rowY = chart.Legend == LegendPosition.Top
+            ? theme.LabelSize + 4f
+            : height - (theme.LabelSize / 2f) - 4f;
+
+        var x = startX;
+        for (var i = 0; i < labels.Count; i++)
+        {
+            using (var swatchPaint = new SKPaint
+            {
+                Color = ColorParser.Parse(palette.ColorAt(i)),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            })
+            {
+                canvas.DrawRect(x, rowY - swatch, swatch, swatch, swatchPaint);
+            }
+
+            x += swatch + gap;
+            canvas.DrawText(labels[i], x, rowY, SKTextAlign.Left, font, textPaint);
+            x += font.MeasureText(labels[i]) + itemGap;
         }
     }
 
