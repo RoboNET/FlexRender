@@ -880,7 +880,7 @@
         "chart-type": {
           "description": "Chart kind.",
           "type": "string",
-          "enum": ["bar", "line", "area", "pie", "donut"]
+          "enum": ["bar", "line", "area", "pie", "donut", "scatter", "bubble", "gauge", "progress", "sparkline"]
         },
         "categories": {
           "description": "X-axis category labels (bar/line/area) or slice labels (pie/donut).",
@@ -898,9 +898,10 @@
                 "type": "string"
               },
               "data": {
-                "description": "Inline array of numbers OR a {{ expr }} string resolving to a number array.",
+                "description": "Flat number array (bar/line/area/pie/donut/sparkline), OR an array of [x, y] / [x, y, r] tuples (scatter/bubble), OR a {{ expr }} string resolving to a number array.",
                 "oneOf": [
                   { "type": "array", "items": { "type": "number" } },
+                  { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
                   { "type": "string" }
                 ]
               }
@@ -948,6 +949,18 @@
           "description": "Pie/donut only. Slice label content.",
           "type": "string",
           "enum": ["percent", "value", "none"]
+        },
+        "value": {
+          "description": "Gauge/progress only. The indicator value.",
+          "type": "number"
+        },
+        "max": {
+          "description": "Gauge/progress only. The indicator maximum (default 100).",
+          "type": "number"
+        },
+        "label": {
+          "description": "Gauge/progress only. Centered caption under the value.",
+          "type": "string"
         }
       }
     },
