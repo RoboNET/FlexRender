@@ -213,6 +213,10 @@ public sealed class LayoutEngine
             ImageElement image => LayoutImageElement(image, context),
             SvgElement svg => LayoutSvgElement(svg, context),
             SeparatorElement separator => LayoutSeparatorElement(separator, context),
+            RectElement rect => LayoutShapeElement(rect, context),
+            CircleElement circle => LayoutShapeElement(circle, context),
+            EllipseElement ellipse => LayoutShapeElement(ellipse, context),
+            DrawElement draw => LayoutShapeElement(draw, context),
             _ => new LayoutNode(element, 0, 0, context.ContainerWidth, DefaultTextHeight)
         };
         node.Direction = LayoutHelpers.ResolveDirection(element, context.Direction);
@@ -746,6 +750,29 @@ public sealed class LayoutEngine
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         return new LayoutNode(separator, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
+    }
+
+    /// <summary>
+    /// Lays out a shape leaf element (rect, circle, ellipse, draw).
+    /// Shapes behave like other leaf boxes: the explicit width defaults to the container
+    /// width and the explicit height defaults to 0 when unspecified, then padding and
+    /// border are added (border-box model).
+    /// </summary>
+    /// <param name="shape">The shape element to lay out.</param>
+    /// <param name="context">The current layout context.</param>
+    /// <returns>The computed layout node for the shape.</returns>
+    private static LayoutNode LayoutShapeElement(TemplateElement shape, LayoutContext context)
+    {
+        var padding = PaddingParser.Parse(shape.Padding.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
+        var border = BorderParser.Resolve(shape, context.ContainerWidth, context.FontSize);
+
+        var contentWidth = context.ResolveWidth(shape.Width.Value) ?? context.ContainerWidth;
+        var contentHeight = context.ResolveHeight(shape.Height.Value) ?? 0f;
+
+        var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
+        var totalHeight = contentHeight + padding.Vertical + border.Vertical;
+
+        return new LayoutNode(shape, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
     }
 
     /// <summary>
