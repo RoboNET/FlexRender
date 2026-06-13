@@ -348,6 +348,13 @@ internal sealed class RenderingEngine
                 ShapeRenderer.DrawShapes(canvas, drawEl, x, y, width, height, renderOptions.Antialiasing);
                 break;
 
+            case ChartElement chart:
+                ChartRenderer.Draw(
+                    canvas, chart, x, y, width, height,
+                    _fontManager?.GetTypeface("main"),
+                    renderOptions.Antialiasing);
+                break;
+
             case SeparatorElement separator:
                 DrawSeparator(canvas, separator, x, y, width, height, renderOptions.Antialiasing);
                 break;
