@@ -83,6 +83,14 @@ public sealed class ChartElement : TemplateElement
     /// <summary>Gets or sets whether the heatmap draws each cell's numeric value inside the cell.</summary>
     public bool ShowCellValues { get; set; }
 
+    /// <summary>
+    /// Gets or sets the maximum number of data points allowed in a single resolved series. Enforced
+    /// when a data-bound series is resolved during <see cref="ResolveExpressions"/>, mirroring the
+    /// limit the inline parse path applies. Defaults to <see cref="int.MaxValue"/> (no limit) so
+    /// directly-constructed charts are unaffected unless the parser sets it.
+    /// </summary>
+    internal int MaxDataPointsPerSeries { get; set; } = int.MaxValue;
+
     /// <inheritdoc/>
     public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
     {
@@ -105,7 +113,8 @@ public sealed class ChartElement : TemplateElement
             ValueLabel = ValueLabel,
             XLabels = XLabels,
             YLabels = YLabels,
-            ShowCellValues = ShowCellValues
+            ShowCellValues = ShowCellValues,
+            MaxDataPointsPerSeries = MaxDataPointsPerSeries
         };
         CopyBasePropertiesTo(clone, substitutor);
         return clone;
@@ -147,7 +156,7 @@ public sealed class ChartElement : TemplateElement
 
             var path = StripBraces(series.DataExpression);
             var value = ExpressionEvaluator.Resolve(path, context);
-            resolved.Add(series.WithData(ConvertToDoubles(value, series.Label)));
+            resolved.Add(series.WithData(ConvertToDoubles(value, series.Label, MaxDataPointsPerSeries)));
         }
 
         SetSeries(resolved);
@@ -173,17 +182,26 @@ public sealed class ChartElement : TemplateElement
     /// <summary>
     /// Converts a resolved <see cref="ArrayValue"/> of numbers to a double array. A non-array
     /// (e.g. a missing path resolving to <see cref="NullValue"/>) yields an empty array; a
-    /// non-numeric element raises a clear template error naming the series.
+    /// non-numeric element raises a clear template error naming the series; an array longer than
+    /// <paramref name="maxDataPoints"/> raises an error mirroring the inline parse-path limit.
     /// </summary>
     /// <param name="value">The resolved template value.</param>
     /// <param name="label">The series label, used in error messages.</param>
+    /// <param name="maxDataPoints">The maximum number of data points allowed in the resolved series.</param>
     /// <returns>The numeric values (possibly empty).</returns>
-    /// <exception cref="TemplateEngineException">Thrown when an array element is not numeric.</exception>
-    private static double[] ConvertToDoubles(TemplateValue value, string? label)
+    /// <exception cref="TemplateEngineException">Thrown when an array element is not numeric or the data-point limit is exceeded.</exception>
+    private static double[] ConvertToDoubles(TemplateValue value, string? label, int maxDataPoints)
     {
         if (value is not ArrayValue array)
         {
             return Array.Empty<double>();
+        }
+
+        if (array.Count > maxDataPoints)
+        {
+            throw new TemplateEngineException(
+                $"Chart series '{label ?? "(unlabeled)"}' resolved to {array.Count} data points, " +
+                $"exceeding the maximum of {maxDataPoints}.");
         }
 
         var result = new double[array.Count];

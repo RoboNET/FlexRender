@@ -1,6 +1,9 @@
+using FlexRender;
 using FlexRender.Charts;
+using FlexRender.Configuration;
 using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
+using FlexRender.TemplateEngine;
 using Xunit;
 
 namespace FlexRender.Tests.Parsing;
@@ -133,5 +136,41 @@ public sealed class ChartParsersTests
 
         var ex = Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
         Assert.Contains("chart-type", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_BoundSeriesResolvingOverLimit_ThrowsOnResolveExpressions()
+    {
+        var limits = new ResourceLimits { MaxDataPointsPerSeries = 2 };
+        var parser = new TemplateParser(limits);
+
+        const string yaml = """
+            canvas:
+              width: 600
+            layout:
+              - type: chart
+                chart-type: bar
+                width: 600
+                height: 300
+                series:
+                  - label: Big
+                    data: "{{ big }}"
+            """;
+
+        var template = parser.Parse(yaml);
+        var chart = Assert.IsType<ChartElement>(template.Elements[0]);
+
+        var data = new ObjectValue
+        {
+            ["big"] = new ArrayValue(new TemplateValue[]
+            {
+                new NumberValue(1m), new NumberValue(2m), new NumberValue(3m)
+            })
+        };
+
+        var ex = Assert.Throws<TemplateEngineException>(
+            () => chart.ResolveExpressions(static (raw, _) => raw, data));
+        Assert.Contains("maximum", ex.Message);
+        Assert.Contains("Big", ex.Message);
     }
 }

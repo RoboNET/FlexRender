@@ -52,6 +52,8 @@ public static class ChartParsers
             Margin = GetExprStringValue(node, "margin", "0")
         };
 
+        chart.MaxDataPointsPerSeries = maxDataPoints;
+
         ElementParsers.ApplyFlexItemProperties(node, chart);
         return chart;
     }

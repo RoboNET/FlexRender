@@ -80,4 +80,28 @@ public sealed class ChartElementDataBindingTests
         var ex = Assert.Throws<TemplateEngineException>(() => chart.ResolveExpressions(PassthroughResolver, data));
         Assert.Contains("Sales", ex.Message);
     }
+
+    [Fact]
+    public void ResolveExpressions_BoundSeries_ExceedingMaxDataPoints_Throws()
+    {
+        var chart = new ChartElement(ChartType.Bar, new List<ChartSeries>
+        {
+            ChartSeries.FromExpression("Sales", "{{ sales }}")
+        })
+        {
+            MaxDataPointsPerSeries = 2
+        };
+
+        var data = new ObjectValue
+        {
+            ["sales"] = new ArrayValue(new TemplateValue[]
+            {
+                new NumberValue(1m), new NumberValue(2m), new NumberValue(3m)
+            })
+        };
+
+        var ex = Assert.Throws<TemplateEngineException>(() => chart.ResolveExpressions(PassthroughResolver, data));
+        Assert.Contains("maximum", ex.Message);
+        Assert.Contains("Sales", ex.Message);
+    }
 }
