@@ -74,7 +74,7 @@ Templates can be parsed once and cached for reuse with different data.
 
 ## Element Types
 
-Fifteen element types, each a sealed class extending `TemplateElement`:
+Sixteen element types, each a sealed class extending `TemplateElement`:
 
 | Type | Key Properties |
 |------|---------------|
@@ -89,6 +89,7 @@ Fifteen element types, each a sealed class extending `TemplateElement`:
 | **circle** | fill (hex color OR gradient object), stroke, stroke-width, opacity, size (shorthand setting width & height = diameter) -- flex box drawn as a circle |
 | **ellipse** | fill (hex color OR gradient object), stroke, stroke-width, opacity -- flex box drawn as an ellipse filling its width/height |
 | **draw** | shapes (ordered list painted in list order); shape kinds: line, polyline, rect, circle, path (abs commands M/L/Q/C/Z); absolute coords relative to element top-left; capped by `MaxShapesPerDraw` (default 1000). Box shapes accept gradient fill objects |
+| **chart** | chart-type (bar/line/area/pie/donut, default bar), width/height (required), categories (x-axis/slice labels), series (list of {label?, data}; data = inline number array OR `{{ expr }}` resolving to a number array), palette (named default/ocean/sunset/forest/mono/vivid OR explicit `["#hex",...]`), theme (light/dark/minimal override), legend (top/bottom/left/right/none, default bottom), title; bar only: horizontal, stacked; line/area: smooth, points; pie/donut: labels (percent/value/none). Empty/missing series renders a "no data" placeholder, never an error. Capped by `MaxSeriesPerChart` (50) and `MaxDataPointsPerSeries` (10000) |
 | **table** | array, as, columns (key/label/width/grow/align/format), rows, headerFont/headerFontWeight/headerFontStyle/headerFontFamily/headerColor/headerSize/headerBackground -- expands to flex tree |
 | **each** | array, as, children -- iteration over data arrays |
 | **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
@@ -416,6 +417,8 @@ The `ResourceLimits` class centralizes all security limits. Defaults are safe-by
 | MaxImageSize | 10 MB | Image loading |
 | MaxFlexLines | 1000 | Maximum flex lines when wrapping |
 | MaxShapesPerDraw | 1000 | Maximum shapes in a single `draw` element |
+| MaxSeriesPerChart | 50 | Maximum series in a single `chart` element |
+| MaxDataPointsPerSeries | 10000 | Maximum data points per chart series |
 
 Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 200; })`
 

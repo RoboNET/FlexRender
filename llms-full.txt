@@ -623,7 +623,7 @@ layout:
 
 ## Flex-Item Properties
 
-All leaf elements (text, image, qr, barcode, separator, rect, circle, ellipse, draw) and flex containers (when nested) have these flex-item properties:
+All leaf elements (text, image, qr, barcode, separator, rect, circle, ellipse, draw, chart) and flex containers (when nested) have these flex-item properties:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
@@ -959,6 +959,68 @@ Example: `d: "M 0 0 L 100 50 Q 150 0 200 50 Z"`
     - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
     - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
     - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+```
+
+## Element Type: chart (ChartElement)
+
+A declarative chart element that renders bar, line, area, pie, and donut charts. The chart paints into its `width` by `height` box and participates in flex layout like any other element. Both `width` and `height` are required.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| chart-type | string | `bar` | Chart kind: `bar`, `line`, `area`, `pie`, `donut` |
+| width | number | none | Chart width in pixels (**required**) |
+| height | number | none | Chart height in pixels (**required**) |
+| categories | string[] | `[]` | X-axis category labels (bar/line/area) or slice labels (pie/donut) |
+| series | Series[] | `[]` | List of series, each `{ label?, data }` (see below) |
+| palette | string OR string[] | theme default | Named palette (`default`, `ocean`, `sunset`, `forest`, `mono`, `vivid`) OR an explicit color list `["#hex", ...]` |
+| theme | string | template theme | Per-element theme override: `light`, `dark`, `minimal` |
+| legend | string | `bottom` | Legend placement: `top`, `bottom`, `left`, `right`, `none` |
+| title | string | none | Optional chart title |
+| horizontal | bool | `false` | **Bar only.** Render bars horizontally |
+| stacked | bool | `false` | **Bar only.** Stack series on top of each other |
+| smooth | bool | `false` | **Line/area only.** Smooth (curved) lines instead of straight segments |
+| points | bool | `false` | **Line/area only.** Draw point markers at each data value |
+| labels | string | `percent` | **Pie/donut only.** Slice label content: `percent`, `value`, `none` |
+
+### Series and Data Binding
+
+Each entry in `series` is an object with an optional `label` (used in the legend) and a required `data` value. `data` is either an inline array of numbers, **or** a `{{ expression }}` string that resolves to a number array from the render data context -- the same binding mechanism used by `table` rows. This lets chart data come directly from the data file:
+
+```yaml
+series:
+  - label: "2024"
+    data: [12, 30, 22, 48]      # inline literal numbers
+  - label: "2025"
+    data: "{{ sales }}"          # resolves to a number array from data
+```
+
+### Palettes and Themes
+
+The `palette` selects series colors. Use one of the named palettes (`default`, `ocean`, `sunset`, `forest`, `mono`, `vivid`) or supply an explicit list of hex colors that is applied to series/slices in order. The `theme` (`light`, `dark`, `minimal`) controls the chart's background, axis, grid, and text colors; it overrides the template-level theme for this element only.
+
+### "No Data" Behavior
+
+A chart whose `series` is empty or missing -- or whose series contain no data points -- renders a centered **"no data"** placeholder inside its box. This is never treated as an error, so charts bound to optional or empty data sources degrade gracefully.
+
+### Resource Limits
+
+Charts are bounded by `ResourceLimits.MaxSeriesPerChart` (default 50) and `ResourceLimits.MaxDataPointsPerSeries` (default 10000).
+
+```yaml
+- type: chart
+  chart-type: bar
+  width: 600
+  height: 300
+  categories: [Q1, Q2, Q3, Q4]
+  series:
+    - label: "2024"
+      data: "{{ sales }}"
+    - label: "2025"
+      data: [12, 30, 22, 48]
+  palette: ocean
+  legend: bottom
+  title: "Revenue"
+  theme: dark
 ```
 
 ## Element Type: svg (SvgElement)
@@ -1545,6 +1607,8 @@ The `ResourceLimits` class centralizes all security limits. All properties valid
 | MaxImageSize | int | 10,485,760 (10 MB) | Maximum allowed image size in bytes |
 | MaxFlexLines | int | 1,000 | Maximum flex lines when wrapping |
 | MaxShapesPerDraw | int | 1,000 | Maximum shapes in a single `draw` element |
+| MaxSeriesPerChart | int | 50 | Maximum series in a single `chart` element |
+| MaxDataPointsPerSeries | int | 10,000 | Maximum data points per chart series |
 
 ### Direct Usage
 
