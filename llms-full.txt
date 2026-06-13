@@ -963,11 +963,11 @@ Example: `d: "M 0 0 L 100 50 Q 150 0 200 50 Z"`
 
 ## Element Type: chart (ChartElement)
 
-A declarative chart element that renders bar, line, area, pie, donut, scatter, bubble, gauge, progress, and sparkline charts. The chart paints into its `width` by `height` box and participates in flex layout like any other element. Both `width` and `height` are required.
+A declarative chart element that renders bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline, heatmap, and radar charts. The chart paints into its `width` by `height` box and participates in flex layout like any other element. Both `width` and `height` are required.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| chart-type | string | `bar` | Chart kind: `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline` |
+| chart-type | string | `bar` | Chart kind: `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline`, `heatmap`, `radar` |
 | width | number | none | Chart width in pixels (**required**) |
 | height | number | none | Chart height in pixels (**required**) |
 | categories | string[] | `[]` | X-axis category labels (bar/line/area) or slice labels (pie/donut) |
@@ -984,6 +984,9 @@ A declarative chart element that renders bar, line, area, pie, donut, scatter, b
 | value | number | none | **Gauge/progress only.** The indicator value |
 | max | number | `100` | **Gauge/progress only.** The indicator maximum |
 | label | string | none | **Gauge/progress only.** Centered caption under the value |
+| x-labels | string[] | `[]` | **Heatmap only.** Column (x-axis) labels; falls back to `categories` if omitted |
+| y-labels | string[] | `[]` | **Heatmap only.** Row (y-axis) labels, one per series/row |
+| cell-values | bool | `false` | **Heatmap only.** Draw each cell's numeric value inside the cell |
 
 ### Series and Data Binding
 
@@ -1044,6 +1047,38 @@ series:
   smooth: true
   series:
     - data: [3, 8, 4, 10, 6, 9, 5, 11]
+```
+
+### Phase-4 Chart Types
+
+Heatmap takes 2D data: each `series` entry is one ROW (`series[i].data` = that row's column values), `x-labels` label the columns (or `categories` if omitted), `y-labels` label the rows, and `cell-values: true` prints each cell's number. Cell color is interpolated between the palette's first ("low") and second ("high") colors. Radar uses `categories` as spokes (one axis per category, starting at the top); each `series` is a closed polygon along the spokes, filled semi-transparently and stroked, sharing one radial scale anchored at zero at the center.
+
+```yaml
+- type: chart
+  chart-type: heatmap
+  width: 420
+  height: 300
+  x-labels: [Mon, Tue, Wed, Thu, Fri]
+  y-labels: [Morning, Afternoon, Evening]
+  cell-values: true
+  series:
+    - data: [2, 8, 4, 10, 6]
+    - data: [5, 3, 9, 7, 1]
+    - data: [8, 6, 2, 4, 9]
+  legend: none
+  palette: ocean
+- type: chart
+  chart-type: radar
+  width: 360
+  height: 360
+  categories: [Speed, Power, Range, Agility, Armor, Stealth]
+  series:
+    - label: Alpha
+      data: [4, 3, 5, 2, 4, 3]
+    - label: Bravo
+      data: [3, 5, 2, 4, 3, 5]
+  legend: bottom
+  palette: vivid
 ```
 
 ### Palettes and Themes
