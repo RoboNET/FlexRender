@@ -190,6 +190,46 @@ internal static class ChartRenderer
         return (min, max);
     }
 
+    /// <summary>
+    /// Computes the value-axis bounds for stacked bars: the maximum is the largest per-category
+    /// stacked total (sum of all series' values at that category) and the minimum is the smallest
+    /// per-category stacked total clamped at zero, so the baseline stays at zero for non-negative data.
+    /// </summary>
+    private static (double Min, double Max) StackedBounds(ChartElement chart)
+    {
+        var categoryCount = 0;
+        foreach (var s in chart.Series)
+            categoryCount = Math.Max(categoryCount, s.Data.Count);
+        if (categoryCount == 0)
+            return (0d, 1d);
+
+        var maxTotal = double.MinValue;
+        var minTotal = double.MaxValue;
+        for (var ci = 0; ci < categoryCount; ci++)
+        {
+            var positiveSum = 0d;
+            var negativeSum = 0d;
+            foreach (var s in chart.Series)
+            {
+                if (ci >= s.Data.Count)
+                    continue;
+                var v = s.Data[ci];
+                if (v >= 0d)
+                    positiveSum += v;
+                else
+                    negativeSum += v;
+            }
+            if (positiveSum > maxTotal) maxTotal = positiveSum;
+            if (negativeSum < minTotal) minTotal = negativeSum;
+        }
+
+        var min = Math.Min(0d, minTotal);
+        var max = Math.Max(0d, maxTotal);
+        if (min == max)
+            max = min + 1d;
+        return (min, max);
+    }
+
     /// <summary>Draws horizontal grid lines and y-axis tick labels for the given scale.</summary>
     private static void DrawGridAndYAxis(
         SKCanvas canvas, ChartTheme theme, in PlotArea plot, AxisScale scale,
@@ -261,7 +301,11 @@ internal static class ChartRenderer
         SKCanvas canvas, ChartElement chart, ChartTheme theme,
         float width, float height, SKTypeface? typeface, bool antialias)
     {
-        var (dataMin, dataMax) = DataBounds(chart);
+        // Stacked vertical bars scale the value axis to per-category stacked totals; grouped (and
+        // horizontal) bars scale to the single-value range. Horizontal stacking is not implemented;
+        // a horizontal stacked chart falls back to grouped rendering.
+        var stacked = chart.Stacked && !chart.Horizontal;
+        var (dataMin, dataMax) = stacked ? StackedBounds(chart) : DataBounds(chart);
         var scale = AxisScale.Compute(dataMin, dataMax, targetTicks: 5);
 
         var hasTitle = !string.IsNullOrEmpty(chart.Title);
@@ -286,11 +330,86 @@ internal static class ChartRenderer
         {
             DrawHorizontalBars(canvas, chart, theme, plot, scale, palette, seriesCount, categoryCount, antialias);
         }
+        else if (stacked)
+        {
+            DrawGridAndYAxis(canvas, theme, plot, scale, typeface, antialias);
+            DrawStackedVerticalBars(canvas, chart, theme, plot, scale, palette, seriesCount, categoryCount, antialias);
+            DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+        }
         else
         {
             DrawGridAndYAxis(canvas, theme, plot, scale, typeface, antialias);
             DrawVerticalBars(canvas, chart, theme, plot, scale, palette, seriesCount, categoryCount, antialias);
             DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+        }
+    }
+
+    /// <summary>
+    /// Draws stacked vertical bars: one full-width bar per category whose series segments are
+    /// stacked on top of one another from the zero baseline. Positive segments stack upward and
+    /// negative segments stack downward, each keeping a running pixel baseline per category.
+    /// </summary>
+    private static void DrawStackedVerticalBars(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, in PlotArea plot, AxisScale scale,
+        ChartPalette palette, int seriesCount, int categoryCount, bool antialias)
+    {
+        var mapper = new ValueMapper(scale.Min, scale.Max, plot.Top, plot.Bottom);
+        var zeroY = mapper.MapY(0d);
+
+        var slot = plot.Width / categoryCount;
+        var padding = slot * 0.15f;
+        var barWidth = slot - (2f * padding);
+
+        // Running pixel baselines per category: one for the upward (positive) stack and one for the
+        // downward (negative) stack, both starting at the zero line.
+        var positiveBaseline = new float[categoryCount];
+        var negativeBaseline = new float[categoryCount];
+        for (var ci = 0; ci < categoryCount; ci++)
+        {
+            positiveBaseline[ci] = zeroY;
+            negativeBaseline[ci] = zeroY;
+        }
+
+        for (var si = 0; si < seriesCount; si++)
+        {
+            var data = chart.Series[si].Data;
+            using var paint = new SKPaint
+            {
+                Color = ColorParser.Parse(palette.ColorAt(si)),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            };
+
+            for (var ci = 0; ci < data.Count; ci++)
+            {
+                var value = data[ci];
+                if (value == 0d)
+                    continue;
+
+                // Segment height in pixels is the distance the mapped value moves from the zero line.
+                var segmentHeight = zeroY - mapper.MapY(value);
+                var barLeft = plot.Left + (slot * ci) + padding;
+
+                float top, bottom;
+                if (value > 0d)
+                {
+                    bottom = positiveBaseline[ci];
+                    top = bottom - segmentHeight;
+                    positiveBaseline[ci] = top;
+                }
+                else
+                {
+                    top = negativeBaseline[ci];
+                    bottom = top - segmentHeight; // segmentHeight is negative here, so bottom > top
+                    negativeBaseline[ci] = bottom;
+                }
+
+                var rect = new SKRect(barLeft, Math.Min(top, bottom), barLeft + barWidth, Math.Max(top, bottom));
+                if (theme.BarCornerRadius > 0f)
+                    canvas.DrawRoundRect(rect, theme.BarCornerRadius, theme.BarCornerRadius, paint);
+                else
+                    canvas.DrawRect(rect, paint);
+            }
         }
     }
 
