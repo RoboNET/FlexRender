@@ -199,13 +199,20 @@
             "required": ["type"]
           },
           "then": { "$ref": "#/definitions/drawElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "chart" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/chartElement" }
         }
       ],
       "properties": {
         "type": {
           "description": "The element type.",
           "type": "string",
-          "enum": ["text", "flex", "image", "qr", "barcode", "separator", "svg", "table", "each", "if", "content", "rect", "circle", "ellipse", "draw"]
+          "enum": ["text", "flex", "image", "qr", "barcode", "separator", "svg", "table", "each", "if", "content", "rect", "circle", "ellipse", "draw", "chart"]
         }
       }
     },
@@ -859,6 +866,88 @@
           "description": "Ordered list of shapes, painted in order (max MaxShapesPerDraw, default 1000).",
           "type": "array",
           "items": { "$ref": "#/definitions/drawShape" }
+        }
+      }
+    },
+
+    "chartElement": {
+      "description": "Renders a bar, line, area, pie, or donut chart. Empty/missing series renders a 'no data' placeholder.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "chart" },
+        "chart-type": {
+          "description": "Chart kind.",
+          "type": "string",
+          "enum": ["bar", "line", "area", "pie", "donut"]
+        },
+        "categories": {
+          "description": "X-axis category labels (bar/line/area) or slice labels (pie/donut).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "series": {
+          "description": "List of series. Each series has an optional label and a data value (inline number array or a {{ expr }} resolving to a number array).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "description": "Series label shown in the legend.",
+                "type": "string"
+              },
+              "data": {
+                "description": "Inline array of numbers OR a {{ expr }} string resolving to a number array.",
+                "oneOf": [
+                  { "type": "array", "items": { "type": "number" } },
+                  { "type": "string" }
+                ]
+              }
+            }
+          }
+        },
+        "palette": {
+          "description": "Named palette (default, ocean, sunset, forest, mono, vivid) or an explicit list of hex colors.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "theme": {
+          "description": "Per-element theme override.",
+          "type": "string",
+          "enum": ["light", "dark", "minimal"]
+        },
+        "legend": {
+          "description": "Legend placement.",
+          "type": "string",
+          "enum": ["top", "bottom", "left", "right", "none"]
+        },
+        "title": {
+          "description": "Optional chart title.",
+          "type": "string"
+        },
+        "horizontal": {
+          "description": "Bar only. Render bars horizontally.",
+          "type": "boolean"
+        },
+        "stacked": {
+          "description": "Bar only. Stack series on top of each other.",
+          "type": "boolean"
+        },
+        "smooth": {
+          "description": "Line/area only. Smooth (curved) lines.",
+          "type": "boolean"
+        },
+        "points": {
+          "description": "Line/area only. Draw point markers at each value.",
+          "type": "boolean"
+        },
+        "labels": {
+          "description": "Pie/donut only. Slice label content.",
+          "type": "string",
+          "enum": ["percent", "value", "none"]
         }
       }
     },
