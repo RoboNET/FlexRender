@@ -58,8 +58,8 @@ public sealed class PathParseException : Exception
 /// M, L, Q, C, Z. AOT-safe — no regex, no backtracking.
 /// </summary>
 /// <remarks>
-/// Lowercase command letters are accepted but treated as absolute (the spec restricts
-/// drawing to absolute coordinates). Numbers may be separated by whitespace and/or commas.
+/// Only absolute commands are accepted; lowercase (relative) commands are rejected with an error.
+/// Numbers may be separated by whitespace and/or commas.
 /// Implicit repeated commands are supported per SVG semantics (e.g. "L 1 1 2 2" is two
 /// line-to commands).
 /// </remarks>
@@ -69,10 +69,14 @@ public static class PathDataParser
     /// Parses path data into an ordered list of absolute commands.
     /// </summary>
     /// <param name="data">The path data string (e.g. "M 0 0 L 100 50 Z").</param>
+    /// <param name="maxCommands">The maximum number of commands to accept before failing, guarding against unbounded input.</param>
     /// <returns>The parsed commands in order. Empty when <paramref name="data"/> is blank.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
-    /// <exception cref="PathParseException">Thrown on malformed input, naming the command and position.</exception>
-    public static IReadOnlyList<PathCommand> Parse(string data)
+    /// <exception cref="PathParseException">
+    /// Thrown on malformed input, naming the command and position, or when the number of commands
+    /// exceeds <paramref name="maxCommands"/>.
+    /// </exception>
+    public static IReadOnlyList<PathCommand> Parse(string data, int maxCommands = 10000)
     {
         ArgumentNullException.ThrowIfNull(data);
 
@@ -92,12 +96,22 @@ public static class PathDataParser
 
             if (upper is 'M' or 'L' or 'Q' or 'C' or 'Z')
             {
+                if (c != upper)
+                {
+                    throw new PathParseException(
+                        $"Relative path command '{c}' at position {i} is not supported; use absolute commands M, L, Q, C, Z.");
+                }
                 currentCommand = upper;
                 i++;
 
                 if (currentCommand == 'Z')
                 {
                     commands.Add(new PathCommand(PathCommandKind.Close, Array.Empty<PathPoint>()));
+                    if (commands.Count > maxCommands)
+                    {
+                        throw new PathParseException(
+                            $"Path data exceeds the maximum of {maxCommands} commands.");
+                    }
                     currentCommand = '\0';
                 }
                 continue;
@@ -135,6 +149,11 @@ public static class PathDataParser
             }
 
             commands.Add(new PathCommand(kind, points));
+            if (commands.Count > maxCommands)
+            {
+                throw new PathParseException(
+                    $"Path data exceeds the maximum of {maxCommands} commands.");
+            }
 
             // After an initial MoveTo, repeated coordinates imply LineTo (SVG semantics).
             if (currentCommand == 'M')
@@ -211,6 +230,12 @@ public static class PathDataParser
         {
             throw new PathParseException(
                 $"Invalid number '{span.ToString()}' at position {start} while reading command '{command}'.");
+        }
+
+        if (!float.IsFinite(value))
+        {
+            throw new PathParseException(
+                $"Number '{span.ToString()}' at position {start} is not finite while reading command '{command}'.");
         }
 
         return value;

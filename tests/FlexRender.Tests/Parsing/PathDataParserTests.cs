@@ -74,15 +74,11 @@ public sealed class PathDataParserTests
     }
 
     [Fact]
-    public void Parse_LowercaseCommands_TreatedAsAbsolute()
+    public void Parse_LowercaseCommand_Throws()
     {
-        // Lowercase (relative) letters are accepted but treated as absolute,
-        // matching the spec's "absolute only" constraint without erroring on case.
-        var commands = PathDataParser.Parse("m 0 0 l 100 50");
-
-        Assert.Equal(PathCommandKind.MoveTo, commands[0].Kind);
-        Assert.Equal(PathCommandKind.LineTo, commands[1].Kind);
-        Assert.Equal(100f, commands[1].Points[0].X);
+        var ex = Assert.Throws<PathParseException>(() => PathDataParser.Parse("m 0 0 l 100 50"));
+        Assert.Contains("Relative", ex.Message);
+        Assert.Contains("'m'", ex.Message);
     }
 
     [Fact]
@@ -125,5 +121,55 @@ public sealed class PathDataParserTests
     public void Parse_NullArgument_Throws()
     {
         Assert.Throws<System.ArgumentNullException>(() => PathDataParser.Parse(null!));
+    }
+
+    [Fact]
+    public void Parse_OverflowToInfinity_Throws()
+    {
+        var ex = Assert.Throws<PathParseException>(() => PathDataParser.Parse("M 1e999 0"));
+        Assert.Contains("not finite", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_DegenerateExponent_Throws()
+    {
+        Assert.Throws<PathParseException>(() => PathDataParser.Parse("M 1e 0"));
+        Assert.Throws<PathParseException>(() => PathDataParser.Parse("M 1e+ 0"));
+    }
+
+    [Fact]
+    public void Parse_LeadingDotCoordinate_ParsesAsFraction()
+    {
+        var commands = PathDataParser.Parse("M .5 .5");
+        Assert.Equal(0.5f, commands[0].Points[0].X);
+        Assert.Equal(0.5f, commands[0].Points[0].Y);
+    }
+
+    [Fact]
+    public void Parse_BareSign_Throws()
+    {
+        Assert.Throws<PathParseException>(() => PathDataParser.Parse("M + 0"));
+    }
+
+    [Fact]
+    public void Parse_PlusSignedCoordinates_Parse()
+    {
+        var commands = PathDataParser.Parse("M +1 +2");
+        Assert.Equal(1f, commands[0].Points[0].X);
+        Assert.Equal(2f, commands[0].Points[0].Y);
+    }
+
+    [Fact]
+    public void Parse_CoordinateAfterClose_Throws()
+    {
+        var ex = Assert.Throws<PathParseException>(() => PathDataParser.Parse("M 0 0 Z 5 5"));
+        Assert.Contains("begin with a command letter", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_ExceedsMaxCommands_Throws()
+    {
+        var ex = Assert.Throws<PathParseException>(() => PathDataParser.Parse("M 0 0 L 1 1 L 2 2", maxCommands: 2));
+        Assert.Contains("maximum", ex.Message);
     }
 }
