@@ -117,6 +117,22 @@ public sealed class TemplateParser : ITemplateParser
             throw new TemplateParseException($"Invalid YAML: {ex.Message}", ex);
         }
 
+        return ParseDocumentRoot(root);
+    }
+
+    /// <summary>
+    /// Builds a <see cref="Template"/> from an already-parsed YAML document root.
+    /// Shared by the YAML string/stream entry points and by the XML parser, which
+    /// translates XML into the equivalent <see cref="YamlMappingNode"/> tree.
+    /// </summary>
+    /// <param name="root">The document root mapping node.</param>
+    /// <returns>The parsed template.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="root"/> is null.</exception>
+    /// <exception cref="TemplateParseException">Thrown when required sections are missing or invalid.</exception>
+    internal Template ParseDocumentRoot(YamlMappingNode root)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+
         var template = new Template();
 
         // Parse template metadata
@@ -156,6 +172,13 @@ public sealed class TemplateParser : ITemplateParser
 
         return template;
     }
+
+    /// <summary>
+    /// Test-only shim exposing <see cref="ParseDocumentRoot"/> to the test assembly.
+    /// </summary>
+    /// <param name="root">The document root mapping node.</param>
+    /// <returns>The parsed template.</returns>
+    internal Template ParseDocumentRootForTests(YamlMappingNode root) => ParseDocumentRoot(root);
 
     /// <summary>
     /// Parses a YAML template from a stream.
