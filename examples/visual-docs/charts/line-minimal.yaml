@@ -1,0 +1,25 @@
+template:
+  name: "chart-line-minimal"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 600
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: line
+    width: 600
+    height: 300
+    categories: [Mon, Tue, Wed, Thu, Fri]
+    series:
+      - label: Visitors
+        data: [120, 200, 150, 280, 240]
+      - label: Signups
+        data: [20, 45, 30, 60, 50]
+    theme: minimal
+    points: true
+    legend: bottom

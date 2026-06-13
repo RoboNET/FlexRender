@@ -1,0 +1,21 @@
+template:
+  name: "chart-pie-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 400
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: pie
+    width: 400
+    height: 360
+    categories: [Direct, Social, Search]
+    series:
+      - data: [30, 50, 20]
+    legend: bottom
+    palette: sunset

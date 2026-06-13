@@ -12,7 +12,7 @@ For rendering options (antialiasing, format settings), see [[Render-Options]].
 
 ## Common Properties (TemplateElement)
 
-All 15 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `rect`, `circle`, `ellipse`, `draw`, `table`, `content`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
+All 16 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `rect`, `circle`, `ellipse`, `draw`, `chart`, `table`, `content`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
 
 > **Expression support:** All properties on all element types accept `{{expressions}}`. This includes typed properties like `opacity` (float), `grow`/`shrink` (float), `order` (int), `wrap` (bool on text, FlexWrap on flex), and enum properties like `display`, `position`, `align`. See [[Template-Expressions]] for details.
 
@@ -1453,6 +1453,64 @@ Z                      # close path
     - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
     - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
     - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+```
+
+---
+
+## chart
+
+A declarative chart element that renders `bar`, `line`, `area`, `pie`, and `donut` charts into a fixed `width` by `height` box. It participates in flex layout like any other element. Series data may be supplied inline or bound from the data context with `{{expressions}}` -- the same binding used by `table` rows -- so charts can be driven directly by a data file. A chart with no series (or empty data) renders a centered "no data" placeholder instead of failing.
+
+### Minimal Example
+
+```yaml
+- type: chart
+  chart-type: bar
+  width: 600
+  height: 320
+  categories: [Q1, Q2, Q3, Q4]
+  series:
+    - data: [12, 30, 22, 48]
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| ChartType | `chart-type` | string | `bar` | bar, line, area, pie, donut | No | Chart kind. |
+| Width | `width` | number | none | px | Yes | Chart width in pixels. |
+| Height | `height` | number | none | px | Yes | Chart height in pixels. |
+| Categories | `categories` | list | `[]` | List of strings | No | X-axis category labels (bar/line/area) or slice labels (pie/donut). |
+| Series | `series` | list | `[]` | List of `{ label?, data }` | No | Each series has an optional `label` and a `data` value that is an inline number array OR a `{{ expr }}` resolving to a number array. |
+| Palette | `palette` | string or list | theme default | `default`, `ocean`, `sunset`, `forest`, `mono`, `vivid`, or `["#hex", ...]` | No | Named palette or an explicit color list applied to series/slices in order. |
+| Theme | `theme` | string | template theme | light, dark, minimal | No | Per-element theme override (background, axis, grid, text colors). |
+| Legend | `legend` | string | `bottom` | top, bottom, left, right, none | No | Legend placement. |
+| Title | `title` | string | none | Any string | No | Optional chart title. |
+| Horizontal | `horizontal` | bool | `false` | true, false | No | **Bar only.** Render bars horizontally. |
+| Stacked | `stacked` | bool | `false` | true, false | No | **Bar only.** Stack series on top of each other. |
+| Smooth | `smooth` | bool | `false` | true, false | No | **Line/area only.** Smooth (curved) lines. |
+| Points | `points` | bool | `false` | true, false | No | **Line/area only.** Draw point markers at each value. |
+| Labels | `labels` | string | `percent` | percent, value, none | No | **Pie/donut only.** Slice label content. |
+
+> **Resource limits:** charts are bounded by `ResourceLimits.MaxSeriesPerChart` (default `50`) and `ResourceLimits.MaxDataPointsPerSeries` (default `10000`).
+
+### Data Binding Example
+
+```yaml
+- type: chart
+  chart-type: line
+  width: 600
+  height: 300
+  categories: [Mon, Tue, Wed, Thu, Fri]
+  series:
+    - label: Visitors
+      data: "{{ visitors }}"   # resolves to a number array from data
+    - label: Signups
+      data: [20, 45, 30, 60, 50]
+  points: true
+  palette: ocean
+  legend: bottom
+  title: "Weekly Traffic"
 ```
 
 ---

@@ -33,6 +33,7 @@ A comprehensive visual guide with rendered examples for all FlexRender propertie
   - [Shapes (rect, circle, ellipse)](#shapes-rect-circle-ellipse)
     - [Gradient Fills](#gradient-fills)
   - [draw](#draw)
+  - [Charts](#charts)
 - [See Also](#see-also)
 
 ---
@@ -731,6 +732,119 @@ layout:
 ```
 
 ![Draw element with overlapping shapes in painter's order](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/shapes-draw-overlap.png)
+
+---
+
+### Charts
+
+The `chart` element renders `bar`, `line`, `area`, `pie`, and `donut` charts into a fixed `width` by `height` box. Series `data` is either an inline number array or a `{{ expression }}` bound from the data context (like `table` rows). The `palette` (named or explicit color list) and `theme` (`light`, `dark`, `minimal`) control colors. An empty/missing `series` renders a "no data" placeholder rather than an error.
+
+#### Bar
+
+```yaml
+canvas:
+  width: 600
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: bar
+    width: 600
+    height: 320
+    categories: [Q1, Q2, Q3, Q4]
+    series:
+      - label: "2024"
+        data: [12, 30, 22, 48]
+    title: Revenue
+    legend: bottom
+    palette: ocean
+```
+
+![Bar chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-bar-light.png)
+
+#### Line
+
+```yaml
+canvas:
+  width: 600
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: line
+    width: 600
+    height: 300
+    categories: [Mon, Tue, Wed, Thu, Fri]
+    series:
+      - label: Visitors
+        data: [120, 200, 150, 280, 240]
+      - label: Signups
+        data: [20, 45, 30, 60, 50]
+    theme: minimal
+    points: true
+    legend: bottom
+```
+
+![Line chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-line-minimal.png)
+
+#### Area
+
+```yaml
+canvas:
+  width: 600
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: area
+    width: 600
+    height: 300
+    categories: [Jan, Feb, Mar, Apr]
+    series:
+      - data: [30, 60, 45, 80]
+    legend: none
+    palette: forest
+```
+
+![Area chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-area-light.png)
+
+#### Pie
+
+```yaml
+canvas:
+  width: 400
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: pie
+    width: 400
+    height: 360
+    categories: [Direct, Social, Search]
+    series:
+      - data: [30, 50, 20]
+    legend: bottom
+    palette: sunset
+```
+
+![Pie chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-pie-light.png)
+
+#### Donut
+
+```yaml
+canvas:
+  width: 400
+  background: "#1e1e1e"
+layout:
+  - type: chart
+    chart-type: donut
+    width: 400
+    height: 360
+    categories: [A, B, C, D]
+    series:
+      - data: [10, 20, 30, 40]
+    theme: dark
+    legend: bottom
+    palette: ocean
+```
+
+![Donut chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-donut-dark.png)
 
 ---
 
