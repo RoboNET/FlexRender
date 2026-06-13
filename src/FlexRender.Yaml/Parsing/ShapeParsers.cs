@@ -253,18 +253,38 @@ public static class ShapeParsers
     }
 
     /// <summary>
+    /// Reads a finite float property from the mapping, rejecting NaN and infinity
+    /// so degenerate geometry never reaches the renderer.
+    /// </summary>
+    /// <param name="node">The shape mapping.</param>
+    /// <param name="key">The property key.</param>
+    /// <param name="defaultValue">Value used when the key is absent.</param>
+    /// <returns>The parsed finite float.</returns>
+    /// <exception cref="TemplateParseException">Thrown when the value is non-finite.</exception>
+    private static float GetFiniteFloatValue(YamlMappingNode node, string key, float defaultValue)
+    {
+        var value = GetFloatValue(node, key, defaultValue);
+        if (!float.IsFinite(value))
+        {
+            throw new TemplateParseException(
+                $"Shape property '{key}' must be a finite number, but was '{value}'.");
+        }
+        return value;
+    }
+
+    /// <summary>
     /// Parses a <c>line</c> shape.
     /// </summary>
     /// <param name="node">The mapping node describing the line.</param>
     /// <returns>The parsed <see cref="DrawLine"/>.</returns>
     private static DrawLine ParseDrawLine(YamlMappingNode node)
         => new(
-            GetFloatValue(node, "x1", 0f),
-            GetFloatValue(node, "y1", 0f),
-            GetFloatValue(node, "x2", 0f),
-            GetFloatValue(node, "y2", 0f),
+            GetFiniteFloatValue(node, "x1", 0f),
+            GetFiniteFloatValue(node, "y1", 0f),
+            GetFiniteFloatValue(node, "x2", 0f),
+            GetFiniteFloatValue(node, "y2", 0f),
             GetStringValue(node, "stroke"),
-            GetFloatValue(node, "stroke-width", 1f));
+            GetFiniteFloatValue(node, "stroke-width", 1f));
 
     /// <summary>
     /// Parses a <c>polyline</c> shape.
@@ -275,7 +295,7 @@ public static class ShapeParsers
         => new(
             ParsePoints(node),
             GetStringValue(node, "stroke"),
-            GetFloatValue(node, "stroke-width", 1f),
+            GetFiniteFloatValue(node, "stroke-width", 1f),
             GetStringValue(node, "fill"));
 
     /// <summary>
@@ -285,14 +305,14 @@ public static class ShapeParsers
     /// <returns>The parsed <see cref="DrawRect"/>.</returns>
     private static DrawRect ParseDrawRect(YamlMappingNode node)
         => new(
-            GetFloatValue(node, "x", 0f),
-            GetFloatValue(node, "y", 0f),
-            GetFloatValue(node, "width", 0f),
-            GetFloatValue(node, "height", 0f),
+            GetFiniteFloatValue(node, "x", 0f),
+            GetFiniteFloatValue(node, "y", 0f),
+            GetFiniteFloatValue(node, "width", 0f),
+            GetFiniteFloatValue(node, "height", 0f),
             GetStringValue(node, "fill"),
             GetStringValue(node, "stroke"),
-            GetFloatValue(node, "stroke-width", 0f),
-            GetFloatValue(node, "radius", 0f));
+            GetFiniteFloatValue(node, "stroke-width", 0f),
+            GetFiniteFloatValue(node, "radius", 0f));
 
     /// <summary>
     /// Parses a <c>circle</c> shape (absolute coordinates).
@@ -301,12 +321,12 @@ public static class ShapeParsers
     /// <returns>The parsed <see cref="DrawCircle"/>.</returns>
     private static DrawCircle ParseDrawCircle(YamlMappingNode node)
         => new(
-            GetFloatValue(node, "cx", 0f),
-            GetFloatValue(node, "cy", 0f),
-            GetFloatValue(node, "r", 0f),
+            GetFiniteFloatValue(node, "cx", 0f),
+            GetFiniteFloatValue(node, "cy", 0f),
+            GetFiniteFloatValue(node, "r", 0f),
             GetStringValue(node, "fill"),
             GetStringValue(node, "stroke"),
-            GetFloatValue(node, "stroke-width", 0f));
+            GetFiniteFloatValue(node, "stroke-width", 0f));
 
     /// <summary>
     /// Parses a <c>path</c> shape, tokenizing its <c>d</c> attribute via <see cref="PathDataParser"/>.
@@ -332,7 +352,7 @@ public static class ShapeParsers
             commands,
             GetStringValue(node, "fill"),
             GetStringValue(node, "stroke"),
-            GetFloatValue(node, "stroke-width", 0f));
+            GetFiniteFloatValue(node, "stroke-width", 0f));
     }
 
     /// <summary>
@@ -359,6 +379,12 @@ public static class ShapeParsers
             {
                 throw new TemplateParseException(
                     "Each polyline point must be a [x, y] pair of numbers.");
+            }
+
+            if (!float.IsFinite(x) || !float.IsFinite(y))
+            {
+                throw new TemplateParseException(
+                    $"Polyline point ({x}, {y}) must have finite coordinates.");
             }
 
             points.Add(new PathPoint(x, y));

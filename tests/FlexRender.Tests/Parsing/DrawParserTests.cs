@@ -164,4 +164,53 @@ public sealed class DrawParserTests
             """;
         Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
     }
+
+    [Fact]
+    public void Parse_Draw_NonFiniteCircleCoordinate_Throws()
+    {
+        var yaml = """
+            canvas:
+              width: 200
+            layout:
+              - type: draw
+                width: 200
+                height: 150
+                shapes:
+                  - circle: {cx: 1e999, cy: 75, r: 30, fill: "#e74c3c"}
+            """;
+        var ex = Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
+        Assert.Contains("finite", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_Draw_NonFiniteRectDimension_Throws()
+    {
+        var yaml = """
+            canvas:
+              width: 200
+            layout:
+              - type: draw
+                width: 200
+                height: 150
+                shapes:
+                  - rect: {x: 0, y: 0, width: 1e999, height: 10, fill: "#ccc"}
+            """;
+        Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
+    }
+
+    [Fact]
+    public void Parse_Draw_NonFinitePolylinePoint_Throws()
+    {
+        var yaml = """
+            canvas:
+              width: 200
+            layout:
+              - type: draw
+                width: 200
+                height: 150
+                shapes:
+                  - polyline: {points: [[0, 0], [1e999, 10]], stroke: "#333"}
+            """;
+        Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
+    }
 }
