@@ -16,6 +16,7 @@
   </Folder>
   <Folder Name="/src/Parsers/">
     <Project Path="src/FlexRender.Yaml/FlexRender.Yaml.csproj" />
+    <Project Path="src/FlexRender.Xml/FlexRender.Xml.csproj" />
   </Folder>
   <Folder Name="/src/QR/">
     <Project Path="src/FlexRender.QrCode.Svg.Render/FlexRender.QrCode.Svg.Render.csproj" />

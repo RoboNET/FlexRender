@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>FlexRender.Xml</PackageId>
+    <Description>XML template parsing for FlexRender (alternative to YAML).</Description>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlexRender.Yaml\FlexRender.Yaml.csproj" />
+  </ItemGroup>
+
+</Project>
