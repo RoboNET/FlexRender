@@ -158,6 +158,33 @@ internal static class KnownProperties
     ]);
 
     /// <summary>
+    /// Known properties for the 'rect' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Rect = BuildSet(FlexItemProperties,
+    [
+        "fill", "stroke", "stroke-width", "radius",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
+    /// Known properties for the 'circle' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Circle = BuildSet(FlexItemProperties,
+    [
+        "fill", "stroke", "stroke-width", "size",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
+    /// Known properties for the 'ellipse' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Ellipse = BuildSet(FlexItemProperties,
+    [
+        "fill", "stroke", "stroke-width",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
     /// Maps element type names (case-insensitive) to their known property sets.
     /// </summary>
     private static readonly Dictionary<string, HashSet<string>> Registry =
@@ -173,7 +200,10 @@ internal static class KnownProperties
             ["table"] = Table,
             ["each"] = Each,
             ["if"] = If,
-            ["content"] = Content
+            ["content"] = Content,
+            ["rect"] = Rect,
+            ["circle"] = Circle,
+            ["ellipse"] = Ellipse
         };
 
     /// <summary>

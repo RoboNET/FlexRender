@@ -64,7 +64,10 @@ public sealed class TemplateParser : ITemplateParser
             ["if"] = _parsers.ParseIfElement,
             ["table"] = ElementParsers.ParseTableElement,
             ["svg"] = ElementParsers.ParseSvgElement,
-            ["content"] = ElementParsers.ParseContentElement
+            ["content"] = ElementParsers.ParseContentElement,
+            ["rect"] = ShapeParsers.ParseRectElement,
+            ["circle"] = ShapeParsers.ParseCircleElement,
+            ["ellipse"] = ShapeParsers.ParseEllipseElement
         };
     }
 
