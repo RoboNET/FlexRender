@@ -30,6 +30,10 @@ src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
     TemplateParser.cs           # YAML to AST parser (includes EachElement, IfElement)
     KnownProperties.cs          # YAML property validation with Levenshtein "Did you mean?" suggestions
 
+src/FlexRender.Xml/             # XML template parser, alternative to YAML (same Template AST)
+  Parsing/
+    XmlTemplateParser.cs        # XML to AST parser; lowers XML tree to the shared element parsers, same KnownProperties validation + ResourceLimits
+
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
   HttpResourceLoader.cs         # Load images/fonts from HTTP/HTTPS URLs
   FlexRenderBuilderExtensions.cs # WithHttpLoader() extension
@@ -162,6 +166,39 @@ YAML Template
 ```
 
 **Async-only API:** The entire pipeline from expansion through rendering is async. There are no synchronous `Expand()`, `Process()`, `Measure()`, `ComputeLayout()`, or `Render()` methods. All public API methods return `Task` or `Task<T>`. This is required because `ContentElement` expansion involves async I/O (loading external content sources).
+
+### XML as an Alternative Input
+
+Templates may be authored in **XML** (`FlexRender.Xml`) instead of YAML. The XML parser (`XmlTemplateParser`) produces the **same `Template` AST** as `TemplateParser` -- same element types, same properties, same `KnownProperties` validation (with "Did you mean?" suggestions), same `ResourceLimits`. XML is offered because LLMs often emit attributes more reliably than YAML indentation. Render with the `RenderXml` extension (mirrors `RenderYaml`):
+
+```csharp
+var render = new FlexRenderBuilder().WithSkia().Build();
+byte[] png = await render.RenderXml(xml, data);
+
+// Parse once, reuse:
+var parser = new XmlTemplateParser();
+byte[] png = await render.RenderXml(xml, data, parser: parser);
+```
+
+Mapping rules (XML -> same AST as YAML):
+
+- Single root `<flexrender>`; `<canvas width="300" .../>` child for canvas; `template`/`fonts` via attributes/`<fonts>`; every other child of the root is a layout element.
+- Element type = XML local-name: `<text/>`, `<flex>`, `<chart/>`, `<rect/>`, `<each>`, `<if>`, `<table>`, `<draw>`.
+- Scalar properties = attributes (`<text size="1em" color="#f00"/>`); names identical to YAML (kebab-case and camelCase pass through).
+- `<text>Hello</text>` is equivalent to `<text content="Hello"/>` (content attribute wins if both present; svg `content` follows the same rule).
+- Layout containers: `flex`/`each` children are nested elements directly (`children`). Wrappers: `if` -> `<then>`/`<else>`/`<else-if>`; `table` -> `<columns>`/`<rows>`; `chart` -> `<series .../>`, `<categories>`, `<x-labels>`/`<y-labels>`, `<palette>`; `draw` -> `<shapes>`.
+- List attributes: `data="12,30,22,48"` -> number array; scatter/bubble `points="1,2; 3,4"` -> tuples; `palette="#f00,#0f0"` -> color list (or `palette="ocean"` named).
+
+Minimal example:
+
+```xml
+<flexrender>
+  <canvas width="300"/>
+  <text content="Hello" size="1.5em"/>
+</flexrender>
+```
+
+See `docs/wiki/Xml-Syntax.md` for the full XML<->YAML mapping and a side-by-side flex+chart example.
 
 ### Template Caching
 
@@ -1670,6 +1707,9 @@ public interface IFlexRender : IDisposable
 // Extension methods from FlexRender.Yaml:
 // - RenderYaml(yaml, data, format, ct) - render from YAML string
 // - RenderFile(path, data, format, ct) - render from YAML file
+
+// Extension methods from FlexRender.Xml:
+// - RenderXml(xml, data, format, parser?, ct) - render from XML string (mirrors RenderYaml)
 ```
 
 ### ImageFormat Enum

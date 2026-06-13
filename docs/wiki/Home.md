@@ -94,6 +94,7 @@ byte[] png = await render.RenderFile("template.yaml", data);
 |------|-------------|
 | [[Getting-Started]] | Installation, first template, rendering approaches |
 | [[Template-Syntax]] | Canvas, all 11 element types, common properties, units |
+| [[Xml-Syntax]] | Alternative XML template syntax (same AST as YAML), `RenderXml` |
 | [[Element-Reference]] | Complete property reference for all 11 element types with examples |
 | [[Visual-Reference]] | Interactive visual examples for all properties and elements |
 | [[Template-Expressions]] | Variables, loops, conditionals with 13 operators |

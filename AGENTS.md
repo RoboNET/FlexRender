@@ -33,6 +33,8 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
 
 src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
   Parsing/                      # TemplateParser
+src/FlexRender.Xml/             # XML template parser, alternative to YAML (same Template AST); RenderXml extension
+  Parsing/                      # XmlTemplateParser
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia.Render/     # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
