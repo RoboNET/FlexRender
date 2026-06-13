@@ -185,6 +185,15 @@ internal static class KnownProperties
     ]);
 
     /// <summary>
+    /// Known properties for the 'draw' element type.
+    /// Shapes themselves are validated structurally during parsing, not by name here.
+    /// </summary>
+    internal static readonly HashSet<string> Draw = BuildSet(FlexItemProperties,
+    [
+        "shapes", "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
     /// Maps element type names (case-insensitive) to their known property sets.
     /// </summary>
     private static readonly Dictionary<string, HashSet<string>> Registry =
@@ -203,7 +212,8 @@ internal static class KnownProperties
             ["content"] = Content,
             ["rect"] = Rect,
             ["circle"] = Circle,
-            ["ellipse"] = Ellipse
+            ["ellipse"] = Ellipse,
+            ["draw"] = Draw
         };
 
     /// <summary>

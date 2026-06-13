@@ -67,7 +67,8 @@ public sealed class TemplateParser : ITemplateParser
             ["content"] = ElementParsers.ParseContentElement,
             ["rect"] = ShapeParsers.ParseRectElement,
             ["circle"] = ShapeParsers.ParseCircleElement,
-            ["ellipse"] = ShapeParsers.ParseEllipseElement
+            ["ellipse"] = ShapeParsers.ParseEllipseElement,
+            ["draw"] = node => ShapeParsers.ParseDrawElement(node, _limits.MaxShapesPerDraw)
         };
     }
 

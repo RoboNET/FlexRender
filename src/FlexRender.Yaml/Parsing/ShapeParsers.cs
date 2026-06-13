@@ -165,4 +165,203 @@ public static class ShapeParsers
         ElementParsers.ApplyFlexItemProperties(node, ellipse);
         return ellipse;
     }
+
+    /// <summary>
+    /// Parses a <c>draw</c> element together with its ordered list of absolute-coordinate shapes.
+    /// </summary>
+    /// <param name="node">The YAML node containing the draw element definition.</param>
+    /// <param name="maxShapes">The maximum number of shapes allowed per draw element.</param>
+    /// <returns>The parsed <see cref="DrawElement"/>.</returns>
+    /// <exception cref="TemplateParseException">
+    /// Thrown when the number of shapes exceeds <paramref name="maxShapes"/>, when a shape mapping
+    /// is malformed, or when path data cannot be parsed.
+    /// </exception>
+    internal static TemplateElement ParseDrawElement(YamlMappingNode node, int maxShapes)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        var shapes = new List<DrawShape>();
+
+        if (TryGetSequence(node, "shapes", out var shapesSeq))
+        {
+            if (shapesSeq.Children.Count > maxShapes)
+            {
+                throw new TemplateParseException(
+                    $"Draw element has {shapesSeq.Children.Count} shapes, which exceeds the maximum of {maxShapes} shapes per draw element.");
+            }
+
+            foreach (var item in shapesSeq.Children)
+            {
+                if (item is YamlMappingNode shapeNode)
+                {
+                    shapes.Add(ParseDrawShape(shapeNode));
+                }
+            }
+        }
+
+        var draw = new DrawElement(shapes)
+        {
+            Background = GetStringValue(node, "background")!,
+            Rotate = GetExprStringValue(node, "rotate", "none"),
+            Padding = GetExprStringValue(node, "padding", "0"),
+            Margin = GetExprStringValue(node, "margin", "0")
+        };
+
+        ElementParsers.ApplyFlexItemProperties(node, draw);
+        return draw;
+    }
+
+    /// <summary>
+    /// Parses a single shape mapping, dispatching on its single shape-kind key
+    /// (<c>line</c>, <c>polyline</c>, <c>rect</c>, <c>circle</c>, or <c>path</c>).
+    /// </summary>
+    /// <param name="node">The YAML mapping node wrapping a single shape.</param>
+    /// <returns>The parsed <see cref="DrawShape"/>.</returns>
+    /// <exception cref="TemplateParseException">Thrown when the shape kind is missing or unknown.</exception>
+    private static DrawShape ParseDrawShape(YamlMappingNode node)
+    {
+        if (TryGetMapping(node, "line", out var lineNode))
+        {
+            return ParseDrawLine(lineNode);
+        }
+
+        if (TryGetMapping(node, "polyline", out var polylineNode))
+        {
+            return ParseDrawPolyline(polylineNode);
+        }
+
+        if (TryGetMapping(node, "rect", out var rectNode))
+        {
+            return ParseDrawRect(rectNode);
+        }
+
+        if (TryGetMapping(node, "circle", out var circleNode))
+        {
+            return ParseDrawCircle(circleNode);
+        }
+
+        if (TryGetMapping(node, "path", out var pathNode))
+        {
+            return ParseDrawPath(pathNode);
+        }
+
+        throw new TemplateParseException(
+            "Unknown shape in 'draw' element. Each shape must be one of: 'line', 'polyline', 'rect', 'circle', 'path'.");
+    }
+
+    /// <summary>
+    /// Parses a <c>line</c> shape.
+    /// </summary>
+    /// <param name="node">The mapping node describing the line.</param>
+    /// <returns>The parsed <see cref="DrawLine"/>.</returns>
+    private static DrawLine ParseDrawLine(YamlMappingNode node)
+        => new(
+            GetFloatValue(node, "x1", 0f),
+            GetFloatValue(node, "y1", 0f),
+            GetFloatValue(node, "x2", 0f),
+            GetFloatValue(node, "y2", 0f),
+            GetStringValue(node, "stroke"),
+            GetFloatValue(node, "stroke-width", 1f));
+
+    /// <summary>
+    /// Parses a <c>polyline</c> shape.
+    /// </summary>
+    /// <param name="node">The mapping node describing the polyline.</param>
+    /// <returns>The parsed <see cref="DrawPolyline"/>.</returns>
+    private static DrawPolyline ParseDrawPolyline(YamlMappingNode node)
+        => new(
+            ParsePoints(node),
+            GetStringValue(node, "stroke"),
+            GetFloatValue(node, "stroke-width", 1f),
+            GetStringValue(node, "fill"));
+
+    /// <summary>
+    /// Parses a <c>rect</c> shape (absolute coordinates).
+    /// </summary>
+    /// <param name="node">The mapping node describing the rectangle.</param>
+    /// <returns>The parsed <see cref="DrawRect"/>.</returns>
+    private static DrawRect ParseDrawRect(YamlMappingNode node)
+        => new(
+            GetFloatValue(node, "x", 0f),
+            GetFloatValue(node, "y", 0f),
+            GetFloatValue(node, "width", 0f),
+            GetFloatValue(node, "height", 0f),
+            GetStringValue(node, "fill"),
+            GetStringValue(node, "stroke"),
+            GetFloatValue(node, "stroke-width", 0f),
+            GetFloatValue(node, "radius", 0f));
+
+    /// <summary>
+    /// Parses a <c>circle</c> shape (absolute coordinates).
+    /// </summary>
+    /// <param name="node">The mapping node describing the circle.</param>
+    /// <returns>The parsed <see cref="DrawCircle"/>.</returns>
+    private static DrawCircle ParseDrawCircle(YamlMappingNode node)
+        => new(
+            GetFloatValue(node, "cx", 0f),
+            GetFloatValue(node, "cy", 0f),
+            GetFloatValue(node, "r", 0f),
+            GetStringValue(node, "fill"),
+            GetStringValue(node, "stroke"),
+            GetFloatValue(node, "stroke-width", 0f));
+
+    /// <summary>
+    /// Parses a <c>path</c> shape, tokenizing its <c>d</c> attribute via <see cref="PathDataParser"/>.
+    /// </summary>
+    /// <param name="node">The mapping node describing the path.</param>
+    /// <returns>The parsed <see cref="DrawPath"/>.</returns>
+    /// <exception cref="TemplateParseException">Thrown when the path data is malformed.</exception>
+    private static DrawPath ParseDrawPath(YamlMappingNode node)
+    {
+        var d = GetStringValue(node, "d") ?? string.Empty;
+
+        IReadOnlyList<PathCommand> commands;
+        try
+        {
+            commands = PathDataParser.Parse(d);
+        }
+        catch (PathParseException ex)
+        {
+            throw new TemplateParseException($"Invalid path data in 'draw' shape: {ex.Message}", ex);
+        }
+
+        return new DrawPath(
+            commands,
+            GetStringValue(node, "fill"),
+            GetStringValue(node, "stroke"),
+            GetFloatValue(node, "stroke-width", 0f));
+    }
+
+    /// <summary>
+    /// Parses a <c>points</c> sequence of the form <c>[[x, y], [x, y], ...]</c> into path points.
+    /// </summary>
+    /// <param name="node">The mapping node containing the optional <c>points</c> sequence.</param>
+    /// <returns>The parsed points in order; empty when no valid points are present.</returns>
+    private static List<PathPoint> ParsePoints(YamlMappingNode node)
+    {
+        var points = new List<PathPoint>();
+
+        if (!TryGetSequence(node, "points", out var pointsSeq))
+        {
+            return points;
+        }
+
+        foreach (var item in pointsSeq.Children)
+        {
+            if (item is not YamlSequenceNode pair || pair.Children.Count < 2)
+            {
+                continue;
+            }
+
+            if (pair.Children[0] is YamlScalarNode xScalar
+                && pair.Children[1] is YamlScalarNode yScalar
+                && float.TryParse(xScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                && float.TryParse(yScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
+            {
+                points.Add(new PathPoint(x, y));
+            }
+        }
+
+        return points;
+    }
 }
