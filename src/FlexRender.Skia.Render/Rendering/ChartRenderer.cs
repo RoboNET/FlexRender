@@ -133,8 +133,8 @@ internal static class ChartRenderer
     }
 
     /// <summary>
-    /// Draws series geometry by chart type. Bar charts render grid, axes, and columns; other
-    /// chart types fall through to a faint plot border until added in later tasks.
+    /// Draws series geometry by chart type. Every <see cref="ChartType"/> has a dedicated drawing
+    /// routine (bars, line/area, pie/donut, sparkline, scatter/bubble, gauge/progress, heatmap, radar).
     /// </summary>
     private static void DrawSeries(
         SKCanvas canvas,
@@ -184,17 +184,7 @@ internal static class ChartRenderer
                 DrawRadar(canvas, chart, theme, width, height, typeface, antialias);
                 break;
             default:
-                // Other chart types are added in later tasks.
-                using (var border = new SKPaint
-                {
-                    Color = ColorParser.Parse(theme.AxisColor),
-                    Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 1f,
-                    IsAntialias = antialias
-                })
-                {
-                    canvas.DrawRect(0.5f, 0.5f, width - 1f, height - 1f, border);
-                }
+                // Enum-exhaustiveness guard: all defined ChartType members have explicit cases above.
                 break;
         }
     }
