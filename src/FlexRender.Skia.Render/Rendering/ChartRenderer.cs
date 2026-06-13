@@ -162,6 +162,12 @@ internal static class ChartRenderer
             case ChartType.Sparkline:
                 DrawSparkline(canvas, chart, theme, width, height, antialias);
                 break;
+            case ChartType.Scatter:
+                DrawScatterOrBubble(canvas, chart, theme, width, height, typeface, isBubble: false, antialias);
+                break;
+            case ChartType.Bubble:
+                DrawScatterOrBubble(canvas, chart, theme, width, height, typeface, isBubble: true, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -653,6 +659,78 @@ internal static class ChartRenderer
             using var pointPaint = new SKPaint { Color = color, Style = SKPaintStyle.Fill, IsAntialias = antialias };
             for (var i = 0; i < data.Count; i++)
                 canvas.DrawCircle(X(i), mapper.MapY(data[i]), theme.LineWidth, pointPaint);
+        }
+    }
+
+    /// <summary>
+    /// Draws a scatter (dots) or bubble (radius-scaled dots) chart. Both axes are scaled to the
+    /// point data ranges; bubble marker radii are mapped from the largest <see cref="ChartPoint.R"/>
+    /// to a fixed maximum pixel radius so the largest bubble fits comfortably in the plot.
+    /// </summary>
+    private static void DrawScatterOrBubble(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool isBubble, bool antialias)
+    {
+        var (minX, maxX, minY, maxY) = PointBounds(chart);
+        var xScale = AxisScale.Compute(minX, maxX, targetTicks: 5);
+        var yScale = AxisScale.Compute(minY, maxY, targetTicks: 5);
+
+        var hasTitle = !string.IsNullOrEmpty(chart.Title);
+        var plot = ChartLayout.ComputePlotArea(
+            width, height, hasTitle, chart.Legend,
+            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f);
+
+        DrawGridAndYAxis(canvas, theme, plot, yScale, typeface, antialias);
+
+        var yMapper = new ValueMapper(yScale.Min, yScale.Max, plot.Top, plot.Bottom);
+
+        // X mapping mirrors ValueMapper.MapY but along the horizontal axis (min -> left, max -> right).
+        var plotLeft = plot.Left;
+        var plotWidth = plot.Width;
+        var xMin = xScale.Min;
+        var xSpan = xScale.Max - xScale.Min;
+        float MapX(double value) => xSpan <= 0d
+            ? plotLeft + (plotWidth / 2f)
+            : plotLeft + (float)(((value - xMin) / xSpan) * plotWidth);
+
+        // Determine the largest radius for bubble scaling.
+        var maxR = 0d;
+        if (isBubble)
+        {
+            foreach (var s in chart.Series)
+                foreach (var p in s.Points)
+                    if (p.R > maxR) maxR = p.R;
+        }
+        var maxPixelRadius = MathF.Max(4f, MathF.Min(plot.Width, plot.Height) * 0.12f);
+        const float scatterRadius = 4f;
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+
+        for (var si = 0; si < chart.Series.Count; si++)
+        {
+            var pts = chart.Series[si].Points;
+            if (pts.Count == 0)
+                continue;
+
+            var color = ColorParser.Parse(palette.ColorAt(si));
+            using var paint = new SKPaint
+            {
+                Color = isBubble ? color.WithAlpha(150) : color,
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            };
+
+            foreach (var p in pts)
+            {
+                var cx = MapX(p.X);
+                var cy = yMapper.MapY(p.Y);
+                float radius;
+                if (isBubble && maxR > 0d)
+                    radius = MathF.Max(2f, (float)(p.R / maxR) * maxPixelRadius);
+                else
+                    radius = scatterRadius;
+                canvas.DrawCircle(cx, cy, radius, paint);
+            }
         }
     }
 
