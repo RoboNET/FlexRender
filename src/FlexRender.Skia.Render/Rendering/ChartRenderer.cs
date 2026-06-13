@@ -68,12 +68,15 @@ internal static class ChartRenderer
         }
     }
 
-    /// <summary>Returns whether any series has at least one data point.</summary>
+    /// <summary>Returns whether the chart has anything to draw (flat data, tuple points, or a gauge value).</summary>
     private static bool HasAnyData(ChartElement chart)
     {
+        if (chart.ChartType is ChartType.Gauge or ChartType.Progress)
+            return chart.Value is not null;
+
         foreach (var s in chart.Series)
         {
-            if (s.Data.Count > 0)
+            if (s.Data.Count > 0 || s.Points.Count > 0)
                 return true;
         }
         return false;
@@ -188,6 +191,33 @@ internal static class ChartRenderer
         if (min == double.MaxValue)
             return (0d, 1d);
         return (min, max);
+    }
+
+    /// <summary>
+    /// Computes the X and Y data ranges across all series' tuple points (scatter/bubble).
+    /// Returns unit ranges when there are no points so a chart can still draw.
+    /// </summary>
+    private static (double MinX, double MaxX, double MinY, double MaxY) PointBounds(ChartElement chart)
+    {
+        var minX = double.MaxValue;
+        var maxX = double.MinValue;
+        var minY = double.MaxValue;
+        var maxY = double.MinValue;
+
+        foreach (var s in chart.Series)
+        {
+            foreach (var p in s.Points)
+            {
+                if (p.X < minX) minX = p.X;
+                if (p.X > maxX) maxX = p.X;
+                if (p.Y < minY) minY = p.Y;
+                if (p.Y > maxY) maxY = p.Y;
+            }
+        }
+
+        if (minX == double.MaxValue)
+            return (0d, 1d, 0d, 1d);
+        return (minX, maxX, minY, maxY);
     }
 
     /// <summary>
