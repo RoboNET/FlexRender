@@ -24,7 +24,7 @@ internal static class ShapeRenderer
     /// <param name="fontSize">The effective font size in pixels, used to resolve em-based radii.</param>
     /// <param name="antialias">Whether to enable anti-aliasing for the fill and stroke.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="canvas"/> or <paramref name="rect"/> is null.</exception>
-    public static void DrawRect(
+    internal static void DrawRect(
         SKCanvas canvas,
         RectElement rect,
         float x,
@@ -71,7 +71,7 @@ internal static class ShapeRenderer
     /// <param name="height">The height of the shape box in pixels.</param>
     /// <param name="antialias">Whether to enable anti-aliasing for the fill and stroke.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="canvas"/> or <paramref name="circle"/> is null.</exception>
-    public static void DrawCircle(
+    internal static void DrawCircle(
         SKCanvas canvas,
         CircleElement circle,
         float x,
@@ -109,7 +109,7 @@ internal static class ShapeRenderer
     /// <param name="height">The height of the shape box in pixels.</param>
     /// <param name="antialias">Whether to enable anti-aliasing for the fill and stroke.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="canvas"/> or <paramref name="ellipse"/> is null.</exception>
-    public static void DrawEllipse(
+    internal static void DrawEllipse(
         SKCanvas canvas,
         EllipseElement ellipse,
         float x,
