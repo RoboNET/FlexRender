@@ -144,6 +144,107 @@ public sealed class ChartSnapshotTests : SnapshotTestBase
     }
 
     [Fact]
+    public async Task ScatterChart_Light()
+    {
+        var template = Parser.Parse("""
+            canvas:
+              width: 480
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: scatter
+                width: 480
+                height: 320
+                series:
+                  - label: cloud
+                    data: [[1, 12], [3, 30], [5, 22], [7, 48], [9, 35]]
+                legend: none
+                palette: ocean
+            """);
+        await AssertSnapshot("chart_scatter_light", template, new ObjectValue());
+    }
+
+    [Fact]
+    public async Task BubbleChart_Light()
+    {
+        var template = Parser.Parse("""
+            canvas:
+              width: 480
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: bubble
+                width: 480
+                height: 320
+                series:
+                  - data: [[1, 12, 6], [3, 30, 18], [5, 22, 10], [7, 48, 24]]
+                legend: none
+                palette: sunset
+            """);
+        await AssertSnapshot("chart_bubble_light", template, new ObjectValue());
+    }
+
+    [Fact]
+    public async Task GaugeChart_Dark()
+    {
+        var template = Parser.Parse("""
+            canvas:
+              width: 280
+              background: "#1e1e1e"
+            layout:
+              - type: chart
+                chart-type: gauge
+                width: 280
+                height: 220
+                value: 72
+                max: 100
+                label: CPU
+                theme: dark
+                palette: vivid
+            """);
+        await AssertSnapshot("chart_gauge_dark", template, new ObjectValue());
+    }
+
+    [Fact]
+    public async Task ProgressChart_Light()
+    {
+        var template = Parser.Parse("""
+            canvas:
+              width: 240
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: progress
+                width: 240
+                height: 240
+                value: 64
+                max: 100
+                label: Disk
+                palette: forest
+            """);
+        await AssertSnapshot("chart_progress_light", template, new ObjectValue());
+    }
+
+    [Fact]
+    public async Task SparklineChart_Light()
+    {
+        var template = Parser.Parse("""
+            canvas:
+              width: 200
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: sparkline
+                width: 200
+                height: 50
+                smooth: true
+                series:
+                  - data: [3, 8, 4, 10, 6, 9, 5, 11]
+            """);
+        await AssertSnapshot("chart_sparkline_light", template, new ObjectValue());
+    }
+
+    [Fact]
     public async Task EmptyChart_NoDataPlaceholder()
     {
         var template = Parser.Parse("""
