@@ -81,7 +81,12 @@ public enum ElementType
     /// <summary>
     /// A free-form drawing element holding absolute-coordinate shapes.
     /// </summary>
-    Draw
+    Draw,
+
+    /// <summary>
+    /// A chart element (bar, line, area, pie, donut).
+    /// </summary>
+    Chart
 }
 
 /// <summary>
