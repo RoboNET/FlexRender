@@ -6,7 +6,7 @@ namespace FlexRender.Parsing.Ast;
 /// <summary>
 /// A single chart data series: a label plus its numeric values. The values may come from an
 /// inline YAML array (resolved at parse time) or from a template expression (resolved against
-/// the data context during ChartElement.ResolveExpressions).
+/// the data context during <see cref="ChartElement"/> expression resolution).
 /// </summary>
 public sealed class ChartSeries
 {
