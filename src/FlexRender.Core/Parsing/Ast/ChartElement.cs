@@ -65,6 +65,15 @@ public sealed class ChartElement : TemplateElement
     /// <summary>Gets or sets how pie/donut slice labels are rendered.</summary>
     public PieLabelMode PieLabels { get; set; } = PieLabelMode.Percent;
 
+    /// <summary>Gets or sets the indicator value for gauge/progress charts. Null renders a "no data" placeholder.</summary>
+    public double? Value { get; set; }
+
+    /// <summary>Gets or sets the indicator maximum for gauge/progress charts. Null defaults to 100.</summary>
+    public double? Max { get; set; }
+
+    /// <summary>Gets or sets the centered caption for gauge/progress charts (distinct from <see cref="Title"/>).</summary>
+    public string? ValueLabel { get; set; }
+
     /// <inheritdoc/>
     public override TemplateElement CloneWithSubstitution(Func<string?, string?> substitutor)
     {
@@ -81,7 +90,10 @@ public sealed class ChartElement : TemplateElement
             Stacked = Stacked,
             Smooth = Smooth,
             ShowPoints = ShowPoints,
-            PieLabels = PieLabels
+            PieLabels = PieLabels,
+            Value = Value,
+            Max = Max,
+            ValueLabel = ValueLabel
         };
         CopyBasePropertiesTo(clone, substitutor);
         return clone;
