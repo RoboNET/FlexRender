@@ -1,0 +1,26 @@
+template:
+  name: "chart-heatmap-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 420
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: heatmap
+    width: 420
+    height: 300
+    x-labels: [Mon, Tue, Wed, Thu, Fri]
+    y-labels: [Morning, Afternoon, Evening]
+    cell-values: true
+    series:
+      - data: [2, 8, 4, 10, 6]
+      - data: [5, 3, 9, 7, 1]
+      - data: [8, 6, 2, 4, 9]
+    title: Activity
+    legend: none
+    palette: ocean

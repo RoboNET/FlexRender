@@ -737,7 +737,7 @@ layout:
 
 ### Charts
 
-The `chart` element renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, and `sparkline` charts into a fixed `width` by `height` box. Series `data` is either an inline number array or a `{{ expression }}` bound from the data context (like `table` rows). Scatter and bubble take tuple data (`[[x, y], ...]` / `[[x, y, r], ...]`); gauge and progress are single-value indicators driven by `value`/`max`/`label`; sparkline is a chrome-free inline line. The `palette` (named or explicit color list) and `theme` (`light`, `dark`, `minimal`) control colors. An empty/missing `series` renders a "no data" placeholder rather than an error.
+The `chart` element renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline`, `heatmap`, and `radar` charts into a fixed `width` by `height` box. Series `data` is either an inline number array or a `{{ expression }}` bound from the data context (like `table` rows). Scatter and bubble take tuple data (`[[x, y], ...]` / `[[x, y, r], ...]`); gauge and progress are single-value indicators driven by `value`/`max`/`label`; sparkline is a chrome-free inline line; heatmap renders a labeled grid (each series is a row) and radar plots `categories` as spokes. The `palette` (named or explicit color list) and `theme` (`light`, `dark`, `minimal`) control colors. An empty/missing `series` renders a "no data" placeholder rather than an error.
 
 #### Bar
 
@@ -951,6 +951,55 @@ layout:
 ```
 
 ![Sparkline chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-sparkline-light.png)
+
+Heatmap renders a grid where each `series` entry is one ROW: `series[i].data` holds that row's column values. `x-labels` label the columns (falling back to `categories`), `y-labels` label the rows, and `cell-values: true` prints each cell's number. Cell color is interpolated between the palette's first ("low") and second ("high") colors.
+
+```yaml
+canvas:
+  width: 420
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: heatmap
+    width: 420
+    height: 300
+    x-labels: [Mon, Tue, Wed, Thu, Fri]
+    y-labels: [Morning, Afternoon, Evening]
+    cell-values: true
+    series:
+      - data: [2, 8, 4, 10, 6]
+      - data: [5, 3, 9, 7, 1]
+      - data: [8, 6, 2, 4, 9]
+    title: Activity
+    legend: none
+    palette: ocean
+```
+
+![Heatmap chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-heatmap-light.png)
+
+Radar uses `categories` as spokes (one axis per category, starting at the top and advancing clockwise). Each `series` is a closed polygon along the spokes -- filled semi-transparently and stroked -- sharing one radial scale anchored at zero at the center.
+
+```yaml
+canvas:
+  width: 360
+  background: "#1e1e1e"
+layout:
+  - type: chart
+    chart-type: radar
+    width: 360
+    height: 360
+    categories: [Speed, Power, Range, Agility, Armor, Stealth]
+    series:
+      - label: Alpha
+        data: [4, 3, 5, 2, 4, 3]
+      - label: Bravo
+        data: [3, 5, 2, 4, 3, 5]
+    theme: dark
+    legend: bottom
+    palette: vivid
+```
+
+![Radar chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-radar-dark.png)
 
 ---
 

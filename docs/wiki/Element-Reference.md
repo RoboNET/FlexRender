@@ -1459,7 +1459,7 @@ Z                      # close path
 
 ## chart
 
-A declarative chart element that renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, and `sparkline` charts into a fixed `width` by `height` box. It participates in flex layout like any other element. Series data may be supplied inline or bound from the data context with `{{expressions}}` -- the same binding used by `table` rows -- so charts can be driven directly by a data file. A chart with no series (or empty data) renders a centered "no data" placeholder instead of failing.
+A declarative chart element that renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline`, `heatmap`, and `radar` charts into a fixed `width` by `height` box. It participates in flex layout like any other element. Series data may be supplied inline or bound from the data context with `{{expressions}}` -- the same binding used by `table` rows -- so charts can be driven directly by a data file. A chart with no series (or empty data) renders a centered "no data" placeholder instead of failing.
 
 ### Minimal Example
 
@@ -1477,7 +1477,7 @@ A declarative chart element that renders `bar`, `line`, `area`, `pie`, `donut`, 
 
 | Property | YAML Name | Type | Default | Valid Values | Required | Description |
 |----------|-----------|------|---------|--------------|----------|-------------|
-| ChartType | `chart-type` | string | `bar` | bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline | No | Chart kind. |
+| ChartType | `chart-type` | string | `bar` | bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline, heatmap, radar | No | Chart kind. |
 | Width | `width` | number | none | px | Yes | Chart width in pixels. |
 | Height | `height` | number | none | px | Yes | Chart height in pixels. |
 | Categories | `categories` | list | `[]` | List of strings | No | X-axis category labels (bar/line/area) or slice labels (pie/donut). |
@@ -1494,8 +1494,15 @@ A declarative chart element that renders `bar`, `line`, `area`, `pie`, `donut`, 
 | Value | `value` | number | none | Any number | No | **Gauge/progress only.** Indicator value. |
 | Max | `max` | number | `100` | Any number | No | **Gauge/progress only.** Indicator maximum. |
 | ValueLabel | `label` | string | none | Any string | No | **Gauge/progress only.** Centered caption under the value. |
+| XLabels | `x-labels` | list | `[]` | List of strings | No | **Heatmap only.** Column (x-axis) labels; falls back to `categories`. |
+| YLabels | `y-labels` | list | `[]` | List of strings | No | **Heatmap only.** Row (y-axis) labels, one per series/row. |
+| ShowCellValues | `cell-values` | bool | `false` | true, false | No | **Heatmap only.** Draw each cell's numeric value inside the cell. |
 
 > **Scatter / bubble data:** supply `series[].data` as an array of tuples -- `[[x, y], ...]` for `scatter` and `[[x, y, r], ...]` for `bubble`, where `r` sizes the bubble. Tuple data is inline-only in this release (expression-bound tuples are not yet supported). Sparkline uses a plain numeric `data` array and honors `smooth`/`points`; it renders chrome-free (no axes, legend, or title).
+
+> **Heatmap data:** each entry in `series` is one ROW; `series[i].data` holds that row's column values. `x-labels` label the columns (or `categories` if `x-labels` is omitted) and `y-labels` label the rows. Cell color encodes the value, interpolated between the palette's first ("low") and second ("high") colors; set `cell-values: true` to print the number in each cell.
+
+> **Radar data:** `categories` become the spokes (one axis per category, starting at the top and advancing clockwise). Each entry in `series` is a closed polygon connecting that series' values along the spokes -- filled semi-transparently and stroked. Values share one radial scale anchored at zero at the center.
 
 > **Resource limits:** charts are bounded by `ResourceLimits.MaxSeriesPerChart` (default `50`) and `ResourceLimits.MaxDataPointsPerSeries` (default `10000`).
 
