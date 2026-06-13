@@ -33,7 +33,13 @@ public enum ChartType
     Progress,
 
     /// <summary>Tiny inline line chart with no axes, labels, or legend.</summary>
-    Sparkline
+    Sparkline,
+
+    /// <summary>Grid of value-colored cells (2D data: rows = series, columns = categories).</summary>
+    Heatmap,
+
+    /// <summary>Radar (spider) chart: category spokes with one closed polygon per series.</summary>
+    Radar
 }
 
 /// <summary>
