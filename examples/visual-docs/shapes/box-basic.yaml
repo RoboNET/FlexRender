@@ -1,0 +1,33 @@
+template:
+  name: "shapes-box-basic"
+  version: 1
+
+canvas:
+  width: 260
+  height: 90
+  fixed: both
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    gap: "10"
+    padding: "10"
+    align: center
+    children:
+      - type: rect
+        width: 70
+        height: 50
+        fill: "#4A90D9"
+        stroke: "#1f3a5f"
+        stroke-width: 2
+        radius: 6
+      - type: circle
+        size: 50
+        fill: "#e74c3c"
+      - type: ellipse
+        width: 80
+        height: 50
+        fill: "#2ecc71"
+        stroke: "#145a32"
+        stroke-width: 2

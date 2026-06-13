@@ -672,7 +672,7 @@ layout:
         stroke-width: 2
 ```
 
-![Box shapes: rect, circle, ellipse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/tests/FlexRender.Tests/Snapshots/golden/shapes_box_basic.png)
+![Box shapes: rect, circle, ellipse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/shapes-box-basic.png)
 
 #### Gradient Fills
 
@@ -704,7 +704,7 @@ layout:
           colors: ["#ffffff", "#222222"]
 ```
 
-![Gradient fills on box shapes](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/tests/FlexRender.Tests/Snapshots/golden/shapes_gradient.png)
+![Gradient fills on box shapes](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/shapes-gradient.png)
 
 ---
 
@@ -730,7 +730,7 @@ layout:
       - path: {d: "M 20 150 L 80 110 Q 120 90 160 120 Z", fill: "#2ecc71"}
 ```
 
-![Draw element with overlapping shapes in painter's order](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/tests/FlexRender.Tests/Snapshots/golden/draw_overlap.png)
+![Draw element with overlapping shapes in painter's order](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/shapes-draw-overlap.png)
 
 ---
 
