@@ -159,6 +159,9 @@ internal static class ChartRenderer
             case ChartType.Donut:
                 DrawPie(canvas, chart, theme, width, height, typeface, isDonut: true, antialias);
                 break;
+            case ChartType.Sparkline:
+                DrawSparkline(canvas, chart, theme, width, height, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -595,6 +598,62 @@ internal static class ChartRenderer
         }
 
         DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+    }
+
+    /// <summary>
+    /// Draws a sparkline: a single small line filling the box (minus a small inset) with no grid,
+    /// axes, labels, or legend. Honors <see cref="ChartElement.Smooth"/> and
+    /// <see cref="ChartElement.ShowPoints"/>; uses the first series' flat data.
+    /// </summary>
+    private static void DrawSparkline(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, float width, float height, bool antialias)
+    {
+        if (chart.Series.Count == 0)
+            return;
+
+        var data = chart.Series[0].Data;
+        if (data.Count == 0)
+            return;
+
+        var inset = MathF.Max(2f, MathF.Min(width, height) * 0.12f);
+        var left = inset;
+        var top = inset;
+        var right = width - inset;
+        var bottom = height - inset;
+        if (right <= left || bottom <= top)
+            return;
+
+        var (dataMin, dataMax) = DataBounds(chart);
+        var mapper = new ValueMapper(dataMin, dataMax, top, bottom);
+
+        var step = data.Count > 1 ? (right - left) / (data.Count - 1) : 0f;
+        float X(int i) => data.Count > 1 ? left + (step * i) : (left + right) / 2f;
+
+        var points = new SKPoint[data.Count];
+        for (var i = 0; i < data.Count; i++)
+            points[i] = new SKPoint(X(i), mapper.MapY(data[i]));
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        var color = ColorParser.Parse(palette.ColorAt(0));
+
+        using var path = BuildSeriesPath(points, chart.Smooth);
+        using var linePaint = new SKPaint
+        {
+            Color = color,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = MathF.Max(1f, theme.LineWidth - 0.5f),
+            IsAntialias = antialias,
+            StrokeCap = SKStrokeCap.Round,
+            StrokeJoin = SKStrokeJoin.Round
+        };
+        canvas.DrawPath(path, linePaint);
+
+        if (chart.ShowPoints)
+        {
+            using var pointPaint = new SKPaint { Color = color, Style = SKPaintStyle.Fill, IsAntialias = antialias };
+            for (var i = 0; i < data.Count; i++)
+                canvas.DrawCircle(X(i), mapper.MapY(data[i]), theme.LineWidth, pointPaint);
+        }
     }
 
     /// <summary>
