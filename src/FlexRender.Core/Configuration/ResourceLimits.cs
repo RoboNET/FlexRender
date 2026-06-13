@@ -13,6 +13,8 @@ public sealed class ResourceLimits
     private int _maxImageSize = 10 * 1024 * 1024;
     private int _maxFlexLines = 1000;
     private int _maxShapesPerDraw = 1000;
+    private int _maxSeriesPerChart = 50;
+    private int _maxDataPointsPerSeries = 10000;
     /// <summary>
     /// Maximum allowed YAML template file size in bytes.
     /// </summary>
@@ -117,6 +119,38 @@ public sealed class ResourceLimits
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxShapesPerDraw = value;
+        }
+    }
+
+    /// <summary>
+    /// Maximum number of data series allowed in a single 'chart' element.
+    /// Prevents resource exhaustion from templates with an unbounded series list.
+    /// </summary>
+    /// <value>Default: 50.</value>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is zero or negative.</exception>
+    public int MaxSeriesPerChart
+    {
+        get => _maxSeriesPerChart;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            _maxSeriesPerChart = value;
+        }
+    }
+
+    /// <summary>
+    /// Maximum number of data points allowed in a single chart series.
+    /// Prevents resource exhaustion from templates with an enormous data array.
+    /// </summary>
+    /// <value>Default: 10000.</value>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is zero or negative.</exception>
+    public int MaxDataPointsPerSeries
+    {
+        get => _maxDataPointsPerSeries;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            _maxDataPointsPerSeries = value;
         }
     }
 }
