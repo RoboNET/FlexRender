@@ -21,7 +21,7 @@ internal static class XmlToYamlNodeConverter
     /// </summary>
     private static readonly HashSet<string> WrapperNames = new(StringComparer.Ordinal)
     {
-        "then", "else", "else-if", "columns", "rows", "series",
+        "then", "else", "else-if", "columns", "rows",
         "categories", "x-labels", "y-labels", "palette", "shapes"
     };
 
@@ -149,10 +149,15 @@ internal static class XmlToYamlNodeConverter
 
         // Child elements.
         var naturalList = new YamlSequenceNode();
+        var seriesList = new YamlSequenceNode();
         foreach (var child in el.Elements())
         {
             var childName = child.Name.LocalName;
-            if (WrapperNames.Contains(childName))
+            if (string.Equals(childName, "series", StringComparison.Ordinal))
+            {
+                seriesList.Add(ConvertSeries(child));
+            }
+            else if (WrapperNames.Contains(childName))
             {
                 AddWrapper(node, type, child);
             }
@@ -160,6 +165,11 @@ internal static class XmlToYamlNodeConverter
             {
                 naturalList.Add(ConvertElement(child));
             }
+        }
+
+        if (seriesList.Children.Count > 0)
+        {
+            node.Add("series", seriesList);
         }
 
         if (naturalList.Children.Count > 0)
@@ -204,9 +214,6 @@ internal static class XmlToYamlNodeConverter
             case "rows":
                 node.Add("rows", ConvertAttributeItemSequence(wrapper));
                 break;
-            case "series":
-                // Handled at element level for charts; placeholder (overridden in chart task).
-                break;
             case "categories":
             case "x-labels":
             case "y-labels":
@@ -219,6 +226,36 @@ internal static class XmlToYamlNodeConverter
                 node.Add("shapes", ConvertShapeSequence(wrapper));
                 break;
         }
+    }
+
+    /// <summary>
+    /// Converts a &lt;series&gt; element into a YAML series mapping the shared chart parser consumes.
+    /// The XML <c>data</c> attribute (comma-separated numbers or a <c>{{expression}}</c>) and the XML
+    /// <c>points</c> attribute (semicolon-separated <c>x,y[,r]</c> tuples for scatter/bubble) both map
+    /// to the YAML <c>data</c> key: a flat number array for <c>data</c> and an array-of-arrays for
+    /// <c>points</c>, exactly the two shapes <see cref="ExpandListAttribute"/> produces and the chart
+    /// parser's flat / tuple branches expect. All other attributes (e.g. <c>label</c>) become scalars.
+    /// </summary>
+    /// <param name="series">The <c>&lt;series&gt;</c> element.</param>
+    /// <returns>The YAML series mapping node.</returns>
+    private static YamlMappingNode ConvertSeries(XElement series)
+    {
+        var node = new YamlMappingNode();
+        foreach (var attr in series.Attributes())
+        {
+            var name = attr.Name.LocalName;
+            switch (name)
+            {
+                case "data":
+                case "points":
+                    node.Add("data", ExpandListAttribute(attr.Value));
+                    break;
+                default:
+                    node.Add(name, new YamlScalarNode(attr.Value));
+                    break;
+            }
+        }
+        return node;
     }
 
     /// <summary>Converts child layout elements of a wrapper into a YAML sequence of mappings.</summary>
