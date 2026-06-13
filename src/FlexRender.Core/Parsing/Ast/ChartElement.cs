@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FlexRender.Charts;
+using FlexRender.TemplateEngine;
 
 namespace FlexRender.Parsing.Ast;
 
@@ -84,6 +85,99 @@ public sealed class ChartElement : TemplateElement
         };
         CopyBasePropertiesTo(clone, substitutor);
         return clone;
+    }
+
+    /// <inheritdoc/>
+    public override void ResolveExpressions(Func<string, ObjectValue, string> resolver, ObjectValue data)
+    {
+        ArgumentNullException.ThrowIfNull(resolver);
+        ArgumentNullException.ThrowIfNull(data);
+
+        base.ResolveExpressions(resolver, data);
+
+        var anyBound = false;
+        foreach (var series in Series)
+        {
+            if (series.DataExpression is not null)
+            {
+                anyBound = true;
+                break;
+            }
+        }
+
+        if (!anyBound)
+        {
+            return;
+        }
+
+        var context = new TemplateContext(data);
+        var resolved = new List<ChartSeries>(Series.Count);
+
+        foreach (var series in Series)
+        {
+            if (series.DataExpression is null)
+            {
+                resolved.Add(series);
+                continue;
+            }
+
+            var path = StripBraces(series.DataExpression);
+            var value = ExpressionEvaluator.Resolve(path, context);
+            resolved.Add(series.WithData(ConvertToDoubles(value, series.Label)));
+        }
+
+        SetSeries(resolved);
+    }
+
+    /// <summary>
+    /// Removes surrounding <c>{{ }}</c> braces and whitespace from a data expression, yielding the
+    /// inner path for <see cref="ExpressionEvaluator.Resolve"/>. Non-wrapped input is returned trimmed.
+    /// </summary>
+    /// <param name="expression">The raw expression (e.g. "{{ sales }}").</param>
+    /// <returns>The inner path (e.g. "sales").</returns>
+    private static string StripBraces(string expression)
+    {
+        var span = expression.AsSpan().Trim();
+        if (span.StartsWith("{{") && span.EndsWith("}}"))
+        {
+            span = span[2..^2].Trim();
+        }
+
+        return span.ToString();
+    }
+
+    /// <summary>
+    /// Converts a resolved <see cref="ArrayValue"/> of numbers to a double array. A non-array
+    /// (e.g. a missing path resolving to <see cref="NullValue"/>) yields an empty array; a
+    /// non-numeric element raises a clear template error naming the series.
+    /// </summary>
+    /// <param name="value">The resolved template value.</param>
+    /// <param name="label">The series label, used in error messages.</param>
+    /// <returns>The numeric values (possibly empty).</returns>
+    /// <exception cref="TemplateEngineException">Thrown when an array element is not numeric.</exception>
+    private static double[] ConvertToDoubles(TemplateValue value, string? label)
+    {
+        if (value is not ArrayValue array)
+        {
+            return Array.Empty<double>();
+        }
+
+        var result = new double[array.Count];
+        for (var i = 0; i < array.Count; i++)
+        {
+            if (array[i] is NumberValue number)
+            {
+                result[i] = (double)number.Value;
+            }
+            else
+            {
+                throw new TemplateEngineException(
+                    $"Chart series '{label ?? "(unlabeled)"}' data element at index {i} is not numeric " +
+                    $"(got {array[i].GetType().Name}). Series data must resolve to an array of numbers.");
+            }
+        }
+
+        return result;
     }
 
     /// <summary>
