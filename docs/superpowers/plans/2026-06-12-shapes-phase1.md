@@ -3474,6 +3474,12 @@ gh pr create --base main --head feature/charts-and-shapes \
 - Inner draw-shape property typo validation: properties inside a shape mapping (\`x1\`, \`cx\`, \`d\`, \`stroke-width\`, \`r\`, etc.) are not registered in \`KnownProperties\`, so a typo like \`strok\` is silently ignored instead of suggesting \`stroke\`. Add per-shape-kind known-property sets (line/polyline/rect/circle/path) and nested validation so inner typos surface, matching the typo-suggestion guarantee the top-level element properties already provide.
 - A shape mapping with multiple recognized keys (e.g. \`{line: {...}, circle: {...}}\`) silently uses the first; consider rejecting >1 shape key per entry.
 - Circle/ellipse stroke straddles the inscribed boundary (half the stroke width extends past the diameter). Standard SVG stroke behavior; document or add an inset option if exact-fit strokes are needed.
+- Path-command ceiling: \`ParseDrawPath\` calls \`PathDataParser.Parse(d)\` with the hard-coded default \`maxCommands\` (10000) rather than a value from \`ResourceLimits\`. Worst case per draw element is \`MaxShapesPerDraw\` × 10000 commands. Bounded, not unbounded, but inconsistent with every other configurable limit — add a \`ResourceLimits.MaxPathCommands\` and thread it through.
+- Silent stroke degradation: box \`rect\`/\`circle\`/\`ellipse\` and draw \`rect\`/\`circle\`/\`path\` default \`stroke-width\` to 0, and \`TryCreateStrokePaint\` requires width > 0, so \`stroke: "#333"\` with no \`stroke-width\` renders no stroke and no diagnostic (draw \`line\`/\`polyline\` default to 1). Inconsistent; decide on a default or warn.
+- \`each\` + shape integration test: prove a \`rect\`/\`circle\` inside an \`each\` loop with \`{{item.color}}\` in \`fill\`/\`stroke\` resolves per-iteration (relies on \`ResolveExpressions\`, same as \`TextElement.Color\`). Common LLM pattern (bar charts, grids) — lock it in.
+
+## Done (post-review hardening, in this branch)
+- Non-finite coordinate guard: structured draw-shape literal floats and polyline points now reject NaN/Infinity/overflow via \`GetFiniteFloatValue\`, matching \`PathDataParser\`'s finiteness check (commit fix(parser): reject non-finite coordinates in draw shapes).
 
 ## Out of scope
 Charts (later phases), SVG backend for shapes.
