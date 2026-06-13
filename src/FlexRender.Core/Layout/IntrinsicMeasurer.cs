@@ -62,6 +62,7 @@ internal sealed class IntrinsicMeasurer
             CircleElement circle => MeasureShapeIntrinsic(circle),
             EllipseElement ellipse => MeasureShapeIntrinsic(ellipse),
             DrawElement draw => MeasureShapeIntrinsic(draw),
+            ChartElement chart => MeasureShapeIntrinsic(chart),
             FlexElement flex => MeasureFlexIntrinsic(flex, sizes),
             _ => new IntrinsicSize(0f, 0f, 0f, 0f)
         };

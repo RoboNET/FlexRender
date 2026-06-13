@@ -217,6 +217,7 @@ public sealed class LayoutEngine
             CircleElement circle => LayoutShapeElement(circle, context),
             EllipseElement ellipse => LayoutShapeElement(ellipse, context),
             DrawElement draw => LayoutShapeElement(draw, context),
+            ChartElement chart => LayoutShapeElement(chart, context),
             _ => new LayoutNode(element, 0, 0, context.ContainerWidth, DefaultTextHeight)
         };
         node.Direction = LayoutHelpers.ResolveDirection(element, context.Direction);
