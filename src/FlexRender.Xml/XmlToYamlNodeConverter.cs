@@ -216,7 +216,7 @@ internal static class XmlToYamlNodeConverter
                 node.Add("palette", ConvertScalarItemSequence(wrapper));
                 break;
             case "shapes":
-                // Handled in the draw task.
+                node.Add("shapes", ConvertShapeSequence(wrapper));
                 break;
         }
     }
@@ -250,6 +250,36 @@ internal static class XmlToYamlNodeConverter
         foreach (var child in wrapper.Elements())
         {
             seq.Add(new YamlScalarNode(child.Value.Trim()));
+        }
+        return seq;
+    }
+
+    /// <summary>
+    /// Converts a &lt;shapes&gt; wrapper into the YAML <c>shapes</c> sequence, where each shape
+    /// becomes a mapping with a single shape-kind key (line/polyline/rect/circle/path) whose value
+    /// is the shape's attribute mapping (with any list attributes such as <c>points</c> expanded).
+    /// </summary>
+    /// <param name="wrapper">The <c>&lt;shapes&gt;</c> wrapper element holding one element per shape.</param>
+    /// <returns>The YAML sequence the shared draw-shape parser consumes.</returns>
+    private static YamlSequenceNode ConvertShapeSequence(XElement wrapper)
+    {
+        var seq = new YamlSequenceNode();
+        foreach (var shape in wrapper.Elements())
+        {
+            var shapeMapping = new YamlMappingNode();
+            foreach (var attr in shape.Attributes())
+            {
+                var name = attr.Name.LocalName;
+                shapeMapping.Add(
+                    name,
+                    ListAttributes.Contains(name)
+                        ? ExpandListAttribute(attr.Value)
+                        : new YamlScalarNode(attr.Value));
+            }
+
+            var wrapped = new YamlMappingNode();
+            wrapped.Add(shape.Name.LocalName, shapeMapping);
+            seq.Add(wrapped);
         }
         return seq;
     }
