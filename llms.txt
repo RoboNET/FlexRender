@@ -74,7 +74,7 @@ Templates can be parsed once and cached for reuse with different data.
 
 ## Element Types
 
-Eleven element types, each a sealed class extending `TemplateElement`:
+Fifteen element types, each a sealed class extending `TemplateElement`:
 
 | Type | Key Properties |
 |------|---------------|
@@ -85,6 +85,10 @@ Eleven element types, each a sealed class extending `TemplateElement`:
 | **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground -- requires `FlexRender.Barcode.*` (Skia/Svg/ImageSharp) |
 | **svg** | src, content, width, height, fit (fill/contain/cover/none) -- requires `FlexRender.SvgElement.*` (Skia/Svg) |
 | **separator** | orientation (horizontal/vertical), style (dotted/dashed/solid), thickness, color |
+| **rect** | fill (hex color OR gradient object), stroke, stroke-width (px, default 0), opacity (0..1), radius (px/em corner rounding) -- flex box drawn as a filled/stroked rectangle |
+| **circle** | fill (hex color OR gradient object), stroke, stroke-width, opacity, size (shorthand setting width & height = diameter) -- flex box drawn as a circle |
+| **ellipse** | fill (hex color OR gradient object), stroke, stroke-width, opacity -- flex box drawn as an ellipse filling its width/height |
+| **draw** | shapes (ordered list painted in list order); shape kinds: line, polyline, rect, circle, path (abs commands M/L/Q/C/Z); absolute coords relative to element top-left; capped by `MaxShapesPerDraw` (default 1000). Box shapes accept gradient fill objects |
 | **table** | array, as, columns (key/label/width/grow/align/format), rows, headerFont/headerFontWeight/headerFontStyle/headerFontFamily/headerColor/headerSize/headerBackground -- expands to flex tree |
 | **each** | array, as, children -- iteration over data arrays |
 | **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
@@ -355,6 +359,39 @@ layout:
     color: "#cccccc"
     thickness: 2
 
+  - type: rect
+    width: 100
+    height: 50
+    fill: "#4A90D9"
+    stroke: "#333333"
+    stroke-width: 2
+    radius: 4
+
+  - type: circle
+    size: 40
+    fill: "#e74c3c"
+
+  - type: ellipse
+    width: 120
+    height: 60
+    fill: "#2ecc71"
+
+  - type: rect
+    width: 100
+    height: 100
+    fill:
+      gradient: linear
+      colors: ["#f00", "#00f"]
+      angle: 45
+
+  - type: draw
+    width: 400
+    height: 200
+    shapes:
+      - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
+      - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
+      - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+
   - type: flex
     direction: row
     gap: "10"
@@ -378,6 +415,7 @@ The `ResourceLimits` class centralizes all security limits. Defaults are safe-by
 | MaxRenderDepth | 100 | Render tree recursion |
 | MaxImageSize | 10 MB | Image loading |
 | MaxFlexLines | 1000 | Maximum flex lines when wrapping |
+| MaxShapesPerDraw | 1000 | Maximum shapes in a single `draw` element |
 
 Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 200; })`
 

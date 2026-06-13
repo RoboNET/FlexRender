@@ -623,7 +623,7 @@ layout:
 
 ## Flex-Item Properties
 
-All leaf elements (text, image, qr, barcode, separator) and flex containers (when nested) have these flex-item properties:
+All leaf elements (text, image, qr, barcode, separator, rect, circle, ellipse, draw) and flex containers (when nested) have these flex-item properties:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
@@ -823,6 +823,143 @@ Tabular data with configurable columns, optional header, and support for dynamic
 | height | string? | null | Explicit height override |
 
 Horizontal separators stretch to full width and use thickness as height. Vertical separators stretch to full height and use thickness as width. The default style is `dotted`, chosen for the primary receipt printing use case.
+
+## Shape Elements
+
+The `rect`, `circle`, and `ellipse` elements are **box shapes** -- flex boxes that are painted as a filled and/or stroked vector shape. They participate in flex layout exactly like any other box: they honor `width`, `height`, `margin`, `padding`, and all flex-item properties (`grow`, `shrink`, `basis`, `order`, `alignSelf`). The shape is drawn to fill the box content area.
+
+### Shared Box-Shape Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color (e.g. `"#4A90D9"`) OR a gradient object (see below) |
+| stroke | string | none | Stroke (outline) color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Inherited base opacity, `0..1` |
+| radius | unit | none | Corner radius in px/em (**rect only**) |
+| size | unit | none | Shorthand setting both width and height = diameter (**circle only**) |
+
+### Gradient Fill Object
+
+The `fill` property accepts an object form to paint a gradient. It is converted internally to a CSS gradient string.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| gradient | string | -- | `linear` or `radial` (required) |
+| colors | string[] | -- | Two or more hex color stops (required, minimum 2) |
+| angle | number | 0 | Angle in degrees (linear only; radial ignores `angle`) |
+
+```yaml
+- type: rect
+  width: 100
+  height: 100
+  fill:
+    gradient: linear
+    colors: ["#f00", "#00f"]
+    angle: 45
+```
+
+## Element Type: rect (RectElement)
+
+A flex box drawn as a filled/stroked rectangle, optionally with rounded corners.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color or gradient object |
+| stroke | string | none | Stroke color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Base opacity, `0..1` |
+| radius | unit | none | Corner radius (px/em) |
+
+```yaml
+- type: rect
+  width: 100
+  height: 50
+  fill: "#4A90D9"
+  stroke: "#333333"
+  stroke-width: 2
+  radius: 4
+```
+
+## Element Type: circle (CircleElement)
+
+A flex box drawn as a circle. Use `size` as a shorthand to set both width and height (the diameter); the circle is inscribed in the resulting box.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color or gradient object |
+| stroke | string | none | Stroke color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Base opacity, `0..1` |
+| size | unit | none | Sets both width and height (diameter) |
+
+```yaml
+- type: circle
+  size: 40
+  fill: "#e74c3c"
+```
+
+## Element Type: ellipse (EllipseElement)
+
+A flex box drawn as an ellipse that fills its `width` by `height` box.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color or gradient object |
+| stroke | string | none | Stroke color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Base opacity, `0..1` |
+
+```yaml
+- type: ellipse
+  width: 120
+  height: 60
+  fill: "#2ecc71"
+```
+
+## Element Type: draw (DrawElement)
+
+A flex box that holds an ordered list of absolute-coordinate `shapes`. Shapes are painted in list order (painter's algorithm -- later shapes are drawn on top). All coordinates are relative to the `draw` element's top-left corner. The number of shapes is capped by `ResourceLimits.MaxShapesPerDraw` (default 1000).
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| width | unit | none | Box width |
+| height | unit | none | Box height |
+| shapes | Shape[] | [] | Ordered list of shapes (painted in order) |
+
+Each entry in `shapes` is a single-key object whose key selects the shape kind:
+
+| Shape | Keys | Description |
+|-------|------|-------------|
+| line | `x1`, `y1`, `x2`, `y2`, `stroke`, `stroke-width` | Straight line segment |
+| polyline | `points` (`[[x,y],...]`), `stroke`, `stroke-width`, `fill` | Connected line segments, optionally filled |
+| rect | `x`, `y`, `width`, `height`, `fill`, `stroke`, `stroke-width`, `radius` | Rectangle (optional rounded corners) |
+| circle | `cx`, `cy`, `r`, `fill`, `stroke`, `stroke-width` | Circle centered at (`cx`,`cy`) with radius `r` |
+| path | `d`, `fill`, `stroke`, `stroke-width` | SVG-style path (see grammar below) |
+
+### Path `d` Grammar
+
+The `path` shape's `d` string supports **absolute commands only**: `M` (moveto), `L` (lineto), `Q` (quadratic Bézier), `C` (cubic Bézier), and `Z` (closepath). Lowercase/relative commands are rejected, and non-finite numbers are rejected.
+
+```
+M x y            # move to (x, y)
+L x y            # line to (x, y)
+Q cx cy x y      # quadratic Bézier, control (cx, cy), end (x, y)
+C c1x c1y c2x c2y x y   # cubic Bézier, two controls, end point
+Z                # close path
+```
+
+Example: `d: "M 0 0 L 100 50 Q 150 0 200 50 Z"`
+
+```yaml
+- type: draw
+  width: 400
+  height: 200
+  shapes:
+    - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
+    - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
+    - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+```
 
 ## Element Type: svg (SvgElement)
 
@@ -1407,6 +1544,7 @@ The `ResourceLimits` class centralizes all security limits. All properties valid
 | MaxRenderDepth | int | 100 | Maximum recursion depth when rendering layout tree |
 | MaxImageSize | int | 10,485,760 (10 MB) | Maximum allowed image size in bytes |
 | MaxFlexLines | int | 1,000 | Maximum flex lines when wrapping |
+| MaxShapesPerDraw | int | 1,000 | Maximum shapes in a single `draw` element |
 
 ### Direct Usage
 
