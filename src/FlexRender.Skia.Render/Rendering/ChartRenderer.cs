@@ -171,6 +171,9 @@ internal static class ChartRenderer
             case ChartType.Gauge:
                 DrawGauge(canvas, chart, theme, width, height, typeface, antialias);
                 break;
+            case ChartType.Progress:
+                DrawProgress(canvas, chart, theme, width, height, typeface, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -817,6 +820,56 @@ internal static class ChartRenderer
         using var capPaint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
         var cw = capFont.MeasureText(chart.ValueLabel);
         canvas.DrawText(chart.ValueLabel, cx - (cw / 2f), cy + theme.TitleSize, SKTextAlign.Left, capFont, capPaint);
+    }
+
+    /// <summary>
+    /// Draws a progress ring: a full-circle faint track plus a colored value arc starting at 12
+    /// o'clock and sweeping clockwise proportional to value/max, with centered value text.
+    /// </summary>
+    private static void DrawProgress(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool antialias)
+    {
+        var value = chart.Value ?? 0d;
+        var max = chart.Max is > 0d ? chart.Max.Value : 100d;
+        var fraction = max <= 0d ? 0d : Math.Clamp(value / max, 0d, 1d);
+
+        var diameter = MathF.Min(width, height) * 0.7f;
+        var radius = diameter / 2f;
+        var cx = width / 2f;
+        var cy = height / 2f;
+        var thickness = MathF.Max(6f, radius * 0.2f);
+
+        var bounds = new SKRect(cx - radius, cy - radius, cx + radius, cy + radius);
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        var valueColor = ColorParser.Parse(palette.ColorAt(0));
+
+        using var trackPaint = new SKPaint
+        {
+            Color = ColorParser.Parse(theme.GridColor),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = thickness,
+            IsAntialias = antialias
+        };
+        canvas.DrawOval(bounds, trackPaint);
+
+        if (fraction > 0d)
+        {
+            using var valuePaint = new SKPaint
+            {
+                Color = valueColor,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = thickness,
+                StrokeCap = SKStrokeCap.Round,
+                IsAntialias = antialias
+            };
+            using var valueArc = new SKPath();
+            // Start at 12 o'clock (-90 degrees) and sweep clockwise.
+            valueArc.AddArc(bounds, -90f, (float)(360d * fraction));
+            canvas.DrawPath(valueArc, valuePaint);
+        }
+
+        DrawIndicatorText(canvas, chart, theme, value, max, cx, cy, typeface, antialias);
     }
 
     /// <summary>
