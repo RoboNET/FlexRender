@@ -1,3 +1,4 @@
+using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
 using FlexRender.Xml;
 using Xunit;
@@ -77,5 +78,65 @@ public class XmlControlFlowTests
         var ifEl = Assert.IsType<IfElement>(Assert.Single(_parser.Parse(xml).Elements));
         Assert.NotNull(ifEl.ElseIf);
         Assert.Equal("warm", ifEl.ElseIf!.CompareValue);
+    }
+
+    [Fact]
+    public void Parse_ElseIf_WithNoChild_Throws()
+    {
+        const string xml = """
+            <flexrender>
+              <canvas width="300"/>
+              <if condition="status" equals="hot">
+                <then><text content="HOT"/></then>
+                <else-if></else-if>
+              </if>
+            </flexrender>
+            """;
+
+        var ex = Assert.Throws<TemplateParseException>(() => _parser.Parse(xml));
+        Assert.Contains("else-if", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_ElseIf_WithNonIfChild_Throws()
+    {
+        const string xml = """
+            <flexrender>
+              <canvas width="300"/>
+              <if condition="status" equals="hot">
+                <then><text content="HOT"/></then>
+                <else-if>
+                  <text content="oops"/>
+                </else-if>
+              </if>
+            </flexrender>
+            """;
+
+        var ex = Assert.Throws<TemplateParseException>(() => _parser.Parse(xml));
+        Assert.Contains("else-if", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_ElseIf_WithMultipleChildren_Throws()
+    {
+        const string xml = """
+            <flexrender>
+              <canvas width="300"/>
+              <if condition="status" equals="hot">
+                <then><text content="HOT"/></then>
+                <else-if>
+                  <if condition="status" equals="warm">
+                    <then><text content="WARM"/></then>
+                  </if>
+                  <if condition="status" equals="cool">
+                    <then><text content="COOL"/></then>
+                  </if>
+                </else-if>
+              </if>
+            </flexrender>
+            """;
+
+        var ex = Assert.Throws<TemplateParseException>(() => _parser.Parse(xml));
+        Assert.Contains("else-if", ex.Message);
     }
 }

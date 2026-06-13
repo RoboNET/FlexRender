@@ -202,11 +202,14 @@ internal static class XmlToYamlNodeConverter
                 node.Add(name, ConvertElementSequence(wrapper));
                 break;
             case "else-if":
-                var inner = wrapper.Elements().FirstOrDefault();
-                if (inner is not null)
+                var children = wrapper.Elements().ToList();
+                if (children.Count != 1
+                    || !string.Equals(children[0].Name.LocalName, "if", StringComparison.Ordinal))
                 {
-                    node.Add("elseIf", ConvertElement(inner));
+                    throw new TemplateParseException(
+                        "An <else-if> must contain exactly one <if> child element.");
                 }
+                node.Add("elseIf", ConvertElement(children[0]));
                 break;
             case "columns":
                 node.Add("columns", ConvertAttributeItemSequence(wrapper));
