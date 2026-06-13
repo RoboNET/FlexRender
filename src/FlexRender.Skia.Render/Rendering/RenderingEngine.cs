@@ -344,6 +344,10 @@ internal sealed class RenderingEngine
                 ShapeRenderer.DrawEllipse(canvas, ellipse, x, y, width, height, renderOptions.Antialiasing);
                 break;
 
+            case DrawElement drawEl:
+                ShapeRenderer.DrawShapes(canvas, drawEl, x, y, width, height, renderOptions.Antialiasing);
+                break;
+
             case SeparatorElement separator:
                 DrawSeparator(canvas, separator, x, y, width, height, renderOptions.Antialiasing);
                 break;

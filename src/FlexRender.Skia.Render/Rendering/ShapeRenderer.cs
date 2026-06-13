@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using FlexRender.Layout.Units;
+using FlexRender.Parsing;
 using FlexRender.Parsing.Ast;
 using SkiaSharp;
 
@@ -220,5 +222,194 @@ internal static class ShapeRenderer
             return 0f;
 
         return UnitParser.Parse(radius).Resolve(containerSize, fontSize) ?? 0f;
+    }
+
+    /// <summary>
+    /// Paints the ordered shapes of a <see cref="DrawElement"/> inside its layout box.
+    /// Shapes use absolute coordinates relative to the box's top-left corner; the canvas is
+    /// clipped to the box and translated so each shape's coordinates are box-local.
+    /// Shape fills are solid colors only (no gradients).
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="draw">The draw element whose shapes are painted in list order.</param>
+    /// <param name="x">The left edge of the draw box in pixels.</param>
+    /// <param name="y">The top edge of the draw box in pixels.</param>
+    /// <param name="width">The width of the draw box in pixels.</param>
+    /// <param name="height">The height of the draw box in pixels.</param>
+    /// <param name="antialias">Whether to enable anti-aliasing for fills and strokes.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="canvas"/> or <paramref name="draw"/> is null.</exception>
+    internal static void DrawShapes(
+        SKCanvas canvas,
+        DrawElement draw,
+        float x,
+        float y,
+        float width,
+        float height,
+        bool antialias)
+    {
+        ArgumentNullException.ThrowIfNull(canvas);
+        ArgumentNullException.ThrowIfNull(draw);
+
+        canvas.Save();
+        try
+        {
+            canvas.ClipRect(new SKRect(x, y, x + width, y + height));
+            canvas.Translate(x, y);
+
+            foreach (var shape in draw.Shapes)
+            {
+                switch (shape)
+                {
+                    case DrawLine line:
+                        DrawLineShape(canvas, line, antialias);
+                        break;
+                    case DrawPolyline polyline:
+                        DrawPolylineShape(canvas, polyline, antialias);
+                        break;
+                    case DrawRect rect:
+                        DrawRectShape(canvas, rect, antialias);
+                        break;
+                    case DrawCircle circle:
+                        DrawCircleShape(canvas, circle, antialias);
+                        break;
+                    case DrawPath path:
+                        DrawPathShape(canvas, path, antialias);
+                        break;
+                }
+            }
+        }
+        finally
+        {
+            canvas.Restore();
+        }
+    }
+
+    /// <summary>Draws a <see cref="DrawLine"/> as a stroked segment, defaulting to black.</summary>
+    private static void DrawLineShape(SKCanvas canvas, DrawLine line, bool antialias)
+    {
+        if (TryCreateStrokePaint(line.Stroke ?? "#000000", line.StrokeWidth, antialias, out var paint))
+        {
+            using (paint)
+                canvas.DrawLine(line.X1, line.Y1, line.X2, line.Y2, paint);
+        }
+    }
+
+    /// <summary>Draws a <see cref="DrawPolyline"/>, optionally filling the enclosed area, then stroking (default black).</summary>
+    private static void DrawPolylineShape(SKCanvas canvas, DrawPolyline polyline, bool antialias)
+    {
+        if (polyline.Points.Count < 2)
+            return;
+
+        using var path = new SKPath();
+        var first = polyline.Points[0];
+        path.MoveTo(first.X, first.Y);
+        for (var i = 1; i < polyline.Points.Count; i++)
+            path.LineTo(polyline.Points[i].X, polyline.Points[i].Y);
+
+        FillSolid(polyline.Fill, antialias, paint => canvas.DrawPath(path, paint));
+
+        if (TryCreateStrokePaint(polyline.Stroke ?? "#000000", polyline.StrokeWidth, antialias, out var strokePaint))
+        {
+            using (strokePaint)
+                canvas.DrawPath(path, strokePaint);
+        }
+    }
+
+    /// <summary>Draws a <see cref="DrawRect"/> with an optional solid fill and optional stroke, honouring corner radius.</summary>
+    private static void DrawRectShape(SKCanvas canvas, DrawRect rect, bool antialias)
+    {
+        var radius = rect.Radius;
+
+        FillSolid(rect.Fill, antialias,
+            paint => DrawRectGeometry(canvas, rect.X, rect.Y, rect.Width, rect.Height, radius, paint));
+
+        if (TryCreateStrokePaint(rect.Stroke, rect.StrokeWidth, antialias, out var strokePaint))
+        {
+            using (strokePaint)
+                DrawRectGeometry(canvas, rect.X, rect.Y, rect.Width, rect.Height, radius, strokePaint);
+        }
+    }
+
+    /// <summary>Draws a <see cref="DrawCircle"/> with an optional solid fill and optional stroke.</summary>
+    private static void DrawCircleShape(SKCanvas canvas, DrawCircle circle, bool antialias)
+    {
+        FillSolid(circle.Fill, antialias,
+            paint => canvas.DrawCircle(circle.Cx, circle.Cy, circle.R, paint));
+
+        if (TryCreateStrokePaint(circle.Stroke, circle.StrokeWidth, antialias, out var strokePaint))
+        {
+            using (strokePaint)
+                canvas.DrawCircle(circle.Cx, circle.Cy, circle.R, strokePaint);
+        }
+    }
+
+    /// <summary>Draws a <see cref="DrawPath"/> built from pre-parsed absolute commands, with optional fill and stroke.</summary>
+    private static void DrawPathShape(SKCanvas canvas, DrawPath drawPath, bool antialias)
+    {
+        using var path = BuildPath(drawPath.Commands);
+
+        FillSolid(drawPath.Fill, antialias, paint => canvas.DrawPath(path, paint));
+
+        if (TryCreateStrokePaint(drawPath.Stroke, drawPath.StrokeWidth, antialias, out var strokePaint))
+        {
+            using (strokePaint)
+                canvas.DrawPath(path, strokePaint);
+        }
+    }
+
+    /// <summary>Builds an <see cref="SKPath"/> from parsed path commands (MoveTo/LineTo/QuadTo/CubicTo/Close).</summary>
+    private static SKPath BuildPath(IReadOnlyList<PathCommand> commands)
+    {
+        var path = new SKPath();
+        foreach (var command in commands)
+        {
+            switch (command.Kind)
+            {
+                case PathCommandKind.MoveTo:
+                    path.MoveTo(command.Points[0].X, command.Points[0].Y);
+                    break;
+                case PathCommandKind.LineTo:
+                    path.LineTo(command.Points[0].X, command.Points[0].Y);
+                    break;
+                case PathCommandKind.QuadTo:
+                    path.QuadTo(
+                        command.Points[0].X, command.Points[0].Y,
+                        command.Points[1].X, command.Points[1].Y);
+                    break;
+                case PathCommandKind.CubicTo:
+                    path.CubicTo(
+                        command.Points[0].X, command.Points[0].Y,
+                        command.Points[1].X, command.Points[1].Y,
+                        command.Points[2].X, command.Points[2].Y);
+                    break;
+                case PathCommandKind.Close:
+                    path.Close();
+                    break;
+            }
+        }
+
+        return path;
+    }
+
+    /// <summary>Draws a sharp or rounded rectangle depending on whether <paramref name="radius"/> is positive.</summary>
+    private static void DrawRectGeometry(SKCanvas canvas, float x, float y, float width, float height, float radius, SKPaint paint)
+    {
+        if (radius > 0f)
+            canvas.DrawRoundRect(x, y, width, height, radius, radius, paint);
+        else
+            canvas.DrawRect(x, y, width, height, paint);
+    }
+
+    /// <summary>
+    /// Invokes <paramref name="draw"/> with a solid fill paint when <paramref name="fill"/> is a
+    /// non-empty color; does nothing otherwise. Used for draw-element shapes, which never use gradients.
+    /// </summary>
+    private static void FillSolid(string? fill, bool antialias, Action<SKPaint> draw)
+    {
+        if (string.IsNullOrEmpty(fill))
+            return;
+
+        using var paint = new SKPaint { Color = ColorParser.Parse(fill), Style = SKPaintStyle.Fill, IsAntialias = antialias };
+        draw(paint);
     }
 }
