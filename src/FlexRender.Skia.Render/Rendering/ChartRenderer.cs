@@ -525,18 +525,19 @@ internal static class ChartRenderer
 
             float X(int i) => data.Count > 1 ? plot.Left + (step * i) : plot.Left + (plot.Width / 2f);
 
-            using var linePath = new SKPath();
-            linePath.MoveTo(X(0), mapper.MapY(data[0]));
-            for (var i = 1; i < data.Count; i++)
-                linePath.LineTo(X(i), mapper.MapY(data[i]));
+            // Build the series point list once and reuse it for both the line and area paths.
+            var points = new SKPoint[data.Count];
+            for (var i = 0; i < data.Count; i++)
+                points[i] = new SKPoint(X(i), mapper.MapY(data[i]));
+
+            using var linePath = BuildSeriesPath(points, chart.Smooth);
 
             if (fillArea)
             {
-                using var areaPath = new SKPath();
-                areaPath.MoveTo(X(0), zeroY);
-                for (var i = 0; i < data.Count; i++)
-                    areaPath.LineTo(X(i), mapper.MapY(data[i]));
-                areaPath.LineTo(X(data.Count - 1), zeroY);
+                using var areaPath = BuildSeriesPath(points, chart.Smooth);
+                // Close the area down to the zero baseline along the right edge and back to the start.
+                areaPath.LineTo(points[^1].X, zeroY);
+                areaPath.LineTo(points[0].X, zeroY);
                 areaPath.Close();
 
                 var fillColor = color.WithAlpha(70);
@@ -564,6 +565,54 @@ internal static class ChartRenderer
         }
 
         DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+    }
+
+    /// <summary>
+    /// Builds an open path through the given series points. When <paramref name="smooth"/> is true,
+    /// adjacent points are joined with cubic Bézier segments derived from Catmull-Rom tangents,
+    /// producing a smooth curve; otherwise the points are joined with straight line segments. The
+    /// caller owns and must dispose the returned path.
+    /// </summary>
+    /// <param name="points">The series points in plot pixel coordinates.</param>
+    /// <param name="smooth">Whether to build a smooth curve instead of straight segments.</param>
+    /// <returns>A new <see cref="SKPath"/> starting at the first point and ending at the last.</returns>
+    private static SKPath BuildSeriesPath(SKPoint[] points, bool smooth)
+    {
+        var path = new SKPath();
+        if (points.Length == 0)
+            return path;
+
+        path.MoveTo(points[0]);
+        if (points.Length == 1)
+            return path;
+
+        if (!smooth)
+        {
+            for (var i = 1; i < points.Length; i++)
+                path.LineTo(points[i]);
+            return path;
+        }
+
+        // Catmull-Rom to cubic Bézier: for each segment P[i] -> P[i+1], the control points use the
+        // tangents at the endpoints, estimated from the neighbouring points (clamped at the ends).
+        for (var i = 0; i < points.Length - 1; i++)
+        {
+            var p0 = points[Math.Max(i - 1, 0)];
+            var p1 = points[i];
+            var p2 = points[i + 1];
+            var p3 = points[Math.Min(i + 2, points.Length - 1)];
+
+            var c1 = new SKPoint(
+                p1.X + ((p2.X - p0.X) / 6f),
+                p1.Y + ((p2.Y - p0.Y) / 6f));
+            var c2 = new SKPoint(
+                p2.X - ((p3.X - p1.X) / 6f),
+                p2.Y - ((p3.Y - p1.Y) / 6f));
+
+            path.CubicTo(c1, c2, p2);
+        }
+
+        return path;
     }
 
     /// <summary>
