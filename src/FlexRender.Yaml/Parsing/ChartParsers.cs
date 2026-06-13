@@ -43,6 +43,9 @@ public static class ChartParsers
             Value = GetDoubleValue(node, "value"),
             Max = GetDoubleValue(node, "max"),
             ValueLabel = GetStringValue(node, "label"),
+            XLabels = ParseStringList(node, "x-labels"),
+            YLabels = ParseStringList(node, "y-labels"),
+            ShowCellValues = GetBoolValue(node, "cell-values", false),
             Background = GetStringValue(node, "background")!,
             Rotate = GetExprStringValue(node, "rotate", "none"),
             Padding = GetExprStringValue(node, "padding", "0"),
@@ -65,7 +68,7 @@ public static class ChartParsers
         if (!Enum.TryParse<ChartType>(raw, ignoreCase: true, out var chartType))
         {
             throw new TemplateParseException(
-                $"Unknown chart-type '{raw}'. Valid values: bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline.");
+                $"Unknown chart-type '{raw}'. Valid values: bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline, heatmap, radar.");
         }
         return chartType;
     }
@@ -121,6 +124,26 @@ public static class ChartParsers
             }
         }
         return categories;
+    }
+
+    /// <summary>
+    /// Parses an optional sequence of scalar string labels under the given key (heatmap x/y labels).
+    /// </summary>
+    /// <param name="node">The chart mapping node.</param>
+    /// <param name="key">The property key (e.g. "x-labels").</param>
+    /// <returns>The labels in order; empty when the key is absent.</returns>
+    private static List<string> ParseStringList(YamlMappingNode node, string key)
+    {
+        var labels = new List<string>();
+        if (TryGetSequence(node, key, out var seq))
+        {
+            foreach (var item in seq.Children)
+            {
+                if (item is YamlScalarNode scalar && scalar.Value is not null)
+                    labels.Add(scalar.Value);
+            }
+        }
+        return labels;
     }
 
     /// <summary>

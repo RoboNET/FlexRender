@@ -201,6 +201,7 @@ internal static class KnownProperties
         "chart-type", "categories", "series", "palette", "theme", "legend", "title",
         "horizontal", "stacked", "smooth", "points", "labels",
         "value", "max", "label",
+        "x-labels", "y-labels", "cell-values",
         "background", "rotate", "padding", "margin"
     ]);
 
