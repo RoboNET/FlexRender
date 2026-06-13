@@ -132,4 +132,36 @@ public sealed class DrawParserTests
 
         Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
     }
+
+    [Fact]
+    public void Parse_Draw_NonMappingShapeEntry_Throws()
+    {
+        var yaml = """
+            canvas:
+              width: 400
+            layout:
+              - type: draw
+                width: 400
+                height: 200
+                shapes:
+                  - "not a shape"
+            """;
+        Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
+    }
+
+    [Fact]
+    public void Parse_Draw_MalformedPolylinePoints_Throws()
+    {
+        var yaml = """
+            canvas:
+              width: 400
+            layout:
+              - type: draw
+                width: 400
+                height: 200
+                shapes:
+                  - polyline: {points: [10, 20]}
+            """;
+        Assert.Throws<TemplateParseException>(() => _parser.Parse(yaml));
+    }
 }

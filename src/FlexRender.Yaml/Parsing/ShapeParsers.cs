@@ -192,10 +192,13 @@ public static class ShapeParsers
 
             foreach (var item in shapesSeq.Children)
             {
-                if (item is YamlMappingNode shapeNode)
+                if (item is not YamlMappingNode shapeNode)
                 {
-                    shapes.Add(ParseDrawShape(shapeNode));
+                    throw new TemplateParseException(
+                        "Each entry in 'shapes' must be a mapping with one shape kind (line, polyline, rect, circle, path).");
                 }
+
+                shapes.Add(ParseDrawShape(shapeNode));
             }
         }
 
@@ -348,18 +351,17 @@ public static class ShapeParsers
 
         foreach (var item in pointsSeq.Children)
         {
-            if (item is not YamlSequenceNode pair || pair.Children.Count < 2)
+            if (item is not YamlSequenceNode pair || pair.Children.Count < 2
+                || pair.Children[0] is not YamlScalarNode xScalar
+                || pair.Children[1] is not YamlScalarNode yScalar
+                || !float.TryParse(xScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                || !float.TryParse(yScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
             {
-                continue;
+                throw new TemplateParseException(
+                    "Each polyline point must be a [x, y] pair of numbers.");
             }
 
-            if (pair.Children[0] is YamlScalarNode xScalar
-                && pair.Children[1] is YamlScalarNode yScalar
-                && float.TryParse(xScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
-                && float.TryParse(yScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
-            {
-                points.Add(new PathPoint(x, y));
-            }
+            points.Add(new PathPoint(x, y));
         }
 
         return points;
