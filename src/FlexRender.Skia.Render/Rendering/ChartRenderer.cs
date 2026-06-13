@@ -59,8 +59,11 @@ internal static class ChartRenderer
             }
 
             DrawSeries(canvas, chart, theme, width, height, typeface, antialias);
-            DrawTitle(canvas, chart, theme, width, typeface, antialias);
-            DrawLegend(canvas, chart, theme, width, height, typeface, antialias);
+            if (chart.ChartType != ChartType.Sparkline)
+            {
+                DrawTitle(canvas, chart, theme, width, typeface, antialias);
+                DrawLegend(canvas, chart, theme, width, height, typeface, antialias);
+            }
         }
         finally
         {
