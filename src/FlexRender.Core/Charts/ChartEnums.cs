@@ -18,7 +18,22 @@ public enum ChartType
     Pie,
 
     /// <summary>Donut (ring) chart.</summary>
-    Donut
+    Donut,
+
+    /// <summary>XY scatter plot ([x, y] tuples).</summary>
+    Scatter,
+
+    /// <summary>Bubble plot ([x, y, r] tuples; the third value sizes the bubble).</summary>
+    Bubble,
+
+    /// <summary>Single-value arc/dial gauge.</summary>
+    Gauge,
+
+    /// <summary>Single-value progress ring.</summary>
+    Progress,
+
+    /// <summary>Tiny inline line chart with no axes, labels, or legend.</summary>
+    Sparkline
 }
 
 /// <summary>
