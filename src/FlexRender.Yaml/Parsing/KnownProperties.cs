@@ -194,6 +194,16 @@ internal static class KnownProperties
     ]);
 
     /// <summary>
+    /// Known properties for the 'chart' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Chart = BuildSet(FlexItemProperties,
+    [
+        "chart-type", "categories", "series", "palette", "theme", "legend", "title",
+        "horizontal", "stacked", "smooth", "points", "labels",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
     /// Maps element type names (case-insensitive) to their known property sets.
     /// </summary>
     private static readonly Dictionary<string, HashSet<string>> Registry =
@@ -213,7 +223,8 @@ internal static class KnownProperties
             ["rect"] = Rect,
             ["circle"] = Circle,
             ["ellipse"] = Ellipse,
-            ["draw"] = Draw
+            ["draw"] = Draw,
+            ["chart"] = Chart
         };
 
     /// <summary>
