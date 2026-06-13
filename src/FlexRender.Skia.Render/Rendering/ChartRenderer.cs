@@ -147,6 +147,12 @@ internal static class ChartRenderer
             case ChartType.Area:
                 DrawLineOrArea(canvas, chart, theme, width, height, typeface, fillArea: true, antialias);
                 break;
+            case ChartType.Pie:
+                DrawPie(canvas, chart, theme, width, height, typeface, isDonut: false, antialias);
+                break;
+            case ChartType.Donut:
+                DrawPie(canvas, chart, theme, width, height, typeface, isDonut: true, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -436,6 +442,81 @@ internal static class ChartRenderer
         }
 
         DrawCategoryLabels(canvas, chart, theme, plot, typeface, antialias);
+    }
+
+    /// <summary>
+    /// Draws a pie or donut chart from the first series' values. Slices are proportional to each
+    /// value's share of the total; donut leaves a hollow center.
+    /// </summary>
+    private static void DrawPie(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool isDonut, bool antialias)
+    {
+        if (chart.Series.Count == 0)
+            return;
+
+        var data = chart.Series[0].Data;
+        var total = 0d;
+        foreach (var v in data)
+        {
+            if (v > 0d)
+                total += v;
+        }
+        if (total <= 0d)
+        {
+            DrawNoData(canvas, theme, width, height, typeface, antialias);
+            return;
+        }
+
+        var hasTitle = !string.IsNullOrEmpty(chart.Title);
+        var top = hasTitle ? theme.TitleSize + 8f : 0f;
+        var legendReserve = chart.Legend == LegendPosition.Bottom ? 28f : 0f;
+        var availH = height - top - legendReserve;
+        var availW = width;
+
+        var diameter = MathF.Min(availW, availH) * 0.85f;
+        var radius = diameter / 2f;
+        var cx = width / 2f;
+        var cy = top + (availH / 2f);
+
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        var bounds = new SKRect(cx - radius, cy - radius, cx + radius, cy + radius);
+
+        var startAngle = -90f; // start at 12 o'clock
+        for (var i = 0; i < data.Count; i++)
+        {
+            if (data[i] <= 0d)
+                continue;
+
+            var sweep = (float)(data[i] / total * 360d);
+            using var slice = new SKPath();
+            slice.MoveTo(cx, cy);
+            slice.ArcTo(bounds, startAngle, sweep, forceMoveTo: false);
+            slice.Close();
+
+            using var paint = new SKPaint
+            {
+                Color = ColorParser.Parse(palette.ColorAt(i)),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            };
+            canvas.DrawPath(slice, paint);
+
+            startAngle += sweep;
+        }
+
+        if (isDonut)
+        {
+            using var hole = new SKPaint
+            {
+                Color = string.IsNullOrEmpty(theme.BackgroundColor)
+                    ? SKColors.White
+                    : ColorParser.Parse(theme.BackgroundColor),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = antialias
+            };
+            canvas.DrawCircle(cx, cy, radius * 0.55f, hole);
+        }
     }
 
     /// <summary>Formats a tick value compactly, trimming trailing zeros.</summary>
