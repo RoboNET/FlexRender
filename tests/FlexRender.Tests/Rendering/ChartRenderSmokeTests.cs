@@ -186,6 +186,64 @@ public sealed class ChartRenderSmokeTests : IDisposable
         Assert.True(HasNonBackgroundPixel(bitmap), "Expected sparkline to draw.");
     }
 
+    [Fact]
+    public async Task HeatmapChart_FromYaml_DrawsPixels()
+    {
+        const string yaml = """
+            canvas:
+              width: 320
+              height: 240
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: heatmap
+                width: 320
+                height: 240
+                x-labels: [Mon, Tue, Wed]
+                y-labels: [AM, PM]
+                cell-values: true
+                series:
+                  - data: [1, 5, 9]
+                  - data: [7, 3, 2]
+                legend: none
+                palette: ocean
+            """;
+
+        var template = _parser.Parse(yaml);
+        using var bitmap = await Render(template, new ObjectValue());
+
+        Assert.True(HasNonBackgroundPixel(bitmap), "Expected heatmap to draw.");
+    }
+
+    [Fact]
+    public async Task RadarChart_FromYaml_DrawsPixels()
+    {
+        const string yaml = """
+            canvas:
+              width: 300
+              height: 300
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: radar
+                width: 300
+                height: 300
+                categories: [Speed, Power, Range, Agility, Armor]
+                series:
+                  - label: A
+                    data: [4, 3, 5, 2, 4]
+                  - label: B
+                    data: [3, 5, 2, 4, 3]
+                legend: none
+                palette: vivid
+            """;
+
+        var template = _parser.Parse(yaml);
+        using var bitmap = await Render(template, new ObjectValue());
+
+        Assert.True(HasNonBackgroundPixel(bitmap), "Expected radar to draw.");
+    }
+
     private static bool HasNonBackgroundPixel(SKBitmap bitmap)
     {
         for (var y = 0; y < bitmap.Height; y += 3)
