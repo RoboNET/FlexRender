@@ -168,6 +168,9 @@ internal static class ChartRenderer
             case ChartType.Bubble:
                 DrawScatterOrBubble(canvas, chart, theme, width, height, typeface, isBubble: true, antialias);
                 break;
+            case ChartType.Gauge:
+                DrawGauge(canvas, chart, theme, width, height, typeface, antialias);
+                break;
             default:
                 // Other chart types are added in later tasks.
                 using (var border = new SKPaint
@@ -732,6 +735,88 @@ internal static class ChartRenderer
                 canvas.DrawCircle(cx, cy, radius, paint);
             }
         }
+    }
+
+    /// <summary>
+    /// Draws a 270-degree gauge dial: a faint background arc plus a colored value arc proportional
+    /// to value/max, with the value and optional caption centered below the dial.
+    /// </summary>
+    private static void DrawGauge(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme,
+        float width, float height, SKTypeface? typeface, bool antialias)
+    {
+        var value = chart.Value ?? 0d;
+        var max = chart.Max is > 0d ? chart.Max.Value : 100d;
+        var fraction = max <= 0d ? 0d : Math.Clamp(value / max, 0d, 1d);
+
+        // Geometry: a 270-degree sweep starting at 135 degrees (bottom-left), open at the bottom.
+        const float startAngle = 135f;
+        const float fullSweep = 270f;
+
+        var diameter = MathF.Min(width, height) * 0.7f;
+        var radius = diameter / 2f;
+        var cx = width / 2f;
+        var cy = height / 2f;
+        var thickness = MathF.Max(6f, radius * 0.22f);
+
+        var bounds = new SKRect(cx - radius, cy - radius, cx + radius, cy + radius);
+        var palette = chart.Palette ?? ChartPalettes.Default;
+        var valueColor = ColorParser.Parse(palette.ColorAt(0));
+
+        using var trackPaint = new SKPaint
+        {
+            Color = ColorParser.Parse(theme.GridColor),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = thickness,
+            StrokeCap = SKStrokeCap.Round,
+            IsAntialias = antialias
+        };
+        using var track = new SKPath();
+        track.AddArc(bounds, startAngle, fullSweep);
+        canvas.DrawPath(track, trackPaint);
+
+        if (fraction > 0d)
+        {
+            using var valuePaint = new SKPaint
+            {
+                Color = valueColor,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = thickness,
+                StrokeCap = SKStrokeCap.Round,
+                IsAntialias = antialias
+            };
+            using var valueArc = new SKPath();
+            valueArc.AddArc(bounds, startAngle, (float)(fullSweep * fraction));
+            canvas.DrawPath(valueArc, valuePaint);
+        }
+
+        DrawIndicatorText(canvas, chart, theme, value, max, cx, cy, typeface, antialias);
+    }
+
+    /// <summary>
+    /// Draws the centered numeric value (and optional caption) for gauge/progress charts when a
+    /// typeface is available.
+    /// </summary>
+    private static void DrawIndicatorText(
+        SKCanvas canvas, ChartElement chart, ChartTheme theme, double value, double max,
+        float cx, float cy, SKTypeface? typeface, bool antialias)
+    {
+        if (typeface is null)
+            return;
+
+        var valueText = FormatTick(value);
+        using var valueFont = new SKFont(typeface, theme.TitleSize);
+        using var valuePaint = new SKPaint { Color = ColorParser.Parse(theme.TitleColor), IsAntialias = antialias };
+        var vw = valueFont.MeasureText(valueText);
+        canvas.DrawText(valueText, cx - (vw / 2f), cy + (theme.TitleSize / 3f), SKTextAlign.Left, valueFont, valuePaint);
+
+        if (string.IsNullOrEmpty(chart.ValueLabel))
+            return;
+
+        using var capFont = new SKFont(typeface, theme.LabelSize);
+        using var capPaint = new SKPaint { Color = ColorParser.Parse(theme.LabelColor), IsAntialias = antialias };
+        var cw = capFont.MeasureText(chart.ValueLabel);
+        canvas.DrawText(chart.ValueLabel, cx - (cw / 2f), cy + theme.TitleSize, SKTextAlign.Left, capFont, capPaint);
     }
 
     /// <summary>
