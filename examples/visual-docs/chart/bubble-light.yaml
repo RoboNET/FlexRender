@@ -1,0 +1,20 @@
+template:
+  name: "chart-bubble-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 480
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: bubble
+    width: 480
+    height: 320
+    series:
+      - data: [[1, 12, 6], [3, 30, 18], [5, 22, 10], [7, 48, 24]]
+    legend: none
+    palette: sunset

@@ -1,0 +1,21 @@
+template:
+  name: "chart-scatter-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 480
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: scatter
+    width: 480
+    height: 320
+    series:
+      - label: cloud
+        data: [[1, 12], [3, 30], [5, 22], [7, 48], [9, 35]]
+    legend: none
+    palette: ocean

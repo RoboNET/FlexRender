@@ -1,0 +1,21 @@
+template:
+  name: "chart-gauge-dark"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 280
+  background: "#1e1e1e"
+
+layout:
+  - type: chart
+    chart-type: gauge
+    width: 280
+    height: 220
+    value: 72
+    max: 100
+    label: CPU
+    theme: dark
+    palette: vivid

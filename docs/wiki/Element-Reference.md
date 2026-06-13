@@ -1459,7 +1459,7 @@ Z                      # close path
 
 ## chart
 
-A declarative chart element that renders `bar`, `line`, `area`, `pie`, and `donut` charts into a fixed `width` by `height` box. It participates in flex layout like any other element. Series data may be supplied inline or bound from the data context with `{{expressions}}` -- the same binding used by `table` rows -- so charts can be driven directly by a data file. A chart with no series (or empty data) renders a centered "no data" placeholder instead of failing.
+A declarative chart element that renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, and `sparkline` charts into a fixed `width` by `height` box. It participates in flex layout like any other element. Series data may be supplied inline or bound from the data context with `{{expressions}}` -- the same binding used by `table` rows -- so charts can be driven directly by a data file. A chart with no series (or empty data) renders a centered "no data" placeholder instead of failing.
 
 ### Minimal Example
 
@@ -1477,7 +1477,7 @@ A declarative chart element that renders `bar`, `line`, `area`, `pie`, and `donu
 
 | Property | YAML Name | Type | Default | Valid Values | Required | Description |
 |----------|-----------|------|---------|--------------|----------|-------------|
-| ChartType | `chart-type` | string | `bar` | bar, line, area, pie, donut | No | Chart kind. |
+| ChartType | `chart-type` | string | `bar` | bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline | No | Chart kind. |
 | Width | `width` | number | none | px | Yes | Chart width in pixels. |
 | Height | `height` | number | none | px | Yes | Chart height in pixels. |
 | Categories | `categories` | list | `[]` | List of strings | No | X-axis category labels (bar/line/area) or slice labels (pie/donut). |
@@ -1491,6 +1491,11 @@ A declarative chart element that renders `bar`, `line`, `area`, `pie`, and `donu
 | Smooth | `smooth` | bool | `false` | true, false | No | **Line/area only.** Smooth (curved) lines. |
 | Points | `points` | bool | `false` | true, false | No | **Line/area only.** Draw point markers at each value. |
 | Labels | `labels` | string | `percent` | percent, value, none | No | **Pie/donut only.** Slice label content. |
+| Value | `value` | number | none | Any number | No | **Gauge/progress only.** Indicator value. |
+| Max | `max` | number | `100` | Any number | No | **Gauge/progress only.** Indicator maximum. |
+| ValueLabel | `label` | string | none | Any string | No | **Gauge/progress only.** Centered caption under the value. |
+
+> **Scatter / bubble data:** supply `series[].data` as an array of tuples -- `[[x, y], ...]` for `scatter` and `[[x, y, r], ...]` for `bubble`, where `r` sizes the bubble. Tuple data is inline-only in this release (expression-bound tuples are not yet supported). Sparkline uses a plain numeric `data` array and honors `smooth`/`points`; it renders chrome-free (no axes, legend, or title).
 
 > **Resource limits:** charts are bounded by `ResourceLimits.MaxSeriesPerChart` (default `50`) and `ResourceLimits.MaxDataPointsPerSeries` (default `10000`).
 

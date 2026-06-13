@@ -1,0 +1,20 @@
+template:
+  name: "chart-progress-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 240
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: progress
+    width: 240
+    height: 240
+    value: 64
+    max: 100
+    label: Disk
+    palette: forest

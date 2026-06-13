@@ -737,7 +737,7 @@ layout:
 
 ### Charts
 
-The `chart` element renders `bar`, `line`, `area`, `pie`, and `donut` charts into a fixed `width` by `height` box. Series `data` is either an inline number array or a `{{ expression }}` bound from the data context (like `table` rows). The `palette` (named or explicit color list) and `theme` (`light`, `dark`, `minimal`) control colors. An empty/missing `series` renders a "no data" placeholder rather than an error.
+The `chart` element renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, and `sparkline` charts into a fixed `width` by `height` box. Series `data` is either an inline number array or a `{{ expression }}` bound from the data context (like `table` rows). Scatter and bubble take tuple data (`[[x, y], ...]` / `[[x, y, r], ...]`); gauge and progress are single-value indicators driven by `value`/`max`/`label`; sparkline is a chrome-free inline line. The `palette` (named or explicit color list) and `theme` (`light`, `dark`, `minimal`) control colors. An empty/missing `series` renders a "no data" placeholder rather than an error.
 
 #### Bar
 
@@ -845,6 +845,112 @@ layout:
 ```
 
 ![Donut chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-donut-dark.png)
+
+#### Scatter
+
+Scatter plots take tuple data -- each point is an `[x, y]` pair.
+
+```yaml
+canvas:
+  width: 480
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: scatter
+    width: 480
+    height: 320
+    series:
+      - label: cloud
+        data: [[1, 12], [3, 30], [5, 22], [7, 48], [9, 35]]
+    legend: none
+    palette: ocean
+```
+
+![Scatter chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-scatter-light.png)
+
+#### Bubble
+
+Bubble charts add a third tuple component -- `[x, y, r]` -- where `r` sizes each bubble.
+
+```yaml
+canvas:
+  width: 480
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: bubble
+    width: 480
+    height: 320
+    series:
+      - data: [[1, 12, 6], [3, 30, 18], [5, 22, 10], [7, 48, 24]]
+    legend: none
+    palette: sunset
+```
+
+![Bubble chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-bubble-light.png)
+
+#### Gauge
+
+Gauge is a single-value 270-degree dial driven by `value`, `max`, and `label`.
+
+```yaml
+canvas:
+  width: 280
+  background: "#1e1e1e"
+layout:
+  - type: chart
+    chart-type: gauge
+    width: 280
+    height: 220
+    value: 72
+    max: 100
+    label: CPU
+    theme: dark
+    palette: vivid
+```
+
+![Gauge chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-gauge-dark.png)
+
+#### Progress
+
+Progress draws a ring filled to `value` / `max`, with a centered `label`.
+
+```yaml
+canvas:
+  width: 240
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: progress
+    width: 240
+    height: 240
+    value: 64
+    max: 100
+    label: Disk
+    palette: forest
+```
+
+![Progress chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-progress-light.png)
+
+#### Sparkline
+
+Sparkline is a tiny chrome-free line (no axes, legend, or title) that honors `smooth`/`points`.
+
+```yaml
+canvas:
+  width: 200
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: sparkline
+    width: 200
+    height: 50
+    smooth: true
+    series:
+      - data: [3, 8, 4, 10, 6, 9, 5, 11]
+```
+
+![Sparkline chart](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/chart-sparkline-light.png)
 
 ---
 
