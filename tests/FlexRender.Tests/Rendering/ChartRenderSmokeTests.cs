@@ -69,6 +69,123 @@ public sealed class ChartRenderSmokeTests : IDisposable
         Assert.True(HasNonBackgroundPixel(bitmap), "Expected the bar chart to draw something.");
     }
 
+    [Fact]
+    public async Task ScatterChart_FromYaml_DrawsPixels()
+    {
+        const string yaml = """
+            canvas:
+              width: 320
+              height: 240
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: scatter
+                width: 320
+                height: 240
+                series:
+                  - data: [[1, 10], [4, 25], [7, 18], [9, 30]]
+                legend: none
+            """;
+
+        var template = _parser.Parse(yaml);
+        using var bitmap = await Render(template, new ObjectValue());
+
+        Assert.True(HasNonBackgroundPixel(bitmap), "Expected scatter to draw.");
+    }
+
+    [Fact]
+    public async Task BubbleChart_FromYaml_DrawsPixels()
+    {
+        const string yaml = """
+            canvas:
+              width: 320
+              height: 240
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: bubble
+                width: 320
+                height: 240
+                series:
+                  - data: [[1, 10, 5], [5, 25, 18], [8, 15, 9]]
+                legend: none
+            """;
+
+        var template = _parser.Parse(yaml);
+        using var bitmap = await Render(template, new ObjectValue());
+
+        Assert.True(HasNonBackgroundPixel(bitmap), "Expected bubble to draw.");
+    }
+
+    [Fact]
+    public async Task GaugeChart_FromYaml_DrawsPixels()
+    {
+        const string yaml = """
+            canvas:
+              width: 240
+              height: 200
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: gauge
+                width: 240
+                height: 200
+                value: 65
+                max: 100
+                label: CPU
+            """;
+
+        var template = _parser.Parse(yaml);
+        using var bitmap = await Render(template, new ObjectValue());
+
+        Assert.True(HasNonBackgroundPixel(bitmap), "Expected gauge to draw.");
+    }
+
+    [Fact]
+    public async Task ProgressChart_FromYaml_DrawsPixels()
+    {
+        const string yaml = """
+            canvas:
+              width: 200
+              height: 200
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: progress
+                width: 200
+                height: 200
+                value: 45
+            """;
+
+        var template = _parser.Parse(yaml);
+        using var bitmap = await Render(template, new ObjectValue());
+
+        Assert.True(HasNonBackgroundPixel(bitmap), "Expected progress to draw.");
+    }
+
+    [Fact]
+    public async Task SparklineChart_FromYaml_DrawsPixels()
+    {
+        const string yaml = """
+            canvas:
+              width: 160
+              height: 50
+              background: "#ffffff"
+            layout:
+              - type: chart
+                chart-type: sparkline
+                width: 160
+                height: 50
+                series:
+                  - data: [3, 8, 4, 10, 6, 9]
+            """;
+
+        var template = _parser.Parse(yaml);
+        using var bitmap = await Render(template, new ObjectValue());
+
+        Assert.True(HasNonBackgroundPixel(bitmap), "Expected sparkline to draw.");
+    }
+
     private static bool HasNonBackgroundPixel(SKBitmap bitmap)
     {
         for (var y = 0; y < bitmap.Height; y += 3)
