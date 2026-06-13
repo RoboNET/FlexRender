@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FlexRender.Charts;
 
 namespace FlexRender.Parsing.Ast;
 
@@ -11,12 +12,14 @@ namespace FlexRender.Parsing.Ast;
 public sealed class ChartSeries
 {
     private static readonly IReadOnlyList<double> Empty = Array.Empty<double>();
+    private static readonly IReadOnlyList<ChartPoint> EmptyPoints = Array.Empty<ChartPoint>();
 
-    private ChartSeries(string? label, string? dataExpression, IReadOnlyList<double> data)
+    private ChartSeries(string? label, string? dataExpression, IReadOnlyList<double> data, IReadOnlyList<ChartPoint> points)
     {
         Label = label;
         DataExpression = dataExpression;
         Data = data;
+        Points = points;
     }
 
     /// <summary>Gets the optional series label shown in the legend.</summary>
@@ -32,6 +35,12 @@ public sealed class ChartSeries
     public IReadOnlyList<double> Data { get; }
 
     /// <summary>
+    /// Gets the resolved XY(R) tuple points for scatter/bubble series. Empty for flat numeric
+    /// series (which use <see cref="Data"/> instead).
+    /// </summary>
+    public IReadOnlyList<ChartPoint> Points { get; }
+
+    /// <summary>
     /// Creates a series with inline numeric data.
     /// </summary>
     /// <param name="label">The optional legend label.</param>
@@ -41,7 +50,7 @@ public sealed class ChartSeries
     public static ChartSeries FromInline(string? label, IReadOnlyList<double> data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        return new ChartSeries(label, dataExpression: null, data);
+        return new ChartSeries(label, dataExpression: null, data, EmptyPoints);
     }
 
     /// <summary>
@@ -53,7 +62,20 @@ public sealed class ChartSeries
     public static ChartSeries FromExpression(string? label, string dataExpression)
     {
         ArgumentNullException.ThrowIfNull(dataExpression);
-        return new ChartSeries(label, dataExpression, Empty);
+        return new ChartSeries(label, dataExpression, Empty, EmptyPoints);
+    }
+
+    /// <summary>
+    /// Creates a series with inline XY(R) tuple points (scatter/bubble).
+    /// </summary>
+    /// <param name="label">The optional legend label.</param>
+    /// <param name="points">The tuple points.</param>
+    /// <returns>A new <see cref="ChartSeries"/> whose <see cref="Data"/> is empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is null.</exception>
+    public static ChartSeries FromPoints(string? label, IReadOnlyList<ChartPoint> points)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        return new ChartSeries(label, dataExpression: null, Empty, points);
     }
 
     /// <summary>
@@ -66,6 +88,6 @@ public sealed class ChartSeries
     public ChartSeries WithData(IReadOnlyList<double> data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        return new ChartSeries(Label, DataExpression, data);
+        return new ChartSeries(Label, DataExpression, data, EmptyPoints);
     }
 }
