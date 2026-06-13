@@ -30,6 +30,9 @@ A comprehensive visual guide with rendered examples for all FlexRender propertie
   - [qr](#qr)
   - [barcode](#barcode)
   - [svg](#svg)
+  - [Shapes (rect, circle, ellipse)](#shapes-rect-circle-ellipse)
+    - [Gradient Fills](#gradient-fills)
+  - [draw](#draw)
 - [See Also](#see-also)
 
 ---
@@ -631,6 +634,103 @@ Same as `image` fit: `fill` (stretch), `contain` (fit within bounds), `cover` (f
 | `width` | number | Target render width in pixels | (auto) |
 | `height` | number | Target render height in pixels | (auto) |
 | `fit` | enum | Fit mode: `fill`, `contain`, `cover`, `none` | `contain` |
+
+---
+
+### Shapes (rect, circle, ellipse)
+
+The `rect`, `circle`, and `ellipse` elements are flex boxes painted as filled and/or stroked vector shapes. They take part in flex layout like any other box. `circle` accepts a `size` shorthand (diameter), and `rect` supports a `radius` for rounded corners.
+
+```yaml
+canvas:
+  width: 260
+  height: 90
+  fixed: both
+  background: "#ffffff"
+layout:
+  - type: flex
+    direction: row
+    gap: "10"
+    padding: "10"
+    align: center
+    children:
+      - type: rect
+        width: 70
+        height: 50
+        fill: "#4A90D9"
+        stroke: "#1f3a5f"
+        stroke-width: 2
+        radius: 6
+      - type: circle
+        size: 50
+        fill: "#e74c3c"
+      - type: ellipse
+        width: 80
+        height: 50
+        fill: "#2ecc71"
+        stroke: "#145a32"
+        stroke-width: 2
+```
+
+![Box shapes: rect, circle, ellipse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/tests/FlexRender.Tests/Snapshots/golden/shapes_box_basic.png)
+
+#### Gradient Fills
+
+The `fill` property accepts a gradient object `{gradient, colors, angle}` instead of a solid hex color. `gradient` is `linear` or `radial`; `colors` needs at least two stops; `angle` (degrees) applies to linear gradients only.
+
+```yaml
+canvas:
+  width: 220
+  height: 110
+  fixed: both
+  background: "#ffffff"
+layout:
+  - type: flex
+    direction: row
+    gap: "10"
+    padding: "10"
+    children:
+      - type: rect
+        width: 90
+        height: 90
+        fill:
+          gradient: linear
+          colors: ["#ff0000", "#0000ff"]
+          angle: 45
+      - type: circle
+        size: 90
+        fill:
+          gradient: radial
+          colors: ["#ffffff", "#222222"]
+```
+
+![Gradient fills on box shapes](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/tests/FlexRender.Tests/Snapshots/golden/shapes_gradient.png)
+
+---
+
+### draw
+
+The `draw` element is a flex box holding an ordered list of absolute-coordinate `shapes`, painted in list order (painter's algorithm). Supported shape kinds are `line`, `polyline`, `rect`, `circle`, and `path`. Path `d` strings use absolute commands only (`M`, `L`, `Q`, `C`, `Z`). The number of shapes is capped by `ResourceLimits.MaxShapesPerDraw` (default 1000).
+
+```yaml
+canvas:
+  width: 200
+  height: 160
+  fixed: both
+  background: "#ffffff"
+layout:
+  - type: draw
+    width: 200
+    height: 160
+    shapes:
+      - rect: {x: 20, y: 20, width: 120, height: 80, fill: "#cccccc", radius: 8}
+      - line: {x1: 0, y1: 80, x2: 200, y2: 40, stroke: "#333333", stroke-width: 3}
+      - polyline: {points: [[10, 140], [60, 110], [110, 130], [160, 100]], stroke: "#4A90D9", stroke-width: 2}
+      - circle: {cx: 130, cy: 70, r: 35, fill: "#e74c3c"}
+      - path: {d: "M 20 150 L 80 110 Q 120 90 160 120 Z", fill: "#2ecc71"}
+```
+
+![Draw element with overlapping shapes in painter's order](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/tests/FlexRender.Tests/Snapshots/golden/draw_overlap.png)
 
 ---
 

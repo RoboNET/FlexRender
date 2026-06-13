@@ -12,7 +12,7 @@ For rendering options (antialiasing, format settings), see [[Render-Options]].
 
 ## Common Properties (TemplateElement)
 
-All 11 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `table`, `content`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
+All 15 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `rect`, `circle`, `ellipse`, `draw`, `table`, `content`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
 
 > **Expression support:** All properties on all element types accept `{{expressions}}`. This includes typed properties like `opacity` (float), `grow`/`shrink` (float), `order` (int), `wrap` (bool on text, FlexWrap on flex), and enum properties like `display`, `position`, `align`. See [[Template-Expressions]] for details.
 
@@ -1278,6 +1278,182 @@ Renders a horizontal or vertical line with configurable style, thickness, and co
 ```
 
 Horizontal separators use `thickness` as their height and stretch to the container's full width. Vertical separators use `thickness` as their width and stretch to the container's full height (or use an explicit `height` if provided).
+
+---
+
+## rect
+
+A flex box drawn as a filled and/or stroked rectangle, optionally with rounded corners. It participates in flex layout like any other box (honors `width`, `height`, `margin`, `padding`, and all flex-item properties); the rectangle fills the box content area.
+
+### Minimal Example
+
+```yaml
+- type: rect
+  width: 100
+  height: 50
+  fill: "#4A90D9"
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Fill | `fill` | string or object | none | Hex color or gradient object | No | Solid color or gradient object `{gradient, colors, angle}`. See [Gradient Fill](#gradient-fill). |
+| Stroke | `stroke` | string | none | Hex color (#rgb or #rrggbb) | No | Outline color. |
+| Stroke Width | `stroke-width` | number | `0` | >= 0 | No | Outline width in pixels. |
+| Opacity | `opacity` | number | `1.0` | 0..1 | No | Inherited base opacity. |
+| Radius | `radius` | unit | none | px, em | No | Corner radius (rect only). |
+
+```yaml
+- type: rect
+  width: 100
+  height: 50
+  fill: "#4A90D9"
+  stroke: "#333333"
+  stroke-width: 2
+  radius: 4
+```
+
+---
+
+## circle
+
+A flex box drawn as a circle inscribed in its box. Use `size` as a shorthand to set both `width` and `height` (the diameter).
+
+### Minimal Example
+
+```yaml
+- type: circle
+  size: 40
+  fill: "#e74c3c"
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Fill | `fill` | string or object | none | Hex color or gradient object | No | Solid color or gradient object `{gradient, colors, angle}`. See [Gradient Fill](#gradient-fill). |
+| Stroke | `stroke` | string | none | Hex color (#rgb or #rrggbb) | No | Outline color. |
+| Stroke Width | `stroke-width` | number | `0` | >= 0 | No | Outline width in pixels. |
+| Opacity | `opacity` | number | `1.0` | 0..1 | No | Inherited base opacity. |
+| Size | `size` | unit | none | px, em | No | Sets both width and height (circle only). |
+
+```yaml
+- type: circle
+  size: 60
+  fill: "#e74c3c"
+  stroke: "#922b21"
+  stroke-width: 3
+```
+
+---
+
+## ellipse
+
+A flex box drawn as an ellipse that fills its `width` by `height` box.
+
+### Minimal Example
+
+```yaml
+- type: ellipse
+  width: 120
+  height: 60
+  fill: "#2ecc71"
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Fill | `fill` | string or object | none | Hex color or gradient object | No | Solid color or gradient object `{gradient, colors, angle}`. See [Gradient Fill](#gradient-fill). |
+| Stroke | `stroke` | string | none | Hex color (#rgb or #rrggbb) | No | Outline color. |
+| Stroke Width | `stroke-width` | number | `0` | >= 0 | No | Outline width in pixels. |
+| Opacity | `opacity` | number | `1.0` | 0..1 | No | Inherited base opacity. |
+
+```yaml
+- type: ellipse
+  width: 120
+  height: 60
+  fill: "#2ecc71"
+```
+
+---
+
+### Gradient Fill
+
+The `fill` property of `rect`, `circle`, and `ellipse` accepts an object form to paint a gradient instead of a solid color. It is converted internally to a CSS gradient string.
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Gradient | `gradient` | string | -- | linear, radial | Yes | Gradient kind. |
+| Colors | `colors` | string[] | -- | >= 2 hex colors | Yes | Ordered color stops (minimum 2). |
+| Angle | `angle` | number | `0` | degrees | No | Angle in degrees (linear only; radial ignores it). |
+
+```yaml
+- type: rect
+  width: 100
+  height: 100
+  fill:
+    gradient: linear
+    colors: ["#f00", "#00f"]
+    angle: 45
+```
+
+---
+
+## draw
+
+A flex box that holds an ordered list of absolute-coordinate `shapes`. Shapes are painted in list order using the painter's algorithm (later shapes are drawn on top of earlier ones). All shape coordinates are relative to the `draw` element's top-left corner. The number of shapes is capped by `ResourceLimits.MaxShapesPerDraw` (default `1000`).
+
+### Minimal Example
+
+```yaml
+- type: draw
+  width: 400
+  height: 200
+  shapes:
+    - circle: {cx: 200, cy: 100, r: 50, fill: "#e74c3c"}
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Width | `width` | unit | none | px, %, em | No | Box width. |
+| Height | `height` | unit | none | px, %, em | No | Box height. |
+| Shapes | `shapes` | Shape[] | `[]` | List of shape objects | No | Ordered list, painted in order (max `MaxShapesPerDraw`, default 1000). |
+
+### Shape Kinds
+
+Each entry in `shapes` is a single-key object whose key selects the shape kind. Coordinates are absolute, relative to the `draw` element top-left.
+
+| Shape | Keys | Description |
+|-------|------|-------------|
+| `line` | `x1`, `y1`, `x2`, `y2`, `stroke`, `stroke-width` | Straight line segment. |
+| `polyline` | `points` (`[[x,y],...]`), `stroke`, `stroke-width`, `fill` | Connected segments, optionally filled. |
+| `rect` | `x`, `y`, `width`, `height`, `fill`, `stroke`, `stroke-width`, `radius` | Rectangle, optional rounded corners. |
+| `circle` | `cx`, `cy`, `r`, `fill`, `stroke`, `stroke-width` | Circle centered at (`cx`, `cy`) with radius `r`. |
+| `path` | `d`, `fill`, `stroke`, `stroke-width` | SVG-style path (see grammar below). |
+
+**Path `d` grammar:** absolute commands only -- `M` (moveto), `L` (lineto), `Q` (quadratic Bézier), `C` (cubic Bézier), `Z` (closepath). Lowercase/relative commands are rejected, and non-finite numbers are rejected.
+
+```
+M x y                  # move to
+L x y                  # line to
+Q cx cy x y            # quadratic Bézier (control, end)
+C c1x c1y c2x c2y x y  # cubic Bézier (two controls, end)
+Z                      # close path
+```
+
+```yaml
+- type: draw
+  width: 400
+  height: 200
+  shapes:
+    - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
+    - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
+    - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+```
 
 ---
 
