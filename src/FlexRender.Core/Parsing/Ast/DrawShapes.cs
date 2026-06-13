@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace FlexRender.Parsing.Ast;
 
 /// <summary>
-/// Base type for a single shape inside a draw element.
+/// Base type for a single shape inside a <see cref="DrawElement"/>.
 /// All coordinates are absolute, relative to the draw element's top-left corner.
 /// </summary>
 public abstract record DrawShape;
