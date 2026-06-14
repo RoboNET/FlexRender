@@ -171,13 +171,48 @@
             "required": ["type"]
           },
           "then": { "$ref": "#/definitions/contentElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "rect" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/rectElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "circle" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/circleElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "ellipse" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/ellipseElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "draw" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/drawElement" }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "chart" } },
+            "required": ["type"]
+          },
+          "then": { "$ref": "#/definitions/chartElement" }
         }
       ],
       "properties": {
         "type": {
           "description": "The element type.",
           "type": "string",
-          "enum": ["text", "flex", "image", "qr", "barcode", "separator", "svg", "table", "each", "if", "content"]
+          "enum": ["text", "flex", "image", "qr", "barcode", "separator", "svg", "table", "each", "if", "content", "rect", "circle", "ellipse", "draw", "chart"]
         }
       }
     },
@@ -633,6 +668,313 @@
         "color": {
           "description": "Line color (hex string).",
           "type": "string"
+        }
+      }
+    },
+
+    "gradientFill": {
+      "description": "A gradient fill object for shape elements.",
+      "type": "object",
+      "required": ["gradient", "colors"],
+      "properties": {
+        "gradient": {
+          "description": "Gradient kind.",
+          "type": "string",
+          "enum": ["linear", "radial"]
+        },
+        "colors": {
+          "description": "Ordered color stops (minimum two hex strings).",
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2
+        },
+        "angle": {
+          "description": "Gradient angle in degrees (linear only; radial ignores it).",
+          "type": "number"
+        }
+      }
+    },
+
+    "rectElement": {
+      "description": "A flex box drawn as a filled and/or stroked rectangle.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "rect" },
+        "fill": {
+          "description": "Solid hex color or a gradient fill object.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientFill" }
+          ]
+        },
+        "stroke": {
+          "description": "Stroke (outline) color (hex string).",
+          "type": "string"
+        },
+        "stroke-width": {
+          "description": "Stroke width in pixels.",
+          "type": "number",
+          "minimum": 0
+        },
+        "radius": {
+          "description": "Corner radius (px or em).",
+          "type": ["number", "string"]
+        }
+      }
+    },
+
+    "circleElement": {
+      "description": "A flex box drawn as a circle.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "circle" },
+        "fill": {
+          "description": "Solid hex color or a gradient fill object.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientFill" }
+          ]
+        },
+        "stroke": {
+          "description": "Stroke (outline) color (hex string).",
+          "type": "string"
+        },
+        "stroke-width": {
+          "description": "Stroke width in pixels.",
+          "type": "number",
+          "minimum": 0
+        },
+        "size": {
+          "description": "Shorthand setting both width and height (the diameter).",
+          "type": ["number", "string"]
+        }
+      }
+    },
+
+    "ellipseElement": {
+      "description": "A flex box drawn as an ellipse filling its width and height.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "ellipse" },
+        "fill": {
+          "description": "Solid hex color or a gradient fill object.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/gradientFill" }
+          ]
+        },
+        "stroke": {
+          "description": "Stroke (outline) color (hex string).",
+          "type": "string"
+        },
+        "stroke-width": {
+          "description": "Stroke width in pixels.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+
+    "drawShape": {
+      "description": "A single shape in a draw element. Use exactly one shape key.",
+      "type": "object",
+      "properties": {
+        "line": {
+          "description": "A straight line segment.",
+          "type": "object",
+          "properties": {
+            "x1": { "type": "number" },
+            "y1": { "type": "number" },
+            "x2": { "type": "number" },
+            "y2": { "type": "number" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 }
+          }
+        },
+        "polyline": {
+          "description": "Connected line segments, optionally filled.",
+          "type": "object",
+          "properties": {
+            "points": {
+              "description": "List of [x, y] points.",
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 },
+            "fill": { "type": "string" }
+          }
+        },
+        "rect": {
+          "description": "A rectangle, optionally with rounded corners.",
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "width": { "type": "number" },
+            "height": { "type": "number" },
+            "fill": { "type": "string" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 },
+            "radius": { "type": "number", "minimum": 0 }
+          }
+        },
+        "circle": {
+          "description": "A circle centered at (cx, cy) with radius r.",
+          "type": "object",
+          "properties": {
+            "cx": { "type": "number" },
+            "cy": { "type": "number" },
+            "r": { "type": "number" },
+            "fill": { "type": "string" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 }
+          }
+        },
+        "path": {
+          "description": "An SVG-style path. The 'd' string supports absolute commands M, L, Q, C, Z only.",
+          "type": "object",
+          "properties": {
+            "d": { "type": "string" },
+            "fill": { "type": "string" },
+            "stroke": { "type": "string" },
+            "stroke-width": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "drawElement": {
+      "description": "A flex box holding an ordered list of absolute-coordinate shapes painted in list order.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "draw" },
+        "shapes": {
+          "description": "Ordered list of shapes, painted in order (max MaxShapesPerDraw, default 1000).",
+          "type": "array",
+          "items": { "$ref": "#/definitions/drawShape" }
+        }
+      }
+    },
+
+    "chartElement": {
+      "description": "Renders a bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline, heatmap, or radar chart. Empty/missing series renders a 'no data' placeholder.",
+      "allOf": [
+        { "$ref": "#/definitions/flexItemProperties" }
+      ],
+      "properties": {
+        "type": { "const": "chart" },
+        "chart-type": {
+          "description": "Chart kind.",
+          "type": "string",
+          "enum": ["bar", "line", "area", "pie", "donut", "scatter", "bubble", "gauge", "progress", "sparkline", "heatmap", "radar"]
+        },
+        "categories": {
+          "description": "X-axis category labels (bar/line/area) or slice labels (pie/donut).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "series": {
+          "description": "List of series. Each series has an optional label and a data value (inline number array or a {{ expr }} resolving to a number array).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "description": "Series label shown in the legend.",
+                "type": "string"
+              },
+              "data": {
+                "description": "Flat number array (bar/line/area/pie/donut/sparkline), OR an array of [x, y] / [x, y, r] tuples (scatter/bubble), OR a {{ expr }} string resolving to a number array.",
+                "oneOf": [
+                  { "type": "array", "items": { "type": "number" } },
+                  { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+                  { "type": "string" }
+                ]
+              }
+            }
+          }
+        },
+        "palette": {
+          "description": "Named palette (default, ocean, sunset, forest, mono, vivid) or an explicit list of hex colors.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "theme": {
+          "description": "Per-element theme override.",
+          "type": "string",
+          "enum": ["light", "dark", "minimal"]
+        },
+        "legend": {
+          "description": "Legend placement.",
+          "type": "string",
+          "enum": ["top", "bottom", "left", "right", "none"]
+        },
+        "title": {
+          "description": "Optional chart title.",
+          "type": "string"
+        },
+        "horizontal": {
+          "description": "Bar only. Render bars horizontally.",
+          "type": "boolean"
+        },
+        "stacked": {
+          "description": "Bar only. Stack series on top of each other.",
+          "type": "boolean"
+        },
+        "smooth": {
+          "description": "Line/area only. Smooth (curved) lines.",
+          "type": "boolean"
+        },
+        "points": {
+          "description": "Line/area only. Draw point markers at each value.",
+          "type": "boolean"
+        },
+        "labels": {
+          "description": "Pie/donut only. Slice label content.",
+          "type": "string",
+          "enum": ["percent", "value", "none"]
+        },
+        "value": {
+          "description": "Gauge/progress only. The indicator value.",
+          "type": "number"
+        },
+        "max": {
+          "description": "Gauge/progress only. The indicator maximum (default 100).",
+          "type": "number"
+        },
+        "label": {
+          "description": "Gauge/progress only. Centered caption under the value.",
+          "type": "string"
+        },
+        "x-labels": {
+          "description": "Heatmap only. Column (x-axis) labels, left to right.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "y-labels": {
+          "description": "Heatmap only. Row (y-axis) labels, top to bottom (one per series/row).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cell-values": {
+          "description": "Heatmap only. Draw each cell's numeric value inside the cell.",
+          "type": "boolean"
         }
       }
     },

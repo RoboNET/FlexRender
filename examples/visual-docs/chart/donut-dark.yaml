@@ -1,0 +1,22 @@
+template:
+  name: "chart-donut-dark"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 400
+  background: "#1e1e1e"
+
+layout:
+  - type: chart
+    chart-type: donut
+    width: 400
+    height: 360
+    categories: [A, B, C, D]
+    series:
+      - data: [10, 20, 30, 40]
+    theme: dark
+    legend: bottom
+    palette: ocean

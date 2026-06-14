@@ -1,14 +1,14 @@
-using YamlDotNet.RepresentationModel;
+using FlexRender.Parsing.Nodes;
 
 namespace FlexRender.Parsing;
 
 /// <summary>
-/// Defines the set of known YAML property names for each element type.
+/// Defines the set of known property names for each element type.
 /// Used to detect and report unknown/misspelled properties during parsing.
 /// </summary>
 /// <remarks>
 /// Property name matching is case-sensitive (ordinal comparison).
-/// All YAML property names must be lowercase (e.g., <c>"color"</c>, not <c>"Color"</c>).
+/// All property names must be lowercase (e.g., <c>"color"</c>, not <c>"Color"</c>).
 /// If an unknown property differs from a known one only by casing, the error message
 /// will include an explicit note about case-sensitivity.
 /// </remarks>
@@ -158,6 +158,54 @@ internal static class KnownProperties
     ]);
 
     /// <summary>
+    /// Known properties for the 'rect' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Rect = BuildSet(FlexItemProperties,
+    [
+        "fill", "stroke", "stroke-width", "radius",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
+    /// Known properties for the 'circle' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Circle = BuildSet(FlexItemProperties,
+    [
+        "fill", "stroke", "stroke-width", "size",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
+    /// Known properties for the 'ellipse' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Ellipse = BuildSet(FlexItemProperties,
+    [
+        "fill", "stroke", "stroke-width",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
+    /// Known properties for the 'draw' element type.
+    /// Shapes themselves are validated structurally during parsing, not by name here.
+    /// </summary>
+    internal static readonly HashSet<string> Draw = BuildSet(FlexItemProperties,
+    [
+        "shapes", "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
+    /// Known properties for the 'chart' element type.
+    /// </summary>
+    internal static readonly HashSet<string> Chart = BuildSet(FlexItemProperties,
+    [
+        "chart-type", "categories", "series", "palette", "theme", "legend", "title",
+        "horizontal", "stacked", "smooth", "points", "labels",
+        "value", "max", "label",
+        "x-labels", "y-labels", "cell-values",
+        "background", "rotate", "padding", "margin"
+    ]);
+
+    /// <summary>
     /// Maps element type names (case-insensitive) to their known property sets.
     /// </summary>
     private static readonly Dictionary<string, HashSet<string>> Registry =
@@ -173,21 +221,26 @@ internal static class KnownProperties
             ["table"] = Table,
             ["each"] = Each,
             ["if"] = If,
-            ["content"] = Content
+            ["content"] = Content,
+            ["rect"] = Rect,
+            ["circle"] = Circle,
+            ["ellipse"] = Ellipse,
+            ["draw"] = Draw,
+            ["chart"] = Chart
         };
 
     /// <summary>
-    /// Validates that all keys in the given YAML mapping node are known properties for the specified element type.
+    /// Validates that all keys in the given mapping node are known properties for the specified element type.
     /// Throws <see cref="TemplateParseException"/> if unknown properties are found.
     /// </summary>
-    /// <param name="node">The YAML mapping node representing the element.</param>
+    /// <param name="node">The mapping node representing the element.</param>
     /// <param name="elementType">The element type name (e.g., "text", "flex").</param>
     /// <exception cref="TemplateParseException">
     /// Thrown when one or more unknown properties are found on the element.
     /// The message includes case-sensitivity hints when a property matches a known name
     /// but differs only by casing (e.g., <c>"Color"</c> vs <c>"color"</c>).
     /// </exception>
-    internal static void Validate(YamlMappingNode node, string elementType)
+    internal static void Validate(TemplateMapping node, string elementType)
     {
         if (!Registry.TryGetValue(elementType, out var knownProperties))
         {
@@ -197,15 +250,8 @@ internal static class KnownProperties
 
         List<string>? unknown = null;
 
-        foreach (var key in node.Children.Keys)
+        foreach (var keyName in node.Keys)
         {
-            if (key is not YamlScalarNode scalarKey || scalarKey.Value is null)
-            {
-                continue;
-            }
-
-            var keyName = scalarKey.Value;
-
             if (string.Equals(keyName, TypeKey, StringComparison.Ordinal))
             {
                 continue;

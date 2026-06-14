@@ -1,8 +1,8 @@
 using System.Globalization;
 using FlexRender.Layout;
 using FlexRender.Parsing.Ast;
-using YamlDotNet.RepresentationModel;
-using static FlexRender.Parsing.YamlPropertyHelpers;
+using FlexRender.Parsing.Nodes;
+using static FlexRender.Parsing.NodePropertyHelpers;
 
 namespace FlexRender.Parsing;
 
@@ -12,7 +12,7 @@ namespace FlexRender.Parsing;
 /// </summary>
 internal sealed class ElementParsers
 {
-    private readonly Func<YamlMappingNode, TemplateElement> _parseElement;
+    private readonly Func<TemplateMapping, TemplateElement> _parseElement;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ElementParsers"/> class.
@@ -21,7 +21,7 @@ internal sealed class ElementParsers
     /// Callback to the parent parser's <c>ParseElement</c> method, used for recursive child parsing
     /// (e.g., flex children, each/if branches).
     /// </param>
-    internal ElementParsers(Func<YamlMappingNode, TemplateElement> parseElement)
+    internal ElementParsers(Func<TemplateMapping, TemplateElement> parseElement)
     {
         ArgumentNullException.ThrowIfNull(parseElement);
         _parseElement = parseElement;
@@ -31,9 +31,9 @@ internal sealed class ElementParsers
     /// Applies common flex-item properties (Width, Height, Grow, Shrink, Basis, Order, AlignSelf)
     /// to a parsed element. These properties are now on the base <see cref="TemplateElement"/> class.
     /// </summary>
-    /// <param name="node">The YAML mapping node containing the property values.</param>
+    /// <param name="node">The mapping node containing the property values.</param>
     /// <param name="element">The element to apply flex-item properties to.</param>
-    internal static void ApplyFlexItemProperties(YamlMappingNode node, TemplateElement element)
+    internal static void ApplyFlexItemProperties(TemplateMapping node, TemplateElement element)
     {
         element.Grow = GetExprFloatValue(node, "grow", 0f);
         element.Shrink = GetExprFloatValue(node, "shrink", 1f);
@@ -74,7 +74,7 @@ internal sealed class ElementParsers
             };
         }
 
-        // Width/Height: Barcode and Image YAML width/height map to content-specific properties
+        // Width/Height: Barcode and Image width/height map to content-specific properties
         // (BarcodeWidth/BarcodeHeight, ImageWidth/ImageHeight) in their element-specific parsers.
         // We also propagate those values to the base flex Width/Height so the layout engine
         // can properly center elements via margin auto or align properties.
@@ -172,11 +172,11 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a text element from YAML.
+    /// Parses a text element.
     /// </summary>
-    /// <param name="node">The YAML node containing the text element definition.</param>
+    /// <param name="node">The mapping node containing the text element definition.</param>
     /// <returns>The parsed text element.</returns>
-    internal static TemplateElement ParseTextElement(YamlMappingNode node)
+    internal static TemplateElement ParseTextElement(TemplateMapping node)
     {
         var text = new TextElement
         {
@@ -271,11 +271,11 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a flex container element from YAML.
+    /// Parses a flex container element.
     /// </summary>
-    /// <param name="node">The YAML node containing the flex element definition.</param>
+    /// <param name="node">The mapping node containing the flex element definition.</param>
     /// <returns>The parsed flex element.</returns>
-    internal TemplateElement ParseFlexElement(YamlMappingNode node)
+    internal TemplateElement ParseFlexElement(TemplateMapping node)
     {
         var flex = new FlexElement
         {
@@ -359,9 +359,9 @@ internal sealed class ElementParsers
         // Parse children
         if (TryGetSequence(node, "children", out var childrenNode))
         {
-            foreach (var child in childrenNode.Children)
+            foreach (var child in childrenNode.Items)
             {
-                if (child is YamlMappingNode childMapping)
+                if (child is TemplateMapping childMapping)
                 {
                     var childElement = _parseElement(childMapping);
                     flex.AddChild(childElement);
@@ -374,11 +374,11 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a content element from YAML.
+    /// Parses a content element.
     /// </summary>
-    /// <param name="node">The YAML node containing the content element definition.</param>
+    /// <param name="node">The mapping node containing the content element definition.</param>
     /// <returns>The parsed content element.</returns>
-    internal static TemplateElement ParseContentElement(YamlMappingNode node)
+    internal static TemplateElement ParseContentElement(TemplateMapping node)
     {
         var content = new ContentElement
         {
@@ -392,7 +392,7 @@ internal sealed class ElementParsers
         // Parse optional 'options' block as a nested dictionary
         if (TryGetMapping(node, "options", out var optionsNode))
         {
-            content.Options = YamlPropertyHelpers.ConvertMappingToDictionary(optionsNode);
+            content.Options = NodePropertyHelpers.ConvertMappingToDictionary(optionsNode);
         }
 
         ApplyFlexItemProperties(node, content);
@@ -400,11 +400,11 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a QR code element from YAML.
+    /// Parses a QR code element.
     /// </summary>
-    /// <param name="node">The YAML node containing the QR element definition.</param>
+    /// <param name="node">The mapping node containing the QR element definition.</param>
     /// <returns>The parsed QR element.</returns>
-    internal static TemplateElement ParseQrElement(YamlMappingNode node)
+    internal static TemplateElement ParseQrElement(TemplateMapping node)
     {
         var qr = new QrElement
         {
@@ -432,11 +432,11 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a barcode element from YAML.
+    /// Parses a barcode element.
     /// </summary>
-    /// <param name="node">The YAML node containing the barcode element definition.</param>
+    /// <param name="node">The mapping node containing the barcode element definition.</param>
     /// <returns>The parsed barcode element.</returns>
-    internal static TemplateElement ParseBarcodeElement(YamlMappingNode node)
+    internal static TemplateElement ParseBarcodeElement(TemplateMapping node)
     {
         var barcode = new BarcodeElement
         {
@@ -467,11 +467,11 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses an image element from YAML.
+    /// Parses an image element.
     /// </summary>
-    /// <param name="node">The YAML node containing the image element definition.</param>
+    /// <param name="node">The mapping node containing the image element definition.</param>
     /// <returns>The parsed image element.</returns>
-    internal static TemplateElement ParseImageElement(YamlMappingNode node)
+    internal static TemplateElement ParseImageElement(TemplateMapping node)
     {
         var image = new ImageElement
         {
@@ -499,11 +499,11 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a separator element from YAML.
+    /// Parses a separator element.
     /// </summary>
-    /// <param name="node">The YAML node containing the separator element definition.</param>
+    /// <param name="node">The mapping node containing the separator element definition.</param>
     /// <returns>The parsed separator element.</returns>
-    internal static TemplateElement ParseSeparatorElement(YamlMappingNode node)
+    internal static TemplateElement ParseSeparatorElement(TemplateMapping node)
     {
         var thickness = GetFloatValue(node, "thickness", 1f);
         if (thickness <= 0)
@@ -547,12 +547,12 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses an each (loop) element from YAML.
+    /// Parses an each (loop) element.
     /// </summary>
-    /// <param name="node">The YAML node containing the each element definition.</param>
+    /// <param name="node">The mapping node containing the each element definition.</param>
     /// <returns>The parsed each element.</returns>
     /// <exception cref="TemplateParseException">Thrown when the required 'array' property is missing.</exception>
-    internal TemplateElement ParseEachElement(YamlMappingNode node)
+    internal TemplateElement ParseEachElement(TemplateMapping node)
     {
         var arrayPath = GetStringValue(node, "array");
         if (string.IsNullOrEmpty(arrayPath))
@@ -571,12 +571,12 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a conditional (if) element from YAML.
+    /// Parses a conditional (if) element.
     /// </summary>
-    /// <param name="node">The YAML node containing the if element definition.</param>
+    /// <param name="node">The mapping node containing the if element definition.</param>
     /// <returns>The parsed if element.</returns>
     /// <exception cref="TemplateParseException">Thrown when the required 'condition' property is missing.</exception>
-    internal TemplateElement ParseIfElement(YamlMappingNode node)
+    internal TemplateElement ParseIfElement(TemplateMapping node)
     {
         var conditionPath = GetStringValue(node, "condition");
         if (string.IsNullOrEmpty(conditionPath))
@@ -590,7 +590,7 @@ internal sealed class ElementParsers
         var elseBranch = ParseChildren(node, "else");
 
         IfElement? elseIf = null;
-        if (node.Children.TryGetValue(new YamlScalarNode("elseIf"), out var elseIfNode) && elseIfNode is YamlMappingNode elseIfMapping)
+        if (node.TryGet("elseIf", out var elseIfNode) && elseIfNode is TemplateMapping elseIfMapping)
         {
             elseIf = (IfElement)ParseIfElement(elseIfMapping);
         }
@@ -605,12 +605,12 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses the condition operator and compare value from a YAML node.
+    /// Parses the condition operator and compare value from a mapping node.
     /// Only one operator key is allowed per condition.
     /// </summary>
-    /// <param name="node">The YAML node containing the condition.</param>
+    /// <param name="node">The mapping node containing the condition.</param>
     /// <returns>A tuple of the operator (null for truthy check) and the compare value.</returns>
-    internal static (ConditionOperator? Operator, object? CompareValue) ParseConditionOperator(YamlMappingNode node)
+    internal static (ConditionOperator? Operator, object? CompareValue) ParseConditionOperator(TemplateMapping node)
     {
         // Check for equals/notEquals (string comparison)
         var equalsValue = GetStringValue(node, "equals");
@@ -695,16 +695,16 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a YAML sequence node into an array of strings.
+    /// Parses a sequence node into an array of strings.
     /// </summary>
-    /// <param name="sequence">The YAML sequence node.</param>
+    /// <param name="sequence">The sequence node.</param>
     /// <returns>A list of strings.</returns>
-    private static List<string> ParseStringArray(YamlSequenceNode sequence)
+    private static List<string> ParseStringArray(TemplateSequence sequence)
     {
-        var result = new List<string>(sequence.Children.Count);
-        foreach (var child in sequence.Children)
+        var result = new List<string>(sequence.Items.Count);
+        foreach (var child in sequence.Items)
         {
-            if (child is YamlScalarNode scalar && scalar.Value != null)
+            if (child is TemplateScalar scalar && scalar.Value != null)
             {
                 result.Add(scalar.Value);
             }
@@ -713,15 +713,15 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses an SVG element from YAML.
+    /// Parses an SVG element.
     /// Supports both external SVG files (via src) and inline SVG markup (via content).
     /// </summary>
-    /// <param name="node">The YAML node containing the SVG element definition.</param>
+    /// <param name="node">The mapping node containing the SVG element definition.</param>
     /// <returns>The parsed SVG element.</returns>
     /// <exception cref="TemplateParseException">
     /// Thrown when neither src nor content is specified, or both are specified.
     /// </exception>
-    internal static TemplateElement ParseSvgElement(YamlMappingNode node)
+    internal static TemplateElement ParseSvgElement(TemplateMapping node)
     {
         var src = GetStringValue(node, "src");
         var content = GetStringValue(node, "content");
@@ -768,15 +768,15 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a table element from YAML.
+    /// Parses a table element.
     /// Supports both dynamic (data-bound) and static (hardcoded rows) tables.
     /// </summary>
-    /// <param name="node">The YAML node containing the table element definition.</param>
+    /// <param name="node">The mapping node containing the table element definition.</param>
     /// <returns>The parsed table element.</returns>
     /// <exception cref="TemplateParseException">
     /// Thrown when columns are missing, or both array and rows are specified.
     /// </exception>
-    internal static TemplateElement ParseTableElement(YamlMappingNode node)
+    internal static TemplateElement ParseTableElement(TemplateMapping node)
     {
         // Parse columns (required)
         if (!TryGetSequence(node, "columns", out var columnsNode))
@@ -828,17 +828,17 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a YAML sequence of column definitions into <see cref="TableColumn"/> objects.
+    /// Parses a sequence of column definitions into <see cref="TableColumn"/> objects.
     /// </summary>
-    /// <param name="sequence">The YAML sequence node containing column mappings.</param>
+    /// <param name="sequence">The sequence node containing column mappings.</param>
     /// <returns>A list of parsed table columns.</returns>
-    private static List<TableColumn> ParseTableColumns(YamlSequenceNode sequence)
+    private static List<TableColumn> ParseTableColumns(TemplateSequence sequence)
     {
-        var columns = new List<TableColumn>(sequence.Children.Count);
+        var columns = new List<TableColumn>(sequence.Items.Count);
 
-        foreach (var child in sequence.Children)
+        foreach (var child in sequence.Items)
         {
-            if (child is not YamlMappingNode colNode)
+            if (child is not TemplateMapping colNode)
             {
                 continue;
             }
@@ -873,19 +873,19 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a YAML sequence of static row definitions into <see cref="TableRow"/> objects.
-    /// Each row is a YAML mapping where keys match column keys.
+    /// Parses a sequence of static row definitions into <see cref="TableRow"/> objects.
+    /// Each row is a mapping where keys match column keys.
     /// </summary>
-    /// <param name="sequence">The YAML sequence node containing row mappings.</param>
+    /// <param name="sequence">The sequence node containing row mappings.</param>
     /// <param name="columns">The column definitions for key reference.</param>
     /// <returns>A list of parsed table rows.</returns>
-    private static List<TableRow> ParseTableRows(YamlSequenceNode sequence, IReadOnlyList<TableColumn> columns)
+    private static List<TableRow> ParseTableRows(TemplateSequence sequence, IReadOnlyList<TableColumn> columns)
     {
-        var rows = new List<TableRow>(sequence.Children.Count);
+        var rows = new List<TableRow>(sequence.Items.Count);
 
-        foreach (var child in sequence.Children)
+        foreach (var child in sequence.Items)
         {
-            if (child is not YamlMappingNode rowNode)
+            if (child is not TemplateMapping rowNode)
             {
                 continue;
             }
@@ -914,13 +914,13 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses an optional font weight value from a YAML mapping node, trying two key variants.
+    /// Parses an optional font weight value from a mapping node, trying two key variants.
     /// </summary>
-    /// <param name="node">The YAML mapping node to read from.</param>
+    /// <param name="node">The mapping node to read from.</param>
     /// <param name="key1">The primary key (camelCase).</param>
     /// <param name="key2">The alternate key (kebab-case).</param>
     /// <returns>The parsed <see cref="FontWeight"/>, or <c>null</c> if the key is absent or unrecognized.</returns>
-    private static FontWeight? ParseOptionalFontWeight(YamlMappingNode node, string key1, string key2)
+    private static FontWeight? ParseOptionalFontWeight(TemplateMapping node, string key1, string key2)
     {
         var raw = GetStringValue(node, key1) ?? GetStringValue(node, key2);
         if (raw is null) return null;
@@ -941,13 +941,13 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses an optional font style value from a YAML node, trying two key variants.
+    /// Parses an optional font style value from a node, trying two key variants.
     /// </summary>
-    /// <param name="node">The YAML mapping node to read from.</param>
+    /// <param name="node">The mapping node to read from.</param>
     /// <param name="key1">The primary key name (camelCase).</param>
     /// <param name="key2">The secondary key name (kebab-case).</param>
     /// <returns>The parsed <see cref="FontStyle"/> value, or <c>null</c> if not present or unrecognized.</returns>
-    private static FontStyle? ParseOptionalFontStyle(YamlMappingNode node, string key1, string key2)
+    private static FontStyle? ParseOptionalFontStyle(TemplateMapping node, string key1, string key2)
     {
         var raw = GetStringValue(node, key1) ?? GetStringValue(node, key2);
         if (raw is null) return null;
@@ -962,27 +962,22 @@ internal sealed class ElementParsers
     }
 
     /// <summary>
-    /// Parses a sequence of child elements from a named key in a YAML mapping node.
+    /// Parses a sequence of child elements from a named key in a mapping node.
     /// </summary>
-    /// <param name="node">The parent YAML mapping node.</param>
+    /// <param name="node">The parent mapping node.</param>
     /// <param name="key">The key containing the child sequence.</param>
     /// <returns>A list of parsed child elements, or an empty list if the key doesn't exist.</returns>
-    private IReadOnlyList<TemplateElement> ParseChildren(YamlMappingNode node, string key)
+    private IReadOnlyList<TemplateElement> ParseChildren(TemplateMapping node, string key)
     {
-        if (!node.Children.TryGetValue(new YamlScalarNode(key), out var childrenNode))
+        if (!node.TryGet(key, out var childrenNode) || childrenNode is not TemplateSequence sequence)
         {
             return Array.Empty<TemplateElement>();
         }
 
-        if (childrenNode is not YamlSequenceNode sequence)
+        var elements = new List<TemplateElement>(sequence.Items.Count);
+        foreach (var child in sequence.Items)
         {
-            return Array.Empty<TemplateElement>();
-        }
-
-        var elements = new List<TemplateElement>(sequence.Children.Count);
-        foreach (var child in sequence.Children)
-        {
-            if (child is YamlMappingNode elementNode)
+            if (child is TemplateMapping elementNode)
             {
                 var element = _parseElement(elementNode);
                 elements.Add(element);

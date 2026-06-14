@@ -30,6 +30,10 @@ src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
     TemplateParser.cs           # YAML to AST parser (includes EachElement, IfElement)
     KnownProperties.cs          # YAML property validation with Levenshtein "Did you mean?" suggestions
 
+src/FlexRender.Xml/             # XML template parser, alternative to YAML (same Template AST)
+  Parsing/
+    XmlTemplateParser.cs        # XML to AST parser; lowers XML tree to the shared element parsers, same KnownProperties validation + ResourceLimits
+
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
   HttpResourceLoader.cs         # Load images/fonts from HTTP/HTTPS URLs
   FlexRenderBuilderExtensions.cs # WithHttpLoader() extension
@@ -162,6 +166,39 @@ YAML Template
 ```
 
 **Async-only API:** The entire pipeline from expansion through rendering is async. There are no synchronous `Expand()`, `Process()`, `Measure()`, `ComputeLayout()`, or `Render()` methods. All public API methods return `Task` or `Task<T>`. This is required because `ContentElement` expansion involves async I/O (loading external content sources).
+
+### XML as an Alternative Input
+
+Templates may be authored in **XML** (`FlexRender.Xml`) instead of YAML. The XML parser (`XmlTemplateParser`) produces the **same `Template` AST** as `TemplateParser` -- same element types, same properties, same `KnownProperties` validation (with "Did you mean?" suggestions), same `ResourceLimits`. XML is offered because LLMs often emit attributes more reliably than YAML indentation. Render with the `RenderXml` extension (mirrors `RenderYaml`):
+
+```csharp
+var render = new FlexRenderBuilder().WithSkia().Build();
+byte[] png = await render.RenderXml(xml, data);
+
+// Parse once, reuse:
+var parser = new XmlTemplateParser();
+byte[] png = await render.RenderXml(xml, data, parser: parser);
+```
+
+Mapping rules (XML -> same AST as YAML):
+
+- Single root `<flexrender>`; `<canvas width="300" .../>` child for canvas; `template`/`fonts` via attributes/`<fonts>`; every other child of the root is a layout element.
+- Element type = XML local-name: `<text/>`, `<flex>`, `<chart/>`, `<rect/>`, `<each>`, `<if>`, `<table>`, `<draw>`.
+- Scalar properties = attributes (`<text size="1em" color="#f00"/>`); names identical to YAML (kebab-case and camelCase pass through).
+- `<text>Hello</text>` is equivalent to `<text content="Hello"/>` (content attribute wins if both present; svg `content` follows the same rule).
+- Layout containers: `flex`/`each` children are nested elements directly (`children`). Wrappers: `if` -> `<then>`/`<else>`/`<else-if>`; `table` -> `<columns>`/`<rows>`; `chart` -> `<series .../>`, `<categories>`, `<x-labels>`/`<y-labels>`, `<palette>`; `draw` -> `<shapes>`.
+- List attributes: `data="12,30,22,48"` -> number array; scatter/bubble `points="1,2; 3,4"` -> tuples; `palette="#f00,#0f0"` -> color list (or `palette="ocean"` named).
+
+Minimal example:
+
+```xml
+<flexrender>
+  <canvas width="300"/>
+  <text content="Hello" size="1.5em"/>
+</flexrender>
+```
+
+See `docs/wiki/Xml-Syntax.md` for the full XML<->YAML mapping and a side-by-side flex+chart example.
 
 ### Template Caching
 
@@ -623,7 +660,7 @@ layout:
 
 ## Flex-Item Properties
 
-All leaf elements (text, image, qr, barcode, separator) and flex containers (when nested) have these flex-item properties:
+All leaf elements (text, image, qr, barcode, separator, rect, circle, ellipse, draw, chart) and flex containers (when nested) have these flex-item properties:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
@@ -823,6 +860,292 @@ Tabular data with configurable columns, optional header, and support for dynamic
 | height | string? | null | Explicit height override |
 
 Horizontal separators stretch to full width and use thickness as height. Vertical separators stretch to full height and use thickness as width. The default style is `dotted`, chosen for the primary receipt printing use case.
+
+## Shape Elements
+
+The `rect`, `circle`, and `ellipse` elements are **box shapes** -- flex boxes that are painted as a filled and/or stroked vector shape. They participate in flex layout exactly like any other box: they honor `width`, `height`, `margin`, `padding`, and all flex-item properties (`grow`, `shrink`, `basis`, `order`, `alignSelf`). The shape is drawn to fill the box content area.
+
+### Shared Box-Shape Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color (e.g. `"#4A90D9"`) OR a gradient object (see below) |
+| stroke | string | none | Stroke (outline) color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Inherited base opacity, `0..1` |
+| radius | unit | none | Corner radius in px/em (**rect only**) |
+| size | unit | none | Shorthand setting both width and height = diameter (**circle only**) |
+
+### Gradient Fill Object
+
+The `fill` property accepts an object form to paint a gradient. It is converted internally to a CSS gradient string.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| gradient | string | -- | `linear` or `radial` (required) |
+| colors | string[] | -- | Two or more hex color stops (required, minimum 2) |
+| angle | number | 0 | Angle in degrees (linear only; radial ignores `angle`) |
+
+```yaml
+- type: rect
+  width: 100
+  height: 100
+  fill:
+    gradient: linear
+    colors: ["#f00", "#00f"]
+    angle: 45
+```
+
+## Element Type: rect (RectElement)
+
+A flex box drawn as a filled/stroked rectangle, optionally with rounded corners.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color or gradient object |
+| stroke | string | none | Stroke color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Base opacity, `0..1` |
+| radius | unit | none | Corner radius (px/em) |
+
+```yaml
+- type: rect
+  width: 100
+  height: 50
+  fill: "#4A90D9"
+  stroke: "#333333"
+  stroke-width: 2
+  radius: 4
+```
+
+## Element Type: circle (CircleElement)
+
+A flex box drawn as a circle. Use `size` as a shorthand to set both width and height (the diameter); the circle is inscribed in the resulting box.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color or gradient object |
+| stroke | string | none | Stroke color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Base opacity, `0..1` |
+| size | unit | none | Sets both width and height (diameter) |
+
+```yaml
+- type: circle
+  size: 40
+  fill: "#e74c3c"
+```
+
+## Element Type: ellipse (EllipseElement)
+
+A flex box drawn as an ellipse that fills its `width` by `height` box.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| fill | string OR object | none | Solid hex color or gradient object |
+| stroke | string | none | Stroke color in hex |
+| stroke-width | number | 0 | Stroke width in pixels |
+| opacity | number | 1.0 | Base opacity, `0..1` |
+
+```yaml
+- type: ellipse
+  width: 120
+  height: 60
+  fill: "#2ecc71"
+```
+
+## Element Type: draw (DrawElement)
+
+A flex box that holds an ordered list of absolute-coordinate `shapes`. Shapes are painted in list order (painter's algorithm -- later shapes are drawn on top). All coordinates are relative to the `draw` element's top-left corner. The number of shapes is capped by `ResourceLimits.MaxShapesPerDraw` (default 1000).
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| width | unit | none | Box width |
+| height | unit | none | Box height |
+| shapes | Shape[] | [] | Ordered list of shapes (painted in order) |
+
+Each entry in `shapes` is a single-key object whose key selects the shape kind:
+
+| Shape | Keys | Description |
+|-------|------|-------------|
+| line | `x1`, `y1`, `x2`, `y2`, `stroke`, `stroke-width` | Straight line segment |
+| polyline | `points` (`[[x,y],...]`), `stroke`, `stroke-width`, `fill` | Connected line segments, optionally filled |
+| rect | `x`, `y`, `width`, `height`, `fill`, `stroke`, `stroke-width`, `radius` | Rectangle (optional rounded corners) |
+| circle | `cx`, `cy`, `r`, `fill`, `stroke`, `stroke-width` | Circle centered at (`cx`,`cy`) with radius `r` |
+| path | `d`, `fill`, `stroke`, `stroke-width` | SVG-style path (see grammar below) |
+
+### Path `d` Grammar
+
+The `path` shape's `d` string supports **absolute commands only**: `M` (moveto), `L` (lineto), `Q` (quadratic Bézier), `C` (cubic Bézier), and `Z` (closepath). Lowercase/relative commands are rejected, and non-finite numbers are rejected.
+
+```
+M x y            # move to (x, y)
+L x y            # line to (x, y)
+Q cx cy x y      # quadratic Bézier, control (cx, cy), end (x, y)
+C c1x c1y c2x c2y x y   # cubic Bézier, two controls, end point
+Z                # close path
+```
+
+Example: `d: "M 0 0 L 100 50 Q 150 0 200 50 Z"`
+
+```yaml
+- type: draw
+  width: 400
+  height: 200
+  shapes:
+    - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
+    - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
+    - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+```
+
+## Element Type: chart (ChartElement)
+
+A declarative chart element that renders bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline, heatmap, and radar charts. The chart paints into its `width` by `height` box and participates in flex layout like any other element. Both `width` and `height` are required.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| chart-type | string | `bar` | Chart kind: `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline`, `heatmap`, `radar` |
+| width | number | none | Chart width in pixels (**required**) |
+| height | number | none | Chart height in pixels (**required**) |
+| categories | string[] | `[]` | X-axis category labels (bar/line/area) or slice labels (pie/donut) |
+| series | Series[] | `[]` | List of series, each `{ label?, data }` (see below) |
+| palette | string OR string[] | theme default | Named palette (`default`, `ocean`, `sunset`, `forest`, `mono`, `vivid`) OR an explicit color list `["#hex", ...]` |
+| theme | string | template theme | Per-element theme override: `light`, `dark`, `minimal` |
+| legend | string | `bottom` | Legend placement: `top`, `bottom`, `left`, `right`, `none` |
+| title | string | none | Optional chart title |
+| horizontal | bool | `false` | **Bar only.** Render bars horizontally |
+| stacked | bool | `false` | **Bar only.** Stack series on top of each other |
+| smooth | bool | `false` | **Line/area/sparkline only.** Smooth (curved) lines instead of straight segments |
+| points | bool | `false` | **Line/area/sparkline only.** Draw point markers at each data value |
+| labels | string | `percent` | **Pie/donut only.** Slice label content: `percent`, `value`, `none` |
+| value | number | none | **Gauge/progress only.** The indicator value |
+| max | number | `100` | **Gauge/progress only.** The indicator maximum |
+| label | string | none | **Gauge/progress only.** Centered caption under the value |
+| x-labels | string[] | `[]` | **Heatmap only.** Column (x-axis) labels; falls back to `categories` if omitted |
+| y-labels | string[] | `[]` | **Heatmap only.** Row (y-axis) labels, one per series/row |
+| cell-values | bool | `false` | **Heatmap only.** Draw each cell's numeric value inside the cell |
+
+### Series and Data Binding
+
+Each entry in `series` is an object with an optional `label` (used in the legend) and a required `data` value. For bar/line/area/pie/donut/sparkline, `data` is either an inline array of numbers, **or** a `{{ expression }}` string that resolves to a number array from the render data context -- the same binding mechanism used by `table` rows. This lets chart data come directly from the data file:
+
+```yaml
+series:
+  - label: "2024"
+    data: [12, 30, 22, 48]      # inline literal numbers
+  - label: "2025"
+    data: "{{ sales }}"          # resolves to a number array from data
+```
+
+### Phase-3 Chart Types
+
+**Scatter and bubble** take tuple data instead of a flat number array: `data: [[x, y], ...]` for `scatter` and `data: [[x, y, r], ...]` for `bubble`, where `r` sizes each bubble. Tuple data is inline-only (expression-bound tuples are not yet supported).
+
+```yaml
+- type: chart
+  chart-type: scatter
+  width: 480
+  height: 320
+  series:
+    - data: [[1, 12], [3, 30], [5, 22], [7, 48], [9, 35]]
+- type: chart
+  chart-type: bubble
+  width: 480
+  height: 320
+  series:
+    - data: [[1, 12, 6], [3, 30, 18], [5, 22, 10], [7, 48, 24]]
+```
+
+**Gauge and progress** are single-value indicators that ignore `series`/`categories` and instead use `value`, `max` (default 100), and `label` (a centered caption). Gauge draws a 270-degree dial; progress draws a ring filled to `value` / `max`.
+
+```yaml
+- type: chart
+  chart-type: gauge
+  width: 280
+  height: 220
+  value: 72
+  max: 100
+  label: CPU
+- type: chart
+  chart-type: progress
+  width: 240
+  height: 240
+  value: 64
+  label: Disk
+```
+
+**Sparkline** is a tiny inline line chart with no axes, legend, or title (chrome-free). It uses a plain numeric `data` array and honors `smooth` and `points`.
+
+```yaml
+- type: chart
+  chart-type: sparkline
+  width: 200
+  height: 50
+  smooth: true
+  series:
+    - data: [3, 8, 4, 10, 6, 9, 5, 11]
+```
+
+### Phase-4 Chart Types
+
+Heatmap takes 2D data: each `series` entry is one ROW (`series[i].data` = that row's column values), `x-labels` label the columns (or `categories` if omitted), `y-labels` label the rows, and `cell-values: true` prints each cell's number. Cell color is interpolated between the palette's first ("low") and second ("high") colors. Radar uses `categories` as spokes (one axis per category, starting at the top); each `series` is a closed polygon along the spokes, filled semi-transparently and stroked, sharing one radial scale anchored at zero at the center.
+
+```yaml
+- type: chart
+  chart-type: heatmap
+  width: 420
+  height: 300
+  x-labels: [Mon, Tue, Wed, Thu, Fri]
+  y-labels: [Morning, Afternoon, Evening]
+  cell-values: true
+  series:
+    - data: [2, 8, 4, 10, 6]
+    - data: [5, 3, 9, 7, 1]
+    - data: [8, 6, 2, 4, 9]
+  legend: none
+  palette: ocean
+- type: chart
+  chart-type: radar
+  width: 360
+  height: 360
+  categories: [Speed, Power, Range, Agility, Armor, Stealth]
+  series:
+    - label: Alpha
+      data: [4, 3, 5, 2, 4, 3]
+    - label: Bravo
+      data: [3, 5, 2, 4, 3, 5]
+  legend: bottom
+  palette: vivid
+```
+
+### Palettes and Themes
+
+The `palette` selects series colors. Use one of the named palettes (`default`, `ocean`, `sunset`, `forest`, `mono`, `vivid`) or supply an explicit list of hex colors that is applied to series/slices in order. The `theme` (`light`, `dark`, `minimal`) controls the chart's background, axis, grid, and text colors; it overrides the template-level theme for this element only.
+
+### "No Data" Behavior
+
+A chart whose `series` is empty or missing -- or whose series contain no data points -- renders a centered **"no data"** placeholder inside its box. This is never treated as an error, so charts bound to optional or empty data sources degrade gracefully.
+
+### Resource Limits
+
+Charts are bounded by `ResourceLimits.MaxSeriesPerChart` (default 50) and `ResourceLimits.MaxDataPointsPerSeries` (default 10000).
+
+```yaml
+- type: chart
+  chart-type: bar
+  width: 600
+  height: 300
+  categories: [Q1, Q2, Q3, Q4]
+  series:
+    - label: "2024"
+      data: "{{ sales }}"
+    - label: "2025"
+      data: [12, 30, 22, 48]
+  palette: ocean
+  legend: bottom
+  title: "Revenue"
+  theme: dark
+```
 
 ## Element Type: svg (SvgElement)
 
@@ -1384,6 +1707,9 @@ public interface IFlexRender : IDisposable
 // Extension methods from FlexRender.Yaml:
 // - RenderYaml(yaml, data, format, ct) - render from YAML string
 // - RenderFile(path, data, format, ct) - render from YAML file
+
+// Extension methods from FlexRender.Xml:
+// - RenderXml(xml, data, format, parser?, ct) - render from XML string (mirrors RenderYaml)
 ```
 
 ### ImageFormat Enum
@@ -1407,6 +1733,9 @@ The `ResourceLimits` class centralizes all security limits. All properties valid
 | MaxRenderDepth | int | 100 | Maximum recursion depth when rendering layout tree |
 | MaxImageSize | int | 10,485,760 (10 MB) | Maximum allowed image size in bytes |
 | MaxFlexLines | int | 1,000 | Maximum flex lines when wrapping |
+| MaxShapesPerDraw | int | 1,000 | Maximum shapes in a single `draw` element |
+| MaxSeriesPerChart | int | 50 | Maximum series in a single `chart` element |
+| MaxDataPointsPerSeries | int | 10,000 | Maximum data points per chart series |
 
 ### Direct Usage
 

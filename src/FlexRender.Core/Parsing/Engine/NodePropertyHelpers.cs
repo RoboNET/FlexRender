@@ -1,12 +1,12 @@
 using FlexRender.Parsing.Ast;
-using YamlDotNet.RepresentationModel;
+using FlexRender.Parsing.Nodes;
 
 namespace FlexRender.Parsing;
 
 /// <summary>
-/// Provides static helper methods for extracting typed property values from YAML mapping nodes.
+/// Provides static helper methods for extracting typed property values from neutral mapping nodes.
 /// </summary>
-internal static class YamlPropertyHelpers
+internal static class NodePropertyHelpers
 {
     /// <summary>
     /// Tries to get a mapping node from a parent node by key.
@@ -15,17 +15,8 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="result">The resulting mapping node if found.</param>
     /// <returns>True if the key exists and is a mapping node; otherwise, false.</returns>
-    internal static bool TryGetMapping(YamlMappingNode parent, string key, out YamlMappingNode result)
-    {
-        result = null!;
-        var scalarKey = new YamlScalarNode(key);
-        if (parent.Children.TryGetValue(scalarKey, out var node) && node is YamlMappingNode mapping)
-        {
-            result = mapping;
-            return true;
-        }
-        return false;
-    }
+    internal static bool TryGetMapping(TemplateMapping parent, string key, out TemplateMapping result)
+        => parent.TryGetMapping(key, out result);
 
     /// <summary>
     /// Tries to get a sequence node from a parent node by key.
@@ -34,17 +25,8 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="result">The resulting sequence node if found.</param>
     /// <returns>True if the key exists and is a sequence node; otherwise, false.</returns>
-    internal static bool TryGetSequence(YamlMappingNode parent, string key, out YamlSequenceNode result)
-    {
-        result = null!;
-        var scalarKey = new YamlScalarNode(key);
-        if (parent.Children.TryGetValue(scalarKey, out var node) && node is YamlSequenceNode sequence)
-        {
-            result = sequence;
-            return true;
-        }
-        return false;
-    }
+    internal static bool TryGetSequence(TemplateMapping parent, string key, out TemplateSequence result)
+        => parent.TryGetSequence(key, out result);
 
     /// <summary>
     /// Gets a string value from a mapping node by key.
@@ -52,15 +34,7 @@ internal static class YamlPropertyHelpers
     /// <param name="node">The mapping node to search.</param>
     /// <param name="key">The key to look up.</param>
     /// <returns>The string value if found; otherwise, null.</returns>
-    internal static string? GetStringValue(YamlMappingNode node, string key)
-    {
-        var scalarKey = new YamlScalarNode(key);
-        if (node.Children.TryGetValue(scalarKey, out var value) && value is YamlScalarNode scalar)
-        {
-            return scalar.Value;
-        }
-        return null;
-    }
+    internal static string? GetStringValue(TemplateMapping node, string key) => node.GetScalar(key);
 
     /// <summary>
     /// Gets a string value from a mapping node by key with a default value.
@@ -69,7 +43,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found.</param>
     /// <returns>The string value if found; otherwise, the default value.</returns>
-    internal static string GetStringValue(YamlMappingNode node, string key, string defaultValue)
+    internal static string GetStringValue(TemplateMapping node, string key, string defaultValue)
     {
         return GetStringValue(node, key) ?? defaultValue;
     }
@@ -81,7 +55,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found or cannot be parsed.</param>
     /// <returns>The integer value if found and valid; otherwise, the default value.</returns>
-    internal static int GetIntValue(YamlMappingNode node, string key, int defaultValue)
+    internal static int GetIntValue(TemplateMapping node, string key, int defaultValue)
     {
         var strValue = GetStringValue(node, key);
         if (strValue != null && int.TryParse(strValue, out var intValue))
@@ -98,7 +72,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found or cannot be parsed.</param>
     /// <returns>The float value if found and valid; otherwise, the default value.</returns>
-    internal static float GetFloatValue(YamlMappingNode node, string key, float defaultValue)
+    internal static float GetFloatValue(TemplateMapping node, string key, float defaultValue)
     {
         var strValue = GetStringValue(node, key);
         if (strValue != null && float.TryParse(strValue, System.Globalization.NumberStyles.Float,
@@ -115,7 +89,7 @@ internal static class YamlPropertyHelpers
     /// <param name="node">The mapping node to search.</param>
     /// <param name="key">The key to look up.</param>
     /// <returns>The integer value if found and valid; otherwise, null.</returns>
-    internal static int? GetNullableIntValue(YamlMappingNode node, string key)
+    internal static int? GetNullableIntValue(TemplateMapping node, string key)
     {
         var strValue = GetStringValue(node, key);
         if (strValue != null && int.TryParse(strValue, out var intValue))
@@ -132,7 +106,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found or cannot be parsed.</param>
     /// <returns>The boolean value if found and valid; otherwise, the default value.</returns>
-    internal static bool GetBoolValue(YamlMappingNode node, string key, bool defaultValue)
+    internal static bool GetBoolValue(TemplateMapping node, string key, bool defaultValue)
     {
         var strValue = GetStringValue(node, key);
         if (strValue != null && bool.TryParse(strValue, out var boolValue))
@@ -148,7 +122,7 @@ internal static class YamlPropertyHelpers
     /// <param name="node">The mapping node to search.</param>
     /// <param name="key">The key to look up.</param>
     /// <returns>The boolean value if found and valid; otherwise, null.</returns>
-    internal static bool? GetNullableBoolValue(YamlMappingNode node, string key)
+    internal static bool? GetNullableBoolValue(TemplateMapping node, string key)
     {
         var strValue = GetStringValue(node, key);
         if (strValue != null && bool.TryParse(strValue, out var boolValue))
@@ -164,7 +138,7 @@ internal static class YamlPropertyHelpers
     /// <param name="node">The mapping node to search.</param>
     /// <param name="key">The key to look up.</param>
     /// <returns>The float value if found and valid; otherwise, null.</returns>
-    internal static float? GetNullableFloatValue(YamlMappingNode node, string key)
+    internal static float? GetNullableFloatValue(TemplateMapping node, string key)
     {
         var strValue = GetStringValue(node, key);
         if (strValue != null && float.TryParse(strValue, System.Globalization.NumberStyles.Float,
@@ -181,7 +155,7 @@ internal static class YamlPropertyHelpers
     /// <param name="node">The mapping node to search.</param>
     /// <param name="key">The key to look up.</param>
     /// <returns>The double value if found and valid; otherwise, null.</returns>
-    internal static double? GetDoubleValue(YamlMappingNode node, string key)
+    internal static double? GetDoubleValue(TemplateMapping node, string key)
     {
         var strValue = GetStringValue(node, key);
         if (strValue != null && double.TryParse(strValue, System.Globalization.NumberStyles.Float,
@@ -193,7 +167,7 @@ internal static class YamlPropertyHelpers
     }
 
     /// <summary>
-    /// Determines whether a raw YAML string value contains a template expression ({{ }}).
+    /// Determines whether a raw string value contains a template expression ({{ }}).
     /// </summary>
     /// <param name="value">The raw string to check.</param>
     /// <returns>True if the value contains a template expression; otherwise, false.</returns>
@@ -211,7 +185,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found.</param>
     /// <returns>An <see cref="ExprValue{T}"/> containing the string literal, expression, or default.</returns>
-    internal static ExprValue<string> GetExprStringValue(YamlMappingNode node, string key, string defaultValue)
+    internal static ExprValue<string> GetExprStringValue(TemplateMapping node, string key, string defaultValue)
     {
         var strValue = GetStringValue(node, key);
         if (strValue is null)
@@ -231,7 +205,7 @@ internal static class YamlPropertyHelpers
     /// <param name="node">The mapping node to search.</param>
     /// <param name="key">The key to look up.</param>
     /// <returns>An <see cref="ExprValue{T}"/> containing the string value or expression, or <c>default</c> if not found.</returns>
-    internal static ExprValue<string> GetExprStringValueOptional(YamlMappingNode node, string key)
+    internal static ExprValue<string> GetExprStringValueOptional(TemplateMapping node, string key)
     {
         var strValue = GetStringValue(node, key);
         if (strValue is null)
@@ -251,7 +225,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key1">The first key to try (e.g., kebab-case).</param>
     /// <param name="key2">The fallback key to try (e.g., camelCase).</param>
     /// <returns>An <see cref="ExprValue{T}"/> containing the string value or expression, or <c>default</c> if not found.</returns>
-    internal static ExprValue<string> GetExprStringValueOptional(YamlMappingNode node, string key1, string key2)
+    internal static ExprValue<string> GetExprStringValueOptional(TemplateMapping node, string key1, string key2)
     {
         var strValue = GetStringValue(node, key1) ?? GetStringValue(node, key2);
         if (strValue is null)
@@ -272,7 +246,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found or cannot be parsed.</param>
     /// <returns>An <see cref="ExprValue{T}"/> containing the parsed float, expression, or default.</returns>
-    internal static ExprValue<float> GetExprFloatValue(YamlMappingNode node, string key, float defaultValue)
+    internal static ExprValue<float> GetExprFloatValue(TemplateMapping node, string key, float defaultValue)
     {
         var strValue = GetStringValue(node, key);
         if (strValue is null)
@@ -297,7 +271,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found or cannot be parsed.</param>
     /// <returns>An <see cref="ExprValue{T}"/> containing the parsed bool, expression, or default.</returns>
-    internal static ExprValue<bool> GetExprBoolValue(YamlMappingNode node, string key, bool defaultValue)
+    internal static ExprValue<bool> GetExprBoolValue(TemplateMapping node, string key, bool defaultValue)
     {
         var strValue = GetStringValue(node, key);
         if (strValue is null)
@@ -320,7 +294,7 @@ internal static class YamlPropertyHelpers
     /// <param name="node">The mapping node to search.</param>
     /// <param name="key">The key to look up.</param>
     /// <returns>An <see cref="ExprValue{T}"/> containing the parsed int, expression, or null.</returns>
-    internal static ExprValue<int?> GetExprNullableIntValue(YamlMappingNode node, string key)
+    internal static ExprValue<int?> GetExprNullableIntValue(TemplateMapping node, string key)
     {
         var strValue = GetStringValue(node, key);
         if (strValue is null)
@@ -344,7 +318,7 @@ internal static class YamlPropertyHelpers
     /// <param name="key">The key to look up.</param>
     /// <param name="defaultValue">The default value if the key is not found or cannot be parsed.</param>
     /// <returns>An <see cref="ExprValue{T}"/> containing the parsed int, expression, or default.</returns>
-    internal static ExprValue<int> GetExprIntValue(YamlMappingNode node, string key, int defaultValue)
+    internal static ExprValue<int> GetExprIntValue(TemplateMapping node, string key, int defaultValue)
     {
         var strValue = GetStringValue(node, key);
         if (strValue is null)
@@ -360,25 +334,25 @@ internal static class YamlPropertyHelpers
     }
 
     /// <summary>
-    /// Recursively converts a YAML mapping node to a string-keyed dictionary.
+    /// Recursively converts a mapping node to a string-keyed dictionary.
     /// </summary>
-    /// <param name="mapping">The YAML mapping node to convert.</param>
+    /// <param name="mapping">The mapping node to convert.</param>
     /// <param name="depth">Current recursion depth (max 10).</param>
     /// <returns>A case-insensitive dictionary representing the mapping contents.</returns>
-    internal static IReadOnlyDictionary<string, object> ConvertMappingToDictionary(YamlMappingNode mapping, int depth = 0)
+    internal static IReadOnlyDictionary<string, object> ConvertMappingToDictionary(TemplateMapping mapping, int depth = 0)
     {
         if (depth > 10)
             throw new InvalidOperationException("Options nesting depth exceeded (max 10).");
 
         var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (keyNode, valueNode) in mapping.Children)
+        foreach (var key in mapping.Keys)
         {
-            var key = ((YamlScalarNode)keyNode).Value!;
+            mapping.TryGet(key, out var valueNode);
             dict[key] = valueNode switch
             {
-                YamlScalarNode scalar => scalar.Value ?? string.Empty,
-                YamlMappingNode nested => ConvertMappingToDictionary(nested, depth + 1),
-                YamlSequenceNode seq => ConvertSequenceToList(seq, depth + 1),
+                TemplateScalar scalar => scalar.Value ?? string.Empty,
+                TemplateMapping nested => ConvertMappingToDictionary(nested, depth + 1),
+                TemplateSequence seq => ConvertSequenceToList(seq, depth + 1),
                 _ => string.Empty
             };
         }
@@ -386,24 +360,24 @@ internal static class YamlPropertyHelpers
     }
 
     /// <summary>
-    /// Recursively converts a YAML sequence node to a list of objects.
+    /// Recursively converts a sequence node to a list of objects.
     /// </summary>
-    /// <param name="sequence">The YAML sequence node to convert.</param>
+    /// <param name="sequence">The sequence node to convert.</param>
     /// <param name="depth">Current recursion depth.</param>
     /// <returns>A list of objects representing the sequence contents.</returns>
-    private static List<object> ConvertSequenceToList(YamlSequenceNode sequence, int depth = 0)
+    private static List<object> ConvertSequenceToList(TemplateSequence sequence, int depth = 0)
     {
         if (depth > 10)
             throw new InvalidOperationException("Options nesting depth exceeded (max 10).");
 
-        var list = new List<object>(sequence.Children.Count);
-        foreach (var child in sequence.Children)
+        var list = new List<object>(sequence.Items.Count);
+        foreach (var child in sequence.Items)
         {
             list.Add(child switch
             {
-                YamlScalarNode scalar => scalar.Value ?? string.Empty,
-                YamlMappingNode nested => ConvertMappingToDictionary(nested, depth + 1),
-                YamlSequenceNode seq => ConvertSequenceToList(seq, depth + 1),
+                TemplateScalar scalar => scalar.Value ?? string.Empty,
+                TemplateMapping nested => ConvertMappingToDictionary(nested, depth + 1),
+                TemplateSequence seq => ConvertSequenceToList(seq, depth + 1),
                 _ => string.Empty
             });
         }

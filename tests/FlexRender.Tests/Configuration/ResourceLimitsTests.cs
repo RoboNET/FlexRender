@@ -370,5 +370,6 @@ public sealed class ResourceLimitsIntegrationTests
         Assert.Equal(100, limits.MaxTemplateNestingDepth);
         Assert.Equal(100, limits.MaxRenderDepth);
         Assert.Equal(10 * 1024 * 1024, limits.MaxImageSize);
+        Assert.Equal(1000, limits.MaxShapesPerDraw);
     }
 }

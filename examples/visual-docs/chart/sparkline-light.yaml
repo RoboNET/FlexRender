@@ -1,0 +1,19 @@
+template:
+  name: "chart-sparkline-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 200
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: sparkline
+    width: 200
+    height: 50
+    smooth: true
+    series:
+      - data: [3, 8, 4, 10, 6, 9, 5, 11]

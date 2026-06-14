@@ -58,6 +58,11 @@ internal sealed class IntrinsicMeasurer
             ImageElement image => MeasureImageIntrinsic(image),
             SvgElement svg => MeasureSvgIntrinsic(svg),
             SeparatorElement separator => MeasureSeparatorIntrinsic(separator),
+            RectElement rect => MeasureShapeIntrinsic(rect),
+            CircleElement circle => MeasureShapeIntrinsic(circle),
+            EllipseElement ellipse => MeasureShapeIntrinsic(ellipse),
+            DrawElement draw => MeasureShapeIntrinsic(draw),
+            ChartElement chart => MeasureShapeIntrinsic(chart),
             FlexElement flex => MeasureFlexIntrinsic(flex, sizes),
             _ => new IntrinsicSize(0f, 0f, 0f, 0f)
         };
@@ -174,6 +179,23 @@ internal sealed class IntrinsicMeasurer
             : new IntrinsicSize(separator.Thickness.Value, separator.Thickness.Value, 0f, 0f);
 
         return ApplyPaddingBorderAndMargin(intrinsic, separator);
+    }
+
+    /// <summary>
+    /// Measures intrinsic size for a shape leaf element (rect, circle, ellipse, draw).
+    /// Shapes behave like other leaf boxes: their intrinsic content size comes from the
+    /// explicit <see cref="TemplateElement.Width"/>/<see cref="TemplateElement.Height"/>
+    /// (defaulting to 0 when unspecified), then padding, border, and margin are applied.
+    /// </summary>
+    /// <param name="element">The shape element to measure.</param>
+    /// <returns>The intrinsic size of the shape including padding, border, and margin.</returns>
+    private static IntrinsicSize MeasureShapeIntrinsic(TemplateElement element)
+    {
+        var width = ParseAbsolutePixelValue(element.Width.Value, 0f);
+        var height = ParseAbsolutePixelValue(element.Height.Value, 0f);
+        var intrinsic = new IntrinsicSize(width, width, height, height);
+
+        return ApplyPaddingBorderAndMargin(intrinsic, element);
     }
 
     /// <summary>

@@ -1,0 +1,23 @@
+template:
+  name: "chart-bar-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 600
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: bar
+    width: 600
+    height: 320
+    categories: [Q1, Q2, Q3, Q4]
+    series:
+      - label: "2024"
+        data: [12, 30, 22, 48]
+    title: Revenue
+    legend: bottom
+    palette: ocean

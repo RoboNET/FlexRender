@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FlexRender.Core\FlexRender.Core.csproj" />
     <ProjectReference Include="..\FlexRender.Yaml\FlexRender.Yaml.csproj" />
+    <ProjectReference Include="..\FlexRender.Xml\FlexRender.Xml.csproj" />
     <ProjectReference Include="..\FlexRender.Http\FlexRender.Http.csproj" />
     <ProjectReference Include="..\FlexRender.Skia\FlexRender.Skia.csproj" />
     <ProjectReference Include="..\FlexRender.ImageSharp\FlexRender.ImageSharp.csproj" />

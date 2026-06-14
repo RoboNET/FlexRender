@@ -1,0 +1,25 @@
+template:
+  name: "chart-radar-dark"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 360
+  background: "#1e1e1e"
+
+layout:
+  - type: chart
+    chart-type: radar
+    width: 360
+    height: 360
+    categories: [Speed, Power, Range, Agility, Armor, Stealth]
+    series:
+      - label: Alpha
+        data: [4, 3, 5, 2, 4, 3]
+      - label: Bravo
+        data: [3, 5, 2, 4, 3, 5]
+    theme: dark
+    legend: bottom
+    palette: vivid

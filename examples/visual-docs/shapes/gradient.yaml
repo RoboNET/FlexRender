@@ -1,0 +1,28 @@
+template:
+  name: "shapes-gradient"
+  version: 1
+
+canvas:
+  width: 220
+  height: 110
+  fixed: both
+  background: "#ffffff"
+
+layout:
+  - type: flex
+    direction: row
+    gap: "10"
+    padding: "10"
+    children:
+      - type: rect
+        width: 90
+        height: 90
+        fill:
+          gradient: linear
+          colors: ["#ff0000", "#0000ff"]
+          angle: 45
+      - type: circle
+        size: 90
+        fill:
+          gradient: radial
+          colors: ["#ffffff", "#222222"]

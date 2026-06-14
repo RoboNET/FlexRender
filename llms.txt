@@ -14,11 +14,15 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
   Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, etc.
+  Parsing/Nodes/                # Format-neutral node model (TemplateMapping, TemplateSequence, TemplateScalar)
+  Parsing/Engine/               # Shared parsing engine (TemplateEngine, ElementParsers, ChartParsers, ShapeParsers, KnownProperties)
   TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
-src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
-  Parsing/                      # TemplateParser
+src/FlexRender.Yaml/            # YAML facade: YamlDotNet -> neutral nodes -> Core engine (-> Core + YamlDotNet)
+  Parsing/                      # TemplateParser (facade), YamlNodeConverter
+src/FlexRender.Xml/             # XML facade: XDocument -> neutral nodes -> Core engine (-> Core only)
+  Parsing/                      # XmlTemplateParser, XmlNodeConverter
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia.Render/     # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
@@ -74,7 +78,7 @@ Templates can be parsed once and cached for reuse with different data.
 
 ## Element Types
 
-Eleven element types, each a sealed class extending `TemplateElement`:
+Sixteen element types, each a sealed class extending `TemplateElement`:
 
 | Type | Key Properties |
 |------|---------------|
@@ -85,6 +89,11 @@ Eleven element types, each a sealed class extending `TemplateElement`:
 | **barcode** | data, format (code128/code39/ean13/ean8/upc), width, height, showText, foreground -- requires `FlexRender.Barcode.*` (Skia/Svg/ImageSharp) |
 | **svg** | src, content, width, height, fit (fill/contain/cover/none) -- requires `FlexRender.SvgElement.*` (Skia/Svg) |
 | **separator** | orientation (horizontal/vertical), style (dotted/dashed/solid), thickness, color |
+| **rect** | fill (hex color OR gradient object), stroke, stroke-width (px, default 0), opacity (0..1), radius (px/em corner rounding) -- flex box drawn as a filled/stroked rectangle |
+| **circle** | fill (hex color OR gradient object), stroke, stroke-width, opacity, size (shorthand setting width & height = diameter) -- flex box drawn as a circle |
+| **ellipse** | fill (hex color OR gradient object), stroke, stroke-width, opacity -- flex box drawn as an ellipse filling its width/height |
+| **draw** | shapes (ordered list painted in list order); shape kinds: line, polyline, rect, circle, path (abs commands M/L/Q/C/Z); absolute coords relative to element top-left; capped by `MaxShapesPerDraw` (default 1000). Box shapes accept gradient fill objects |
+| **chart** | chart-type (bar/line/area/pie/donut/scatter/bubble/gauge/progress/sparkline/heatmap/radar, default bar), width/height (required), categories (x-axis/slice labels; radar spokes), series (list of {label?, data}; data = inline number array, OR `[[x,y],...]`/`[[x,y,r],...]` tuples for scatter/bubble, OR `{{ expr }}` resolving to a number array), palette (named default/ocean/sunset/forest/mono/vivid OR explicit `["#hex",...]`), theme (light/dark/minimal override), legend (top/bottom/left/right/none, default bottom), title; bar only: horizontal, stacked; line/area/sparkline: smooth, points; pie/donut: labels (percent/value/none); gauge/progress only: value, max (default 100), label (centered caption); heatmap only: x-labels, y-labels, cell-values (print number per cell). Sparkline is a chrome-free inline line. Heatmap: each series is a grid ROW, x-labels/y-labels label columns/rows (x-labels falls back to categories), cell color encodes value. Radar: categories are spokes, each series is a closed polygon. Empty/missing series renders a "no data" placeholder, never an error. Capped by `MaxSeriesPerChart` (50) and `MaxDataPointsPerSeries` (10000) |
 | **table** | array, as, columns (key/label/width/grow/align/format), rows, headerFont/headerFontWeight/headerFontStyle/headerFontFamily/headerColor/headerSize/headerBackground -- expands to flex tree |
 | **each** | array, as, children -- iteration over data arrays |
 | **if** | condition, equals/notEquals, then, elseIf, else -- conditional rendering |
@@ -355,6 +364,39 @@ layout:
     color: "#cccccc"
     thickness: 2
 
+  - type: rect
+    width: 100
+    height: 50
+    fill: "#4A90D9"
+    stroke: "#333333"
+    stroke-width: 2
+    radius: 4
+
+  - type: circle
+    size: 40
+    fill: "#e74c3c"
+
+  - type: ellipse
+    width: 120
+    height: 60
+    fill: "#2ecc71"
+
+  - type: rect
+    width: 100
+    height: 100
+    fill:
+      gradient: linear
+      colors: ["#f00", "#00f"]
+      angle: 45
+
+  - type: draw
+    width: 400
+    height: 200
+    shapes:
+      - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
+      - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
+      - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+
   - type: flex
     direction: row
     gap: "10"
@@ -378,10 +420,15 @@ The `ResourceLimits` class centralizes all security limits. Defaults are safe-by
 | MaxRenderDepth | 100 | Render tree recursion |
 | MaxImageSize | 10 MB | Image loading |
 | MaxFlexLines | 1000 | Maximum flex lines when wrapping |
+| MaxShapesPerDraw | 1000 | Maximum shapes in a single `draw` element |
+| MaxSeriesPerChart | 50 | Maximum series in a single `chart` element |
+| MaxDataPointsPerSeries | 10000 | Maximum data points per chart series |
 
 Configure via builder: `builder.WithLimits(limits => { limits.MaxRenderDepth = 200; })`
 
 ## Builder API
+
+Templates may be authored in YAML (`FlexRender.Yaml`) or XML (`FlexRender.Xml`, via `XmlTemplateParser` / `RenderXml`). Both produce the same `Template` AST, with identical validation and resource limits. See `docs/wiki/Xml-Syntax.md` for the XML<->YAML mapping.
 
 ### Without DI (Skia)
 
@@ -572,7 +619,7 @@ Minimal, focused templates -- one feature per file:
 
 1. Create sealed AST class in `Parsing/Ast/` extending `TemplateElement`
 2. Add to `ElementType` enum
-3. Register parser in `TemplateParser._elementParsers` dictionary
+3. Register parser in `TemplateEngine._elementParsers` dictionary (Core; parser function in `Parsing/Engine/ElementParsers.cs`)
 4. Add layout calculation via switch pattern matching in `LayoutEngine`
 5. Add rendering in `SkiaRenderer.RenderNode()` or create a provider
 6. Write tests for each step
@@ -583,6 +630,7 @@ Minimal, focused templates -- one feature per file:
 |---------|-----------|---------------|
 | FlexRender.Core | -- | (none) |
 | FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
+| FlexRender.Xml | Core | (none) |
 | FlexRender.Http | Core | (none) |
 | FlexRender.Skia.Render | Core | SkiaSharp 3.119.2 |
 | FlexRender.Skia | Skia.Render + providers | SkiaSharp 3.119.2 |

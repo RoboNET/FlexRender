@@ -1,0 +1,21 @@
+template:
+  name: "chart-area-light"
+  version: 1
+
+fonts:
+  default: "../../assets/fonts/Inter-Regular.ttf"
+
+canvas:
+  width: 600
+  background: "#ffffff"
+
+layout:
+  - type: chart
+    chart-type: area
+    width: 600
+    height: 300
+    categories: [Jan, Feb, Mar, Apr]
+    series:
+      - data: [30, 60, 45, 80]
+    legend: none
+    palette: forest

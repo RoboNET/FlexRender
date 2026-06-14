@@ -1,0 +1,20 @@
+template:
+  name: "shapes-draw-overlap"
+  version: 1
+
+canvas:
+  width: 200
+  height: 160
+  fixed: both
+  background: "#ffffff"
+
+layout:
+  - type: draw
+    width: 200
+    height: 160
+    shapes:
+      - rect: {x: 20, y: 20, width: 120, height: 80, fill: "#cccccc", radius: 8}
+      - line: {x1: 0, y1: 80, x2: 200, y2: 40, stroke: "#333333", stroke-width: 3}
+      - polyline: {points: [[10, 140], [60, 110], [110, 130], [160, 100]], stroke: "#4A90D9", stroke-width: 2}
+      - circle: {cx: 130, cy: 70, r: 35, fill: "#e74c3c"}
+      - path: {d: "M 20 150 L 80 110 Q 120 90 160 120 Z", fill: "#2ecc71"}

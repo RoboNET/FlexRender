@@ -12,7 +12,7 @@ For rendering options (antialiasing, format settings), see [[Render-Options]].
 
 ## Common Properties (TemplateElement)
 
-All 11 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `table`, `content`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
+All 16 element types (`flex`, `text`, `image`, `svg`, `qr`, `barcode`, `separator`, `rect`, `circle`, `ellipse`, `draw`, `chart`, `table`, `content`, `each`, `if`) inherit these properties from the base `TemplateElement` class. You can use any of them on any element.
 
 > **Expression support:** All properties on all element types accept `{{expressions}}`. This includes typed properties like `opacity` (float), `grow`/`shrink` (float), `order` (int), `wrap` (bool on text, FlexWrap on flex), and enum properties like `display`, `position`, `align`. See [[Template-Expressions]] for details.
 
@@ -1278,6 +1278,252 @@ Renders a horizontal or vertical line with configurable style, thickness, and co
 ```
 
 Horizontal separators use `thickness` as their height and stretch to the container's full width. Vertical separators use `thickness` as their width and stretch to the container's full height (or use an explicit `height` if provided).
+
+---
+
+## rect
+
+A flex box drawn as a filled and/or stroked rectangle, optionally with rounded corners. It participates in flex layout like any other box (honors `width`, `height`, `margin`, `padding`, and all flex-item properties); the rectangle fills the box content area.
+
+### Minimal Example
+
+```yaml
+- type: rect
+  width: 100
+  height: 50
+  fill: "#4A90D9"
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Fill | `fill` | string or object | none | Hex color or gradient object | No | Solid color or gradient object `{gradient, colors, angle}`. See [Gradient Fill](#gradient-fill). |
+| Stroke | `stroke` | string | none | Hex color (#rgb or #rrggbb) | No | Outline color. |
+| Stroke Width | `stroke-width` | number | `0` | >= 0 | No | Outline width in pixels. |
+| Opacity | `opacity` | number | `1.0` | 0..1 | No | Inherited base opacity. |
+| Radius | `radius` | unit | none | px, em | No | Corner radius (rect only). |
+
+```yaml
+- type: rect
+  width: 100
+  height: 50
+  fill: "#4A90D9"
+  stroke: "#333333"
+  stroke-width: 2
+  radius: 4
+```
+
+---
+
+## circle
+
+A flex box drawn as a circle inscribed in its box. Use `size` as a shorthand to set both `width` and `height` (the diameter).
+
+### Minimal Example
+
+```yaml
+- type: circle
+  size: 40
+  fill: "#e74c3c"
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Fill | `fill` | string or object | none | Hex color or gradient object | No | Solid color or gradient object `{gradient, colors, angle}`. See [Gradient Fill](#gradient-fill). |
+| Stroke | `stroke` | string | none | Hex color (#rgb or #rrggbb) | No | Outline color. |
+| Stroke Width | `stroke-width` | number | `0` | >= 0 | No | Outline width in pixels. |
+| Opacity | `opacity` | number | `1.0` | 0..1 | No | Inherited base opacity. |
+| Size | `size` | unit | none | px, em | No | Sets both width and height (circle only). |
+
+```yaml
+- type: circle
+  size: 60
+  fill: "#e74c3c"
+  stroke: "#922b21"
+  stroke-width: 3
+```
+
+---
+
+## ellipse
+
+A flex box drawn as an ellipse that fills its `width` by `height` box.
+
+### Minimal Example
+
+```yaml
+- type: ellipse
+  width: 120
+  height: 60
+  fill: "#2ecc71"
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Fill | `fill` | string or object | none | Hex color or gradient object | No | Solid color or gradient object `{gradient, colors, angle}`. See [Gradient Fill](#gradient-fill). |
+| Stroke | `stroke` | string | none | Hex color (#rgb or #rrggbb) | No | Outline color. |
+| Stroke Width | `stroke-width` | number | `0` | >= 0 | No | Outline width in pixels. |
+| Opacity | `opacity` | number | `1.0` | 0..1 | No | Inherited base opacity. |
+
+```yaml
+- type: ellipse
+  width: 120
+  height: 60
+  fill: "#2ecc71"
+```
+
+---
+
+### Gradient Fill
+
+The `fill` property of `rect`, `circle`, and `ellipse` accepts an object form to paint a gradient instead of a solid color. It is converted internally to a CSS gradient string.
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Gradient | `gradient` | string | -- | linear, radial | Yes | Gradient kind. |
+| Colors | `colors` | string[] | -- | >= 2 hex colors | Yes | Ordered color stops (minimum 2). |
+| Angle | `angle` | number | `0` | degrees | No | Angle in degrees (linear only; radial ignores it). |
+
+```yaml
+- type: rect
+  width: 100
+  height: 100
+  fill:
+    gradient: linear
+    colors: ["#f00", "#00f"]
+    angle: 45
+```
+
+---
+
+## draw
+
+A flex box that holds an ordered list of absolute-coordinate `shapes`. Shapes are painted in list order using the painter's algorithm (later shapes are drawn on top of earlier ones). All shape coordinates are relative to the `draw` element's top-left corner. The number of shapes is capped by `ResourceLimits.MaxShapesPerDraw` (default `1000`).
+
+### Minimal Example
+
+```yaml
+- type: draw
+  width: 400
+  height: 200
+  shapes:
+    - circle: {cx: 200, cy: 100, r: 50, fill: "#e74c3c"}
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| Width | `width` | unit | none | px, %, em | No | Box width. |
+| Height | `height` | unit | none | px, %, em | No | Box height. |
+| Shapes | `shapes` | Shape[] | `[]` | List of shape objects | No | Ordered list, painted in order (max `MaxShapesPerDraw`, default 1000). |
+
+### Shape Kinds
+
+Each entry in `shapes` is a single-key object whose key selects the shape kind. Coordinates are absolute, relative to the `draw` element top-left.
+
+| Shape | Keys | Description |
+|-------|------|-------------|
+| `line` | `x1`, `y1`, `x2`, `y2`, `stroke`, `stroke-width` | Straight line segment. |
+| `polyline` | `points` (`[[x,y],...]`), `stroke`, `stroke-width`, `fill` | Connected segments, optionally filled. |
+| `rect` | `x`, `y`, `width`, `height`, `fill`, `stroke`, `stroke-width`, `radius` | Rectangle, optional rounded corners. |
+| `circle` | `cx`, `cy`, `r`, `fill`, `stroke`, `stroke-width` | Circle centered at (`cx`, `cy`) with radius `r`. |
+| `path` | `d`, `fill`, `stroke`, `stroke-width` | SVG-style path (see grammar below). |
+
+**Path `d` grammar:** absolute commands only -- `M` (moveto), `L` (lineto), `Q` (quadratic Bézier), `C` (cubic Bézier), `Z` (closepath). Lowercase/relative commands are rejected, and non-finite numbers are rejected.
+
+```
+M x y                  # move to
+L x y                  # line to
+Q cx cy x y            # quadratic Bézier (control, end)
+C c1x c1y c2x c2y x y  # cubic Bézier (two controls, end)
+Z                      # close path
+```
+
+```yaml
+- type: draw
+  width: 400
+  height: 200
+  shapes:
+    - line: {x1: 0, y1: 100, x2: 400, y2: 50, stroke: "#333", stroke-width: 2}
+    - circle: {cx: 200, cy: 75, r: 30, fill: "#e74c3c"}
+    - path: {d: "M 0 0 L 100 50 Q 150 0 200 50 Z", fill: "#2ecc71"}
+```
+
+---
+
+## chart
+
+A declarative chart element that renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline`, `heatmap`, and `radar` charts into a fixed `width` by `height` box. It participates in flex layout like any other element. Series data may be supplied inline or bound from the data context with `{{expressions}}` -- the same binding used by `table` rows -- so charts can be driven directly by a data file. A chart with no series (or empty data) renders a centered "no data" placeholder instead of failing.
+
+### Minimal Example
+
+```yaml
+- type: chart
+  chart-type: bar
+  width: 600
+  height: 320
+  categories: [Q1, Q2, Q3, Q4]
+  series:
+    - data: [12, 30, 22, 48]
+```
+
+### Properties
+
+| Property | YAML Name | Type | Default | Valid Values | Required | Description |
+|----------|-----------|------|---------|--------------|----------|-------------|
+| ChartType | `chart-type` | string | `bar` | bar, line, area, pie, donut, scatter, bubble, gauge, progress, sparkline, heatmap, radar | No | Chart kind. |
+| Width | `width` | number | none | px | Yes | Chart width in pixels. |
+| Height | `height` | number | none | px | Yes | Chart height in pixels. |
+| Categories | `categories` | list | `[]` | List of strings | No | X-axis category labels (bar/line/area) or slice labels (pie/donut). |
+| Series | `series` | list | `[]` | List of `{ label?, data }` | No | Each series has an optional `label` and a `data` value that is an inline number array OR a `{{ expr }}` resolving to a number array. |
+| Palette | `palette` | string or list | theme default | `default`, `ocean`, `sunset`, `forest`, `mono`, `vivid`, or `["#hex", ...]` | No | Named palette or an explicit color list applied to series/slices in order. |
+| Theme | `theme` | string | template theme | light, dark, minimal | No | Per-element theme override (background, axis, grid, text colors). |
+| Legend | `legend` | string | `bottom` | top, bottom, left, right, none | No | Legend placement. |
+| Title | `title` | string | none | Any string | No | Optional chart title. |
+| Horizontal | `horizontal` | bool | `false` | true, false | No | **Bar only.** Render bars horizontally. |
+| Stacked | `stacked` | bool | `false` | true, false | No | **Bar only.** Stack series on top of each other. |
+| Smooth | `smooth` | bool | `false` | true, false | No | **Line/area only.** Smooth (curved) lines. |
+| Points | `points` | bool | `false` | true, false | No | **Line/area only.** Draw point markers at each value. |
+| Labels | `labels` | string | `percent` | percent, value, none | No | **Pie/donut only.** Slice label content. |
+| Value | `value` | number | none | Any number | No | **Gauge/progress only.** Indicator value. |
+| Max | `max` | number | `100` | Any number | No | **Gauge/progress only.** Indicator maximum. |
+| ValueLabel | `label` | string | none | Any string | No | **Gauge/progress only.** Centered caption under the value. |
+| XLabels | `x-labels` | list | `[]` | List of strings | No | **Heatmap only.** Column (x-axis) labels; falls back to `categories`. |
+| YLabels | `y-labels` | list | `[]` | List of strings | No | **Heatmap only.** Row (y-axis) labels, one per series/row. |
+| ShowCellValues | `cell-values` | bool | `false` | true, false | No | **Heatmap only.** Draw each cell's numeric value inside the cell. |
+
+> **Scatter / bubble data:** supply `series[].data` as an array of tuples -- `[[x, y], ...]` for `scatter` and `[[x, y, r], ...]` for `bubble`, where `r` sizes the bubble. Tuple data is inline-only in this release (expression-bound tuples are not yet supported). Sparkline uses a plain numeric `data` array and honors `smooth`/`points`; it renders chrome-free (no axes, legend, or title).
+
+> **Heatmap data:** each entry in `series` is one ROW; `series[i].data` holds that row's column values. `x-labels` label the columns (or `categories` if `x-labels` is omitted) and `y-labels` label the rows. Cell color encodes the value, interpolated between the palette's first ("low") and second ("high") colors; set `cell-values: true` to print the number in each cell.
+
+> **Radar data:** `categories` become the spokes (one axis per category, starting at the top and advancing clockwise). Each entry in `series` is a closed polygon connecting that series' values along the spokes -- filled semi-transparently and stroked. Values share one radial scale anchored at zero at the center.
+
+> **Resource limits:** charts are bounded by `ResourceLimits.MaxSeriesPerChart` (default `50`) and `ResourceLimits.MaxDataPointsPerSeries` (default `10000`).
+
+### Data Binding Example
+
+```yaml
+- type: chart
+  chart-type: line
+  width: 600
+  height: 300
+  categories: [Mon, Tue, Wed, Thu, Fri]
+  series:
+    - label: Visitors
+      data: "{{ visitors }}"   # resolves to a number array from data
+    - label: Signups
+      data: [20, 45, 30, 60, 50]
+  points: true
+  palette: ocean
+  legend: bottom
+  title: "Weekly Traffic"
+```
 
 ---
 

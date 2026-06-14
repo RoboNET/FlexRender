@@ -30,6 +30,10 @@ A comprehensive visual guide with rendered examples for all FlexRender propertie
   - [qr](#qr)
   - [barcode](#barcode)
   - [svg](#svg)
+  - [Shapes (rect, circle, ellipse)](#shapes-rect-circle-ellipse)
+    - [Gradient Fills](#gradient-fills)
+  - [draw](#draw)
+  - [Charts](#charts)
 - [See Also](#see-also)
 
 ---
@@ -44,16 +48,16 @@ The `fixed` property determines which canvas dimensions are locked to explicit v
 
 | Value | Description | Visual Example |
 |-------|-------------|----------------|
-| `width` | Width is fixed; height grows or shrinks to fit content. This is the **default**. | ![fixed: width](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-width.png) |
-| `height` | Height is fixed; width grows or shrinks to fit the widest content. | ![fixed: height](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-height.png) |
-| `both` | Both width and height are fixed. Content that overflows is clipped. | ![fixed: both](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-both.png) |
-| `none` | Neither dimension is fixed. Both width and height adjust to fit content exactly. | ![fixed: none](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-none.png) |
+| `width` | Width is fixed; height grows or shrinks to fit content. This is the **default**. | ![fixed: width](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-width.png) |
+| `height` | Height is fixed; width grows or shrinks to fit the widest content. | ![fixed: height](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-height.png) |
+| `both` | Both width and height are fixed. Content that overflows is clipped. | ![fixed: both](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-both.png) |
+| `none` | Neither dimension is fixed. Both width and height adjust to fit content exactly. | ![fixed: none](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-fixed-none.png) |
 
 ### background -- Canvas Background Color
 
 The `background` property sets the base color of the canvas behind all rendered content. Accepts hex color strings.
 
-![Canvas Background](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-background.png)
+![Canvas Background](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-background.png)
 
 ### rotate -- Canvas Rotation
 
@@ -61,10 +65,10 @@ The `rotate` property applies a post-render rotation to the entire canvas. The l
 
 | Value | Degrees | Description | Visual Example |
 |-------|---------|-------------|----------------|
-| `none` | 0 | No rotation (default). | ![rotate: none](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate.png) |
-| `right` | 90 | Rotate 90 degrees clockwise. Width and height are swapped in the output. | ![rotate: right](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate-right.png) |
-| `flip` | 180 | Rotate 180 degrees. The image appears upside down. | ![rotate: flip](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate-flip.png) |
-| `left` | 270 | Rotate 270 degrees clockwise (90 degrees counter-clockwise). Width and height are swapped. | ![rotate: left](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate-left.png) |
+| `none` | 0 | No rotation (default). | ![rotate: none](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate.png) |
+| `right` | 90 | Rotate 90 degrees clockwise. Width and height are swapped in the output. | ![rotate: right](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate-right.png) |
+| `flip` | 180 | Rotate 180 degrees. The image appears upside down. | ![rotate: flip](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate-flip.png) |
+| `left` | 270 | Rotate 270 degrees clockwise (90 degrees counter-clockwise). Width and height are swapped. | ![rotate: left](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/canvas-rotate-left.png) |
 
 > **Note:** The `rotate` value is applied **after** the entire layout is rendered. All element sizes, positions, and text wrapping are computed in the pre-rotation coordinate system. The `rotate` property also accepts arbitrary numeric degree values (e.g., `45`), though named values cover the most common use cases. For thermal printers, use `rotate: right` to convert a wide horizontal layout into a tall vertical image suitable for paper roll printing.
 
@@ -89,10 +93,10 @@ The `direction` property defines the main axis direction in which flex items are
 
 | Value | Description | Visual Example |
 |-------|-------------|----------------|
-| `row` | Items are laid out horizontally from left to right. This is the default behavior. The main axis runs horizontally. | ![direction: row](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row.png) |
-| `column` | Items are laid out vertically from top to bottom. The main axis runs vertically. | ![direction: column](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-column.png) |
-| `row-reverse` | Items are laid out horizontally from right to left. The main axis runs horizontally in reverse. | ![direction: row-reverse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-reverse.png) |
-| `column-reverse` | Items are laid out vertically from bottom to top. The main axis runs vertically in reverse. | ![direction: column-reverse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-column-reverse.png) |
+| `row` | Items are laid out horizontally from left to right. This is the default behavior. The main axis runs horizontally. | ![direction: row](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row.png) |
+| `column` | Items are laid out vertically from top to bottom. The main axis runs vertically. | ![direction: column](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-column.png) |
+| `row-reverse` | Items are laid out horizontally from right to left. The main axis runs horizontally in reverse. | ![direction: row-reverse](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-reverse.png) |
+| `column-reverse` | Items are laid out vertically from bottom to top. The main axis runs vertically in reverse. | ![direction: column-reverse](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-column-reverse.png) |
 
 #### RTL Direction
 
@@ -100,9 +104,9 @@ When `text-direction: rtl` is set on the canvas or element, row layout is mirror
 
 | Value | Description | Visual Example |
 |-------|-------------|----------------|
-| `row` (RTL) | Items flow right-to-left instead of left-to-right. | ![row RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-rtl.png) |
-| `row-reverse` (RTL) | Items flow left-to-right (reversed from RTL default). | ![row-reverse RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-reverse-rtl.png) |
-| `row` (RTL, labeled) | Three labeled items showing right-to-left positioning with `text-direction: rtl`. | ![RTL row](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-row.png) |
+| `row` (RTL) | Items flow right-to-left instead of left-to-right. | ![row RTL](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-rtl.png) |
+| `row-reverse` (RTL) | Items flow left-to-right (reversed from RTL default). | ![row-reverse RTL](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-row-reverse-rtl.png) |
+| `row` (RTL, labeled) | Three labeled items showing right-to-left positioning with `text-direction: rtl`. | ![RTL row](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-row.png) |
 
 #### RTL with Arabic Text
 
@@ -110,8 +114,8 @@ FlexRender supports Arabic and other RTL scripts when using an Arabic-capable fo
 
 | Example | Description | Visual |
 |---------|-------------|--------|
-| Arabic card | RTL layout with Arabic heading and body text using Noto Sans Arabic font. | ![RTL Arabic](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-arabic.png) |
-| Mixed LTR/RTL | RTL page with a nested `dir: ltr` section for left-to-right content within an RTL context. | ![RTL mixed](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-mixed.png) |
+| Arabic card | RTL layout with Arabic heading and body text using Noto Sans Arabic font. | ![RTL Arabic](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-arabic.png) |
+| Mixed LTR/RTL | RTL page with a nested `dir: ltr` section for left-to-right content within an RTL context. | ![RTL mixed](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/direction-rtl-mixed.png) |
 
 > **Note:** For proper Arabic glyph shaping (ligatures, contextual forms), enable HarfBuzz text shaping via `.WithHarfBuzz()` on the Skia builder, or use the `--harfbuzz` flag with the CLI.
 
@@ -121,12 +125,12 @@ The `justify` property defines how flex items are aligned along the main axis of
 
 | Value | Description | Visual Example |
 |-------|-------------|----------------|
-| `start` | Items are packed toward the start of the flex container's main axis. This is the default behavior. | ![justify: start](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/justify-start.png) |
-| `center` | Items are centered along the main axis, with equal space on both sides. | ![justify: center](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/justify-center.png) |
-| `end` | Items are packed toward the end of the flex container's main axis. | ![justify: end](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/justify-end.png) |
-| `space-between` | Items are evenly distributed with the first item at the start and the last item at the end. Remaining space is distributed evenly between items. | ![justify: space-between](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/justify-space-between.png) |
-| `space-around` | Items are evenly distributed with equal space around each item. Note that the space at the edges is half the space between items. | ![justify: space-around](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/justify-space-around.png) |
-| `space-evenly` | Items are evenly distributed with equal space between all items and at the edges. | ![justify: space-evenly](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/justify-space-evenly.png) |
+| `start` | Items are packed toward the start of the flex container's main axis. This is the default behavior. | ![justify: start](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/justify-start.png) |
+| `center` | Items are centered along the main axis, with equal space on both sides. | ![justify: center](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/justify-center.png) |
+| `end` | Items are packed toward the end of the flex container's main axis. | ![justify: end](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/justify-end.png) |
+| `space-between` | Items are evenly distributed with the first item at the start and the last item at the end. Remaining space is distributed evenly between items. | ![justify: space-between](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/justify-space-between.png) |
+| `space-around` | Items are evenly distributed with equal space around each item. Note that the space at the edges is half the space between items. | ![justify: space-around](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/justify-space-around.png) |
+| `space-evenly` | Items are evenly distributed with equal space between all items and at the edges. | ![justify: space-evenly](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/justify-space-evenly.png) |
 
 ### align
 
@@ -134,11 +138,11 @@ The `align` property defines how flex items are aligned along the cross axis of 
 
 | Value | Description | Visual Example |
 |-------|-------------|----------------|
-| `stretch` | Items are stretched to fill the container's cross-axis. This is the default behavior. Items without an explicit cross-axis size will expand to fill available space. | ![align: stretch](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/align-stretch.png) |
-| `start` | Items are aligned at the start of the cross axis. Items maintain their intrinsic cross-axis size. | ![align: start](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/align-start.png) |
-| `center` | Items are centered along the cross axis, with equal space above and below (for row) or left and right (for column). | ![align: center](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/align-center.png) |
-| `end` | Items are aligned at the end of the cross axis. Items are positioned at the bottom (for row) or right (for column). | ![align: end](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/align-end.png) |
-| `baseline` | Items are aligned such that their text baselines line up. Particularly useful when items contain text of different sizes. | ![align: baseline](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/align-baseline.png) |
+| `stretch` | Items are stretched to fill the container's cross-axis. This is the default behavior. Items without an explicit cross-axis size will expand to fill available space. | ![align: stretch](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/align-stretch.png) |
+| `start` | Items are aligned at the start of the cross axis. Items maintain their intrinsic cross-axis size. | ![align: start](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/align-start.png) |
+| `center` | Items are centered along the cross axis, with equal space above and below (for row) or left and right (for column). | ![align: center](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/align-center.png) |
+| `end` | Items are aligned at the end of the cross axis. Items are positioned at the bottom (for row) or right (for column). | ![align: end](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/align-end.png) |
+| `baseline` | Items are aligned such that their text baselines line up. Particularly useful when items contain text of different sizes. | ![align: baseline](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/align-baseline.png) |
 
 ### wrap
 
@@ -146,9 +150,9 @@ The `wrap` property controls whether flex items are forced onto a single line or
 
 | Value | Description | Visual Example |
 |-------|-------------|----------------|
-| `nowrap` | All items are laid out on a single line, even if they overflow the container. This is the default behavior. Items may shrink to fit. | ![wrap: nowrap](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/wrap-nowrap.png) |
-| `wrap` | Items wrap onto multiple lines from top to bottom (for `row`) or left to right (for `column`). New lines are added in the natural direction. | ![wrap: wrap](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/wrap-wrap.png) |
-| `wrap-reverse` | Items wrap onto multiple lines from bottom to top (for `row`) or right to left (for `column`). New lines are added in reverse order. | ![wrap: wrap-reverse](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/wrap-wrap-reverse.png) |
+| `nowrap` | All items are laid out on a single line, even if they overflow the container. This is the default behavior. Items may shrink to fit. | ![wrap: nowrap](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/wrap-nowrap.png) |
+| `wrap` | Items wrap onto multiple lines from top to bottom (for `row`) or left to right (for `column`). New lines are added in the natural direction. | ![wrap: wrap](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/wrap-wrap.png) |
+| `wrap-reverse` | Items wrap onto multiple lines from bottom to top (for `row`) or right to left (for `column`). New lines are added in reverse order. | ![wrap: wrap-reverse](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/wrap-wrap-reverse.png) |
 
 ### position
 
@@ -164,7 +168,7 @@ Element is offset from its normal flow position. Siblings are not affected.
 
 | Example | Description | Visual |
 |---------|-------------|--------|
-| Offset | Middle box shifted with `top: 15, left: 20` from normal position | ![relative offset](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-relative-offset.png) |
+| Offset | Middle box shifted with `top: 15, left: 20` from normal position | ![relative offset](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-relative-offset.png) |
 
 #### absolute
 
@@ -172,19 +176,19 @@ Element is removed from flex flow and positioned relative to its containing flex
 
 | Example | Description | Visual |
 |---------|-------------|--------|
-| Top/Left | Box pinned to `top: 10, left: 10` | ![absolute top-left](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-absolute-top-left.png) |
-| Bottom/Right | Box pinned to `bottom: 10, right: 10` | ![absolute bottom-right](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-absolute-bottom-right.png) |
-| Centered | Box centered via equal insets on all sides | ![absolute centered](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-absolute-center.png) |
-| Flow Exclusion | Absolute elements excluded from flex flow -- A, C, D stack normally | ![flow exclusion](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-flow-exclusion.png) |
-| Inset Sizing | Width/height computed from opposing insets (no explicit size) | ![inset sizing](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-inset-sizing.png) |
+| Top/Left | Box pinned to `top: 10, left: 10` | ![absolute top-left](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-absolute-top-left.png) |
+| Bottom/Right | Box pinned to `bottom: 10, right: 10` | ![absolute bottom-right](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-absolute-bottom-right.png) |
+| Centered | Box centered via equal insets on all sides | ![absolute centered](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-absolute-center.png) |
+| Flow Exclusion | Absolute elements excluded from flex flow -- A, C, D stack normally | ![flow exclusion](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-flow-exclusion.png) |
+| Inset Sizing | Width/height computed from opposing insets (no explicit size) | ![inset sizing](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-inset-sizing.png) |
 
 #### Practical Patterns
 
 | Pattern | Description | Visual |
 |---------|-------------|--------|
-| Badge | Star badge overlaid on product card with `top: 8, right: 8` | ![badge](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-badge.png) |
-| Text Overlay | Dark bar with text at bottom of image using `bottom: 0, left: 0, right: 0` | ![overlay](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-overlay.png) |
-| Floating Label | Input label floats above border with `top: -8, left: 12` | ![floating label](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/position-floating-label.png) |
+| Badge | Star badge overlaid on product card with `top: 8, right: 8` | ![badge](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-badge.png) |
+| Text Overlay | Dark bar with text at bottom of image using `bottom: 0, left: 0, right: 0` | ![overlay](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-overlay.png) |
+| Floating Label | Input label floats above border with `top: -8, left: 12` | ![floating label](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/position-floating-label.png) |
 
 #### Inset Properties
 
@@ -206,8 +210,8 @@ The `order` property controls the visual order of flex items independently from 
 
 | Example | Description | Visual |
 |---------|-------------|--------|
-| Basic reordering | Three items A(order:2), B(order:0), C(order:1) display as B, C, A. | ![order basic](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/order-basic.png) |
-| Negative order | Item B(order:-1) moves before A(order:0) and C(order:0), displaying as B, A, C. | ![order negative](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/order-negative.png) |
+| Basic reordering | Three items A(order:2), B(order:0), C(order:1) display as B, C, A. | ![order basic](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/order-basic.png) |
+| Negative order | Item B(order:-1) moves before A(order:0) and C(order:0), displaying as B, A, C. | ![order negative](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/order-negative.png) |
 
 ### border
 
@@ -221,25 +225,25 @@ Border properties add visible borders around any element. Borders support CSS-li
 
 A simple solid border around a flex container.
 
-![Solid Border](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-solid.png)
+![Solid Border](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/border-solid.png)
 
 #### Border Styles
 
 Three boxes side by side showing solid, dashed, and dotted border styles.
 
-![Border Styles](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-styles.png)
+![Border Styles](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/border-styles.png)
 
 #### Per-Side Borders
 
 Different border styles, widths, and colors on each side using `border-top`, `border-right`, `border-bottom`, and `border-left`.
 
-![Per-Side Borders](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-per-side.png)
+![Per-Side Borders](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/border-per-side.png)
 
 #### Border Radius
 
 Rounded corners using `border-radius`. Larger values create more rounding.
 
-![Border Radius](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/border-radius.png)
+![Border Radius](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/border-radius.png)
 
 #### All Border Properties
 
@@ -404,13 +408,13 @@ The `align` property controls horizontal text alignment within its container.
 
 **Values:** `left`, `center`, `right`, `start` (logical), `end` (logical)
 
-![Text Alignment](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/text-align.png)
+![Text Alignment](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/text-align.png)
 
 ##### Logical Alignment (RTL)
 
 The `start` and `end` values resolve based on the text direction. In RTL mode, `start` maps to right-aligned and `end` maps to left-aligned.
 
-![Text Alignment RTL](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/text-align-start-rtl.png)
+![Text Alignment RTL](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/text-align-start-rtl.png)
 
 #### Text Wrapping
 
@@ -418,7 +422,7 @@ The `wrap` property controls whether text wraps to multiple lines or overflows.
 
 **Values:** `true`, `false`
 
-![Text Wrapping](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/text-wrap.png)
+![Text Wrapping](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/text-wrap.png)
 
 #### Max Lines & Overflow
 
@@ -426,7 +430,7 @@ The `maxLines` property limits text to a specific number of lines. Use with `ove
 
 **Values:** Any positive integer
 
-![Max Lines](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/text-maxLines.png)
+![Max Lines](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/text-maxLines.png)
 
 #### Line Height
 
@@ -434,7 +438,7 @@ The `lineHeight` property controls vertical spacing between lines of text.
 
 **Values:** Decimal numbers (e.g., `1.0`, `1.5`, `2.0`)
 
-![Line Height](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/text-lineHeight.png)
+![Line Height](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/text-lineHeight.png)
 
 #### All Text Properties
 
@@ -462,7 +466,7 @@ The `style` property controls the visual appearance of the line.
 
 **Values:** `solid`, `dashed`, `dotted`
 
-![Separator Styles](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/separator-styles.png)
+![Separator Styles](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/separator-styles.png)
 
 #### Orientation
 
@@ -470,7 +474,7 @@ The `orientation` property controls whether the separator is horizontal or verti
 
 **Values:** `horizontal`, `vertical`
 
-![Separator Orientation](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/separator-orientation.png)
+![Separator Orientation](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/separator-orientation.png)
 
 > **Note:** Vertical separators work best inside flex containers with `direction: row` and `align: stretch`.
 
@@ -480,7 +484,7 @@ The `thickness` property controls the width of the separator line.
 
 **Values:** Any positive number (in pixels)
 
-![Separator Thickness](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/separator-thickness.png)
+![Separator Thickness](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/separator-thickness.png)
 
 #### All Separator Properties
 
@@ -504,25 +508,25 @@ The `fit` property controls how images are sized and positioned within their con
 
 Scales the image to fit inside the container while maintaining aspect ratio. The entire image is visible, and letterboxing may occur.
 
-![Image Fit: Contain](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/image-contain.png)
+![Image Fit: Contain](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/image-contain.png)
 
 ##### Cover
 
 Scales the image to fill the entire container while maintaining aspect ratio. The image may be cropped to fit.
 
-![Image Fit: Cover](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/image-cover.png)
+![Image Fit: Cover](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/image-cover.png)
 
 ##### Fill
 
 Stretches the image to fill the container exactly. Aspect ratio is NOT maintained and the image may appear distorted.
 
-![Image Fit: Fill](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/image-fill.png)
+![Image Fit: Fill](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/image-fill.png)
 
 ##### None
 
 Displays the image at its natural size without any scaling. The image may overflow the container.
 
-![Image Fit: None](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/image-none.png)
+![Image Fit: None](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/image-none.png)
 
 #### All Image Properties
 
@@ -543,13 +547,13 @@ The `errorCorrection` property controls the amount of redundancy in the QR code,
 
 **Values:** `L` (Low ~7%), `M` (Medium ~15%), `Q` (Quartile ~25%), `H` (High ~30%)
 
-![QR Code Error Correction](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/qr-errorCorrection.png)
+![QR Code Error Correction](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/qr-errorCorrection.png)
 
 #### Custom Colors
 
 QR codes support custom foreground and background colors.
 
-![QR Code Colors](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/qr-colors.png)
+![QR Code Colors](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/qr-colors.png)
 
 #### All QR Code Properties
 
@@ -571,13 +575,13 @@ The `showText` property controls whether the human-readable barcode value is dis
 
 **Values:** `true`, `false`
 
-![Barcode Show Text](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/barcode-showText.png)
+![Barcode Show Text](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/barcode-showText.png)
 
 #### Custom Colors
 
 Barcodes support custom foreground and background colors.
 
-![Barcode Colors](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/barcode-colors.png)
+![Barcode Colors](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/barcode-colors.png)
 
 #### All Barcode Properties
 
@@ -631,6 +635,371 @@ Same as `image` fit: `fill` (stretch), `contain` (fit within bounds), `cover` (f
 | `width` | number | Target render width in pixels | (auto) |
 | `height` | number | Target render height in pixels | (auto) |
 | `fit` | enum | Fit mode: `fill`, `contain`, `cover`, `none` | `contain` |
+
+---
+
+### Shapes (rect, circle, ellipse)
+
+The `rect`, `circle`, and `ellipse` elements are flex boxes painted as filled and/or stroked vector shapes. They take part in flex layout like any other box. `circle` accepts a `size` shorthand (diameter), and `rect` supports a `radius` for rounded corners.
+
+```yaml
+canvas:
+  width: 260
+  height: 90
+  fixed: both
+  background: "#ffffff"
+layout:
+  - type: flex
+    direction: row
+    gap: "10"
+    padding: "10"
+    align: center
+    children:
+      - type: rect
+        width: 70
+        height: 50
+        fill: "#4A90D9"
+        stroke: "#1f3a5f"
+        stroke-width: 2
+        radius: 6
+      - type: circle
+        size: 50
+        fill: "#e74c3c"
+      - type: ellipse
+        width: 80
+        height: 50
+        fill: "#2ecc71"
+        stroke: "#145a32"
+        stroke-width: 2
+```
+
+![Box shapes: rect, circle, ellipse](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/shapes-box-basic.png)
+
+#### Gradient Fills
+
+The `fill` property accepts a gradient object `{gradient, colors, angle}` instead of a solid hex color. `gradient` is `linear` or `radial`; `colors` needs at least two stops; `angle` (degrees) applies to linear gradients only.
+
+```yaml
+canvas:
+  width: 220
+  height: 110
+  fixed: both
+  background: "#ffffff"
+layout:
+  - type: flex
+    direction: row
+    gap: "10"
+    padding: "10"
+    children:
+      - type: rect
+        width: 90
+        height: 90
+        fill:
+          gradient: linear
+          colors: ["#ff0000", "#0000ff"]
+          angle: 45
+      - type: circle
+        size: 90
+        fill:
+          gradient: radial
+          colors: ["#ffffff", "#222222"]
+```
+
+![Gradient fills on box shapes](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/shapes-gradient.png)
+
+---
+
+### draw
+
+The `draw` element is a flex box holding an ordered list of absolute-coordinate `shapes`, painted in list order (painter's algorithm). Supported shape kinds are `line`, `polyline`, `rect`, `circle`, and `path`. Path `d` strings use absolute commands only (`M`, `L`, `Q`, `C`, `Z`). The number of shapes is capped by `ResourceLimits.MaxShapesPerDraw` (default 1000).
+
+```yaml
+canvas:
+  width: 200
+  height: 160
+  fixed: both
+  background: "#ffffff"
+layout:
+  - type: draw
+    width: 200
+    height: 160
+    shapes:
+      - rect: {x: 20, y: 20, width: 120, height: 80, fill: "#cccccc", radius: 8}
+      - line: {x1: 0, y1: 80, x2: 200, y2: 40, stroke: "#333333", stroke-width: 3}
+      - polyline: {points: [[10, 140], [60, 110], [110, 130], [160, 100]], stroke: "#4A90D9", stroke-width: 2}
+      - circle: {cx: 130, cy: 70, r: 35, fill: "#e74c3c"}
+      - path: {d: "M 20 150 L 80 110 Q 120 90 160 120 Z", fill: "#2ecc71"}
+```
+
+![Draw element with overlapping shapes in painter's order](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/shapes-draw-overlap.png)
+
+---
+
+### Charts
+
+The `chart` element renders `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `bubble`, `gauge`, `progress`, `sparkline`, `heatmap`, and `radar` charts into a fixed `width` by `height` box. Series `data` is either an inline number array or a `{{ expression }}` bound from the data context (like `table` rows). Scatter and bubble take tuple data (`[[x, y], ...]` / `[[x, y, r], ...]`); gauge and progress are single-value indicators driven by `value`/`max`/`label`; sparkline is a chrome-free inline line; heatmap renders a labeled grid (each series is a row) and radar plots `categories` as spokes. The `palette` (named or explicit color list) and `theme` (`light`, `dark`, `minimal`) control colors. An empty/missing `series` renders a "no data" placeholder rather than an error.
+
+#### Bar
+
+```yaml
+canvas:
+  width: 600
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: bar
+    width: 600
+    height: 320
+    categories: [Q1, Q2, Q3, Q4]
+    series:
+      - label: "2024"
+        data: [12, 30, 22, 48]
+    title: Revenue
+    legend: bottom
+    palette: ocean
+```
+
+![Bar chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-bar-light.png)
+
+#### Line
+
+```yaml
+canvas:
+  width: 600
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: line
+    width: 600
+    height: 300
+    categories: [Mon, Tue, Wed, Thu, Fri]
+    series:
+      - label: Visitors
+        data: [120, 200, 150, 280, 240]
+      - label: Signups
+        data: [20, 45, 30, 60, 50]
+    theme: minimal
+    points: true
+    legend: bottom
+```
+
+![Line chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-line-minimal.png)
+
+#### Area
+
+```yaml
+canvas:
+  width: 600
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: area
+    width: 600
+    height: 300
+    categories: [Jan, Feb, Mar, Apr]
+    series:
+      - data: [30, 60, 45, 80]
+    legend: none
+    palette: forest
+```
+
+![Area chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-area-light.png)
+
+#### Pie
+
+```yaml
+canvas:
+  width: 400
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: pie
+    width: 400
+    height: 360
+    categories: [Direct, Social, Search]
+    series:
+      - data: [30, 50, 20]
+    legend: bottom
+    palette: sunset
+```
+
+![Pie chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-pie-light.png)
+
+#### Donut
+
+```yaml
+canvas:
+  width: 400
+  background: "#1e1e1e"
+layout:
+  - type: chart
+    chart-type: donut
+    width: 400
+    height: 360
+    categories: [A, B, C, D]
+    series:
+      - data: [10, 20, 30, 40]
+    theme: dark
+    legend: bottom
+    palette: ocean
+```
+
+![Donut chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-donut-dark.png)
+
+#### Scatter
+
+Scatter plots take tuple data -- each point is an `[x, y]` pair.
+
+```yaml
+canvas:
+  width: 480
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: scatter
+    width: 480
+    height: 320
+    series:
+      - label: cloud
+        data: [[1, 12], [3, 30], [5, 22], [7, 48], [9, 35]]
+    legend: none
+    palette: ocean
+```
+
+![Scatter chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-scatter-light.png)
+
+#### Bubble
+
+Bubble charts add a third tuple component -- `[x, y, r]` -- where `r` sizes each bubble.
+
+```yaml
+canvas:
+  width: 480
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: bubble
+    width: 480
+    height: 320
+    series:
+      - data: [[1, 12, 6], [3, 30, 18], [5, 22, 10], [7, 48, 24]]
+    legend: none
+    palette: sunset
+```
+
+![Bubble chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-bubble-light.png)
+
+#### Gauge
+
+Gauge is a single-value 270-degree dial driven by `value`, `max`, and `label`.
+
+```yaml
+canvas:
+  width: 280
+  background: "#1e1e1e"
+layout:
+  - type: chart
+    chart-type: gauge
+    width: 280
+    height: 220
+    value: 72
+    max: 100
+    label: CPU
+    theme: dark
+    palette: vivid
+```
+
+![Gauge chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-gauge-dark.png)
+
+#### Progress
+
+Progress draws a ring filled to `value` / `max`, with a centered `label`.
+
+```yaml
+canvas:
+  width: 240
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: progress
+    width: 240
+    height: 240
+    value: 64
+    max: 100
+    label: Disk
+    palette: forest
+```
+
+![Progress chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-progress-light.png)
+
+#### Sparkline
+
+Sparkline is a tiny chrome-free line (no axes, legend, or title) that honors `smooth`/`points`.
+
+```yaml
+canvas:
+  width: 200
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: sparkline
+    width: 200
+    height: 50
+    smooth: true
+    series:
+      - data: [3, 8, 4, 10, 6, 9, 5, 11]
+```
+
+![Sparkline chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-sparkline-light.png)
+
+Heatmap renders a grid where each `series` entry is one ROW: `series[i].data` holds that row's column values. `x-labels` label the columns (falling back to `categories`), `y-labels` label the rows, and `cell-values: true` prints each cell's number. Cell color is interpolated between the palette's first ("low") and second ("high") colors.
+
+```yaml
+canvas:
+  width: 420
+  background: "#ffffff"
+layout:
+  - type: chart
+    chart-type: heatmap
+    width: 420
+    height: 300
+    x-labels: [Mon, Tue, Wed, Thu, Fri]
+    y-labels: [Morning, Afternoon, Evening]
+    cell-values: true
+    series:
+      - data: [2, 8, 4, 10, 6]
+      - data: [5, 3, 9, 7, 1]
+      - data: [8, 6, 2, 4, 9]
+    title: Activity
+    legend: none
+    palette: ocean
+```
+
+![Heatmap chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-heatmap-light.png)
+
+Radar uses `categories` as spokes (one axis per category, starting at the top and advancing clockwise). Each `series` is a closed polygon along the spokes -- filled semi-transparently and stroked -- sharing one radial scale anchored at zero at the center.
+
+```yaml
+canvas:
+  width: 360
+  background: "#1e1e1e"
+layout:
+  - type: chart
+    chart-type: radar
+    width: 360
+    height: 360
+    categories: [Speed, Power, Range, Agility, Armor, Stealth]
+    series:
+      - label: Alpha
+        data: [4, 3, 5, 2, 4, 3]
+      - label: Bravo
+        data: [3, 5, 2, 4, 3, 5]
+    theme: dark
+    legend: bottom
+    palette: vivid
+```
+
+![Radar chart](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/chart-radar-dark.png)
 
 ---
 

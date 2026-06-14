@@ -61,7 +61,32 @@ public enum ElementType
     /// <summary>
     /// A content element that expands formatted text into a subtree.
     /// </summary>
-    Content
+    Content,
+
+    /// <summary>
+    /// A rectangle shape element (flex box drawn as a filled/stroked rect).
+    /// </summary>
+    Rect,
+
+    /// <summary>
+    /// A circle shape element (flex box drawn as a filled/stroked circle).
+    /// </summary>
+    Circle,
+
+    /// <summary>
+    /// An ellipse shape element (flex box drawn as a filled/stroked ellipse).
+    /// </summary>
+    Ellipse,
+
+    /// <summary>
+    /// A free-form drawing element holding absolute-coordinate shapes.
+    /// </summary>
+    Draw,
+
+    /// <summary>
+    /// A chart element (bar, line, area, pie, donut).
+    /// </summary>
+    Chart
 }
 
 /// <summary>

@@ -332,6 +332,29 @@ internal sealed class RenderingEngine
                 }
                 break;
 
+            case RectElement rect:
+                ShapeRenderer.DrawRect(canvas, rect, x, y, width, height, effectiveFontSize, renderOptions.Antialiasing);
+                break;
+
+            case CircleElement circle:
+                ShapeRenderer.DrawCircle(canvas, circle, x, y, width, height, renderOptions.Antialiasing);
+                break;
+
+            case EllipseElement ellipse:
+                ShapeRenderer.DrawEllipse(canvas, ellipse, x, y, width, height, renderOptions.Antialiasing);
+                break;
+
+            case DrawElement drawEl:
+                ShapeRenderer.DrawShapes(canvas, drawEl, x, y, width, height, renderOptions.Antialiasing);
+                break;
+
+            case ChartElement chart:
+                ChartRenderer.Draw(
+                    canvas, chart, x, y, width, height,
+                    _fontManager?.GetTypeface("main"),
+                    renderOptions.Antialiasing);
+                break;
+
             case SeparatorElement separator:
                 DrawSeparator(canvas, separator, x, y, width, height, renderOptions.Antialiasing);
                 break;
