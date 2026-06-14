@@ -255,16 +255,16 @@ All new features and non-trivial changes must be developed in separate branches.
 - **Do NOT merge into `main`** -- leave the feature branch as-is after completing work. Merging is done manually by the maintainer or via GitHub PR
 - **Do NOT use git worktrees** -- work directly in the repository checkout. Worktrees add unnecessary complexity and cause issues with stash conflicts and asset path resolution
 
-### Git LFS & Image URLs
+### Image URLs
 
-All binary assets (PNG images, fonts) are stored in Git LFS. When referencing images in README or documentation:
+Binary assets (PNG images, fonts) are stored **directly in Git** (Git LFS was removed). When referencing images in README or documentation:
 
-- **Use `media.githubusercontent.com`** for LFS-tracked files:
+- **Use `raw.githubusercontent.com`**:
   ```
-  https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/receipt.png
+  https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/receipt.png
   ```
-- **Do NOT use `raw.githubusercontent.com`** -- it returns the LFS pointer file (text), not the actual image content
-- LFS-tracked paths: `examples/output/*.png`, `examples/assets/fonts/*.ttf`, `examples/assets/placeholder/*.png`, `examples/visual-docs/output/*.png`
+- **Do NOT use `media.githubusercontent.com/media/...`** -- that is the LFS delivery path and now returns 404, since the files are no longer LFS-tracked
+- Asset paths: `examples/output/*.png`, `examples/assets/fonts/*.ttf`, `examples/assets/placeholder/*.png`, `examples/visual-docs/output/*.png`
 
 ### Commits
 

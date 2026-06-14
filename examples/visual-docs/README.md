@@ -152,7 +152,7 @@ dotnet run --project ../../src/FlexRender.Cli --no-build --framework net8.0 -- \
    Add reference in `docs/wiki/Visual-Reference.md` (single consolidated page):
 
    ```markdown
-   | `your-feature` | Description | ![your-feature](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/visual-docs/output/category-your-feature.png) |
+   | `your-feature` | Description | ![your-feature](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/visual-docs/output/category-your-feature.png) |
    ```
 
 5. **Verify**

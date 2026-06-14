@@ -47,7 +47,7 @@ A modular .NET library for rendering images from YAML templates with a full CSS 
 
 | Receipt | Dynamic Receipt | Ticket | Label |
 |---------|-----------------|--------|-------|
-| ![Receipt](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/receipt.png) | ![Dynamic](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/receipt-dynamic.png) | ![Ticket](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/ticket.png) | ![Label](https://media.githubusercontent.com/media/RoboNET/FlexRender/main/examples/output/label.png) |
+| ![Receipt](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/receipt.png) | ![Dynamic](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/receipt-dynamic.png) | ![Ticket](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/ticket.png) | ![Label](https://raw.githubusercontent.com/RoboNET/FlexRender/main/examples/output/label.png) |
 
 ## Quick Install
 
