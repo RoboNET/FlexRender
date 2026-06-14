@@ -307,52 +307,60 @@ internal sealed class SvgRenderingEngine
         // Draw borders
         DrawBorders(sb, element, x, y, width, height, borderRadius);
 
+        // Content is inset by padding + border so it sits inside the box on all sides.
+        // Background and border above keep using the full box (x, y, width, height).
+        var inset = node.ContentInset;
+        var cx = x + inset.Left;
+        var cy = y + inset.Top;
+        var cw = Math.Max(0f, width - inset.Horizontal);
+        var ch = Math.Max(0f, height - inset.Vertical);
+
         // Draw element-specific content
         switch (element)
         {
             case TextElement text:
-                DrawText(sb, text, fontFamilyMap, x, y, width, height, direction, node.TextLines, node.ComputedLineHeight);
+                DrawText(sb, text, fontFamilyMap, cx, cy, cw, ch, direction, node.TextLines, node.ComputedLineHeight);
                 break;
 
             case SeparatorElement separator:
-                DrawSeparator(sb, separator, x, y, width, height);
+                DrawSeparator(sb, separator, cx, cy, cw, ch);
                 break;
 
             case ImageElement image:
-                DrawImage(sb, image, x, y, width, height);
+                DrawImage(sb, image, cx, cy, cw, ch);
                 break;
 
             case SvgElement svg when _svgElementSvgProvider is not null:
-                DrawSvgContentProvider(sb, _svgElementSvgProvider, svg, x, y, width, height);
+                DrawSvgContentProvider(sb, _svgElementSvgProvider, svg, cx, cy, cw, ch);
                 break;
 
             case SvgElement svg:
-                DrawSvgElement(sb, svg, x, y, width, height);
+                DrawSvgElement(sb, svg, cx, cy, cw, ch);
                 break;
 
             case QrElement qr when _qrSvgProvider is not null:
-                DrawSvgContentProvider(sb, _qrSvgProvider, qr, x, y, width, height);
+                DrawSvgContentProvider(sb, _qrSvgProvider, qr, cx, cy, cw, ch);
                 break;
 
             case QrElement qr when _qrProvider is ISvgContentProvider<QrElement> svgQrProvider:
-                DrawSvgContentProvider(sb, svgQrProvider, qr, x, y, width, height);
+                DrawSvgContentProvider(sb, svgQrProvider, qr, cx, cy, cw, ch);
                 break;
 
             case QrElement qr when _qrProvider is not null:
             {
-                var result = _qrProvider.Generate(qr, (int)width, (int)height);
-                DrawBitmapElement(sb, result, x, y, width, height);
+                var result = _qrProvider.Generate(qr, (int)cw, (int)ch);
+                DrawBitmapElement(sb, result, cx, cy, cw, ch);
                 break;
             }
 
             case BarcodeElement barcode when _barcodeSvgProvider is not null:
-                DrawSvgContentProvider(sb, _barcodeSvgProvider, barcode, x, y, width, height);
+                DrawSvgContentProvider(sb, _barcodeSvgProvider, barcode, cx, cy, cw, ch);
                 break;
 
             case BarcodeElement barcode when _barcodeProvider is not null:
             {
-                var result = _barcodeProvider.Generate(barcode, (int)width, (int)height);
-                DrawBitmapElement(sb, result, x, y, width, height);
+                var result = _barcodeProvider.Generate(barcode, (int)cw, (int)ch);
+                DrawBitmapElement(sb, result, cx, cy, cw, ch);
                 break;
             }
 
