@@ -292,31 +292,39 @@ internal sealed class RenderingEngine
         // Draw borders between background and content
         DrawBorders(canvas, element, x, y, width, height, borderRadius, effectiveFontSize);
 
+        // Content (text, bitmaps, shapes) is inset by padding + border so it sits inside the
+        // box on all sides. Background and border above keep using the full box (x, y, w, h).
+        var inset = node.ContentInset;
+        var cx = x + inset.Left;
+        var cy = y + inset.Top;
+        var cw = Math.Max(0f, width - inset.Horizontal);
+        var ch = Math.Max(0f, height - inset.Vertical);
+
         switch (element)
         {
             case TextElement text:
-                var bounds = new SKRect(x, y, x + width, y + height);
+                var bounds = new SKRect(cx, cy, cx + cw, cy + ch);
                 _textRenderer.DrawText(canvas, text, bounds, effectiveFontSize, renderOptions, direction, node.TextLines, node.ComputedLineHeight);
                 break;
 
             case QrElement qr when _qrProvider is not null:
-                using (var bitmap = GetSkiaBitmap(_qrProvider, qr, (int)width, (int)height))
+                using (var bitmap = GetSkiaBitmap(_qrProvider, qr, (int)cw, (int)ch))
                 {
-                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
+                    DrawBitmapWithRotation(canvas, bitmap, element, cx, cy, cw, ch);
                 }
                 break;
 
             case BarcodeElement barcode when _barcodeProvider is not null:
-                using (var bitmap = GetSkiaBitmap(_barcodeProvider, barcode, (int)width, (int)height))
+                using (var bitmap = GetSkiaBitmap(_barcodeProvider, barcode, (int)cw, (int)ch))
                 {
-                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
+                    DrawBitmapWithRotation(canvas, bitmap, element, cx, cy, cw, ch);
                 }
                 break;
 
             case SvgElement svg when _svgProvider is not null:
-                using (var bitmap = GetSkiaBitmap(_svgProvider, svg, (int)width, (int)height))
+                using (var bitmap = GetSkiaBitmap(_svgProvider, svg, (int)cw, (int)ch))
                 {
-                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
+                    DrawBitmapWithRotation(canvas, bitmap, element, cx, cy, cw, ch);
                 }
                 break;
 
@@ -325,38 +333,38 @@ internal sealed class RenderingEngine
                     image,
                     imageCache,
                     renderOptions.Antialiasing,
-                    layoutWidth: (int)width,
-                    layoutHeight: (int)height))
+                    layoutWidth: (int)cw,
+                    layoutHeight: (int)ch))
                 {
-                    DrawBitmapWithRotation(canvas, bitmap, element, x, y, width, height);
+                    DrawBitmapWithRotation(canvas, bitmap, element, cx, cy, cw, ch);
                 }
                 break;
 
             case RectElement rect:
-                ShapeRenderer.DrawRect(canvas, rect, x, y, width, height, effectiveFontSize, renderOptions.Antialiasing);
+                ShapeRenderer.DrawRect(canvas, rect, cx, cy, cw, ch, effectiveFontSize, renderOptions.Antialiasing);
                 break;
 
             case CircleElement circle:
-                ShapeRenderer.DrawCircle(canvas, circle, x, y, width, height, renderOptions.Antialiasing);
+                ShapeRenderer.DrawCircle(canvas, circle, cx, cy, cw, ch, renderOptions.Antialiasing);
                 break;
 
             case EllipseElement ellipse:
-                ShapeRenderer.DrawEllipse(canvas, ellipse, x, y, width, height, renderOptions.Antialiasing);
+                ShapeRenderer.DrawEllipse(canvas, ellipse, cx, cy, cw, ch, renderOptions.Antialiasing);
                 break;
 
             case DrawElement drawEl:
-                ShapeRenderer.DrawShapes(canvas, drawEl, x, y, width, height, renderOptions.Antialiasing);
+                ShapeRenderer.DrawShapes(canvas, drawEl, cx, cy, cw, ch, renderOptions.Antialiasing);
                 break;
 
             case ChartElement chart:
                 ChartRenderer.Draw(
-                    canvas, chart, x, y, width, height,
+                    canvas, chart, cx, cy, cw, ch,
                     _fontManager?.GetTypeface("main"),
                     renderOptions.Antialiasing);
                 break;
 
             case SeparatorElement separator:
-                DrawSeparator(canvas, separator, x, y, width, height, renderOptions.Antialiasing);
+                DrawSeparator(canvas, separator, cx, cy, cw, ch, renderOptions.Antialiasing);
                 break;
 
             case FlexElement:

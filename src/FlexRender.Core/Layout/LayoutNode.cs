@@ -1,3 +1,4 @@
+using FlexRender.Layout.Units;
 using FlexRender.Parsing.Ast;
 
 namespace FlexRender.Layout;
@@ -66,6 +67,29 @@ public sealed class LayoutNode
     /// Only populated when <see cref="LayoutEngine.EnableDiagnostics"/> is true.
     /// </summary>
     public LayoutDiagnostics? Diagnostics { get; set; }
+
+    /// <summary>
+    /// The content inset (padding + border) for each side, in pixels. This is the distance
+    /// from the element's box edge to its content area. Renderers subtract this inset when
+    /// drawing leaf content so that padding insets content on all sides, while the background
+    /// and border keep using the full box. Defaults to <see cref="PaddingValues.Zero"/>;
+    /// container (flex) nodes leave it zero because their children are already offset by padding.
+    /// </summary>
+    public PaddingValues ContentInset { get; set; } = PaddingValues.Zero;
+
+    /// <summary>
+    /// The resolved right (outer) margin in pixels. Used by auto-size calculations to include
+    /// a trailing child's right margin in the parent's content extent. The left/top margins are
+    /// already baked into <see cref="X"/>/<see cref="Y"/> by the flex strategies. Defaults to 0.
+    /// </summary>
+    public float MarginRight { get; set; }
+
+    /// <summary>
+    /// The resolved bottom (outer) margin in pixels. Used by auto-size calculations to include
+    /// a trailing child's bottom margin in the parent's content extent. The left/top margins are
+    /// already baked into <see cref="X"/>/<see cref="Y"/> by the flex strategies. Defaults to 0.
+    /// </summary>
+    public float MarginBottom { get; set; }
 
     /// <summary>Right edge (X + Width).</summary>
     public float Right => X + Width;

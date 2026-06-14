@@ -215,7 +215,12 @@ internal sealed class ColumnFlexLayoutStrategy
                 pos += m.Top.IsAuto ? spacePerAuto : m.Top.ResolvedPixels;
                 child.Y = pos;
                 pos += child.Height;
-                pos += m.Bottom.IsAuto ? spacePerAuto : m.Bottom.ResolvedPixels;
+                var autoBottom = m.Bottom.IsAuto ? spacePerAuto : m.Bottom.ResolvedPixels;
+                pos += autoBottom;
+
+                // Store resolved outer right/bottom margins for trailing-margin auto-size.
+                child.MarginBottom = Math.Max(0f, autoBottom);
+                child.MarginRight = Math.Max(0f, m.Right.IsAuto ? 0f : m.Right.ResolvedPixels);
 
                 // Cross axis auto margins override align-items (horizontal for column)
                 ApplyColumnCrossAxisMargins(child, m, flex, padding, crossAxisSize);
@@ -279,6 +284,10 @@ internal sealed class ColumnFlexLayoutStrategy
                 var mBottom = Math.Max(0f, m.Bottom.ResolvedPixels);
                 var mLeft = Math.Max(0f, m.Left.ResolvedPixels);
                 var mRight = Math.Max(0f, m.Right.ResolvedPixels);
+
+                // Store resolved outer right/bottom margins for trailing-margin auto-size.
+                child.MarginBottom = mBottom;
+                child.MarginRight = mRight;
 
                 // Check for cross axis auto margins even when main axis has no auto margins
                 if (m.CrossAxisAutoCount(isColumn: true) > 0)

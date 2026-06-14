@@ -229,8 +229,9 @@ internal static class LayoutHelpers
         foreach (var child in node.Children)
         {
             if (child.Element.Position.Value == Position.Absolute) continue;
-            if (child.Bottom > maxBottom)
-                maxBottom = child.Bottom;
+            var bottom = child.Bottom + child.MarginBottom;
+            if (bottom > maxBottom)
+                maxBottom = bottom;
         }
         return maxBottom;
     }
@@ -249,7 +250,7 @@ internal static class LayoutHelpers
         foreach (var child in node.Children)
         {
             if (child.Element.Position.Value == Position.Absolute) continue;
-            var right = child.X + child.Width;
+            var right = child.X + child.Width + child.MarginRight;
             if (right > maxRight)
                 maxRight = right;
         }

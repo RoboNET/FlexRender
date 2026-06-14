@@ -97,6 +97,29 @@ public sealed class ImageSharpVisualSnapshotTests : ImageSharpSnapshotTestBase
     }
 
     /// <summary>
+    /// Tests that a top-level leaf text element with padding insets its content on all
+    /// four sides (not just right/bottom). Regression test for issue #10.
+    /// </summary>
+    [Fact]
+    public void LeafPaddingInsetsContent()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        var template = CreateTemplate(300, 200);
+        template.Canvas.Fixed = FixedDimension.Width;
+        template.AddElement(new TextElement
+        {
+            Content = "Line one of padded text\nLine two of padded text\nLine three",
+            Size = "16",
+            Color = "#003366",
+            Background = "#cce5ff",
+            Padding = "40"
+        });
+
+        AssertSnapshot("is_leaf-padding-insets-content", template, new ObjectValue());
+    }
+
+    /// <summary>
     /// Tests template variable substitution in text content.
     /// </summary>
     [Fact]

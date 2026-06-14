@@ -222,7 +222,12 @@ internal sealed class RowFlexLayoutStrategy
                 pos += m.Left.IsAuto ? spacePerAuto : m.Left.ResolvedPixels;
                 child.X = pos;
                 pos += child.Width;
-                pos += m.Right.IsAuto ? spacePerAuto : m.Right.ResolvedPixels;
+                var autoRight = m.Right.IsAuto ? spacePerAuto : m.Right.ResolvedPixels;
+                pos += autoRight;
+
+                // Store resolved outer right/bottom margins for trailing-margin auto-size.
+                child.MarginRight = Math.Max(0f, autoRight);
+                child.MarginBottom = Math.Max(0f, m.Bottom.IsAuto ? 0f : m.Bottom.ResolvedPixels);
 
                 // Cross axis auto margins override align-items (vertical for row)
                 ApplyRowCrossAxisMargins(child, m, flex, padding, crossAxisSize, hasExplicitHeight);
@@ -301,6 +306,10 @@ internal sealed class RowFlexLayoutStrategy
                 var mRight = Math.Max(0f, m.Right.ResolvedPixels);
                 var mTop = Math.Max(0f, m.Top.ResolvedPixels);
                 var mBottom = Math.Max(0f, m.Bottom.ResolvedPixels);
+
+                // Store resolved outer right/bottom margins for trailing-margin auto-size.
+                child.MarginRight = mRight;
+                child.MarginBottom = mBottom;
 
                 // Add child margin to X position
                 child.X = x + mLeft;
