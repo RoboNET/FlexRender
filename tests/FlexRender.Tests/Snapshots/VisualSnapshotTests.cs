@@ -1330,6 +1330,28 @@ public sealed class VisualSnapshotTests : SnapshotTestBase
     }
 
     /// <summary>
+    /// Tests that a top-level leaf text element with padding insets its content on all
+    /// four sides (not just right/bottom). Regression test for issue #10 where leaf padding
+    /// only inflated the box and the content stayed at the box's top-left corner.
+    /// </summary>
+    [Fact]
+    public async Task LeafPaddingInsetsContent()
+    {
+        var template = CreateTemplate(300, 200);
+
+        template.AddElement(new TextElement
+        {
+            Content = "Line one of padded text\nLine two of padded text\nLine three",
+            Size = "16",
+            Color = "#003366",
+            Background = "#cce5ff",
+            Padding = "40"
+        });
+
+        await AssertSnapshot("leaf-padding-insets-content", template, new ObjectValue());
+    }
+
+    /// <summary>
     /// Tests element with both margin and background to verify that
     /// margin creates space outside the background area.
     /// </summary>
