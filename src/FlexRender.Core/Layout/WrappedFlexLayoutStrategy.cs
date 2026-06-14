@@ -511,6 +511,11 @@ internal sealed class WrappedFlexLayoutStrategy
             var child = lineChildren[i];
             var childMargin = PaddingParser.Parse(child.Element.Margin.Value, context.ContainerWidth, context.FontSize).ClampNegatives();
 
+            // Record resolved trailing margins so CalculateTotalHeight/Width (used for
+            // auto-sizing the container) accounts for them, matching the non-wrap strategies.
+            child.MarginRight = childMargin.Right;
+            child.MarginBottom = childMargin.Bottom;
+
             if (isColumn)
             {
                 child.Y = pos + childMargin.Top;

@@ -401,8 +401,10 @@ public sealed class LayoutEngine
             MirrorRowXPositions(node, effectivePadding);
         }
 
-        // Calculate height if not specified (skip for wrapped containers — they set height in LayoutWrappedFlex)
-        if (height == 0f && node.Children.Count > 0 && flex.Wrap.Value == FlexWrap.NoWrap)
+        // Compute auto height when the strategy did not set it — covers no-wrap and
+        // column-wrap. Row-wrap already sets height (its cross axis), so node.Height is
+        // non-zero there and this is skipped.
+        if (height == 0f && node.Children.Count > 0 && node.Height == 0f)
         {
             node.Height = LayoutHelpers.CalculateTotalHeight(node) + effectivePadding.Bottom;
         }
