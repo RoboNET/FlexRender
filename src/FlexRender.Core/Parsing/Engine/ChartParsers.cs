@@ -2,26 +2,26 @@ using System.Collections.Generic;
 using System.Globalization;
 using FlexRender.Charts;
 using FlexRender.Parsing.Ast;
-using YamlDotNet.RepresentationModel;
-using static FlexRender.Parsing.YamlPropertyHelpers;
+using FlexRender.Parsing.Nodes;
+using static FlexRender.Parsing.NodePropertyHelpers;
 
 namespace FlexRender.Parsing;
 
 /// <summary>
-/// Provides static helpers for parsing the <c>chart</c> element from YAML.
+/// Provides static helpers for parsing the <c>chart</c> element from the neutral node model.
 /// </summary>
 public static class ChartParsers
 {
     /// <summary>
     /// Parses a <c>chart</c> element.
     /// </summary>
-    /// <param name="node">The YAML node containing the chart definition.</param>
+    /// <param name="node">The neutral node containing the chart definition.</param>
     /// <param name="maxSeries">The maximum number of series allowed.</param>
     /// <param name="maxDataPoints">The maximum number of data points per series.</param>
     /// <returns>The parsed <see cref="ChartElement"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="node"/> is null.</exception>
     /// <exception cref="TemplateParseException">Thrown on an unknown chart-type, malformed series, or exceeded limits.</exception>
-    internal static TemplateElement ParseChartElement(YamlMappingNode node, int maxSeries, int maxDataPoints)
+    internal static TemplateElement ParseChartElement(TemplateMapping node, int maxSeries, int maxDataPoints)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -64,7 +64,7 @@ public static class ChartParsers
     /// <param name="node">The chart mapping node.</param>
     /// <returns>The resolved <see cref="ChartType"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown when the value is not a known chart type.</exception>
-    private static ChartType ParseChartType(YamlMappingNode node)
+    private static ChartType ParseChartType(TemplateMapping node)
     {
         var raw = GetStringValue(node, "chart-type", "bar");
         if (!Enum.TryParse<ChartType>(raw, ignoreCase: true, out var chartType))
@@ -81,7 +81,7 @@ public static class ChartParsers
     /// <param name="node">The chart mapping node.</param>
     /// <returns>The resolved <see cref="LegendPosition"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown when the value is not a known legend position.</exception>
-    private static LegendPosition ParseLegend(YamlMappingNode node)
+    private static LegendPosition ParseLegend(TemplateMapping node)
     {
         var raw = GetStringValue(node, "legend", "bottom");
         if (!Enum.TryParse<LegendPosition>(raw, ignoreCase: true, out var legend))
@@ -98,7 +98,7 @@ public static class ChartParsers
     /// <param name="node">The chart mapping node.</param>
     /// <returns>The resolved <see cref="PieLabelMode"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown when the value is not a known label mode.</exception>
-    private static PieLabelMode ParsePieLabels(YamlMappingNode node)
+    private static PieLabelMode ParsePieLabels(TemplateMapping node)
     {
         var raw = GetStringValue(node, "labels", "percent");
         if (!Enum.TryParse<PieLabelMode>(raw, ignoreCase: true, out var mode))
@@ -114,14 +114,14 @@ public static class ChartParsers
     /// </summary>
     /// <param name="node">The chart mapping node.</param>
     /// <returns>The category labels in order; empty when none are present.</returns>
-    private static List<string> ParseCategories(YamlMappingNode node)
+    private static List<string> ParseCategories(TemplateMapping node)
     {
         var categories = new List<string>();
         if (TryGetSequence(node, "categories", out var seq))
         {
-            foreach (var item in seq.Children)
+            foreach (var item in seq.Items)
             {
-                if (item is YamlScalarNode scalar && scalar.Value is not null)
+                if (item is TemplateScalar scalar && scalar.Value is not null)
                     categories.Add(scalar.Value);
             }
         }
@@ -134,14 +134,14 @@ public static class ChartParsers
     /// <param name="node">The chart mapping node.</param>
     /// <param name="key">The property key (e.g. "x-labels").</param>
     /// <returns>The labels in order; empty when the key is absent.</returns>
-    private static List<string> ParseStringList(YamlMappingNode node, string key)
+    private static List<string> ParseStringList(TemplateMapping node, string key)
     {
         var labels = new List<string>();
         if (TryGetSequence(node, key, out var seq))
         {
-            foreach (var item in seq.Children)
+            foreach (var item in seq.Items)
             {
-                if (item is YamlScalarNode scalar && scalar.Value is not null)
+                if (item is TemplateScalar scalar && scalar.Value is not null)
                     labels.Add(scalar.Value);
             }
         }
@@ -154,15 +154,15 @@ public static class ChartParsers
     /// <param name="node">The chart mapping node.</param>
     /// <returns>The resolved <see cref="ChartPalette"/>, or null when no palette is specified.</returns>
     /// <exception cref="TemplateParseException">Thrown when an empty color list or an unknown palette name is given.</exception>
-    private static ChartPalette? ParsePalette(YamlMappingNode node)
+    private static ChartPalette? ParsePalette(TemplateMapping node)
     {
         // Explicit color list form.
         if (TryGetSequence(node, "palette", out var seq))
         {
             var colors = new List<string>();
-            foreach (var item in seq.Children)
+            foreach (var item in seq.Items)
             {
-                if (item is YamlScalarNode scalar && !string.IsNullOrWhiteSpace(scalar.Value))
+                if (item is TemplateScalar scalar && !string.IsNullOrWhiteSpace(scalar.Value))
                     colors.Add(scalar.Value.Trim());
             }
             if (colors.Count == 0)
@@ -188,7 +188,7 @@ public static class ChartParsers
     /// <param name="node">The chart mapping node.</param>
     /// <returns>The resolved <see cref="ChartTheme"/>, or null when no theme is specified.</returns>
     /// <exception cref="TemplateParseException">Thrown when an unknown theme name is given.</exception>
-    private static ChartTheme? ParseTheme(YamlMappingNode node)
+    private static ChartTheme? ParseTheme(TemplateMapping node)
     {
         var name = GetStringValue(node, "theme");
         if (string.IsNullOrWhiteSpace(name))
@@ -210,22 +210,22 @@ public static class ChartParsers
     /// <param name="maxDataPoints">The maximum number of data points per series.</param>
     /// <returns>The parsed series; empty when no <c>series</c> sequence is present.</returns>
     /// <exception cref="TemplateParseException">Thrown when the series limit is exceeded or an entry is malformed.</exception>
-    private static List<ChartSeries> ParseSeries(YamlMappingNode node, ChartType chartType, int maxSeries, int maxDataPoints)
+    private static List<ChartSeries> ParseSeries(TemplateMapping node, ChartType chartType, int maxSeries, int maxDataPoints)
     {
         var result = new List<ChartSeries>();
 
         if (!TryGetSequence(node, "series", out var seriesSeq))
             return result;
 
-        if (seriesSeq.Children.Count > maxSeries)
+        if (seriesSeq.Items.Count > maxSeries)
         {
             throw new TemplateParseException(
-                $"Chart has {seriesSeq.Children.Count} series, which exceeds the maximum of {maxSeries}.");
+                $"Chart has {seriesSeq.Items.Count} series, which exceeds the maximum of {maxSeries}.");
         }
 
-        foreach (var item in seriesSeq.Children)
+        foreach (var item in seriesSeq.Items)
         {
-            if (item is not YamlMappingNode seriesNode)
+            if (item is not TemplateMapping seriesNode)
                 throw new TemplateParseException("Each entry in 'series' must be a mapping with a 'data' field.");
 
             result.Add(ParseOneSeries(seriesNode, chartType, maxDataPoints));
@@ -243,7 +243,7 @@ public static class ChartParsers
     /// <param name="maxDataPoints">The maximum number of data points allowed in the series.</param>
     /// <returns>The parsed <see cref="ChartSeries"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown when the data-point limit is exceeded or a value is non-numeric/non-finite.</exception>
-    private static ChartSeries ParseOneSeries(YamlMappingNode seriesNode, ChartType chartType, int maxDataPoints)
+    private static ChartSeries ParseOneSeries(TemplateMapping seriesNode, ChartType chartType, int maxDataPoints)
     {
         var label = GetStringValue(seriesNode, "label");
 
@@ -253,26 +253,26 @@ public static class ChartParsers
         // Inline array form.
         if (TryGetSequence(seriesNode, "data", out var dataSeq))
         {
-            if (dataSeq.Children.Count > maxDataPoints)
+            if (dataSeq.Items.Count > maxDataPoints)
             {
                 throw new TemplateParseException(
-                    $"Series '{label ?? "(unlabeled)"}' has {dataSeq.Children.Count} data points, which exceeds the maximum of {maxDataPoints}.");
+                    $"Series '{label ?? "(unlabeled)"}' has {dataSeq.Items.Count} data points, which exceeds the maximum of {maxDataPoints}.");
             }
 
             // Tuple data: the items are themselves sequences ([x, y] or [x, y, r]).
-            if (dataSeq.Children.Count > 0 && dataSeq.Children[0] is YamlSequenceNode)
+            if (dataSeq.Items.Count > 0 && dataSeq.Items[0] is TemplateSequence)
                 return ParseTupleSeries(label, dataSeq, allowRadius);
 
             // Flat numeric data (bar/line/area/pie/donut/sparkline/gauge-progress series).
-            var values = new List<double>(dataSeq.Children.Count);
-            foreach (var v in dataSeq.Children)
+            var values = new List<double>(dataSeq.Items.Count);
+            foreach (var v in dataSeq.Items)
             {
-                if (v is not YamlScalarNode scalar
+                if (v is not TemplateScalar scalar
                     || !double.TryParse(scalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
                     || !double.IsFinite(d))
                 {
                     throw new TemplateParseException(
-                        $"Series '{label ?? "(unlabeled)"}' contains a non-numeric data value '{(v as YamlScalarNode)?.Value}'.");
+                        $"Series '{label ?? "(unlabeled)"}' contains a non-numeric data value '{(v as TemplateScalar)?.Value}'.");
                 }
                 values.Add(d);
             }
@@ -296,18 +296,18 @@ public static class ChartParsers
     /// <param name="allowRadius">Whether a third (radius) element is permitted (bubble).</param>
     /// <returns>A point-bearing <see cref="ChartSeries"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown on wrong arity, non-numeric, or non-finite tuple values.</exception>
-    private static ChartSeries ParseTupleSeries(string? label, YamlSequenceNode dataSeq, bool allowRadius)
+    private static ChartSeries ParseTupleSeries(string? label, TemplateSequence dataSeq, bool allowRadius)
     {
-        var points = new List<ChartPoint>(dataSeq.Children.Count);
-        foreach (var item in dataSeq.Children)
+        var points = new List<ChartPoint>(dataSeq.Items.Count);
+        foreach (var item in dataSeq.Items)
         {
-            if (item is not YamlSequenceNode tuple)
+            if (item is not TemplateSequence tuple)
             {
                 throw new TemplateParseException(
                     $"Series '{label ?? "(unlabeled)"}' mixes tuple and scalar data; every item must be an [x, y] (or [x, y, r]) array.");
             }
 
-            var arity = tuple.Children.Count;
+            var arity = tuple.Items.Count;
             var maxArity = allowRadius ? 3 : 2;
             if (arity < 2 || arity > maxArity)
             {
@@ -315,9 +315,9 @@ public static class ChartParsers
                     $"Series '{label ?? "(unlabeled)"}' has a tuple with {arity} elements; expected 2{(allowRadius ? " or 3" : string.Empty)}.");
             }
 
-            var x = ParseTupleScalar(tuple.Children[0], label);
-            var y = ParseTupleScalar(tuple.Children[1], label);
-            var r = arity == 3 ? ParseTupleScalar(tuple.Children[2], label) : 0d;
+            var x = ParseTupleScalar(tuple.Items[0], label);
+            var y = ParseTupleScalar(tuple.Items[1], label);
+            var r = arity == 3 ? ParseTupleScalar(tuple.Items[2], label) : 0d;
             points.Add(new ChartPoint(x, y, r));
         }
 
@@ -329,9 +329,9 @@ public static class ChartParsers
     /// <param name="label">The series label, used in error messages.</param>
     /// <returns>The parsed finite double.</returns>
     /// <exception cref="TemplateParseException">Thrown when the value is non-numeric or non-finite.</exception>
-    private static double ParseTupleScalar(YamlNode node, string? label)
+    private static double ParseTupleScalar(TemplateNode node, string? label)
     {
-        if (node is YamlScalarNode scalar
+        if (node is TemplateScalar scalar
             && double.TryParse(scalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
             && double.IsFinite(d))
         {
@@ -339,6 +339,6 @@ public static class ChartParsers
         }
 
         throw new TemplateParseException(
-            $"Series '{label ?? "(unlabeled)"}' contains a non-numeric tuple value '{(node as YamlScalarNode)?.Value}'.");
+            $"Series '{label ?? "(unlabeled)"}' contains a non-numeric tuple value '{(node as TemplateScalar)?.Value}'.");
     }
 }

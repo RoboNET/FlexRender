@@ -1,14 +1,14 @@
-using YamlDotNet.RepresentationModel;
+using FlexRender.Parsing.Nodes;
 
 namespace FlexRender.Parsing;
 
 /// <summary>
-/// Defines the set of known YAML property names for each element type.
+/// Defines the set of known property names for each element type.
 /// Used to detect and report unknown/misspelled properties during parsing.
 /// </summary>
 /// <remarks>
 /// Property name matching is case-sensitive (ordinal comparison).
-/// All YAML property names must be lowercase (e.g., <c>"color"</c>, not <c>"Color"</c>).
+/// All property names must be lowercase (e.g., <c>"color"</c>, not <c>"Color"</c>).
 /// If an unknown property differs from a known one only by casing, the error message
 /// will include an explicit note about case-sensitivity.
 /// </remarks>
@@ -230,17 +230,17 @@ internal static class KnownProperties
         };
 
     /// <summary>
-    /// Validates that all keys in the given YAML mapping node are known properties for the specified element type.
+    /// Validates that all keys in the given mapping node are known properties for the specified element type.
     /// Throws <see cref="TemplateParseException"/> if unknown properties are found.
     /// </summary>
-    /// <param name="node">The YAML mapping node representing the element.</param>
+    /// <param name="node">The mapping node representing the element.</param>
     /// <param name="elementType">The element type name (e.g., "text", "flex").</param>
     /// <exception cref="TemplateParseException">
     /// Thrown when one or more unknown properties are found on the element.
     /// The message includes case-sensitivity hints when a property matches a known name
     /// but differs only by casing (e.g., <c>"Color"</c> vs <c>"color"</c>).
     /// </exception>
-    internal static void Validate(YamlMappingNode node, string elementType)
+    internal static void Validate(TemplateMapping node, string elementType)
     {
         if (!Registry.TryGetValue(elementType, out var knownProperties))
         {
@@ -250,15 +250,8 @@ internal static class KnownProperties
 
         List<string>? unknown = null;
 
-        foreach (var key in node.Children.Keys)
+        foreach (var keyName in node.Keys)
         {
-            if (key is not YamlScalarNode scalarKey || scalarKey.Value is null)
-            {
-                continue;
-            }
-
-            var keyName = scalarKey.Value;
-
             if (string.Equals(keyName, TypeKey, StringComparison.Ordinal))
             {
                 continue;

@@ -12,7 +12,7 @@ namespace FlexRender.Xml;
 /// </summary>
 public sealed class XmlTemplateParser : ITemplateParser
 {
-    private readonly TemplateParser _inner;
+    private readonly FlexRender.Parsing.TemplateEngine _engine;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XmlTemplateParser"/> class with default resource limits.
@@ -29,7 +29,7 @@ public sealed class XmlTemplateParser : ITemplateParser
     public XmlTemplateParser(ResourceLimits limits)
     {
         ArgumentNullException.ThrowIfNull(limits);
-        _inner = new TemplateParser(limits);
+        _engine = new FlexRender.Parsing.TemplateEngine(limits);
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public sealed class XmlTemplateParser : ITemplateParser
         }
 
         var root = XmlToYamlNodeConverter.Convert(content);
-        return _inner.ParseDocumentRoot(root);
+        return _engine.ParseDocumentRoot(YamlNodeConverter.Convert(root));
     }
 
     /// <summary>

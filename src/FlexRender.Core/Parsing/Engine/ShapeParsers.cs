@@ -1,17 +1,17 @@
 using System.Globalization;
 using FlexRender.Parsing.Ast;
-using YamlDotNet.RepresentationModel;
-using static FlexRender.Parsing.YamlPropertyHelpers;
+using FlexRender.Parsing.Nodes;
+using static FlexRender.Parsing.NodePropertyHelpers;
 
 namespace FlexRender.Parsing;
 
 /// <summary>
-/// Provides static helpers for parsing shape-related YAML constructs.
+/// Provides static helpers for parsing shape-related constructs.
 /// </summary>
 public static class ShapeParsers
 {
     /// <summary>
-    /// Converts a YAML gradient object (the <c>fill</c> object form) into FlexRender's
+    /// Converts a gradient object (the <c>fill</c> object form) into FlexRender's
     /// CSS gradient string so that the existing CSS gradient parser can be reused.
     /// </summary>
     /// <param name="node">The mapping node describing the gradient.</param>
@@ -20,7 +20,7 @@ public static class ShapeParsers
     /// Thrown when fewer than two colors are provided, or when the gradient type is not
     /// <c>linear</c> or <c>radial</c>.
     /// </exception>
-    public static string ConvertGradientObjectToCss(YamlMappingNode node)
+    public static string ConvertGradientObjectToCss(TemplateMapping node)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -29,9 +29,9 @@ public static class ShapeParsers
         var colors = new List<string>();
         if (TryGetSequence(node, "colors", out var colorsSeq))
         {
-            foreach (var item in colorsSeq.Children)
+            foreach (var item in colorsSeq.Items)
             {
-                if (item is YamlScalarNode scalar && !string.IsNullOrWhiteSpace(scalar.Value))
+                if (item is TemplateScalar scalar && !string.IsNullOrWhiteSpace(scalar.Value))
                 {
                     colors.Add(scalar.Value.Trim());
                 }
@@ -64,12 +64,12 @@ public static class ShapeParsers
     /// passes through unchanged; a mapping (the gradient object form) is converted to a CSS
     /// gradient string via <see cref="ConvertGradientObjectToCss"/>.
     /// </summary>
-    /// <param name="node">The YAML mapping node of the shape element.</param>
+    /// <param name="node">The mapping node of the shape element.</param>
     /// <returns>
     /// An <see cref="ExprValue{T}"/> containing the fill value (literal color/gradient string or
     /// an expression), or <c>default</c> when no <c>fill</c> property is present.
     /// </returns>
-    internal static ExprValue<string> ParseFill(YamlMappingNode node)
+    internal static ExprValue<string> ParseFill(TemplateMapping node)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -82,11 +82,11 @@ public static class ShapeParsers
     }
 
     /// <summary>
-    /// Parses a <c>rect</c> shape element from YAML.
+    /// Parses a <c>rect</c> shape element.
     /// </summary>
-    /// <param name="node">The YAML node containing the rect element definition.</param>
+    /// <param name="node">The mapping node containing the rect element definition.</param>
     /// <returns>The parsed <see cref="RectElement"/>.</returns>
-    internal static TemplateElement ParseRectElement(YamlMappingNode node)
+    internal static TemplateElement ParseRectElement(TemplateMapping node)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -107,13 +107,13 @@ public static class ShapeParsers
     }
 
     /// <summary>
-    /// Parses a <c>circle</c> shape element from YAML.
+    /// Parses a <c>circle</c> shape element.
     /// The <c>size</c> shorthand sets both Width and Height; it is applied after the common
     /// flex-item properties so that it overrides any explicit width/height.
     /// </summary>
-    /// <param name="node">The YAML node containing the circle element definition.</param>
+    /// <param name="node">The mapping node containing the circle element definition.</param>
     /// <returns>The parsed <see cref="CircleElement"/>.</returns>
-    internal static TemplateElement ParseCircleElement(YamlMappingNode node)
+    internal static TemplateElement ParseCircleElement(TemplateMapping node)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -143,11 +143,11 @@ public static class ShapeParsers
     }
 
     /// <summary>
-    /// Parses an <c>ellipse</c> shape element from YAML.
+    /// Parses an <c>ellipse</c> shape element.
     /// </summary>
-    /// <param name="node">The YAML node containing the ellipse element definition.</param>
+    /// <param name="node">The mapping node containing the ellipse element definition.</param>
     /// <returns>The parsed <see cref="EllipseElement"/>.</returns>
-    internal static TemplateElement ParseEllipseElement(YamlMappingNode node)
+    internal static TemplateElement ParseEllipseElement(TemplateMapping node)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -169,14 +169,14 @@ public static class ShapeParsers
     /// <summary>
     /// Parses a <c>draw</c> element together with its ordered list of absolute-coordinate shapes.
     /// </summary>
-    /// <param name="node">The YAML node containing the draw element definition.</param>
+    /// <param name="node">The mapping node containing the draw element definition.</param>
     /// <param name="maxShapes">The maximum number of shapes allowed per draw element.</param>
     /// <returns>The parsed <see cref="DrawElement"/>.</returns>
     /// <exception cref="TemplateParseException">
     /// Thrown when the number of shapes exceeds <paramref name="maxShapes"/>, when a shape mapping
     /// is malformed, or when path data cannot be parsed.
     /// </exception>
-    internal static TemplateElement ParseDrawElement(YamlMappingNode node, int maxShapes)
+    internal static TemplateElement ParseDrawElement(TemplateMapping node, int maxShapes)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -184,15 +184,15 @@ public static class ShapeParsers
 
         if (TryGetSequence(node, "shapes", out var shapesSeq))
         {
-            if (shapesSeq.Children.Count > maxShapes)
+            if (shapesSeq.Items.Count > maxShapes)
             {
                 throw new TemplateParseException(
-                    $"Draw element has {shapesSeq.Children.Count} shapes, which exceeds the maximum of {maxShapes} shapes per draw element.");
+                    $"Draw element has {shapesSeq.Items.Count} shapes, which exceeds the maximum of {maxShapes} shapes per draw element.");
             }
 
-            foreach (var item in shapesSeq.Children)
+            foreach (var item in shapesSeq.Items)
             {
-                if (item is not YamlMappingNode shapeNode)
+                if (item is not TemplateMapping shapeNode)
                 {
                     throw new TemplateParseException(
                         "Each entry in 'shapes' must be a mapping with one shape kind (line, polyline, rect, circle, path).");
@@ -218,10 +218,10 @@ public static class ShapeParsers
     /// Parses a single shape mapping, dispatching on its single shape-kind key
     /// (<c>line</c>, <c>polyline</c>, <c>rect</c>, <c>circle</c>, or <c>path</c>).
     /// </summary>
-    /// <param name="node">The YAML mapping node wrapping a single shape.</param>
+    /// <param name="node">The mapping node wrapping a single shape.</param>
     /// <returns>The parsed <see cref="DrawShape"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown when the shape kind is missing or unknown.</exception>
-    private static DrawShape ParseDrawShape(YamlMappingNode node)
+    private static DrawShape ParseDrawShape(TemplateMapping node)
     {
         if (TryGetMapping(node, "line", out var lineNode))
         {
@@ -261,7 +261,7 @@ public static class ShapeParsers
     /// <param name="defaultValue">Value used when the key is absent.</param>
     /// <returns>The parsed finite float.</returns>
     /// <exception cref="TemplateParseException">Thrown when the value is non-finite.</exception>
-    private static float GetFiniteFloatValue(YamlMappingNode node, string key, float defaultValue)
+    private static float GetFiniteFloatValue(TemplateMapping node, string key, float defaultValue)
     {
         var value = GetFloatValue(node, key, defaultValue);
         if (!float.IsFinite(value))
@@ -277,7 +277,7 @@ public static class ShapeParsers
     /// </summary>
     /// <param name="node">The mapping node describing the line.</param>
     /// <returns>The parsed <see cref="DrawLine"/>.</returns>
-    private static DrawLine ParseDrawLine(YamlMappingNode node)
+    private static DrawLine ParseDrawLine(TemplateMapping node)
         => new(
             GetFiniteFloatValue(node, "x1", 0f),
             GetFiniteFloatValue(node, "y1", 0f),
@@ -291,7 +291,7 @@ public static class ShapeParsers
     /// </summary>
     /// <param name="node">The mapping node describing the polyline.</param>
     /// <returns>The parsed <see cref="DrawPolyline"/>.</returns>
-    private static DrawPolyline ParseDrawPolyline(YamlMappingNode node)
+    private static DrawPolyline ParseDrawPolyline(TemplateMapping node)
         => new(
             ParsePoints(node),
             GetStringValue(node, "stroke"),
@@ -303,7 +303,7 @@ public static class ShapeParsers
     /// </summary>
     /// <param name="node">The mapping node describing the rectangle.</param>
     /// <returns>The parsed <see cref="DrawRect"/>.</returns>
-    private static DrawRect ParseDrawRect(YamlMappingNode node)
+    private static DrawRect ParseDrawRect(TemplateMapping node)
         => new(
             GetFiniteFloatValue(node, "x", 0f),
             GetFiniteFloatValue(node, "y", 0f),
@@ -319,7 +319,7 @@ public static class ShapeParsers
     /// </summary>
     /// <param name="node">The mapping node describing the circle.</param>
     /// <returns>The parsed <see cref="DrawCircle"/>.</returns>
-    private static DrawCircle ParseDrawCircle(YamlMappingNode node)
+    private static DrawCircle ParseDrawCircle(TemplateMapping node)
         => new(
             GetFiniteFloatValue(node, "cx", 0f),
             GetFiniteFloatValue(node, "cy", 0f),
@@ -334,7 +334,7 @@ public static class ShapeParsers
     /// <param name="node">The mapping node describing the path.</param>
     /// <returns>The parsed <see cref="DrawPath"/>.</returns>
     /// <exception cref="TemplateParseException">Thrown when the path data is malformed.</exception>
-    private static DrawPath ParseDrawPath(YamlMappingNode node)
+    private static DrawPath ParseDrawPath(TemplateMapping node)
     {
         var d = GetStringValue(node, "d") ?? string.Empty;
 
@@ -360,7 +360,7 @@ public static class ShapeParsers
     /// </summary>
     /// <param name="node">The mapping node containing the optional <c>points</c> sequence.</param>
     /// <returns>The parsed points in order; empty when no valid points are present.</returns>
-    private static List<PathPoint> ParsePoints(YamlMappingNode node)
+    private static List<PathPoint> ParsePoints(TemplateMapping node)
     {
         var points = new List<PathPoint>();
 
@@ -369,11 +369,11 @@ public static class ShapeParsers
             return points;
         }
 
-        foreach (var item in pointsSeq.Children)
+        foreach (var item in pointsSeq.Items)
         {
-            if (item is not YamlSequenceNode pair || pair.Children.Count < 2
-                || pair.Children[0] is not YamlScalarNode xScalar
-                || pair.Children[1] is not YamlScalarNode yScalar
+            if (item is not TemplateSequence pair || pair.Items.Count < 2
+                || pair.Items[0] is not TemplateScalar xScalar
+                || pair.Items[1] is not TemplateScalar yScalar
                 || !float.TryParse(xScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
                 || !float.TryParse(yScalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
             {
