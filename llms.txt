@@ -14,13 +14,15 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser
   Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, etc.
+  Parsing/Nodes/                # Format-neutral node model (TemplateMapping, TemplateSequence, TemplateScalar)
+  Parsing/Engine/               # Shared parsing engine (TemplateEngine, ElementParsers, ChartParsers, ShapeParsers, KnownProperties)
   TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
-src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
-  Parsing/                      # TemplateParser
-src/FlexRender.Xml/             # XML template parser, alternative to YAML (same Template AST)
-  Parsing/                      # XmlTemplateParser
+src/FlexRender.Yaml/            # YAML facade: YamlDotNet -> neutral nodes -> Core engine (-> Core + YamlDotNet)
+  Parsing/                      # TemplateParser (facade), YamlNodeConverter
+src/FlexRender.Xml/             # XML facade: XDocument -> neutral nodes -> Core engine (-> Core only)
+  Parsing/                      # XmlTemplateParser, XmlNodeConverter
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia.Render/     # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
@@ -617,7 +619,7 @@ Minimal, focused templates -- one feature per file:
 
 1. Create sealed AST class in `Parsing/Ast/` extending `TemplateElement`
 2. Add to `ElementType` enum
-3. Register parser in `TemplateParser._elementParsers` dictionary
+3. Register parser in `TemplateEngine._elementParsers` dictionary (Core; parser function in `Parsing/Engine/ElementParsers.cs`)
 4. Add layout calculation via switch pattern matching in `LayoutEngine`
 5. Add rendering in `SkiaRenderer.RenderNode()` or create a provider
 6. Write tests for each step
@@ -628,6 +630,7 @@ Minimal, focused templates -- one feature per file:
 |---------|-----------|---------------|
 | FlexRender.Core | -- | (none) |
 | FlexRender.Yaml | Core | YamlDotNet 16.3.0 |
+| FlexRender.Xml | Core | (none) |
 | FlexRender.Http | Core | (none) |
 | FlexRender.Skia.Render | Core | SkiaSharp 3.119.2 |
 | FlexRender.Skia | Skia.Render + providers | SkiaSharp 3.119.2 |

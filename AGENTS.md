@@ -27,14 +27,16 @@ src/FlexRender.Core/            # Core library (0 external dependencies)
     Units/                      # Unit, UnitParser, PaddingValues, PaddingParser, MarginValue, MarginValues
   Loaders/                      # FileResourceLoader, Base64ResourceLoader, EmbeddedResourceLoader
   Parsing/Ast/                  # Template, CanvasSettings, TemplateElement, TextElement, FlexElement, TableElement, TableColumn, TableRow, etc.
+  Parsing/Nodes/                # Format-neutral node model (TemplateMapping, TemplateSequence, TemplateScalar, TemplateNode)
+  Parsing/Engine/               # Shared parsing engine (TemplateEngine, ElementParsers, ChartParsers, ShapeParsers, KnownProperties, NodePropertyHelpers)
   TemplateEngine/               # TemplateProcessor, ExpressionLexer, ExpressionEvaluator, InlineExpressionParser, InlineExpressionEvaluator, FilterRegistry
     Filters/                    # ITemplateFilter, CurrencyFilter, NumberFilter, UpperFilter, LowerFilter, TrimFilter, TruncateFilter, FormatFilter
   Values/                       # TemplateValue hierarchy (StringValue, NumberValue, etc.)
 
-src/FlexRender.Yaml/            # YAML template parser (-> Core + YamlDotNet)
-  Parsing/                      # TemplateParser
-src/FlexRender.Xml/             # XML template parser, alternative to YAML (same Template AST); RenderXml extension
-  Parsing/                      # XmlTemplateParser
+src/FlexRender.Yaml/            # YAML facade: YamlDotNet -> neutral nodes -> Core engine (-> Core + YamlDotNet)
+  Parsing/                      # TemplateParser (facade), YamlNodeConverter
+src/FlexRender.Xml/             # XML facade: XDocument -> neutral nodes -> Core engine (-> Core only); RenderXml extension
+  Parsing/                      # XmlTemplateParser, XmlNodeConverter
 src/FlexRender.Http/            # HTTP resource loader (-> Core)
 src/FlexRender.Skia.Render/     # SkiaSharp renderer (-> Core + SkiaSharp)
   Abstractions/                 # ISkiaRenderer, IFontLoader, IImageLoader, IFontManager
@@ -90,6 +92,8 @@ FlexRender.Yaml  FlexRender.Http  FlexRender.Skia.Render  FlexRender.ImageSharp.
                                     |
                            FlexRender.MetaPackage  (references all)
 ```
+
+Note: `FlexRender.Xml` depends only on `FlexRender.Core` -- the shared parsing engine (`TemplateEngine` + element/chart/shape parsers) lives in Core and operates on the format-neutral node model. `FlexRender.Yaml` = Core + YamlDotNet; `FlexRender.Xml` = Core only. Neither format package depends on the other.
 
 ## SkiaSharp Native Assets on Linux
 
@@ -466,8 +470,8 @@ When debugging or testing the WASM playground (`src/FlexRender.Playground/`), us
 ### Add new element type
 
 1. Create AST model in `Parsing/Ast/` (sealed class extending `TemplateElement`)
-2. Add parser function in `TemplateParser.cs` -- register in `_elementParsers` dictionary
-3. Register all YAML properties in `KnownProperties.cs` (for YAML validation and typo suggestions)
+2. Add parser function in `Parsing/Engine/ElementParsers.cs` (Core) -- register in `TemplateEngine._elementParsers` dictionary
+3. Register all properties in `Parsing/Engine/KnownProperties.cs` (Core; for validation and typo suggestions)
 4. Add flex-item property support via `switch` pattern matching in layout engine
 5. Add rendering in `SkiaRenderer.RenderNode()` or create a provider
 6. Write tests for each step
