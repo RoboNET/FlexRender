@@ -54,6 +54,7 @@ jobs:
           for project in \
             src/FlexRender.Core/FlexRender.Core.csproj \
             src/FlexRender.Yaml/FlexRender.Yaml.csproj \
+            src/FlexRender.Xml/FlexRender.Xml.csproj \
             src/FlexRender.Http/FlexRender.Http.csproj \
             src/FlexRender.Skia.Render/FlexRender.Skia.Render.csproj \
             src/FlexRender.ImageSharp.Render/FlexRender.ImageSharp.Render.csproj \
