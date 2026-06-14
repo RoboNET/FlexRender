@@ -355,7 +355,8 @@ internal static class ChartRenderer
         var hasTitle = !string.IsNullOrEmpty(chart.Title);
         var plot = ChartLayout.ComputePlotArea(
             width, height, hasTitle, chart.Legend,
-            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f);
+            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f,
+            topGutter: theme.LabelSize * 0.6f);
 
         var palette = chart.Palette ?? ChartPalettes.Default;
 
@@ -550,7 +551,8 @@ internal static class ChartRenderer
         var hasTitle = !string.IsNullOrEmpty(chart.Title);
         var plot = ChartLayout.ComputePlotArea(
             width, height, hasTitle, chart.Legend,
-            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f);
+            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f,
+            topGutter: theme.LabelSize * 0.6f);
 
         DrawGridAndYAxis(canvas, theme, plot, scale, typeface, antialias);
 
@@ -683,7 +685,8 @@ internal static class ChartRenderer
         var hasTitle = !string.IsNullOrEmpty(chart.Title);
         var plot = ChartLayout.ComputePlotArea(
             width, height, hasTitle, chart.Legend,
-            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f);
+            axisGutterLeft: 44f, axisGutterBottom: 22f, titleHeight: theme.TitleSize + 8f, legendExtent: 28f,
+            topGutter: theme.LabelSize * 0.6f);
 
         DrawGridAndYAxis(canvas, theme, plot, yScale, typeface, antialias);
 

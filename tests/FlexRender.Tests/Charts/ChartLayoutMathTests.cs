@@ -14,10 +14,11 @@ public sealed class ChartLayoutMathTests
         var plot = ChartLayout.ComputePlotArea(
             width: 600f, height: 300f,
             hasTitle: false, legend: LegendPosition.None,
-            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f);
+            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f,
+            topGutter: 8f);
 
         Assert.Equal(40f, plot.Left);
-        Assert.Equal(0f, plot.Top);
+        Assert.Equal(8f, plot.Top);
         Assert.Equal(600f - 40f, plot.Right);
         Assert.Equal(300f - 24f, plot.Bottom);
     }
@@ -28,9 +29,23 @@ public sealed class ChartLayoutMathTests
         var plot = ChartLayout.ComputePlotArea(
             width: 600f, height: 300f,
             hasTitle: true, legend: LegendPosition.None,
-            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f);
+            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f,
+            topGutter: 8f);
 
-        Assert.Equal(24f, plot.Top);
+        Assert.Equal(24f + 8f, plot.Top);
+    }
+
+    [Fact]
+    public void ComputePlotArea_NoTitleWithTopGutter_ReservesHeadroom()
+    {
+        const float topGutter = 10f;
+        var plot = ChartLayout.ComputePlotArea(
+            width: 600f, height: 300f,
+            hasTitle: false, legend: LegendPosition.None,
+            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f,
+            topGutter: topGutter);
+
+        Assert.True(plot.Top >= topGutter);
     }
 
     [Fact]
@@ -39,7 +54,8 @@ public sealed class ChartLayoutMathTests
         var plot = ChartLayout.ComputePlotArea(
             width: 600f, height: 300f,
             hasTitle: false, legend: LegendPosition.Bottom,
-            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f);
+            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f,
+            topGutter: 8f);
 
         Assert.Equal(300f - 24f - 60f, plot.Bottom);
     }
@@ -50,7 +66,8 @@ public sealed class ChartLayoutMathTests
         var plot = ChartLayout.ComputePlotArea(
             width: 600f, height: 300f,
             hasTitle: false, legend: LegendPosition.Right,
-            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f);
+            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f,
+            topGutter: 8f);
 
         Assert.Equal(600f - 40f - 60f, plot.Right);
     }
@@ -61,7 +78,8 @@ public sealed class ChartLayoutMathTests
         var plot = ChartLayout.ComputePlotArea(
             width: 30f, height: 20f,
             hasTitle: true, legend: LegendPosition.Bottom,
-            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f);
+            axisGutterLeft: 40f, axisGutterBottom: 24f, titleHeight: 24f, legendExtent: 60f,
+            topGutter: 8f);
 
         Assert.True(plot.Right >= plot.Left);
         Assert.True(plot.Bottom >= plot.Top);

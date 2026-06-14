@@ -35,6 +35,12 @@ public static class ChartLayout
     /// <param name="axisGutterBottom">The bottom gutter reserved for x-axis labels.</param>
     /// <param name="titleHeight">The title band height when <paramref name="hasTitle"/> is true.</param>
     /// <param name="legendExtent">The legend band size (height for top/bottom, width for left/right).</param>
+    /// <param name="topGutter">
+    /// Headroom reserved at the very top of the plot, regardless of whether a title is present.
+    /// This clears the upper half of the topmost y-axis tick label (drawn centered at the plot top)
+    /// and gives the tallest bar or line point breathing room so neither is clipped against the
+    /// chart box top edge.
+    /// </param>
     /// <returns>The computed <see cref="PlotArea"/>, never inverted.</returns>
     public static PlotArea ComputePlotArea(
         float width,
@@ -44,10 +50,11 @@ public static class ChartLayout
         float axisGutterLeft,
         float axisGutterBottom,
         float titleHeight,
-        float legendExtent)
+        float legendExtent,
+        float topGutter = 0f)
     {
         var left = axisGutterLeft;
-        var top = hasTitle ? titleHeight : 0f;
+        var top = (hasTitle ? titleHeight : 0f) + topGutter;
         // Mirror the left gutter on the right so series geometry and edge labels are not clipped.
         var right = width - axisGutterLeft;
         var bottom = height - axisGutterBottom;
