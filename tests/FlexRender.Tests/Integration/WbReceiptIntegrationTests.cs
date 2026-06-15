@@ -107,8 +107,10 @@ public class WbReceiptIntegrationTests : IDisposable
 
         Assert.Null(exception);
 
-        // The text background should be black
-        var pixel = bitmap.GetPixel(10, 15);
+        // A pixel inside the element's top-left padding band must be the black
+        // background (padding is 8px, so (2,2) is inside the box but never covered
+        // by a glyph — glyphs are inset by the padding per the box model).
+        var pixel = bitmap.GetPixel(2, 2);
         Assert.Equal(0, pixel.Red);
         Assert.Equal(0, pixel.Green);
         Assert.Equal(0, pixel.Blue);
