@@ -401,8 +401,10 @@ public sealed class LayoutEngine
             MirrorRowXPositions(node, effectivePadding);
         }
 
-        // Calculate height if not specified (skip for wrapped containers — they set height in LayoutWrappedFlex)
-        if (height == 0f && node.Children.Count > 0 && flex.Wrap.Value == FlexWrap.NoWrap)
+        // Compute auto height when the strategy did not set it — covers no-wrap and
+        // column-wrap. Row-wrap already sets height (its cross axis), so node.Height is
+        // non-zero there and this is skipped.
+        if (height == 0f && node.Children.Count > 0 && node.Height == 0f)
         {
             node.Height = LayoutHelpers.CalculateTotalHeight(node) + effectivePadding.Bottom;
         }
@@ -594,6 +596,7 @@ public sealed class LayoutEngine
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
         var node = new LayoutNode(text, 0, 0, totalWidth, totalHeight);
+        node.ContentInset = CombineInset(padding, border);
         node.TextLines = textLines;
         node.ComputedLineHeight = computedLineHeight;
         node.Baseline = padding.Top + border.Top.Width + textBaseline;
@@ -663,7 +666,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(qr, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
+        return new LayoutNode(qr, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize, ContentInset = CombineInset(padding, border) };
     }
 
     /// <summary>
@@ -683,7 +686,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(barcode, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
+        return new LayoutNode(barcode, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize, ContentInset = CombineInset(padding, border) };
     }
 
     /// <summary>
@@ -702,7 +705,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(image, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
+        return new LayoutNode(image, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize, ContentInset = CombineInset(padding, border) };
     }
 
     /// <summary>
@@ -720,7 +723,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(svg, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
+        return new LayoutNode(svg, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize, ContentInset = CombineInset(padding, border) };
     }
 
     /// <summary>
@@ -750,7 +753,7 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(separator, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
+        return new LayoutNode(separator, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize, ContentInset = CombineInset(padding, border) };
     }
 
     /// <summary>
@@ -773,8 +776,22 @@ public sealed class LayoutEngine
         var totalWidth = contentWidth + padding.Horizontal + border.Horizontal;
         var totalHeight = contentHeight + padding.Vertical + border.Vertical;
 
-        return new LayoutNode(shape, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize };
+        return new LayoutNode(shape, 0, 0, totalWidth, totalHeight) { ComputedFontSize = context.FontSize, ContentInset = CombineInset(padding, border) };
     }
+
+    /// <summary>
+    /// Combines padding and border widths into a single content inset (per side).
+    /// This is the distance from a leaf element's box edge to its content area, used by
+    /// renderers to inset content while keeping the background and border on the full box.
+    /// </summary>
+    /// <param name="padding">The resolved padding values (already clamped to non-negative).</param>
+    /// <param name="border">The resolved border values for all four sides.</param>
+    /// <returns>The combined content inset per side.</returns>
+    private static PaddingValues CombineInset(PaddingValues padding, BorderValues border) => new(
+        padding.Top + border.Top.Width,
+        padding.Right + border.Right.Width,
+        padding.Bottom + border.Bottom.Width,
+        padding.Left + border.Left.Width);
 
     /// <summary>
     /// Checks whether any flow (non-absolute) child in the node has a non-default

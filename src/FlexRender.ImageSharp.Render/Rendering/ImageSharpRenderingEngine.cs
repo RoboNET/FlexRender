@@ -202,16 +202,22 @@ internal sealed class ImageSharpRenderingEngine
         var effectiveFontSize = node.ComputedFontSize > 0 ? node.ComputedFontSize : _baseFontSize;
         var rotation = RotationHelper.ParseRotation(element.Rotate.Value);
 
+        // Content is inset by padding + border so it sits inside the box on all sides.
+        // The background (drawn by the caller) keeps using the full box.
+        var inset = node.ContentInset;
+        var cw = Math.Max(0f, width - inset.Horizontal);
+        var ch = Math.Max(0f, height - inset.Vertical);
+
         if (RotationHelper.HasRotation(rotation))
         {
             DrawWithRotation(ctx, x, y, width, height, rotation, bufferCtx =>
             {
-                DrawElementContent(bufferCtx, element, 0, 0, width, height, effectiveFontSize, imageCache);
+                DrawElementContent(bufferCtx, element, inset.Left, inset.Top, cw, ch, effectiveFontSize, imageCache);
             });
         }
         else
         {
-            DrawElementContent(ctx, element, x, y, width, height, effectiveFontSize, imageCache);
+            DrawElementContent(ctx, element, x + inset.Left, y + inset.Top, cw, ch, effectiveFontSize, imageCache);
         }
     }
 

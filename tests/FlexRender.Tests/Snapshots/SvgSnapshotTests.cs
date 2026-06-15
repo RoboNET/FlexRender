@@ -251,4 +251,27 @@ public sealed class SvgSnapshotTests : SvgSnapshotTestBase
 
         await AssertSvgSnapshot("svg_barcode_basic", template, new ObjectValue());
     }
+
+    /// <summary>
+    /// Tests that a leaf element's padding insets its content on all sides.
+    /// A top-level text element with uniform padding and a visible background
+    /// must keep its background on the full box while the text lines are
+    /// inset by the padding on the top and left (not only bottom and right).
+    /// </summary>
+    [Fact]
+    public async Task SvgLeafPaddingInsetsContent()
+    {
+        var template = CreateTemplate(300, 200);
+
+        template.AddElement(new TextElement
+        {
+            Content = "Line one of padded text\nLine two of padded text\nLine three",
+            Size = "16",
+            Color = "#003366",
+            Background = "#cce5ff",
+            Padding = "40"
+        });
+
+        await AssertSvgSnapshot("svg_leaf_padding_insets_content", template, new ObjectValue());
+    }
 }

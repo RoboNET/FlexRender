@@ -320,7 +320,7 @@ The release workflow (`.github/workflows/release.yml`) publishes all packages to
 
 | Category | Packages |
 |----------|----------|
-| Core | `FlexRender.Core`, `FlexRender.Yaml`, `FlexRender.Http` |
+| Core | `FlexRender.Core`, `FlexRender.Yaml`, `FlexRender.Xml`, `FlexRender.Http` |
 | Renderers | `FlexRender.Skia.Render`, `FlexRender.ImageSharp.Render`, `FlexRender.Svg.Render` |
 | QR providers | `FlexRender.QrCode.Skia.Render`, `FlexRender.QrCode.ImageSharp.Render`, `FlexRender.QrCode.Svg.Render` |
 | Barcode providers | `FlexRender.Barcode.Skia.Render`, `FlexRender.Barcode.ImageSharp.Render`, `FlexRender.Barcode.Svg.Render` |

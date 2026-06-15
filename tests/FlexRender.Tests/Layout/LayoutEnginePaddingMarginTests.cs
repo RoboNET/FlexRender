@@ -1264,4 +1264,38 @@ public class LayoutEnginePaddingMarginTests
         // Stretch height = 200 - 10 - 10 = 180
         Assert.Equal(180f, child.Height, 1);
     }
+
+    /// <summary>
+    /// Verifies that a top-level leaf element's trailing (bottom) margin is included in
+    /// the auto-computed canvas height. Regression test for the box-model bug where the
+    /// canvas auto-height excluded the last child's bottom margin (issue #10).
+    /// </summary>
+    [Fact]
+    public void TextElement_WithMargin_TrailingBottomMarginIncludedInCanvasHeight()
+    {
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 200, Fixed = FixedDimension.Width },
+            Elements = new List<TemplateElement>
+            {
+                new TextElement
+                {
+                    Content = "Test",
+                    Size = "16",
+                    Margin = "80"
+                }
+            }
+        };
+
+        var root = _engine.ComputeLayout(template);
+        var textNode = root.Children[0];
+
+        // The canvas auto-height must include the child's bottom margin, not just its
+        // box bottom edge. child.Y already includes the top margin (80), so the canvas
+        // height must reach at least child.Y + child.Height + bottomMargin(80).
+        var expectedMinHeight = textNode.Y + textNode.Height + 80f;
+        Assert.True(
+            root.Height >= expectedMinHeight,
+            $"Canvas height {root.Height} should include trailing bottom margin (>= {expectedMinHeight}).");
+    }
 }

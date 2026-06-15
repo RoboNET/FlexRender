@@ -418,4 +418,41 @@ public class LayoutEngineWrapTests
         Assert.Equal(100f, flexNode.Height, 0.1f);
         Assert.Empty(flexNode.Children);
     }
+
+    [Fact]
+    public void ComputeLayout_ColumnWrap_NoExplicitHeight_SizesToContentIncludingBottomMargin()
+    {
+        // Arrange: Column wrap, no explicit height, two children W=120 H=40 margin=20.
+        // Single column (no main-axis constraint): both stack on the main axis (Y).
+        // Item A: Y=20 (top margin), H=40 -> bottom edge 60, +bottom margin 20 -> 80.
+        // Item B: Y=100 (60 + bottom margin 20 + top margin 20), H=40 -> bottom edge 140, +bottom margin 20 -> 160.
+        // Container auto-height must size to content = 160 (previously collapsed to ~0).
+        var flex = new FlexElement
+        {
+            Direction = FlexDirection.Column,
+            Wrap = FlexWrap.Wrap
+        };
+        flex.AddChild(new TextElement { Content = "AAAA", Width = "120", Height = "40", Margin = "20" });
+        flex.AddChild(new TextElement { Content = "BBBB", Width = "120", Height = "40", Margin = "20" });
+
+        var template = new Template
+        {
+            Canvas = new CanvasSettings { Width = 300 },
+            Elements = new List<TemplateElement> { flex }
+        };
+
+        // Act
+        var root = _engine.ComputeLayout(template);
+
+        // Assert
+        var flexNode = root.Children[0];
+
+        Assert.Equal(20f, flexNode.Children[0].Y, 0.1f);
+        Assert.Equal(40f, flexNode.Children[0].Height, 0.1f);
+        Assert.Equal(100f, flexNode.Children[1].Y, 0.1f);
+        Assert.Equal(40f, flexNode.Children[1].Height, 0.1f);
+
+        // Container auto-height includes the trailing bottom margin of the last child.
+        Assert.Equal(160f, flexNode.Height, 0.1f);
+    }
 }
