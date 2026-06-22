@@ -93,12 +93,23 @@ public sealed class NdcBinaryParserTests
     [InlineData("utf-8")]
     [InlineData("utf8")]
     [InlineData("ascii")]
-    [InlineData("unknown")]
+    [InlineData("iso-8859-5")]
+    [InlineData("28595")]
     public void ResolveEncoding_ReturnsValidEncoding(string name)
     {
         var encoding = NdcContentParser.ResolveEncoding(name);
 
         Assert.NotNull(encoding);
+    }
+
+    [Theory]
+    [InlineData("iso-8859-5")]
+    [InlineData("28595")]
+    public void ResolveEncoding_Iso88595_ByNameOrCodePage_ResolvesToCodePage28595(string name)
+    {
+        var encoding = NdcContentParser.ResolveEncoding(name);
+
+        Assert.Equal(28595, encoding.CodePage);
     }
 
     [Fact]
@@ -122,8 +133,66 @@ public sealed class NdcBinaryParserTests
     }
 
     [Fact]
-    public void ResolveEncoding_Unknown_DefaultsToLatin1()
+    public void ResolveEncoding_Unknown_Throws()
     {
-        Assert.Same(global::System.Text.Encoding.Latin1, NdcContentParser.ResolveEncoding("something-else"));
+        var ex = Assert.Throws<NotSupportedException>(
+            () => NdcContentParser.ResolveEncoding("something-else"));
+
+        Assert.Contains("something-else", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ResolveEncoding_UnknownCodePage_Throws()
+    {
+        var ex = Assert.Throws<NotSupportedException>(
+            () => NdcContentParser.ResolveEncoding("999999"));
+
+        Assert.Contains("999999", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ParseBytes_WithIso88595Encoding_DecodesCyrillic()
+    {
+        var parser = new NdcContentParser();
+        // Cyrillic text encoded with ISO-8859-5 (code page 28595). The default
+        // NDC charset uses "none" encoding, so the decoded Unicode survives unchanged.
+        // GetEncoding(28595) succeeds here because the parser's static constructor
+        // already registered the code-pages provider.
+        var text = "Привет";
+        var iso88595 = global::System.Text.Encoding.GetEncoding(28595);
+        var data = iso88595.GetBytes(text);
+        var options = new Dictionary<string, object>
+        {
+            ["input_encoding"] = "iso-8859-5"
+        };
+
+        var result = parser.Parse(data, EmptyContext, options);
+
+        var root = Assert.IsType<FlexElement>(Assert.Single(result));
+        var row = Assert.IsType<FlexElement>(root.Children[0]);
+        var textElement = Assert.IsType<TextElement>(row.Children[0]);
+        Assert.Equal("Привет", textElement.Content);
+    }
+
+    [Fact]
+    public void ParseBytes_WithNumericInputEncoding_DecodesCyrillic()
+    {
+        var parser = new NdcContentParser();
+        // input_encoding arrives as a boxed int (as YAML numeric scalars do), not a string.
+        // The binary path must coerce it to its string form so the numeric code page resolves.
+        var text = "Привет";
+        var iso88595 = global::System.Text.Encoding.GetEncoding(28595);
+        var data = iso88595.GetBytes(text);
+        var options = new Dictionary<string, object>
+        {
+            ["input_encoding"] = 28595
+        };
+
+        var result = parser.Parse(data, EmptyContext, options);
+
+        var root = Assert.IsType<FlexElement>(Assert.Single(result));
+        var row = Assert.IsType<FlexElement>(root.Children[0]);
+        var textElement = Assert.IsType<TextElement>(row.Children[0]);
+        Assert.Equal("Привет", textElement.Content);
     }
 }

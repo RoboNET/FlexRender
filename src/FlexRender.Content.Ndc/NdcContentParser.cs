@@ -13,6 +13,17 @@ namespace FlexRender.Content.Ndc;
 /// </summary>
 public sealed class NdcContentParser : IContentParser, IBinaryContentParser
 {
+    /// <summary>
+    /// Registers the code-pages encoding provider exactly once so that non-Latin1
+    /// ISO/Windows code pages (e.g. ISO-8859-5 / code page 28595) are available to
+    /// <see cref="Encoding.GetEncoding(string)"/> and <see cref="Encoding.GetEncoding(int)"/>.
+    /// Static initialization is thread-safe and runs before any member is accessed.
+    /// </summary>
+    static NdcContentParser()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
     /// <inheritdoc />
     public string FormatName => "ndc";
 
@@ -43,8 +54,8 @@ public sealed class NdcContentParser : IContentParser, IBinaryContentParser
             return [];
 
         var encodingName = "latin1";
-        if (options is not null && options.TryGetValue("input_encoding", out var enc) && enc is string encStr)
-            encodingName = encStr;
+        if (options is not null && options.TryGetValue("input_encoding", out var enc) && enc is not null)
+            encodingName = enc.ToString() ?? "latin1";
 
         var encoding = ResolveEncoding(encodingName);
         var textContent = encoding.GetString(data.Span);
@@ -52,21 +63,44 @@ public sealed class NdcContentParser : IContentParser, IBinaryContentParser
     }
 
     /// <summary>
-    /// Resolves a human-friendly encoding name to a <see cref="System.Text.Encoding"/> instance.
+    /// Resolves an encoding identifier to a <see cref="System.Text.Encoding"/> instance.
     /// </summary>
     /// <param name="name">
-    /// The encoding name. Supported values: <c>latin1</c>, <c>iso-8859-1</c>, <c>utf-8</c>,
-    /// <c>utf8</c>, <c>ascii</c>. Unrecognized values default to Latin-1.
+    /// The encoding identifier. All values are resolved through <see cref="Encoding.GetEncoding(string)"/>
+    /// (encoding names such as <c>latin1</c>, <c>iso-8859-1</c>, <c>iso-8859-5</c>, <c>utf-8</c>, <c>ascii</c>)
+    /// or <see cref="Encoding.GetEncoding(int)"/> (numeric code pages such as <c>28595</c>). Common names
+    /// already return the corresponding framework singletons. The dashless <c>utf8</c> alias is mapped to
+    /// <c>utf-8</c> for backward compatibility. Non-Latin1 ISO/Windows code pages are supported through the
+    /// registered code-pages provider.
     /// </param>
     /// <returns>The resolved <see cref="System.Text.Encoding"/>.</returns>
-    internal static Encoding ResolveEncoding(string name) =>
-        name.ToLowerInvariant() switch
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when <paramref name="name"/> does not correspond to a known encoding name or code page.
+    /// </exception>
+    internal static Encoding ResolveEncoding(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        var trimmed = name.Trim();
+
+        // GetEncoding does not recognize the dashless "utf8" form; map it to the canonical "utf-8".
+        if (string.Equals(trimmed, "utf8", StringComparison.OrdinalIgnoreCase))
+            trimmed = "utf-8";
+
+        try
         {
-            "latin1" or "iso-8859-1" => Encoding.Latin1,
-            "utf-8" or "utf8" => Encoding.UTF8,
-            "ascii" => Encoding.ASCII,
-            _ => Encoding.Latin1
-        };
+            return int.TryParse(trimmed, System.Globalization.CultureInfo.InvariantCulture, out var codePage)
+                ? Encoding.GetEncoding(codePage)
+                : Encoding.GetEncoding(trimmed);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            throw new NotSupportedException(
+                $"Unknown or unsupported input encoding: '{name}'. Use a known encoding name (e.g. 'iso-8859-5') or a numeric code page (e.g. '28595').",
+                ex);
+        }
+    }
 
     private static int CalculateMaxLineWidth(List<NdcToken> tokens, int tabWidth = 8)
     {
